@@ -1,0 +1,197 @@
+[
+  {
+    "question": "Как экструдировать грань или ребро?",
+    "keywords": ["экструд", "extrude", "выдавить", "выдавливание"],
+    "answer": "Выдели элемент (вершину, ребро, грань) в Edit Mode и нажми E — это Extrude. Двигай мышью и жми ЛКМ, чтобы подтвердить. Можно ограничить ось: E, затем X/Y/Z."
+  },
+  {
+    "question": "Как сделать булеан (Boolean)?",
+    "keywords": ["булеан", "boolean", "вычитание", "объединение объектов"],
+    "answer": "Добавь модификатор Boolean на объект (Modifier Properties → Add Modifier → Boolean), выбери второй объект и операцию: Union (объединение), Difference (вычитание) или Intersect (пересечение). После применения второй объект обычно скрывают или удаляют."
+  },
+  {
+    "question": "Что такое Subdivision Surface?",
+    "keywords": ["subdivision", "сабдив", "сглаживание", "subsurf"],
+    "answer": "Subdivision Surface — модификатор, который сглаживает меш, добавляя дополнительные подразделения полигонов. Ctrl+1..5 быстро применяет уровень подразделения к выделенному объекту в Object Mode."
+  },
+  {
+    "question": "Как развернуть UV (UV unwrap)?",
+    "keywords": ["uv", "развертка", "unwrap", "развернуть"],
+    "answer": "В Edit Mode выдели швы (Ctrl+E → Mark Seam), выдели весь меш (A) и нажми U → Unwrap. Результат смотри в UV Editor. Для простых форм можно использовать Smart UV Project."
+  },
+  {
+    "question": "В чем разница между Cycles и Eevee?",
+    "keywords": ["cycles", "eevee", "рендер движок", "разница рендер"],
+    "answer": "Eevee — растровый (rasterization) движок реального времени, быстрый, но с упрощенной физикой света. Cycles — path-tracing движок, физически точный (глобальное освещение, каустика), но медленнее. Eevee подходит для превью и быстрого рендера, Cycles — для фотореалистичной картинки."
+  },
+  {
+    "question": "Как настроить материал через Principled BSDF?",
+    "keywords": ["material", "материал", "principled", "bsdf", "shader"],
+    "answer": "В Shading Workspace или Material Properties добавь материал — по умолчанию создается нода Principled BSDF. Base Color задает цвет, Metallic/Roughness — металличность и шероховатость, Normal — вход для карт нормалей через Normal Map node."
+  },
+  {
+    "question": "Как рендерить анимацию?",
+    "keywords": ["рендер анимации", "render animation", "экспорт видео"],
+    "answer": "Настрой Output Properties (путь, формат — например FFmpeg Video для mp4), задай диапазон кадров в Timeline, затем Render → Render Animation (Ctrl+F12)."
+  },
+  {
+    "question": "Как использовать модификатор Mirror?",
+    "keywords": ["mirror", "зеркало", "симметрия модификатор"],
+    "answer": "Add Modifier → Mirror. Он отражает меш по выбранной оси относительно origin объекта. Включи Clipping, чтобы вершины на оси не расходились при редактировании."
+  },
+  {
+    "question": "Как включить симметрию при скульптинге?",
+    "keywords": ["симметрия скульпт", "sculpt symmetry", "x symmetry"],
+    "answer": "В Sculpt Mode на верхней панели включи Symmetry по нужной оси (X/Y/Z). Также можно настроить Radial symmetry для повторяющихся элементов."
+  },
+  {
+    "question": "Как создать риг (Armature)?",
+    "keywords": ["риг", "rig", "armature", "кости", "скелет"],
+    "answer": "Add → Armature добавляет кость. В Edit Mode кости можно вытягивать (E) и создавать иерархию. Дальше меш привязывается через Parent → Armature Deform (Ctrl+P), веса настраиваются в Weight Paint Mode."
+  },
+  {
+    "question": "Как работает Weight Paint?",
+    "keywords": ["weight paint", "вес вершин", "покраска весов"],
+    "answer": "Weight Paint Mode позволяет вручную задавать, насколько сильно кость влияет на вершины меша (от синего 0 до красного 1). Используется после привязки меша к арматуре для коррекции деформаций."
+  },
+  {
+    "question": "Как работает система частиц (Particle System)?",
+    "keywords": ["particle", "частицы", "трава", "волосы"],
+    "answer": "Particle Properties → New. Тип Hair используется для волос/травы, Emitter — для частиц типа снега, дыма и т.п. Настраивается количество, время жизни, физика и рендер (объект/коллекция вместо частицы)."
+  },
+  {
+    "question": "Как импортировать или экспортировать модель в другом формате?",
+    "keywords": ["импорт", "экспорт", "fbx", "obj", "gltf", "import export"],
+    "answer": "File → Import / Export. Blender поддерживает FBX, OBJ, glTF/GLB, STL, Alembic, USD и другие. glTF/GLB — стандарт для игровых движков и веба, FBX — для игр и обмена с другими 3D-пакетами."
+  },
+  {
+    "question": "Как настроить освещение через HDRI?",
+    "keywords": ["hdri", "освещение", "world lighting", "окружение"],
+    "answer": "World Properties → Color → Environment Texture, загрузи HDRI-изображение. Это даст реалистичное окружающее освещение и отражения. Хорошие бесплатные HDRI — на Poly Haven."
+  },
+  {
+    "question": "Как ускорить рендер в Cycles?",
+    "keywords": ["ускорить рендер", "denoise", "sampling", "медленный рендер"],
+    "answer": "Уменьши количество Samples, включи Denoising (OpenImageDenoise или OptiX), используй GPU-рендеринг (Preferences → System → GPU), ограничь Light Bounces и разрешение при тестовых рендерах."
+  },
+  {
+    "question": "Что такое Node Editor / Shader Editor?",
+    "keywords": ["node editor", "shader editor", "ноды", "shading"],
+    "answer": "Shader Editor — визуальный редактор нод для создания материалов: соединяешь ноды текстур, математики и BSDF, чтобы описать, как поверхность взаимодействует со светом."
+  },
+  {
+    "question": "Что такое Geometry Nodes?",
+    "keywords": ["geometry nodes", "геометрические ноды", "procedural"],
+    "answer": "Geometry Nodes — система процедурного создания и модификации геометрии через ноды: рассеивание объектов, генерация форм, процедурные эффекты без ручного моделирования каждого элемента."
+  },
+  {
+    "question": "Как анимировать по ключевым кадрам?",
+    "keywords": ["keyframe", "ключевой кадр", "анимация ключи"],
+    "answer": "Установи курсор времени на нужный кадр, измени параметр объекта (позиция/поворот/масштаб и т.д.) и нажми I над нужным полем или Object → выбери канал → Insert Keyframe (горячая клавиша I)."
+  },
+  {
+    "question": "Как работает физика ткани (Cloth)?",
+    "keywords": ["cloth", "ткань", "физика ткани"],
+    "answer": "Physics Properties → Cloth на объекте-ткани. Настрой Quality Steps, Stiffness (жесткость), Collision (для взаимодействия с другими объектами, у которых включен Collision modifier)."
+  },
+  {
+    "question": "Как работает Rigid Body физика?",
+    "keywords": ["rigid body", "твердое тело", "физика столкновений"],
+    "answer": "Physics Properties → Rigid Body: Active — объект падает и реагирует на столкновения, Passive — статичное препятствие. Для группы объектов удобно использовать Rigid Body World и Constraints."
+  },
+  {
+    "question": "Как настроить симуляцию жидкости (Fluid)?",
+    "keywords": ["fluid", "жидкость", "вода симуляция"],
+    "answer": "Physics Properties → Fluid: один объект делаешь Domain, другой (источник жидкости) — Flow типа Liquid. Требуется закешировать симуляцию (Cache → Bake) перед рендером."
+  },
+  {
+    "question": "Что такое трекинг камеры (Camera Tracking)?",
+    "keywords": ["camera tracking", "трекинг", "motion tracking", "vfx"],
+    "answer": "Motion Tracking Workspace позволяет отследить движение камеры по видео (Track markers → Solve Camera Motion), чтобы встроить 3D-объекты в реальное видео."
+  },
+  {
+    "question": "Как установить аддон (add-on)?",
+    "keywords": ["addon", "аддон", "плагин", "установить дополнение"],
+    "answer": "Edit → Preferences → Add-ons → Install, выбери .zip файл аддона, затем включи галочку рядом с его именем. Некоторые аддоны встроены в Blender и их нужно просто включить."
+  },
+  {
+    "question": "Что такое Grease Pencil?",
+    "keywords": ["grease pencil", "2d рисование", "гризпенсил"],
+    "answer": "Grease Pencil — инструмент для 2D-рисования и 2D-анимации прямо в 3D-сцене Blender. Используется для сторибордов, 2D-анимации и NPR (не фотореалистичной) графики."
+  },
+  {
+    "question": "Что такое Dyntopo и Multires в скульптинге?",
+    "keywords": ["dyntopo", "multires", "скульпт детализация"],
+    "answer": "Dyntopo динамически добавляет геометрию там, где ты скульптишь, без базовой топологии. Multires modifier добавляет уровни подразделения с возможностью скульптить детали на высоком уровне и переключаться между уровнями."
+  },
+  {
+    "question": "Как красить текстуру прямо на модели (Texture Paint)?",
+    "keywords": ["texture paint", "покраска текстуры", "рисование по модели"],
+    "answer": "Texture Paint Mode: назначь модели материал с Image Texture, создай/выбери изображение и рисуй кистью прямо по поверхности модели."
+  },
+  {
+    "question": "Как запечь текстуры (Bake)?",
+    "keywords": ["bake", "запекание текстур", "запечь"],
+    "answer": "Render Properties (движок Cycles) → Bake. Выбери тип (Diffuse, Normal, AO и т.д.), назначь целевое изображение на объекте через Image Texture node и нажми Bake."
+  },
+  {
+    "question": "Что такое Compositor в Blender?",
+    "keywords": ["compositor", "композитинг", "постобработка"],
+    "answer": "Compositing Workspace — узловой редактор для постобработки рендера: цветокоррекция, глубина резкости, добавление слоев (passes/AOV), объединение с фоновым видео и т.д."
+  },
+  {
+    "question": "Как применить трансформации (Apply Transform)?",
+    "keywords": ["apply transform", "применить трансформации", "origin", "точка отсчета"],
+    "answer": "Object → Apply → Location/Rotation/Scale (или Ctrl+A). Это сбрасывает значения трансформации в 0/0/1, полезно перед использованием модификаторов и физики."
+  },
+  {
+    "question": "Как пересчитать нормали?",
+    "keywords": ["нормали", "normals", "recalculate normals", "черные грани"],
+    "answer": "В Edit Mode выдели все (A) и нажми Shift+N — Recalculate Outside. Если грани все еще выглядят черными или залипшими не в ту сторону, проверь на наличие перевернутых или дублирующихся граней."
+  },
+  {
+    "question": "Что такое неманифолдная геометрия (non-manifold)?",
+    "keywords": ["non-manifold", "неманифолд", "n-gon", "проблемы геометрии"],
+    "answer": "Non-manifold геометрия — места, которые невозможно однозначно описать как поверхность реального объекта (дыры, торчащие грани, внутренние грани). Select → Select All by Trait → Non Manifold помогает найти такие места."
+  },
+  {
+    "question": "Что такое ретопология (Retopology)?",
+    "keywords": ["retopology", "ретопология", "ретопо"],
+    "answer": "Ретопология — создание новой, чистой сетки поверх высокополигональной скульптуры. В Blender для этого удобны Snap to Surface и инструмент Poly Build."
+  },
+  {
+    "question": "Для чего нужен Empty объект?",
+    "keywords": ["empty", "пустышка", "empty object"],
+    "answer": "Empty — объект без геометрии, используется как точка привязки: цель для констрейнтов, родитель для группы объектов, точка отсчета для Geometry Nodes или анимации."
+  },
+  {
+    "question": "Что такое констрейнты (Constraints)?",
+    "keywords": ["constraint", "констрейнт", "ограничения объекта"],
+    "answer": "Object Constraint Properties добавляет поведение объекту: Track To (смотреть на цель), Copy Location/Rotation, Limit Distance и др. Constraints пересчитываются каждый кадр без ключей анимации."
+  },
+  {
+    "question": "Что такое драйверы (Drivers)?",
+    "keywords": ["driver", "драйвер", "автоматическая анимация"],
+    "answer": "Driver связывает значение одного параметра со значением другого (например, поворот двери с положением ручки) через выражение. Добавляется через ПКМ на параметре → Add Driver."
+  },
+  {
+    "question": "Что такое группы вершин (Vertex Groups)?",
+    "keywords": ["vertex group", "группа вершин"],
+    "answer": "Vertex Groups — именованные наборы вершин с весами, используются модификаторами (Armature, Mirror с Vertex Group) и Weight Paint для управления влиянием на часть меша."
+  },
+  {
+    "question": "Что такое Shape Keys?",
+    "keywords": ["shape keys", "шейпкей", "морфинг"],
+    "answer": "Shape Keys позволяют хранить альтернативные формы одного меша (например, мимику лица) и анимировать переход между ними через значение (0..1), не создавая отдельных объектов."
+  },
+  {
+    "question": "Какой аддон Node Wrangler и зачем он нужен?",
+    "keywords": ["node wrangler", "нод врэнглер"],
+    "answer": "Node Wrangler — встроенный аддон (нужно включить в Preferences), ускоряющий работу с нодами: Ctrl+T добавляет набор текстурных нод, Ctrl+Shift+ЛКМ на ноде показывает превью и т.д."
+  },
+  {
+    "question": "Как настроить snapping (примагничивание)?",
+    "keywords": ["snap", "снап", "примагничивание"],
+    "answer": "Включается иконкой магнита на верхней панели (Shift+Tab). Можно привязывать к вершине, ребру, грани, объему, инкременту — режим выбирается в выпадающем меню рядом с иконкой."
+  }
+]

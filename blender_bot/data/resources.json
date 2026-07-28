@@ -1,0 +1,32 @@
+{
+  "3D-модели (бесплатно и платно)": [
+    {"name": "Sketchfab", "url": "https://sketchfab.com/3d-models?features=downloadable", "note": "Огромная библиотека, много бесплатных моделей с лицензией CC"},
+    {"name": "Poly Haven", "url": "https://polyhaven.com/models", "note": "Полностью бесплатные модели высокого качества, без регистрации"},
+    {"name": "BlenderKit", "url": "https://www.blenderkit.com/", "note": "Аддон прямо в Blender: модели, материалы, HDRI одним кликом"},
+    {"name": "CGTrader", "url": "https://www.cgtrader.com/", "note": "Маркетплейс, есть бесплатные и платные модели"},
+    {"name": "TurboSquid", "url": "https://www.turbosquid.com/", "note": "Крупный маркетплейс 3D-моделей, много готовых к играм и рендеру ассетов"},
+    {"name": "Free3D", "url": "https://free3d.com/", "note": "Бесплатные модели разных форматов"}
+  ],
+  "Текстуры и материалы": [
+    {"name": "Poly Haven Textures", "url": "https://polyhaven.com/textures", "note": "Бесплатные PBR-текстуры в высоком разрешении"},
+    {"name": "ambientCG", "url": "https://ambientcg.com/", "note": "Большая база бесплатных PBR-материалов под CC0"},
+    {"name": "Textures.com", "url": "https://www.textures.com/", "note": "Огромная библиотека текстур, часть бесплатно"},
+    {"name": "Share Textures", "url": "https://www.sharetextures.com/", "note": "Бесплатные PBR-текстуры"},
+    {"name": "Quixel Megascans", "url": "https://quixel.com/megascans", "note": "Сканы реальных материалов и объектов высочайшего качества"}
+  ],
+  "HDRI (окружение/освещение)": [
+    {"name": "Poly Haven HDRIs", "url": "https://polyhaven.com/hdris", "note": "Бесплатные HDRI в высоком разрешении"},
+    {"name": "HDRI Haven (архив, теперь часть Poly Haven)", "url": "https://polyhaven.com/hdris", "note": "Классика бесплатных HDRI"}
+  ],
+  "Аддоны и плагины": [
+    {"name": "Blender Market", "url": "https://blendermarket.com/", "note": "Крупнейший маркетплейс аддонов, материалов и обучающих материалов"},
+    {"name": "Blender Extensions (официальный)", "url": "https://extensions.blender.org/", "note": "Официальная площадка аддонов и тем для Blender"},
+    {"name": "Gumroad (раздел Blender)", "url": "https://gumroad.com/discover?query=blender", "note": "Много независимых авторов продают аддоны и ассеты"}
+  ],
+  "Обучение": [
+    {"name": "Blender Guru", "url": "https://www.youtube.com/@blenderguru", "note": "Один из лучших каналов для новичков (курс Donut)"},
+    {"name": "CG Cookie", "url": "https://cgcookie.com/", "note": "Структурированные курсы по Blender"},
+    {"name": "Blender Official Manual", "url": "https://docs.blender.org/manual/en/latest/", "note": "Официальная документация Blender"},
+    {"name": "Grant Abbitt", "url": "https://www.youtube.com/@GrantAbbitt", "note": "Понятные туториалы для разных уровней"}
+  ]
+}
