@@ -13,7 +13,7 @@ from config import BOT_TOKEN
 from handlers.hotkeys import hotkeys_back_callback, hotkeys_callback, hotkeys_command
 from handlers.inline import inline_query
 from handlers.news import news_command
-from handlers.qa import answer_question
+from handlers.qa import answer_question, qa_confirm_callback, qa_decline_callback
 from handlers.resources import (
     resources_back_callback,
     resources_callback,
@@ -45,6 +45,8 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(hotkeys_back_callback, pattern=r"^hotkeys_back$"))
     application.add_handler(CallbackQueryHandler(resources_callback, pattern=r"^resources:\d+$"))
     application.add_handler(CallbackQueryHandler(resources_back_callback, pattern=r"^resources_back$"))
+    application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes:\d+$"))
+    application.add_handler(CallbackQueryHandler(qa_decline_callback, pattern=r"^qa_no$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))
     application.add_handler(InlineQueryHandler(inline_query))

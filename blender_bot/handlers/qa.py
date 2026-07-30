@@ -1,10 +1,11 @@
 import re
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH
+from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH, UNANSWERED_LOG_PATH
 from utils.hotkey_lookup import HotkeyLookup
+from utils.logger import log_unanswered
 from utils.search import KnowledgeBase
 
 knowledge_base = KnowledgeBase(KNOWLEDGE_BASE_PATH)
@@ -53,6 +54,13 @@ def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
 async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     question = update.message.text
 
+    # Проверяем расплывчатость ДО поиска по базе: короткое слово вроде
+    # «подробнее» может случайно совпасть с текстом какого-то вопроса
+    # в базе, и тогда бот уверенно ответит не по теме.
+    if _is_vague_followup(question):
+        await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
+        return
+
     kb_match = knowledge_base.search(question)
     if kb_match:
         await update.message.reply_text(kb_match["answer"])
@@ -65,8 +73,49 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
-    if _is_vague_followup(question):
-        await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
+    soft_entry, soft_score = knowledge_base.soft_match(question)
+    if soft_entry:
+        context.user_data["pending_question"] = question
+        context.user_data["pending_score"] = soft_score
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Да, это оно", callback_data=f"qa_yes:{soft_entry['_idx']}"),
+                    InlineKeyboardButton("Нет", callback_data="qa_no"),
+                ]
+            ]
+        )
+        await update.message.reply_text(
+            f"Возможно, ты имел в виду:\n«{soft_entry['question']}»?",
+            reply_markup=keyboard,
+        )
         return
 
+    log_unanswered(UNANSWERED_LOG_PATH, question)
     await update.message.reply_text(FALLBACK_TEXT)
+
+
+async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    context.user_data.pop("pending_question", None)
+    context.user_data.pop("pending_score", None)
+
+    idx = int(query.data.split(":", 1)[1])
+    entry = knowledge_base.get_by_idx(idx)
+    if entry:
+        await query.edit_message_text(entry["answer"])
+    else:
+        await query.edit_message_text(FALLBACK_TEXT)
+
+
+async def qa_decline_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    question = context.user_data.pop("pending_question", None)
+    score = context.user_data.pop("pending_score", 0.0)
+    if question:
+        log_unanswered(UNANSWERED_LOG_PATH, question, score)
+
+    await query.edit_message_text(FALLBACK_TEXT)
