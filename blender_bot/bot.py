@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 
 from config import BOT_TOKEN
+from handlers.broadcast import broadcast_command
 from handlers.hotkeys import hotkeys_back_callback, hotkeys_callback, hotkeys_command
 from handlers.inline import inline_query
 from handlers.news import news_command
@@ -40,6 +41,7 @@ def main() -> None:
     application.add_handler(CommandHandler("hotkeys", hotkeys_command))
     application.add_handler(CommandHandler("resources", resources_command))
     application.add_handler(CommandHandler("news", news_command))
+    application.add_handler(CommandHandler("broadcast", broadcast_command))
 
     application.add_handler(CallbackQueryHandler(hotkeys_callback, pattern=r"^hotkeys:\d+$"))
     application.add_handler(CallbackQueryHandler(hotkeys_back_callback, pattern=r"^hotkeys_back$"))

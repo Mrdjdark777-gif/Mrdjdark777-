@@ -12,6 +12,7 @@ Telegram-бот-помощник по Blender: отвечает на вопро�
 - `/resources` — подборка сайтов с 3D-моделями, текстурами, HDRI, аддонами и обучением
 - `/news` — последние новости из RSS-лент BlenderNation, 80 Level, CG Channel
 - `/help` — список команд
+- `/broadcast <текст>` — рассылка всем, кто запускал `/start` (только для владельца бота)
 
 ## Установка
 
@@ -32,6 +33,10 @@ Telegram-бот-помощник по Blender: отвечает на вопро�
    cp .env.example .env
    # затем отредактируй .env: BOT_TOKEN=твой_токен
    ```
+
+   Чтобы пользоваться `/broadcast`, узнай свой Telegram ID у
+   [@userinfobot](https://t.me/userinfobot) и впиши его в `.env` как `OWNER_ID`.
+   Без этого рассылка отключена.
 
 5. Запусти бота:
 

@@ -1,6 +1,9 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from config import SUBSCRIBERS_PATH
+from utils.subscribers import add_subscriber
+
 WELCOME_TEXT = (
     "Привет! Я бот-помощник по Blender.\n\n"
     "Что я умею:\n"
@@ -14,6 +17,7 @@ WELCOME_TEXT = (
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    add_subscriber(SUBSCRIBERS_PATH, update.effective_chat.id)
     await update.message.reply_text(WELCOME_TEXT)
 
 

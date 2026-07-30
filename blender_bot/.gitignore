@@ -4,3 +4,4 @@ __pycache__/
 venv/
 .venv/
 data/unanswered_log.jsonl
+data/subscribers.json
