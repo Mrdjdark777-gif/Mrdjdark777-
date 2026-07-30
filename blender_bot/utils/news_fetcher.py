@@ -4,10 +4,12 @@ import time
 from pathlib import Path
 
 import feedparser
+from deep_translator import GoogleTranslator
 
 from config import NEWS_CACHE_MINUTES, NEWS_ITEMS_PER_FEED
 
 _cache: dict = {"items": None, "fetched_at": 0}
+_translator = GoogleTranslator(source="auto", target="ru")
 
 
 def _load_feeds(path: Path) -> list[dict]:
@@ -15,15 +17,26 @@ def _load_feeds(path: Path) -> list[dict]:
         return json.load(f)
 
 
+def _translate_title(title: str) -> str:
+    if not title:
+        return title
+    try:
+        translated = _translator.translate(title)
+        return translated or title
+    except Exception:
+        return title
+
+
 def _fetch_sync(feeds: list[dict]) -> list[dict]:
     items = []
     for feed in feeds:
         parsed = feedparser.parse(feed["url"])
         for entry in parsed.entries[:NEWS_ITEMS_PER_FEED]:
+            title = entry.get("title", "Без названия")
             items.append(
                 {
                     "source": feed["name"],
-                    "title": entry.get("title", "Без названия"),
+                    "title": _translate_title(title),
                     "link": entry.get("link", ""),
                     "published": entry.get("published_parsed"),
                 }
