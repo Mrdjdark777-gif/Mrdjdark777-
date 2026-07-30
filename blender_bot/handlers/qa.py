@@ -1,3 +1,5 @@
+import re
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -16,6 +18,29 @@ FALLBACK_TEXT = (
     "• /resources — сайты с моделями, текстурами и обучением\n"
     "• Официальная документация: https://docs.blender.org/manual/ru/latest/"
 )
+
+VAGUE_FOLLOWUP_TEXT = (
+    "Похоже, это уточнение к предыдущему сообщению, а не отдельный вопрос.\n\n"
+    "Я не запоминаю историю переписки и разбираю каждое сообщение отдельно, "
+    "поэтому не понимаю, к чему относится «подробнее» или «почему».\n\n"
+    "Напиши вопрос целиком, с темой — например: «расскажи подробнее про "
+    "модификатор Boolean»."
+)
+
+_WORD_RE = re.compile(r"[a-zа-яё0-9]+", re.IGNORECASE)
+_FOLLOWUP_MARKERS = {
+    "подробнее", "почему", "зачем", "поясни", "объясни", "расскажи",
+    "понятнее", "детальнее", "ещё", "еще",
+}
+
+
+def _is_vague_followup(question: str) -> bool:
+    words = _WORD_RE.findall(question.lower())
+    if not words:
+        return False
+    if len(words) <= 2:
+        return True
+    return len(words) <= 4 and any(w in _FOLLOWUP_MARKERS for w in words)
 
 
 def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
@@ -38,6 +63,10 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(
             _format_hotkey_matches(hotkey_matches), parse_mode="Markdown"
         )
+        return
+
+    if _is_vague_followup(question):
+        await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
         return
 
     await update.message.reply_text(FALLBACK_TEXT)
