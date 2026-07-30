@@ -4,12 +4,14 @@ from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
+    InlineQueryHandler,
     MessageHandler,
     filters,
 )
 
 from config import BOT_TOKEN
 from handlers.hotkeys import hotkeys_back_callback, hotkeys_callback, hotkeys_command
+from handlers.inline import inline_query
 from handlers.news import news_command
 from handlers.qa import answer_question
 from handlers.resources import (
@@ -45,9 +47,10 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(resources_back_callback, pattern=r"^resources_back$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))
+    application.add_handler(InlineQueryHandler(inline_query))
 
     logger.info("Бот запущен")
-    application.run_polling(allowed_updates=["message", "callback_query"])
+    application.run_polling(allowed_updates=["message", "callback_query", "inline_query"])
 
 
 if __name__ == "__main__":
