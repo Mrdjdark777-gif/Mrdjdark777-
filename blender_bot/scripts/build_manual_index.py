@@ -1,8 +1,10 @@
 """
 Строит data/manual_index.json — указатель по официальному руководству Blender.
 
-Клонирует github.com/blender/blender-manual (открытый исходник документации,
-лицензия CC-BY-SA), парсит .rst-файлы в разделе manual/ и сохраняет заголовок,
+Клонирует projects.blender.org/blender/blender-manual (открытый исходник
+документации, лицензия CC-BY-SA; это собственный self-hosted git Blender
+Foundation — старое зеркало на github.com/blender/blender-manual больше не
+существует), парсит .rst-файлы в разделе manual/ и сохраняет заголовок,
 краткое описание и ссылку на страницу docs.blender.org для каждой темы.
 
 Требует интернет и git — запускать на сервере, а не в изолированной песочнице.
@@ -11,6 +13,7 @@
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -18,7 +21,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO_URL = "https://github.com/blender/blender-manual.git"
+REPO_URL = "https://projects.blender.org/blender/blender-manual.git"
 DOCS_BASE_URL = "https://docs.blender.org/manual/en/latest/"
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "manual_index.json"
 
@@ -94,13 +97,18 @@ def build_url(rst_path: Path, manual_root: Path) -> str:
 def main() -> None:
     tmp_dir = Path(tempfile.mkdtemp(prefix="blender_manual_"))
     print(f"Клонирую {REPO_URL} во временную папку {tmp_dir} ...")
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
         subprocess.run(
             ["git", "clone", "--depth", "1", REPO_URL, str(tmp_dir)],
             check=True,
+            env=env,
         )
     except subprocess.CalledProcessError:
-        print("Не получилось склонировать репозиторий. Проверь интернет-соединение.")
+        print(
+            "Не получилось склонировать репозиторий. Проверь интернет-соединение "
+            f"и что адрес {REPO_URL} доступен (открой его в браузере)."
+        )
         sys.exit(1)
 
     manual_root = tmp_dir / "manual"
