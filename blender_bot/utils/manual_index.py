@@ -28,7 +28,7 @@ class ManualIndex:
             entry["_summary_tokens"] = _tokenize(entry["summary"])
             self.entries.append(entry)
 
-    def search(self, query: str, threshold: float = 0.4):
+    def search(self, query: str, threshold: float = 0.45):
         if not self.entries:
             return None
 
@@ -39,17 +39,28 @@ class ManualIndex:
         best_entry = None
         best_score = 0.0
         for entry in self.entries:
-            title_overlap = len(query_tokens & entry["_title_tokens"])
-            title_score = title_overlap / max(len(entry["_title_tokens"]), 1)
+            title_tokens = entry["_title_tokens"]
+            summary_tokens = entry["_summary_tokens"]
 
-            summary_overlap = len(query_tokens & entry["_summary_tokens"])
-            summary_score = summary_overlap / max(len(query_tokens), 1)
+            title_overlap = query_tokens & title_tokens
+            summary_overlap = query_tokens & summary_tokens
+
+            # "Пол" в 3 слова у знаменателя: без него короткий заголовок
+            # вроде "Camera" (1 слово) получал бы счёт 1.0 от одного
+            # случайно общего слова — с полом это самое большее 1/3.
+            title_score = len(title_overlap) / max(len(title_tokens), 3)
+            summary_score = len(summary_overlap) / max(len(query_tokens), 3)
 
             fuzzy_score = difflib.SequenceMatcher(
                 None, query.lower(), entry["title"].lower()
             ).ratio()
 
             score = title_score * 0.55 + summary_score * 0.2 + fuzzy_score * 0.25
+
+            # Если совпало только одно короткое/общее слово — не доверяем.
+            total_overlap = title_overlap | summary_overlap
+            if len(total_overlap) == 1 and len(next(iter(total_overlap))) < 6:
+                score *= 0.3
 
             if score > best_score:
                 best_score = score

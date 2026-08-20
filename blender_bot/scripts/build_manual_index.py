@@ -6,9 +6,13 @@
 Foundation — старое зеркало на github.com/blender/blender-manual больше не
 существует), парсит .rst-файлы в разделе manual/ и сохраняет заголовок,
 краткое описание и ссылку на страницу docs.blender.org для каждой темы.
+Заголовок и описание переводятся на русский (сама документация англоязычная,
+ссылка ведёт на английскую страницу) — из-за перевода сборка занимает заметно
+больше времени, чем просто скачивание.
 
 Требует интернет и git — запускать на сервере, а не в изолированной песочнице.
-Использование:
+Из-за долгого перевода рекомендуется запускать внутри screen, чтобы обрыв
+SSH-соединения не прервал процесс. Использование:
     python scripts/build_manual_index.py
 """
 
@@ -19,11 +23,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
+
+from deep_translator import GoogleTranslator
 
 REPO_URL = "https://projects.blender.org/blender/blender-manual.git"
 DOCS_BASE_URL = "https://docs.blender.org/manual/en/latest/"
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "manual_index.json"
+TRANSLATE_DELIMITER = " ||| "
+TRANSLATE_DELAY_SECONDS = 0.15
 
 UNDERLINE_RE = re.compile(r"^([=\-~^\"'#*+:.,;!$%&()<>\[\]{}|@])\1{2,}\s*$")
 DIRECTIVE_RE = re.compile(r"^\.\. ")
@@ -94,6 +103,34 @@ def build_url(rst_path: Path, manual_root: Path) -> str:
     return DOCS_BASE_URL + rel.as_posix() + ".html"
 
 
+def translate_entries(entries: list[dict]) -> None:
+    """Переводит title и summary на русский прямо в списке entries, по месту.
+
+    Титул и описание переводятся одним запросом (через разделитель), чтобы
+    не удваивать число обращений к сервису перевода — их и так много.
+    При ошибке перевода конкретная запись остаётся на английском, вместо
+    того чтобы прерывать сборку всего индекса целиком.
+    """
+    translator = GoogleTranslator(source="auto", target="ru")
+    total = len(entries)
+    print(f"Перевожу {total} записей на русский (это займёт время, не прерывайте)...")
+
+    for i, entry in enumerate(entries, start=1):
+        combined = f"{entry['title']}{TRANSLATE_DELIMITER}{entry['summary']}"
+        try:
+            translated = translator.translate(combined)
+            if translated and TRANSLATE_DELIMITER.strip() in translated:
+                title_ru, summary_ru = translated.split(TRANSLATE_DELIMITER.strip(), 1)
+                entry["title"] = title_ru.strip(" |")
+                entry["summary"] = summary_ru.strip(" |")
+        except Exception:
+            pass  # оставляем оригинал на английском для этой записи
+
+        time.sleep(TRANSLATE_DELAY_SECONDS)
+        if i % 50 == 0 or i == total:
+            print(f"  переведено {i}/{total}")
+
+
 def main() -> None:
     tmp_dir = Path(tempfile.mkdtemp(prefix="blender_manual_"))
     print(f"Клонирую {REPO_URL} во временную папку {tmp_dir} ...")
@@ -131,6 +168,8 @@ def main() -> None:
                 "url": build_url(rst_path, manual_root),
             }
         )
+
+    translate_entries(entries)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
