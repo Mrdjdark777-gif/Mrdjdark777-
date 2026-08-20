@@ -5,3 +5,4 @@ venv/
 .venv/
 data/unanswered_log.jsonl
 data/subscribers.json
+data/manual_index.json

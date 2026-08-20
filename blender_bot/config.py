@@ -17,6 +17,7 @@ RESOURCES_PATH = DATA_DIR / "resources.json"
 NEWS_FEEDS_PATH = DATA_DIR / "news_feeds.json"
 UNANSWERED_LOG_PATH = DATA_DIR / "unanswered_log.jsonl"
 SUBSCRIBERS_PATH = DATA_DIR / "subscribers.json"
+MANUAL_INDEX_PATH = DATA_DIR / "manual_index.json"
 
 BROADCAST_DELAY_SECONDS = 0.05
 

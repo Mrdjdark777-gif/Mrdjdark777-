@@ -3,13 +3,15 @@ import re
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH, UNANSWERED_LOG_PATH
+from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH, MANUAL_INDEX_PATH, UNANSWERED_LOG_PATH
 from utils.hotkey_lookup import HotkeyLookup
 from utils.logger import log_unanswered
+from utils.manual_index import ManualIndex
 from utils.search import KnowledgeBase
 
 knowledge_base = KnowledgeBase(KNOWLEDGE_BASE_PATH)
 hotkey_lookup = HotkeyLookup(HOTKEYS_PATH)
+manual_index = ManualIndex(MANUAL_INDEX_PATH)
 
 FALLBACK_TEXT = (
     "Не нашел точного ответа на этот вопрос в своей базе знаний.\n\n"
@@ -49,6 +51,14 @@ def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
     for desc, category in matches:
         lines.append(f"• {desc}\n  _(раздел: {category})_")
     return "\n".join(lines)
+
+
+def _format_manual_match(entry: dict) -> str:
+    return (
+        f"В своей базе знаний точного ответа не нашёл, но, возможно, поможет "
+        f"официальная документация Blender:\n\n"
+        f"*{entry['title']}*\n{entry['summary']}\n\n{entry['url']}"
+    )
 
 
 async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -91,6 +101,14 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
+    manual_match = manual_index.search(question)
+    if manual_match:
+        log_unanswered(UNANSWERED_LOG_PATH, question)
+        await update.message.reply_text(
+            _format_manual_match(manual_match), parse_mode="Markdown"
+        )
+        return
+
     log_unanswered(UNANSWERED_LOG_PATH, question)
     await update.message.reply_text(FALLBACK_TEXT)
 
@@ -117,5 +135,12 @@ async def qa_decline_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     score = context.user_data.pop("pending_score", 0.0)
     if question:
         log_unanswered(UNANSWERED_LOG_PATH, question, score)
+
+    manual_match = manual_index.search(question) if question else None
+    if manual_match:
+        await query.edit_message_text(
+            _format_manual_match(manual_match), parse_mode="Markdown"
+        )
+        return
 
     await query.edit_message_text(FALLBACK_TEXT)

@@ -3,7 +3,7 @@ import uuid
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import ContextTypes
 
-from handlers.qa import hotkey_lookup, knowledge_base
+from handlers.qa import hotkey_lookup, knowledge_base, manual_index
 
 MAX_RESULTS = 10
 NO_QUERY_PLACEHOLDER = "Напиши вопрос про Blender или название горячей клавиши"
@@ -25,6 +25,17 @@ def _hotkey_result(desc: str, category: str) -> InlineQueryResultArticle:
         title=f"Клавиша: {key}",
         description=desc,
         input_message_content=InputTextMessageContent(f"{desc}\n(раздел: {category})"),
+    )
+
+
+def _manual_result(entry: dict) -> InlineQueryResultArticle:
+    return InlineQueryResultArticle(
+        id=str(uuid.uuid4()),
+        title=f"Документация: {entry['title']}",
+        description=entry["summary"][:100],
+        input_message_content=InputTextMessageContent(
+            f"{entry['title']}\n{entry['summary']}\n\n{entry['url']}"
+        ),
     )
 
 
@@ -63,6 +74,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if len(results) >= MAX_RESULTS:
             break
         results.append(_hotkey_result(desc, category))
+
+    if len(results) < MAX_RESULTS:
+        manual_match = manual_index.search(query)
+        if manual_match:
+            results.append(_manual_result(manual_match))
 
     if not results:
         results.append(_not_found_result(query))
