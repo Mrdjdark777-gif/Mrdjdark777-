@@ -79,15 +79,17 @@ def _format_question(topic_title: str, question: QuizQuestion) -> str:
 
 
 def _format_result(correct: bool, question: QuizQuestion) -> str:
+    # question.source (раздел 22 ТЗ) больше не выводится — по прямой
+    # обратной связи пользователя после реального использования на проде,
+    # тот же принцип, что уже применён к обычным ответам (bot/handlers/
+    # qa.py::_format_chunk_answer, PROJECT_PLAN.md, после Phase 15): поле
+    # по-прежнему есть в данных, просто не показывается в чате.
     verdict = "✅ Верно!" if correct else "❌ Неверно."
-    lines = [
+    return "\n".join([
         verdict,
         f"Правильный ответ: {question.options[question.correct_index]}",
         f"\n{question.explanation}",
-    ]
-    if question.source:
-        lines.append(f"\n_Источник: {question.source}_")
-    return "\n".join(lines)
+    ])
 
 
 def _start_quiz(context: ContextTypes.DEFAULT_TYPE, questions: list[tuple[Lesson, QuizQuestion]]) -> None:
