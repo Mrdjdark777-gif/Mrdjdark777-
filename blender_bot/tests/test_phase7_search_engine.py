@@ -118,7 +118,7 @@ class SyntheticEngineTests(unittest.TestCase):
         engine = SearchEngine([chunk_path], term_path)
         term = engine._find_term("риг")
         self.assertIsNotNone(term)
-        bonus = engine._exact_term_bonus(term, engine.chunks[0])
+        bonus = engine._exact_term_bonus(term, engine._chunk_title_tokens[0], engine._chunk_body_tokens[0])
         self.assertLess(bonus, 1.0)  # не должно ложно сработать на "оригинал"
 
     def test_version_conflict_demotes_score(self):
@@ -199,9 +199,76 @@ class RealDataEngineTests(unittest.TestCase):
         for r in results[:3]:
             self.assertLess(r.score, 0.8, r.chunk.translated_title)
 
+    def test_typo_still_finds_term_via_fuzzy_match(self):
+        # Раздел 1.1 ТЗ v3, буквальный пример из документа: "модификатр"
+        # (пропущена "о") должен нормализоваться в "модификатор".
+        term = self.engine._find_term("Что такое модификатр?")
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Modifier")
+
+    def test_transliterated_bevel_alias_found_exactly(self):
+        # "бевел" — не опечатка, а транслитерация; зарегистрирована явным
+        # алиасом (Левенштейн кириллица/латиница не работает), не через fuzzy.
+        term = self.engine._find_term("Что такое бевел?")
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Bevel")
+
     def test_official_manual_present_in_top_results_for_common_query(self):
         results = self.engine.search("geometry nodes", top_n=10)
         self.assertTrue(any(r.chunk.source_type == "official_manual" for r in results))
+
+
+class ResponseTimeTests(unittest.TestCase):
+    """Раздел 4.1 ТЗ v3: "автоматический тест, проверяющий, что время
+    отклика на любой запрос не превышает 50 миллисекунд". Проверить
+    буквально "любой" запрос невозможно — тестируется репрезентативная
+    выборка реальных вопросов из tests/quality/cases.json (не синтетика).
+
+    Порог измерен на dev-машине; целевой Oracle VM.Standard.E2.1.Micro
+    слабее (см. PROJECT_PLAN.md, Phase 14/15) — тест не гарантирует 50мс
+    именно там, но ловит РЕГРЕССИИ производительности при разработке,
+    что и есть его смысл здесь (раздел 4.1 не уточняет, на каком именно
+    железе мерить)."""
+
+    RESPONSE_TIME_LIMIT_MS = 50
+
+    @classmethod
+    def setUpClass(cls):
+        from config import HOTKEYS_PATH, UNANSWERED_LOG_PATH
+        from search.qa_service import QAService
+        from tests.quality.schema import load_cases
+
+        missing = [p for p in KNOWLEDGE_CHUNK_PATHS if not p.exists()]
+        if missing:
+            raise unittest.SkipTest(f"нет данных: {missing}")
+
+        cases_path = Path(__file__).resolve().parent / "quality" / "cases.json"
+        if not cases_path.exists():
+            raise unittest.SkipTest(f"нет данных: {cases_path}")
+
+        cls.qa_service = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
+        all_cases = load_cases(cases_path)
+        # каждый 7-й кейс — широкая, но не избыточно медленная выборка
+        # (~77 запросов из 540, все 7 категорий представлены за счёт shuffle).
+        cls.sample = all_cases[::7]
+
+    def test_answer_latency_within_limit(self):
+        import time
+
+        worst_ms = 0.0
+        worst_question = None
+        for case in self.sample:
+            t0 = time.perf_counter()
+            self.qa_service.answer(case.input)
+            dt_ms = (time.perf_counter() - t0) * 1000
+            if dt_ms > worst_ms:
+                worst_ms = dt_ms
+                worst_question = case.input
+
+        self.assertLess(
+            worst_ms, self.RESPONSE_TIME_LIMIT_MS,
+            f"самый медленный запрос из выборки — {worst_ms:.1f}мс: {worst_question!r}",
+        )
 
 
 if __name__ == "__main__":

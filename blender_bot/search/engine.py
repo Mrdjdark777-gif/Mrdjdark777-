@@ -88,6 +88,18 @@ class SearchEngine:
 
         self.terminology = TerminologyRegistry.load(terminology_path)
 
+        # Раздел 4.1 ТЗ v3 (время отклика < 50мс): _exact_term_bonus раньше
+        # заново токенизировала title+content КАЖДОГО chunk'а на КАЖДЫЙ
+        # запрос — при ~850 chunks это и было настоящим узким местом
+        # (обнаружено профилированием при добавлении fuzzy-matching, не
+        # сама лемматизация/fuzzy тому виной). Текст chunk'а не меняется
+        # между запросами, поэтому токенизируется один раз здесь и
+        # переиспользуется в search() по индексу.
+        self._chunk_title_tokens = [
+            set(tokenize(f"{c.translated_title} {c.original_title}")) for c in self.chunks
+        ]
+        self._chunk_body_tokens = [set(tokenize(c.content)) for c in self.chunks]
+
         self._tfidf = TfidfIndex()
         self._tfidf.fit([self._chunk_tokens(c) for c in self.chunks])
 
@@ -130,7 +142,20 @@ class SearchEngine:
                 if candidate:
                     best = candidate
                     best_len = j - i
-        return best
+        if best is not None:
+            return best
+
+        # Опечатки (раздел 1.1 ТЗ v3): точного n-граммного совпадения нет
+        # ни для одной подпоследовательности — пробуем КАЖДЫЙ токен по
+        # отдельности через нечёткое совпадение (TerminologyRegistry.
+        # find_fuzzy). Только отдельные токены, не n-граммы фраз — иначе
+        # O(n²) фаззи-сравнений на запрос, и риск случайного совпадения
+        # длинной фразы был бы куда выше, чем у одного слова.
+        for token in tokens:
+            fuzzy = self.terminology.find_fuzzy(token)
+            if fuzzy:
+                return fuzzy
+        return None
 
     def _term_names(self, term: Term) -> set[str]:
         names = {term.canonical_name, term.russian_name, *term.aliases, *term.english_aliases}
@@ -138,11 +163,15 @@ class SearchEngine:
             names.add(term.ui_label)
         return {normalize_term(n) for n in names}
 
-    def _exact_term_bonus(self, term: Term | None, chunk: KnowledgeChunk) -> float:
+    def _exact_term_bonus(self, term: Term | None, title_tokens: set[str], body_tokens: set[str]) -> float:
         """Токенизированное сравнение, НЕ substring: короткий алиас вроде
         "риг" при поиске подстрокой ложно совпадал внутри "ориг[риг]инал".
         Все токены алиаса (для многословных вроде "шейдер материала")
         должны присутствовать среди токенов чанка.
+
+        title_tokens/body_tokens приходят готовыми из
+        self._chunk_title_tokens/self._chunk_body_tokens (посчитаны один
+        раз в __init__, а не на каждый запрос — раздел 4.1 ТЗ v3).
 
         Заголовок и содержимое различаются по силе сигнала: термин в
         ЗАГОЛОВКЕ означает, что chunk реально ПРО эту тему; термин,
@@ -156,8 +185,6 @@ class SearchEngine:
         (PROJECT_PLAN.md, после Phase 15)."""
         if term is None:
             return 0.0
-        title_tokens = set(tokenize(f"{chunk.translated_title} {chunk.original_title}"))
-        body_tokens = set(tokenize(chunk.content))
         found_in_body_only = False
         for name in self._term_names(term):
             name_tokens = tokenize(name)
@@ -204,8 +231,10 @@ class SearchEngine:
         term = self._find_term(query)
 
         results = []
-        for chunk, lexical_score in zip(self.chunks, lexical_scores):
-            exact_term_bonus = self._exact_term_bonus(term, chunk)
+        for i, (chunk, lexical_score) in enumerate(zip(self.chunks, lexical_scores)):
+            exact_term_bonus = self._exact_term_bonus(
+                term, self._chunk_title_tokens[i], self._chunk_body_tokens[i]
+            )
 
             # relevance — единственный сигнал, отвечающий на вопрос "вообще
             # относится ли этот chunk к запросу". Считаем термин найденным

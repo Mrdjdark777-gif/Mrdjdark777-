@@ -8,6 +8,7 @@ lookup-индекс.
 
 from __future__ import annotations
 
+import difflib
 import json
 import re
 from dataclasses import asdict, dataclass, field
@@ -100,6 +101,31 @@ class TerminologyRegistry:
         """Найти термин по любому написанию — русскому, английскому,
         алиасу или UI label, независимо от регистра (раздел 8 ТЗ)."""
         return self._by_alias.get(normalize(word))
+
+    def find_fuzzy(self, word: str, cutoff: float = 0.85) -> Term | None:
+        """Раздел 1.1 ТЗ v3: нормализация опечаток пользователя
+        (расстояние Левенштейна через difflib — раздел прямо называет
+        difflib допустимой альтернативой rapidfuzz; выбран difflib, чтобы
+        не тащить C-расширение ради лёгкой проверки на слабом бесплатном
+        сервере, раздел 2 ТЗ v2).
+
+        Порог 0.85 подобран вручную на реальных примерах: "модификатр" →
+        "модификатор" даёт 0.952, "експорт" → "экспорт" — 0.857, оба
+        проходят; при этом действительно РАЗНЫЕ короткие слова Blender-
+        словаря остаются далеко ниже порога ("свет"/"цвет" — 0.75,
+        "меш"/"мех" — 0.667) — 0.85 разделяет их надёжно.
+
+        Слова короче 4 символов не проверяются — на них Левенштейн даёт
+        слишком много случайных близких совпадений (см. `_QUERY_MIN_LEN`
+        в других частях проекта, тот же принцип, что уже применялся для
+        однословных алиасов в search/engine.py)."""
+        normalized = normalize(word)
+        if len(normalized) < 4:
+            return None
+        matches = difflib.get_close_matches(normalized, self._by_alias.keys(), n=1, cutoff=cutoff)
+        if not matches:
+            return None
+        return self._by_alias[matches[0]]
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

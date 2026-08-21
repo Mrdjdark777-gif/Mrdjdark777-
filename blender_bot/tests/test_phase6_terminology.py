@@ -100,6 +100,34 @@ class TerminologyRegistryTests(unittest.TestCase):
         self.assertEqual(registry.terms, [])
 
 
+class FuzzyFindTests(unittest.TestCase):
+    """Раздел 1.1 ТЗ v3: нормализация опечаток (Левенштейн через difflib)."""
+
+    def setUp(self):
+        self.registry = TerminologyRegistry()
+        self.registry.add(_make_term())
+
+    def test_typo_normalizes_to_correct_term(self):
+        self.assertEqual(self.registry.find_fuzzy("зеркал").canonical_name, "Mirror Modifier")
+
+    def test_exact_match_also_works_via_fuzzy(self):
+        self.assertEqual(self.registry.find_fuzzy("зеркало").canonical_name, "Mirror Modifier")
+
+    def test_short_word_never_fuzzy_matched(self):
+        # длина < 4 — слишком велик риск случайных совпадений
+        self.assertIsNone(self.registry.find_fuzzy("зер"))
+
+    def test_unrelated_word_not_matched(self):
+        self.assertIsNone(self.registry.find_fuzzy("совершенно другое"))
+
+    def test_different_real_word_not_confused_with_similar_looking_term(self):
+        # "свет"/"цвет" — оба настоящие разные Blender-понятия, ratio 0.75,
+        # ниже порога 0.85 — не должны путаться друг с другом.
+        registry = TerminologyRegistry()
+        registry.add(_make_term(canonical_name="Light", russian_name="Свет", aliases=["лампа"]))
+        self.assertIsNone(registry.find_fuzzy("цвет"))
+
+
 class SeededTerminologyTests(unittest.TestCase):
     """Проверки на реально засеянные knowledge/system/terminology/terms.json."""
 
