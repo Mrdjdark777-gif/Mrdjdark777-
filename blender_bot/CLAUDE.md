@@ -35,7 +35,11 @@ search/       — SearchEngine (Phase 7, раздел 10 ТЗ: TF-IDF + terminol
                 knowledge/ registry) и QAService (бизнес-логика ответа на
                 вопрос, единственная точка входа для bot/handlers/qa.py и
                 bot/handlers/inline.py)
-intents/      — Intent Engine (пусто, Phase 8)
+intents/      — Intent Engine (Phase 8, раздел 11 ТЗ): классификация типа
+                вопроса (WHAT_IS/HOW_TO/...) и темы (RENDERING/RIGGING/...)
+                по keywords/patterns. Подключено только к логированию
+                unanswered-вопросов (search/qa_service.py); не используется
+                для форматирования ответов или диагностики — это Phase 9+
 diagnostics/  — Diagnostic Engine (пусто, Phase 9)
 education/    — Education Engine (пусто, Phase 11)
 profile/      — пользовательские данные (subscribers.py — заготовка для Phase 12)

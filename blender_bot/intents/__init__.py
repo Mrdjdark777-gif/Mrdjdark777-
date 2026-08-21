@@ -1,1 +1,1 @@
-"""Intent Engine (раздел 11 ТЗ) — реализуется в Phase 8. Пока пусто."""
+"""Intent Engine (раздел 11 ТЗ). См. intents/engine.py."""

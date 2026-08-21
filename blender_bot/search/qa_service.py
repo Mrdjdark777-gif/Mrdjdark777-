@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from intents.engine import IntentEngine
 from knowledge.schema import KnowledgeChunk
 from search.engine import SearchEngine, extract_version_hint
 from search.hotkey_lookup import HotkeyLookup
@@ -46,6 +47,7 @@ class QAService:
     ):
         self.hotkey_lookup = HotkeyLookup(hotkeys_path)
         self.engine = SearchEngine(chunk_paths, terminology_path)
+        self.intent_engine = IntentEngine()
         self._unanswered_log_path = unanswered_log_path
 
     def answer(self, question: str) -> QAResult:
@@ -70,4 +72,12 @@ class QAService:
         return self.engine.get_chunk(chunk_id)
 
     def log_unanswered(self, question: str, score: float = 0.0) -> None:
-        log_unanswered(self._unanswered_log_path, question, score)
+        # Phase 8: сохраняем ещё и распознанный intent — со временем по
+        # data/unanswered_log.jsonl можно будет увидеть, каких ТИПОВ
+        # вопросов (TROUBLESHOOTING? LEARNING?) или ТЕМ боту чаще всего не
+        # хватает уверенного ответа, а не только сами тексты вопросов.
+        result = self.intent_engine.classify(question)
+        log_unanswered(
+            self._unanswered_log_path, question, score,
+            question_types=result.question_types, topics=result.topics,
+        )
