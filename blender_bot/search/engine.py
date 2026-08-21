@@ -135,19 +135,36 @@ class SearchEngine:
         return {normalize_term(n) for n in names}
 
     def _exact_term_bonus(self, term: Term | None, chunk: KnowledgeChunk) -> float:
+        """Токенизированное сравнение, НЕ substring: короткий алиас вроде
+        "риг" при поиске подстрокой ложно совпадал внутри "ориг[риг]инал".
+        Все токены алиаса (для многословных вроде "шейдер материала")
+        должны присутствовать среди токенов чанка.
+
+        Заголовок и содержимое различаются по силе сигнала: термин в
+        ЗАГОЛОВКЕ означает, что chunk реально ПРО эту тему; термин,
+        встретившийся только в теле текста, может быть случайным
+        упоминанием мимоходом. Раньше оба случая давали одинаковый
+        bonus=1.0, из-за чего chunk "EEVEE" (который лишь мимоходом
+        упоминает "PBR" в описании) конкурировал на равных с
+        chunk'ом, который целиком ПРО PBR, и обычно побеждал за счёт
+        авторитетности официального источника — найдено по обратной
+        связи пользователя после реального использования на проде
+        (PROJECT_PLAN.md, после Phase 15)."""
         if term is None:
             return 0.0
-        # Токенизированное сравнение, НЕ substring: короткий алиас вроде
-        # "риг" при поиске подстрокой ложно совпадал внутри "ориг[риг]инал".
-        # Все токены алиаса (для многословных вроде "шейдер материала")
-        # должны присутствовать среди токенов чанка.
-        haystack_tokens = set(
-            tokenize(f"{chunk.translated_title} {chunk.original_title} {chunk.content}")
-        )
+        title_tokens = set(tokenize(f"{chunk.translated_title} {chunk.original_title}"))
+        body_tokens = set(tokenize(chunk.content))
+        found_in_body_only = False
         for name in self._term_names(term):
             name_tokens = tokenize(name)
-            if name_tokens and all(t in haystack_tokens for t in name_tokens):
+            if not name_tokens:
+                continue
+            if all(t in title_tokens for t in name_tokens):
                 return 1.0
+            if all(t in title_tokens or t in body_tokens for t in name_tokens):
+                found_in_body_only = True
+        if found_in_body_only:
+            return 0.5
         return 0.3  # термин распознан в запросе, но не встречается в этом конкретном чанке
 
     def _authority_score(self, chunk: KnowledgeChunk) -> float:

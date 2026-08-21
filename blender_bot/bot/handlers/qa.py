@@ -106,14 +106,6 @@ def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _source_label(chunk: KnowledgeChunk) -> str:
-    if chunk.source_type == "official_manual":
-        return "официальный Blender Manual"
-    if chunk.source_type == "ai_generated_unverified":
-        return "личная база бота, не проверено"
-    return chunk.source
-
-
 def _source_ref(chunk: KnowledgeChunk) -> str:
     """Одна строка-ссылка на источник — раздел 15 ТЗ (citations), но не в
     обычном ответе (см. `_format_chunk_answer`), а только в расширенном
@@ -133,32 +125,23 @@ def _source_ref(chunk: KnowledgeChunk) -> str:
     return f"{chunk.translated_title}, {chunk.source}{url_part}"
 
 
-def _format_chunk_answer(
-    chunk: KnowledgeChunk,
-    confidence: str = "MEDIUM",
-    competing_chunk: KnowledgeChunk | None = None,
-) -> str:
-    """Раздел 17 ТЗ (Conflict Engine — не молчать про второй найденный
-    источник другого типа).
+def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
+    """Обычный ответ — только текст, без метаинформации.
 
-    Раздел 15 ТЗ (citations) и раздел 14 ("LOW нельзя выдавать за
-    уверенное утверждение" — явная оговорка) раньше добавляли сюда
-    источник и confidence-оговорку под каждым ответом. Обе убраны по
-    прямой обратной связи пользователя после реального использования на
-    проде: "просто ответ и все". Источник и confidence по-прежнему
-    доступны — через явный запрос "дай источники"/"подробнее"
-    (`_format_more_info`, ниже) или через /debug (раздел 33 ТЗ) для
-    владельца. Отступление от буквы разделов 14-15 зафиксировано в
-    PROJECT_PLAN.md."""
-    lines = [chunk.content]
-
-    if competing_chunk:
-        lines.append(
-            f"\n_Также нашлась информация из другого источника "
-            f"({_source_label(competing_chunk)}) — показан более приоритетный вариант._"
-        )
-
-    return "\n".join(lines)
+    Раздел 15 ТЗ (citations), раздел 14 ("LOW нельзя выдавать за
+    уверенное утверждение" — явная оговорка) и раздел 17 (Conflict Engine
+    — упоминание конкурирующего источника) раньше добавляли сюда
+    источник, confidence-оговорку и заметку про второй найденный
+    источник под каждым ответом. Все три убраны по прямой обратной связи
+    пользователя после реального использования на проде: "просто ответ
+    и все", "вообще не нужно такого типа инфу". Источник и confidence
+    по-прежнему ВЫЧИСЛЯЮТСЯ (`QAResult.confidence`,
+    `_find_competing_source` в search/qa_service.py) и доступны — через
+    явный запрос "дай источники"/"подробнее" (`_format_more_info`, ниже,
+    хотя и она конкурирующий источник отдельно не выделяет) или через
+    /debug (раздел 33 ТЗ) для владельца. Отступление от буквы разделов
+    14-15-17 зафиксировано в PROJECT_PLAN.md."""
+    return chunk.content
 
 
 def _format_more_info(question: str) -> str:
@@ -256,7 +239,7 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if result.kind == "chunk_confident":
         context.user_data["last_question"] = question
         await update.message.reply_text(
-            _format_chunk_answer(result.chunk, result.confidence, result.competing_chunk),
+            _format_chunk_answer(result.chunk),
             parse_mode="Markdown",
         )
         return
@@ -302,7 +285,7 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         # soft_match по построению ниже HIGH_CONFIDENCE_THRESHOLD (Phase 7) —
         # confidence="LOW" здесь всегда честна, пересчитывать не нужно.
         await query.edit_message_text(
-            _format_chunk_answer(chunk, confidence="LOW"), parse_mode="Markdown"
+            _format_chunk_answer(chunk), parse_mode="Markdown"
         )
     else:
         await query.edit_message_text(FALLBACK_TEXT)

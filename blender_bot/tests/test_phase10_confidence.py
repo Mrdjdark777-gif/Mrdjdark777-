@@ -146,36 +146,30 @@ class FormattingIntegrationTests(unittest.TestCase):
         from bot.handlers import qa as qa_module
         cls.qa_module = qa_module
 
-    def test_high_confidence_official_answer_has_no_low_disclaimer(self):
+    def test_confident_official_answer_is_plain_content(self):
+        """По прямой обратной связи пользователя после реального
+        использования на проде ("вообще не нужно такого типа инфу, только
+        ответ на вопрос, все") — _format_chunk_answer больше не добавляет
+        НИЧЕГО, кроме текста chunk'а: ни confidence-оговорку (раздел 14),
+        ни источник (раздел 15), ни заметку про конкурирующий источник
+        (раздел 17). Все три по-прежнему вычисляются и доступны через
+        /debug (bot/handlers/admin.py) и `_format_more_info` (по явному
+        запросу "дай источники"), просто не в обычном ответе."""
         result = self.qa_module.qa_service.answer("как сделать булеан")
-        text = self.qa_module._format_chunk_answer(result.chunk, result.confidence, result.competing_chunk)
-        self.assertNotIn("невысокая", text)
-        self.assertIn("Также нашлась информация", text)
+        text = self.qa_module._format_chunk_answer(result.chunk)
+        self.assertEqual(text, result.chunk.content)
 
-    def test_unverified_answer_has_no_routine_source_disclaimer(self):
-        """По обратной связи пользователя (Phase 15, живой прод) —
-        personal-заметки больше не помечаются оговоркой на каждый ответ,
-        это было шумом для простых фактических вопросов."""
+    def test_competing_source_is_still_computed_even_if_not_shown(self):
+        result = self.qa_module.qa_service.answer("как сделать булеан")
+        self.assertIsNotNone(result.competing_chunk)
+
+    def test_unverified_answer_is_plain_content(self):
         chunk = KnowledgeChunk(
             id="x", source="test", source_type="ai_generated_unverified", authority=None,
             version=None, language="ru", topic="general", subtopic=None, date=None, url=None,
             original_title="X", translated_title="X", content="Текст ответа.",
         )
-        text = self.qa_module._format_chunk_answer(chunk, "MEDIUM", None)
-        self.assertNotIn("не сверено", text)
-        self.assertNotIn("невысокая", text)
-
-    def test_low_confidence_answer_has_no_disclaimer_either(self):
-        """По прямой повторной просьбе пользователя ("фразу про уверенность
-        вообще убери, просто ответ и все") — LOW confidence больше не
-        добавляет текст в чат вообще, ни для personal, ни для official.
-        Сам confidence по-прежнему считается и виден через /debug."""
-        chunk = KnowledgeChunk(
-            id="x", source="test", source_type="ai_generated_unverified", authority=None,
-            version=None, language="ru", topic="general", subtopic=None, date=None, url=None,
-            original_title="X", translated_title="X", content="Текст ответа.",
-        )
-        text = self.qa_module._format_chunk_answer(chunk, "LOW", None)
+        text = self.qa_module._format_chunk_answer(chunk)
         self.assertEqual(text, "Текст ответа.")
 
 
