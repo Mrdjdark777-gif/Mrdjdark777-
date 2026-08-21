@@ -39,10 +39,18 @@ from config import (
 )
 from diagnostics.registry import DiagnosticRegistry
 from education.registry import LessonRegistry
-from knowledge.schema import AUTHORITY_TIERS
+from knowledge.registry import ChunkRegistry
+from knowledge.schema import KnowledgeChunk, AUTHORITY_TIERS
 from profile.subscribers import get_subscribers
 from search.engine import extract_version_hint
 from search.qa_service import QAService
+
+# personal_notes.json — единственный knowledge-путь, куда /quick_add вправе
+# дописывать (см. config.KNOWLEDGE_CHUNK_PATHS): личные заметки, а не
+# официальный Manual — раздел 5 ТЗ прямо требует хранить их отдельно.
+_PERSONAL_NOTES_PATH = next(
+    p for p in KNOWLEDGE_CHUNK_PATHS if "personal" in p.parts
+)
 
 _TIER_BY_AUTHORITY = {v: k for k, v in AUTHORITY_TIERS.items()}
 _START_TIME = time.monotonic()
@@ -62,6 +70,9 @@ ADMIN_HELP_TEXT = (
     "/search <запрос> — сырые результаты поиска со score (раздел 10)\n"
     "/debug <вопрос> — полный разбор ответа: intent, термины, версия, "
     "confidence (раздел 33)\n"
+    "/unanswered — последние вопросы, на которые не нашлось уверенного ответа\n"
+    "/quick_add <вопрос> | <ответ> — добавить личную заметку прямо из "
+    "Telegram и переиндексировать\n"
     "/reindex — перечитать базу знаний с диска без перезапуска процесса"
 )
 
@@ -245,30 +256,135 @@ async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("\n".join(lines))
 
 
-async def reindex_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Перечитывает knowledge/ и связанные JSON с диска без перезапуска
-    процесса (раздел 27 ТЗ: ingestion должен быть повторяемым). Пересобирает
-    объекты ПЕРЕД тем, как подменить старые — если файл на диске битый,
-    исключение всплывёт до подмены, и бот продолжит отвечать по старому,
-    ещё рабочему состоянию, а не останется без индекса вообще."""
-    if not await _guard(update):
-        return
-    try:
-        new_qa_service = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
-        new_diagnostic_registry = DiagnosticRegistry.load(DIAGNOSTICS_PATH)
-        new_lesson_registry = LessonRegistry.load(LESSONS_PATH)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        await update.message.reply_text(f"Реиндексация не удалась, старое состояние сохранено: {exc}")
-        return
+def _reload_knowledge() -> QAService:
+    """Пересобирает QAService/DiagnosticRegistry/LessonRegistry с диска и
+    ПОДМЕНЯЕТ singleton'ы в bot.handlers.qa/diagnostics/education — общая
+    часть /reindex и /quick_add (раздел 27 ТЗ: ingestion должен быть
+    повторяемым). Объекты собираются ДО подмены старых — если файл на
+    диске битый, исключение всплывает раньше подмены, и бот продолжает
+    отвечать по старому, ещё исправному состоянию, а не остаётся без
+    индекса вообще. Бросает исключение вызывающему коду при неудаче,
+    ничего не подменяя."""
+    new_qa_service = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
+    new_diagnostic_registry = DiagnosticRegistry.load(DIAGNOSTICS_PATH)
+    new_lesson_registry = LessonRegistry.load(LESSONS_PATH)
 
     qa_module.qa_service = new_qa_service
     diagnostics_module.diagnostic_registry = new_diagnostic_registry
     education_module.lesson_registry = new_lesson_registry
+    return new_qa_service
+
+
+async def reindex_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Перечитывает knowledge/ и связанные JSON с диска без перезапуска процесса."""
+    if not await _guard(update):
+        return
+    try:
+        new_qa_service = _reload_knowledge()
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        await update.message.reply_text(f"Реиндексация не удалась, старое состояние сохранено: {exc}")
+        return
 
     await update.message.reply_text(
         "Реиндексация завершена.\n"
         f"Chunks: {len(new_qa_service.engine.chunks)}, "
         f"терминов: {len(new_qa_service.engine.terminology.terms)}, "
-        f"диагностических проблем: {len(new_diagnostic_registry.problems)}, "
-        f"уроков: {len(new_lesson_registry.lessons)}"
+        f"диагностических проблем: {len(diagnostics_module.diagnostic_registry.problems)}, "
+        f"уроков: {len(education_module.lesson_registry.lessons)}"
+    )
+
+
+def _read_unanswered_records(path, limit: int) -> list[dict]:
+    if not path.exists():
+        return []
+    records = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return records[-limit:]
+
+
+async def unanswered_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Раздел 3.2 ТЗ v3: список реальных вопросов, на которые поиск дал
+    confidence ниже порога (записываются в UNANSWERED_LOG_PATH — тот же
+    механизм с Phase 7, см. search/qa_service.py:log_unanswered) — чтобы
+    было видно, чего не хватает базе знаний, не заглядывая в файл руками."""
+    if not await _guard(update):
+        return
+    records = _read_unanswered_records(UNANSWERED_LOG_PATH, limit=15)
+    if not records:
+        await update.message.reply_text("Лог пуст — нет вопросов без уверенного ответа.")
+        return
+
+    lines = [f"Последние {len(records)} вопросов без уверенного ответа:", ""]
+    for r in reversed(records):
+        types = ",".join(r.get("question_types") or []) or "?"
+        lines.append(f"• [{r.get('best_score', 0):.2f}] {r.get('question', '?')} ({types})")
+    lines.append("")
+    lines.append("Ответить прямо сейчас: /quick_add вопрос | ответ")
+    await update.message.reply_text("\n".join(lines))
+
+
+QUICK_ADD_USAGE_TEXT = "Использование: /quick_add вопрос | ответ"
+
+
+async def quick_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Раздел 3.2 ТЗ v3: добавить ответ на неизвестный вопрос прямо из
+    Telegram, без ручного редактирования JSON на сервере. Пишет в личную
+    базу (knowledge/personal/, source_type=ai_generated_unverified,
+    needs_review=True — как и все остальные personal-заметки, честно не
+    выдаёт наспех вбитый ответ за официально проверенный факт), затем
+    сразу переиндексирует — раздел прямо просит "без перезапуска сервиса"."""
+    if not await _guard(update):
+        return
+    raw = update.message.text.partition(" ")[2]
+    if "|" not in raw:
+        await update.message.reply_text(QUICK_ADD_USAGE_TEXT)
+        return
+
+    question, _, answer = raw.partition("|")
+    question = question.strip()
+    answer = answer.strip()
+    if not question or not answer:
+        await update.message.reply_text(QUICK_ADD_USAGE_TEXT)
+        return
+
+    registry = ChunkRegistry.load(_PERSONAL_NOTES_PATH)
+    chunk_id = f"personal_notes:{len(registry.chunks):04d}"
+    registry.add(KnowledgeChunk(
+        id=chunk_id,
+        source="personal_notes",
+        source_type="ai_generated_unverified",
+        authority=None,
+        version=None,
+        language="ru",
+        topic="general",
+        subtopic=None,
+        date=None,
+        url=None,
+        original_title=question,
+        translated_title=question,
+        content=answer,
+        needs_review=True,
+    ))
+    registry.save(_PERSONAL_NOTES_PATH)
+
+    try:
+        new_qa_service = _reload_knowledge()
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        await update.message.reply_text(
+            f"Заметка сохранена ({chunk_id}), но реиндексация не удалась: {exc}\n"
+            f"Попробуй /reindex вручную после исправления."
+        )
+        return
+
+    await update.message.reply_text(
+        f"Добавлено и переиндексировано ({chunk_id}), chunks теперь: "
+        f"{len(new_qa_service.engine.chunks)}.\n\nВопрос: {question}\nОтвет: {answer}"
     )

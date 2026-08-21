@@ -13,10 +13,12 @@ from bot.handlers.admin import (
     admin_command,
     debug_command,
     health_command,
+    quick_add_command,
     reindex_command,
     search_command,
     sources_command,
     stats_command,
+    unanswered_command,
     version_command,
 )
 from bot.handlers.broadcast import broadcast_command
@@ -78,6 +80,8 @@ def main() -> None:
     application.add_handler(CommandHandler("version", version_command))
     application.add_handler(CommandHandler("search", search_command))
     application.add_handler(CommandHandler("debug", debug_command))
+    application.add_handler(CommandHandler("unanswered", unanswered_command))
+    application.add_handler(CommandHandler("quick_add", quick_add_command))
     application.add_handler(CommandHandler("reindex", reindex_command))
 
     application.add_handler(CallbackQueryHandler(hotkeys_callback, pattern=r"^hotkeys:\d+$"))
