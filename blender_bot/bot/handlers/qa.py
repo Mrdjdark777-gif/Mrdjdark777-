@@ -58,22 +58,57 @@ def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
-    """Ответ с указанием источника (раздел 15 ТЗ) и честной пометкой,
-    если источник — непроверенный (раздел 26, Zero-Hallucination Mode)."""
-    lines = [chunk.content]
+def _source_label(chunk: KnowledgeChunk) -> str:
+    if chunk.source_type == "official_manual":
+        return "официальный Blender Manual"
+    if chunk.source_type == "ai_generated_unverified":
+        return "личная база бота, не проверено"
+    return chunk.source
+
+
+def _format_citation(chunk: KnowledgeChunk) -> str | None:
+    """Источник, раздел, версия и URL — раздел 15 ТЗ."""
     if chunk.source_type == "official_manual":
         version_note = f" ({chunk.version})" if chunk.version else " (версия не определена)"
-        lines.append(f"\n_Источник: официальный Blender Manual{version_note}_")
+        parts = [f"_Источник: официальный Blender Manual{version_note}_"]
         if chunk.url:
-            lines.append(chunk.url)
-    elif chunk.source_type == "ai_generated_unverified":
-        lines.append(
-            "\n_Из личной базы бота, не сверено с официальной документацией — "
+            parts.append(chunk.url)
+        return "\n".join(parts)
+    if chunk.source_type == "ai_generated_unverified":
+        return (
+            "_Из личной базы бота, не сверено с официальной документацией — "
             "если что-то не сходится, доверяй официальному Manual._"
         )
-    elif chunk.url:
-        lines.append(f"\n_Источник: {chunk.source}_\n{chunk.url}")
+    if chunk.url:
+        return f"_Источник: {chunk.source}_\n{chunk.url}"
+    return None
+
+
+def _format_chunk_answer(
+    chunk: KnowledgeChunk,
+    confidence: str = "MEDIUM",
+    competing_chunk: KnowledgeChunk | None = None,
+) -> str:
+    """Раздел 15 ТЗ (citations) + раздел 14 (LOW нельзя выдавать за
+    уверенное утверждение — явная оговорка) + раздел 17 (Conflict Engine —
+    не молчать про второй найденный источник другого типа)."""
+    lines = [chunk.content]
+
+    citation = _format_citation(chunk)
+    if citation:
+        lines.append(f"\n{citation}")
+
+    # ai_generated_unverified уже честно оговорен в _format_citation —
+    # не дублировать ту же мысль второй раз другими словами.
+    if confidence == "LOW" and chunk.source_type != "ai_generated_unverified":
+        lines.append("\n_Уверенность в этом ответе невысокая._")
+
+    if competing_chunk:
+        lines.append(
+            f"\n_Также нашлась информация из другого источника "
+            f"({_source_label(competing_chunk)}) — показан более приоритетный вариант._"
+        )
+
     return "\n".join(lines)
 
 
@@ -104,7 +139,8 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if result.kind == "chunk_confident":
         await update.message.reply_text(
-            _format_chunk_answer(result.chunk), parse_mode="Markdown"
+            _format_chunk_answer(result.chunk, result.confidence, result.competing_chunk),
+            parse_mode="Markdown",
         )
         return
 
@@ -144,7 +180,11 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     chunk = qa_service.get_chunk(chunk_id) if chunk_id else None
     if chunk:
-        await query.edit_message_text(_format_chunk_answer(chunk), parse_mode="Markdown")
+        # soft_match по построению ниже HIGH_CONFIDENCE_THRESHOLD (Phase 7) —
+        # confidence="LOW" здесь всегда честна, пересчитывать не нужно.
+        await query.edit_message_text(
+            _format_chunk_answer(chunk, confidence="LOW"), parse_mode="Markdown"
+        )
     else:
         await query.edit_message_text(FALLBACK_TEXT)
 

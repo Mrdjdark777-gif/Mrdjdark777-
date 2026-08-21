@@ -32,9 +32,10 @@ knowledge/    — база знаний: schema.py/registry.py/version.py/termin
                 живого поиска (через search/engine.py).
 search/       — SearchEngine (Phase 7, раздел 10 ТЗ: TF-IDF + terminology
                 alias match + version/authority/topic score поверх
-                knowledge/ registry) и QAService (бизнес-логика ответа на
-                вопрос, единственная точка входа для bot/handlers/qa.py и
-                bot/handlers/inline.py)
+                knowledge/ registry), confidence.py (Phase 10, раздел 14:
+                HIGH/MEDIUM/LOW/UNKNOWN) и QAService (бизнес-логика ответа
+                на вопрос + Conflict Engine раздела 17 — единственная точка
+                входа для bot/handlers/qa.py и bot/handlers/inline.py)
 intents/      — Intent Engine (Phase 8, раздел 11 ТЗ): классификация типа
                 вопроса (WHAT_IS/HOW_TO/...) и темы (RENDERING/RIGGING/...)
                 по keywords/patterns. Подключено только к логированию

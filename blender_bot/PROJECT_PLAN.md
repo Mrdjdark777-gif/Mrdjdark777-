@@ -18,8 +18,8 @@ Known issues / Next phase).
 | 7 | Search engine | ✅ готово |
 | 8 | Intent engine | ✅ готово |
 | 9 | Diagnostic engine | ✅ готово |
-| 10 | Source ranking | ⏳ следующая |
-| 11 | Education engine | ⬜ |
+| 10 | Source ranking | ✅ готово |
+| 11 | Education engine | ⏳ следующая |
 | 12 | User profile | ⬜ |
 | 13 | Test suite | ⬜ |
 | 14 | Optimization | ⬜ |
@@ -966,3 +966,113 @@ citations, Fact vs Recommendation, Conflict Engine). Сейчас у ответ�
 (`_format_chunk_answer`, Phase 7), но нет явного уровня уверенности
 (HIGH/MEDIUM/LOW/UNKNOWN) и нет обработки конфликта, когда два источника
 по одной теме противоречат друг другу.
+
+---
+
+## Phase 10 — Source ranking
+
+### Отчёт (раздел 42 ТЗ)
+
+**Changed**
+
+- `search/qa_service.py` — `QAResult` получил `confidence: str` и
+  `competing_chunk: KnowledgeChunk | None`; `answer()` заполняет их для
+  `chunk_confident` и `soft_match` через `classify_confidence()` и новую
+  `_find_competing_source()`.
+- `bot/handlers/qa.py` — `_format_chunk_answer()` переработан: вынесен
+  `_format_citation()` (раздел 15, без изменения поведения), добавлена
+  оговорка «Уверенность в этом ответе невысокая» при `confidence="LOW"`
+  (кроме `ai_generated_unverified` — там оговорка уже есть в цитате, не
+  дублируем) и пометка про конкурирующий источник при
+  `competing_chunk` (раздел 17). `qa_confirm_callback` передаёт
+  `confidence="LOW"` явно — soft_match по построению ниже
+  `HIGH_CONFIDENCE_THRESHOLD` (Phase 7), пересчитывать нечего.
+
+**Added**
+
+- `search/confidence.py` — `classify_confidence(scored) -> HIGH|MEDIUM|LOW|UNKNOWN`
+  (раздел 14 ТЗ). Правила: `None` → UNKNOWN; реальный конфликт версий
+  (`version_score<1.0`, раздел 5-7 ТЗ) → LOW независимо от authority
+  источника; official_manual + точный термин → HIGH; official_manual без
+  точного термина → MEDIUM; authority A/B-tier (≥60) → MEDIUM (правило
+  готово, но `knowledge/community/*` пока пусто — реальных данных для этой
+  ветки нет); всё остальное (в первую очередь `ai_generated_unverified`) →
+  LOW. Функция намеренно не решает релевантность сама — предполагает, что
+  вызывающий код (Phase 7 пороги) её уже отсеял.
+- `search/qa_service.py::_find_competing_source()` — Conflict Engine
+  (раздел 17 ТЗ): второй результат считается «конкурирующим источником»,
+  только если он тоже точно про распознанный термин
+  (`exact_term_bonus>=1.0`) И источник другого `source_type` — иначе это
+  не конфликт, а просто два похожих абзаца одного типа.
+- `tests/test_phase10_confidence.py` — 16 тестов: `classify_confidence()`
+  на синтетике (7 случаев, включая version-конфликт и гипотетический
+  community A/B-tier), `_find_competing_source()` на синтетике (4), и на
+  реальном корпусе (3): «как сделать булеан» даёт HIGH, конфликт версии
+  (3.6 против индексированной 5.1) корректно демотирует до LOW, и «булеан»
+  реально находит конкурирующий источник (official Manual vs personal
+  note) — не выдуманный сценарий, тот же самый, что описан в находках
+  Phase 7. Плюс 2 теста форматирования текста через реальный
+  `bot/handlers/qa.py`.
+
+**Removed**
+
+Ничего.
+
+**Tests**
+
+`python -m unittest discover tests -v` — **168/168 passed** (152 из Phase
+2-9 + 16 новых).
+
+**Что сделано честно, а что — нет**
+
+Раздел 40 ТЗ называет эту фазу «Source ranking», а разделы 14-17
+описывают 4 разные темы. Реализованы 2 из 4:
+
+- ✅ **Confidence Engine (раздел 14)** — HIGH/MEDIUM/LOW/UNKNOWN, реально
+  влияет на текст ответа (оговорка при LOW).
+- ✅ **Conflict Engine (раздел 17)**, частично — версионный конфликт
+  (полноценно, через `knowledge/version.py` из Phase 5) и конфликт
+  authority-тира источников (обнаружение факта, что нашлись два разных по
+  типу источника, без анализа СОДЕРЖАНИЯ на предмет реального
+  противоречия — определить, действительно ли два текста говорят разное,
+  задача уровня NLP, которую не стал изображать эвристикой).
+- ⬜ **Source citations (раздел 15)** — technically уже было сделано в
+  Phase 7 (`_format_citation`), здесь только вынесено в отдельную функцию.
+  Требование «community source должен быть явно помечен» не проверено на
+  реальных данных — `knowledge/community/*` по-прежнему пусто (Phase 3
+  Known issues), пометка сработает автоматически, когда там появится
+  контент (source_type ≠ official_manual/ai_generated_unverified уже
+  сейчас показывает `_Источник: {chunk.source}_`), но не протестирована
+  на реальном community-чанке, потому что такого чанка не существует.
+- ❌ **Fact vs Recommendation (раздел 16)** — не реализовано. Требует
+  классификации содержимого чанка (FACT/RULE/RECOMMENDATION/WORKFLOW/
+  OPINION/COMMUNITY_PRACTICE), для которой сейчас нет надёжных оснований:
+  это не keyword-паттерн вроде Intent Engine, а суждение о характере
+  утверждения, которое легко классифицировать неверно и выдать
+  рекомендацию за правило (ровно то, что раздел 16 запрещает). Кроме
+  того, раздел 16 больше про то, как бот ФОРМУЛИРУЕТ собственный текст
+  («всегда»/«никогда» только для детерминированного поведения) — а
+  сейчас бот показывает содержимое chunk'а дословно, не генерирует
+  свои предложения, так что это ограничение пока не на что накладывать.
+
+**Known issues**
+
+- MEDIUM-ветка confidence для community-источников (authority≥60)
+  никогда не сработает на практике, пока `knowledge/community/*` пусто —
+  правило протестировано только на синтетике.
+- Conflict Engine не проверяет реальное семантическое противоречие между
+  источниками, только факт «оба точно про один термин, из разных типов
+  источников». Тексты могут полностью совпадать по смыслу и всё равно
+  получить пометку «конкурирующий источник» — это осторожность в пользу
+  прозрачности (раздел 17: «конфликт не удалять»), а не точная детекция
+  расхождений.
+- Fact vs Recommendation не реализовано вообще (см. выше) — открытый
+  пункт ТЗ, возможно стоит вернуться к нему вместе с Education Engine
+  (Phase 11), где различие FACT/OPINION станет более заметно нужным (тесты
+  и объяснения требуют разграничивать факт от практики).
+
+**Next phase**
+
+Phase 11 — Education Engine (раздел 18 ТЗ): команды /learn, /progress,
+/test, /exam, /weaknesses, /next; структура темы Theory → Example →
+Exercise → Quiz → Result → Weakness tracking.
