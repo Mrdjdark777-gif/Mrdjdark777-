@@ -1907,5 +1907,28 @@
   "parent_document": null,
   "section_path": null,
   "needs_review": true
+ },
+ {
+  "id": "personal_notes:0083",
+  "source": "personal_notes",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "general",
+  "subtopic": null,
+  "date": null,
+  "url": null,
+  "original_title": "Что такое PBR (физически корректный рендеринг)?",
+  "translated_title": "Что такое PBR (физически корректный рендеринг)?",
+  "content": "PBR (Physically Based Rendering) — подход к материалам и рендерингу, при котором поверхности ведут себя так, как реальные материалы подчиняются законам физики (сохранение энергии света, реалистичное отражение и преломление). В Blender основной PBR-шейдер — Principled BSDF: у него есть параметры Base Color, Metallic, Roughness, Normal и другие, которые вместе описывают материал предсказуемо и одинаково хорошо смотрятся и в Cycles, и в EEVEE. Преимущество PBR — материалы выглядят правдоподобно при любом освещении, а не только в той сцене, для которой их подгоняли вручную.",
+  "license": null,
+  "author": null,
+  "content_hash": "0c051f28425e3c894c35a6cced330d72eef9bf6fa28afe6f7de4f10ca93a9aa1",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": true
  }
 ]

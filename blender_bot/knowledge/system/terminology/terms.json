@@ -144,6 +144,26 @@
   "common_mistakes": []
  },
  {
+  "canonical_name": "PBR",
+  "russian_name": "Физически корректный рендеринг (PBR)",
+  "category": "shaders",
+  "aliases": [
+   "физически корректный рендеринг",
+   "пбр"
+  ],
+  "english_aliases": [
+   "pbr",
+   "physically based rendering"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Principled BSDF",
+   "Cycles",
+   "EEVEE"
+  ],
+  "common_mistakes": []
+ },
+ {
   "canonical_name": "Modifier",
   "russian_name": "Модификатор",
   "category": "modifiers",

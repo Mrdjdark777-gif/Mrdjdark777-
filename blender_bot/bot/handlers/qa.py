@@ -32,16 +32,62 @@ FALLBACK_TEXT = (
 VAGUE_FOLLOWUP_TEXT = (
     "Похоже, это уточнение к предыдущему сообщению, а не отдельный вопрос.\n\n"
     "Я не запоминаю историю переписки и разбираю каждое сообщение отдельно, "
-    "поэтому не понимаю, к чему относится «подробнее» или «почему».\n\n"
+    "поэтому не понимаю, к чему это относится.\n\n"
     "Напиши вопрос целиком, с темой — например: «расскажи подробнее про "
     "модификатор Boolean»."
 )
 
+NOTHING_TO_EXPAND_TEXT = (
+    "Похоже, это просьба рассказать подробнее, но я не помню, о чём был "
+    "предыдущий вопрос (история переписки не хранится дольше одного "
+    "ответа).\n\nНапиши вопрос целиком — например: «расскажи подробнее "
+    "про модификатор Boolean»."
+)
+
 _WORD_RE = re.compile(r"[a-zа-яё0-9]+", re.IGNORECASE)
-_FOLLOWUP_MARKERS = {
-    "подробнее", "почему", "зачем", "поясни", "объясни", "расскажи",
-    "понятнее", "детальнее", "ещё", "еще",
-}
+
+# Раздел про "более расширенный ответ" (см. PROJECT_PLAN.md, после Phase
+# 15) — фразы, которыми пользователь обычно просит больше информации по
+# ТОЛЬКО ЧТО заданному вопросу, а не задаёт новый вопрос. Раньше многие из
+# этих же слов ("подробнее", "расскажи", "ещё") просто попадали в
+# VAGUE_FOLLOWUP_TEXT ("я не помню, о чём речь") — теперь для них есть
+# осмысленное действие: context.user_data["last_question"] хранит текст
+# последнего вопроса, получившего уверенный ответ (тот же принцип, что
+# pending_question для soft_match — см. qa_confirm_callback), и по этим
+# фразам он используется, чтобы найти дополнительные материалы и источники.
+#
+# Ограничение длины (не длиннее 4 слов, как и раньше у _is_vague_followup)
+# — сознательно, чтобы не перехватывать настоящие вопросы, где похожее
+# слово — часть темы, а не просьба "расскажи ещё": "Что такое источник
+# света?" — реальный вопрос про Light, а не просьба прислать источники,
+# поэтому одиночное "источник" НЕ в списке маркеров, только явные фразы
+# запроса вроде "дай источники"/"покажи источники".
+_MORE_INFO_MARKERS = (
+    "ещё", "еще", "далее", "продолжи", "продолжение",
+    "ещё информац", "еще информац", "больше информац", "больше инфы",
+    "подробнее", "поподробнее", "более подробно", "детальнее", "детальн",
+    "расширенн", "расширить ответ", "полный ответ", "покажи полностью",
+    "весь текст", "хочу больше", "дай больше",
+    "дай источник", "покажи источник", "нужны источник", "нужен источник",
+    "хочу источник", "укажи источник", "какие источники", "все источники",
+    "дай ссылк", "покажи ссылк", "нужны ссылк", "нужна ссылк", "хочу ссылк",
+    "укажи ссылк", "дай линк", "покажи линк",
+    "где почитать", "где можно почитать", "где прочитать", "где подробнее",
+    "more info", "more information", "tell me more", "read more",
+    "give me sources", "give sources", "share sources", "share links",
+)
+_MORE_INFO_RE = re.compile(
+    "|".join(rf"\b{re.escape(p)}" for p in _MORE_INFO_MARKERS), re.IGNORECASE
+)
+
+_FOLLOWUP_MARKERS = {"почему", "зачем", "понятнее"}
+
+
+def _is_more_info_request(question: str) -> bool:
+    words = _WORD_RE.findall(question.lower().strip())
+    if not words or len(words) > 4:
+        return False
+    return bool(_MORE_INFO_RE.search(question.lower()))
 
 
 def _is_vague_followup(question: str) -> bool:
@@ -68,30 +114,23 @@ def _source_label(chunk: KnowledgeChunk) -> str:
     return chunk.source
 
 
-def _format_citation(chunk: KnowledgeChunk) -> str | None:
-    """Источник, раздел, версия и URL — раздел 15 ТЗ.
-
-    ai_generated_unverified (личные заметки, Phase 3) сознательно БЕЗ
-    отдельной оговорки под каждым ответом — по прямой обратной связи
-    пользователя после реального использования на проде (Phase 15): для
-    простых фактических вопросов ("какая клавиша у Extrude") постоянная
-    строка "не сверено с официальной документацией" читалась как шум, а
-    не как полезная информация. Раздел 17 (Conflict Engine, см.
-    `_source_label`) и раздел 14 (LOW confidence disclaimer ниже)
-    по-прежнему честно предупреждают, когда источник РЕАЛЬНО ненадёжен
-    или конфликтует с официальным — постоянная пометка на КАЖДОМ personal
-    chunk такой ценности не несла."""
+def _source_ref(chunk: KnowledgeChunk) -> str:
+    """Одна строка-ссылка на источник — раздел 15 ТЗ (citations), но не в
+    обычном ответе (см. `_format_chunk_answer`), а только в расширенном
+    по явному запросу ("дай источники", см. `_format_more_info`), и сразу
+    для НЕСКОЛЬКИХ найденных источников, а не одного. По прямой обратной
+    связи пользователя после реального использования на проде (Phase 15):
+    сначала убрали source-специфичную оговорку для personal-заметок,
+    затем — и саму строку с источником из обычного ответа целиком ("теперь
+    при ответах не нужно указывать источник, просто ответ")."""
     if chunk.source_type == "official_manual":
-        version_note = f" ({chunk.version})" if chunk.version else " (версия не определена)"
-        parts = [f"_Источник: официальный Blender Manual{version_note}_"]
-        if chunk.url:
-            parts.append(chunk.url)
-        return "\n".join(parts)
+        version_note = f" ({chunk.version})" if chunk.version else ""
+        url_part = f" — {chunk.url}" if chunk.url else ""
+        return f"{chunk.translated_title}, официальный Blender Manual{version_note}{url_part}"
     if chunk.source_type == "ai_generated_unverified":
-        return None
-    if chunk.url:
-        return f"_Источник: {chunk.source}_\n{chunk.url}"
-    return None
+        return f"{chunk.translated_title} — личная база бота, не сверено с официальной документацией"
+    url_part = f" — {chunk.url}" if chunk.url else ""
+    return f"{chunk.translated_title}, {chunk.source}{url_part}"
 
 
 def _format_chunk_answer(
@@ -99,28 +138,67 @@ def _format_chunk_answer(
     confidence: str = "MEDIUM",
     competing_chunk: KnowledgeChunk | None = None,
 ) -> str:
-    """Раздел 15 ТЗ (citations) + раздел 17 (Conflict Engine — не молчать
-    про второй найденный источник другого типа).
+    """Раздел 17 ТЗ (Conflict Engine — не молчать про второй найденный
+    источник другого типа).
 
-    Раздел 14 ТЗ ("LOW нельзя выдавать за уверенное утверждение") раньше
-    добавлял сюда явную оговорку "_Уверенность в этом ответе невысокая._".
-    Убрана по прямой обратной связи пользователя после реального
-    использования на проде: "фразу про уверенность вообще убери, просто
-    ответ и все". confidence по-прежнему вычисляется и доступен через
-    /debug (bot/handlers/admin.py, раздел 33 ТЗ) — просто не выводится
-    рядовому пользователю в чат. Отступление от буквы раздела 14
-    зафиксировано в PROJECT_PLAN.md."""
+    Раздел 15 ТЗ (citations) и раздел 14 ("LOW нельзя выдавать за
+    уверенное утверждение" — явная оговорка) раньше добавляли сюда
+    источник и confidence-оговорку под каждым ответом. Обе убраны по
+    прямой обратной связи пользователя после реального использования на
+    проде: "просто ответ и все". Источник и confidence по-прежнему
+    доступны — через явный запрос "дай источники"/"подробнее"
+    (`_format_more_info`, ниже) или через /debug (раздел 33 ТЗ) для
+    владельца. Отступление от буквы разделов 14-15 зафиксировано в
+    PROJECT_PLAN.md."""
     lines = [chunk.content]
-
-    citation = _format_citation(chunk)
-    if citation:
-        lines.append(f"\n{citation}")
 
     if competing_chunk:
         lines.append(
             f"\n_Также нашлась информация из другого источника "
             f"({_source_label(competing_chunk)}) — показан более приоритетный вариант._"
         )
+
+    return "\n".join(lines)
+
+
+def _format_more_info(question: str) -> str:
+    """Ответ на "расскажи подробнее"/"дай источники" и т.п. про ПОСЛЕДНИЙ
+    заданный вопрос (см. `_is_more_info_request`, `answer_question`).
+
+    Не хранит отдельное "расширенное содержимое" — chunk.content и так
+    уже полный текст ответа (раздел 28 ТЗ: chunking по смысловым
+    единицам, не обрезается). "Больше информации" здесь означает: (1)
+    другие релевантные результаты того же поиска, которые не попали в
+    основной ответ, и (2) список источников — специально НЕСКОЛЬКО, а не
+    один, по прямому запросу пользователя."""
+    requested_version = extract_version_hint(question)
+    results = qa_service.engine.search(question, requested_version=requested_version, top_n=5)
+
+    if not results:
+        return (
+            "Больше конкретного текста по этому вопросу в базе знаний нет.\n\n"
+            "Официальная документация: https://docs.blender.org/manual/ru/latest/"
+        )
+
+    lines = []
+    extra = results[1:4]
+    if extra:
+        lines.append("Вот что ещё нашлось по теме:\n")
+        for r in extra:
+            lines.append(f"• {r.chunk.translated_title}")
+            lines.append(r.chunk.content)
+            lines.append("")
+    else:
+        lines.append("Больше материалов по теме в базе знаний нет — вот источники для дальнейшего чтения.\n")
+
+    lines.append("Источники:")
+    seen: set[str] = set()
+    for r in results:
+        ref = _source_ref(r.chunk)
+        if ref not in seen:
+            seen.add(ref)
+            lines.append(f"• {ref}")
+    lines.append("• Официальная документация: https://docs.blender.org/manual/ru/latest/")
 
     return "\n".join(lines)
 
@@ -134,7 +212,23 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # по кнопке, эта сессия считается брошенной.
     clear_session(context)
 
-    # Проверяем расплывчатость ДО поиска: короткое слово вроде «подробнее»
+    # "Расскажи подробнее"/"дай источники" и т.п. про последний уверенно
+    # отвеченный вопрос — проверяется ДО общей проверки расплывчатости
+    # (_is_vague_followup), иначе эти же слова ("подробнее", "ещё")
+    # перехватывались бы ей раньше. context.user_data["last_question"]
+    # ставится ниже (после chunk_confident-ответа) и в qa_confirm_callback
+    # (после подтверждения soft_match) — то же ограниченное, однослотовое
+    # "помню только последний вопрос", что уже применяется для
+    # pending_question в soft_match-диалоге, не полная история переписки.
+    if _is_more_info_request(question):
+        last_question = context.user_data.get("last_question")
+        if last_question:
+            await update.message.reply_text(_format_more_info(last_question), parse_mode="Markdown")
+        else:
+            await update.message.reply_text(NOTHING_TO_EXPAND_TEXT)
+        return
+
+    # Проверяем расплывчатость ДО поиска: короткое слово вроде «почему»
     # может случайно совпасть с чем-то в корпусе, и тогда бот уверенно
     # ответит не по теме.
     if _is_vague_followup(question):
@@ -160,6 +254,7 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     result = qa_service.answer(question)
 
     if result.kind == "chunk_confident":
+        context.user_data["last_question"] = question
         await update.message.reply_text(
             _format_chunk_answer(result.chunk, result.confidence, result.competing_chunk),
             parse_mode="Markdown",
@@ -196,9 +291,11 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    context.user_data.pop("pending_question", None)
+    pending_question = context.user_data.pop("pending_question", None)
     context.user_data.pop("pending_score", None)
     chunk_id = context.user_data.pop("pending_chunk_id", None)
+    if pending_question:
+        context.user_data["last_question"] = pending_question
 
     chunk = qa_service.get_chunk(chunk_id) if chunk_id else None
     if chunk:

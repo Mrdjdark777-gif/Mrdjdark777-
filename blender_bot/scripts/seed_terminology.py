@@ -71,6 +71,17 @@ TERMS = [
         english_aliases=["principled bsdf", "bsdf"], related_terms=["Shader Editor"],
     ),
     Term(
+        # Найдено по обратной связи пользователя: "Что такое pbr?" не
+        # находил термин вообще (не зарегистрирован), а лучшее совпадение
+        # по лексике оказалось chunk про EEVEE с испорченным переводом
+        # заголовка "ИИВИ" (см. Changed в PROJECT_PLAN.md — заодно
+        # исправлен и сам баг перевода в manual.json).
+        canonical_name="PBR", russian_name="Физически корректный рендеринг (PBR)",
+        category="shaders", aliases=["физически корректный рендеринг", "пбр"],
+        english_aliases=["pbr", "physically based rendering"],
+        related_terms=["Principled BSDF", "Cycles", "EEVEE"],
+    ),
+    Term(
         # Общее понятие "модификатор" (в отличие от Mirror Modifier, Bevel
         # и т.д. — конкретных модификаторов) не имело собственного термина
         # до сих пор — раньше вопрос "Что такое модификаторы?" вообще не
