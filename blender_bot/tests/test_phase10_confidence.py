@@ -165,15 +165,18 @@ class FormattingIntegrationTests(unittest.TestCase):
         self.assertNotIn("не сверено", text)
         self.assertNotIn("невысокая", text)
 
-    def test_unverified_answer_still_gets_low_confidence_disclaimer(self):
+    def test_low_confidence_answer_has_no_disclaimer_either(self):
+        """По прямой повторной просьбе пользователя ("фразу про уверенность
+        вообще убери, просто ответ и все") — LOW confidence больше не
+        добавляет текст в чат вообще, ни для personal, ни для official.
+        Сам confidence по-прежнему считается и виден через /debug."""
         chunk = KnowledgeChunk(
             id="x", source="test", source_type="ai_generated_unverified", authority=None,
             version=None, language="ru", topic="general", subtopic=None, date=None, url=None,
             original_title="X", translated_title="X", content="Текст ответа.",
         )
         text = self.qa_module._format_chunk_answer(chunk, "LOW", None)
-        self.assertNotIn("не сверено", text)
-        self.assertIn("Уверенность в этом ответе невысокая", text)
+        self.assertEqual(text, "Текст ответа.")
 
 
 if __name__ == "__main__":

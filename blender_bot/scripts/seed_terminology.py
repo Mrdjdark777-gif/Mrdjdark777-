@@ -71,6 +71,18 @@ TERMS = [
         english_aliases=["principled bsdf", "bsdf"], related_terms=["Shader Editor"],
     ),
     Term(
+        # Общее понятие "модификатор" (в отличие от Mirror Modifier, Bevel
+        # и т.д. — конкретных модификаторов) не имело собственного термина
+        # до сих пор — раньше вопрос "Что такое модификаторы?" вообще не
+        # распознавал термин, exact_term_bonus всегда был 0. Найдено по
+        # прямой обратной связи пользователя после реального использования
+        # на проде (PROJECT_PLAN.md, после Phase 15).
+        canonical_name="Modifier", russian_name="Модификатор",
+        category="modifiers", aliases=["модификаторы", "стек модификаторов"],
+        english_aliases=["modifier", "modifiers"],
+        related_terms=["Mirror Modifier", "Bevel", "Boolean Modifier", "Array Modifier"],
+    ),
+    Term(
         canonical_name="Mirror Modifier", russian_name="Модификатор Зеркало",
         category="modifiers", aliases=["зеркало", "симметрия модификатор"],
         english_aliases=["mirror"], ui_label="Mirror",

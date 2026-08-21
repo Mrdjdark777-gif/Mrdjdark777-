@@ -101,18 +101,32 @@ class SearchEngine:
         return self._by_id.get(chunk_id)
 
     def _find_term(self, query: str) -> Term | None:
-        """Exact term match / alias match (раздел 10 ТЗ) — сначала пробуем
-        запрос целиком, затем каждое отдельное слово. Term'ы обычно короче
-        полного вопроса, поэтому полнотекстовое совпадение маловероятно,
-        но не бесполезно (например, если запрос — буквально "mirror")."""
-        term = self.terminology.find(query)
-        if term:
-            return term
-        for token in tokenize(query):
-            term = self.terminology.find(token)
-            if term:
-                return term
-        return None
+        """Exact term match / alias match (раздел 10 ТЗ).
+
+        Перебирает все непрерывные подпоследовательности токенов запроса
+        (n-граммы) и берёт САМОЕ ДЛИННОЕ совпадение с полным алиасом
+        термина. Раньше проверялись только весь запрос целиком или
+        отдельные однословные токены — многословные алиасы вроде "группа
+        вершин", "покраска весов" внутри более длинного вопроса ("Что
+        такое группа вершин?") никогда не находились, потому что "группа"
+        и "вершин" по отдельности не зарегистрированы как алиасы, а весь
+        вопрос целиком, конечно, не совпадал ни с одним алиасом. Найдено
+        при добавлении новых personal-заметок (PROJECT_PLAN.md, после
+        Phase 15). Более длинное совпадение предпочтительнее короткого:
+        точное совпадение целой многословной фразы — более сильный сигнал,
+        чем случайное совпадение одного общего слова где-то в вопросе."""
+        tokens = tokenize(query)
+        best: Term | None = None
+        best_len = 0
+        for i in range(len(tokens)):
+            for j in range(i + 1, len(tokens) + 1):
+                if j - i <= best_len:
+                    continue
+                candidate = self.terminology.find(" ".join(tokens[i:j]))
+                if candidate:
+                    best = candidate
+                    best_len = j - i
+        return best
 
     def _term_names(self, term: Term) -> set[str]:
         names = {term.canonical_name, term.russian_name, *term.aliases, *term.english_aliases}
@@ -207,5 +221,17 @@ class SearchEngine:
                 )
             )
 
-        results.sort(key=lambda r: r.score, reverse=True)
+        # lexical_score как вторичный ключ сортировки: несколько chunk'ов
+        # часто получают ОДИНАКОВЫЙ exact_term_bonus=1.0 (однословный алиас
+        # вроде "фаска" или "bevel" совпадает и у chunk'а, который реально
+        # ПРО эту тему, и у чанка, который просто упомянул слово мимоходом
+        # — см. _exact_term_bonus). Без вторичного ключа сортировка была
+        # стабильной по порядку файла, и при равном score побеждал более
+        # ранний по индексу chunk, а не более релевантный — найдено при
+        # добавлении новых personal-заметок (PROJECT_PLAN.md, после Phase
+        # 15): "Что такое фаска (Bevel)?" содержательно точнее отвечает на
+        # вопрос про Bevel, чем случайное упоминание слова "bevel" в
+        # заметке про Apply Transform, но лексически совпадает с запросом
+        # намного сильнее — это и должно решать исход при равном bonus.
+        results.sort(key=lambda r: (r.score, r.lexical_score), reverse=True)
         return [r for r in results[:top_n] if r.score > 0]

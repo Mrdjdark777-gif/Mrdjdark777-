@@ -111,10 +111,14 @@ class MigratedDimaNotesTests(unittest.TestCase):
         )
 
     def test_migrated_count_matches_source(self):
+        """dima_notes.json — живая personal-база, куда со временем добавляются
+        новые ручные записи (не только результат одноразовой миграции Phase 3)
+        — поэтому не "ровно столько же", а "минимум столько же, сколько было
+        смигрировано изначально": ничего из исходных 70 записей не потеряно."""
         with open(KNOWLEDGE_BASE_PATH, encoding="utf-8") as f:
             source_entries = json.load(f)
         registry = ChunkRegistry.load(DIMA_NOTES_PATH)
-        self.assertEqual(len(registry.chunks), len(source_entries))
+        self.assertGreaterEqual(len(registry.chunks), len(source_entries))
 
     def test_every_migrated_chunk_is_valid(self):
         registry = ChunkRegistry.load(DIMA_NOTES_PATH)

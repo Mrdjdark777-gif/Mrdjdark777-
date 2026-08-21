@@ -144,6 +144,27 @@
   "common_mistakes": []
  },
  {
+  "canonical_name": "Modifier",
+  "russian_name": "Модификатор",
+  "category": "modifiers",
+  "aliases": [
+   "модификаторы",
+   "стек модификаторов"
+  ],
+  "english_aliases": [
+   "modifier",
+   "modifiers"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Mirror Modifier",
+   "Bevel",
+   "Boolean Modifier",
+   "Array Modifier"
+  ],
+  "common_mistakes": []
+ },
+ {
   "canonical_name": "Mirror Modifier",
   "russian_name": "Модификатор Зеркало",
   "category": "modifiers",
