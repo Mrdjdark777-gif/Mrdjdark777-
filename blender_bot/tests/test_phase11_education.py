@@ -113,7 +113,12 @@ class RealSeededDataTests(unittest.TestCase):
 class TelegramLayerTests(unittest.TestCase):
     """Полный проход /learn -> /test -> ответ -> /next -> /progress ->
     /weaknesses через моки Update/Context, как в Phase 9 — здесь тоже
-    многошаговое состояние, где баг в самом хендлере реально ломает сессию."""
+    многошаговое состояние, где баг в самом хендлере реально ломает сессию.
+
+    profile_store подменяется на временную БД (Phase 12) — иначе тесты
+    писали бы в настоящий data/user_profile.db."""
+
+    TEST_USER_ID = 900000001
 
     def setUp(self):
         if not LESSONS_PATH.exists():
@@ -121,13 +126,33 @@ class TelegramLayerTests(unittest.TestCase):
         from bot.handlers import education as edu_module
         self.edu = edu_module
 
+        self._tmp = tempfile.TemporaryDirectory()
+        from profile.user_profile import UserProfileStore
+        self._test_store = UserProfileStore(Path(self._tmp.name) / "test_profile.db")
+        self._original_store = edu_module.profile_store
+        edu_module.profile_store = self._test_store
+
+    def tearDown(self):
+        self.edu.profile_store = self._original_store
+        self._test_store.close()
+        self._tmp.cleanup()
+
     def _run(self, coro):
         return asyncio.run(coro)
 
     def _update(self):
         u = MagicMock()
         u.message.reply_text = AsyncMock()
+        u.effective_user.id = self.TEST_USER_ID
         return u
+
+    def _callback_update(self, data: str):
+        cb = MagicMock()
+        cb.callback_query.answer = AsyncMock()
+        cb.callback_query.edit_message_text = AsyncMock()
+        cb.callback_query.data = data
+        cb.effective_user.id = self.TEST_USER_ID
+        return cb
 
     def _context(self, args=None):
         c = MagicMock()
@@ -171,18 +196,18 @@ class TelegramLayerTests(unittest.TestCase):
         first_question = lesson.quiz[0]
         wrong_index = next(i for i in range(len(first_question.options)) if i != first_question.correct_index)
 
-        cb = MagicMock()
-        cb.callback_query.answer = AsyncMock()
-        cb.callback_query.edit_message_text = AsyncMock()
-        cb.callback_query.data = f"edu:{wrong_index}"
+        cb = self._callback_update(f"edu:{wrong_index}")
         self._run(self.edu.quiz_answer_callback(cb, context))
 
         result_text = cb.callback_query.edit_message_text.call_args.args[0]
         self.assertIn("Неверно", result_text)
         self.assertIn(first_question.explanation, result_text)
 
-        self.assertEqual(context.user_data["edu_session_log"], [{"topic_id": "Mirror Modifier", "correct": False}])
-        self.assertEqual(context.user_data["edu_weak_topics"], {"Mirror Modifier": 1})
+        # История теперь в profile_store (Phase 12), не в context.user_data.
+        self.assertEqual(
+            self._test_store.weak_topics(self.TEST_USER_ID), {"Mirror Modifier": 1}
+        )
+        self.assertEqual(self._test_store.progress_summary(self.TEST_USER_ID)["total"], 1)
 
         progress_update = self._update()
         self._run(self.edu.progress_command(progress_update, context))
@@ -196,21 +221,35 @@ class TelegramLayerTests(unittest.TestCase):
         self.assertIn("Mirror Modifier", weak_text)
 
     def test_next_without_quiz_suggests_weakest_topic(self):
+        # 3 неверных по N-gon, 1 по Boolean Modifier -> N-gon предложен первым.
+        self._test_store.record_quiz_answer(self.TEST_USER_ID, "N-gon", "q1", False)
+        self._test_store.record_quiz_answer(self.TEST_USER_ID, "N-gon", "q2", False)
+        self._test_store.record_quiz_answer(self.TEST_USER_ID, "N-gon", "q1", False)
+        self._test_store.record_quiz_answer(self.TEST_USER_ID, "Boolean Modifier", "q1", False)
+
         context = self._context()
-        context.user_data["edu_weak_topics"] = {"N-gon": 3, "Boolean Modifier": 1}
         update = self._update()
         self._run(self.edu.next_command(update, context))
         text = update.message.reply_text.call_args.args[0]
-        self.assertIn("N-gon", text)  # больше всего ошибок -> предложен первым
+        self.assertIn("N-gon", text)
 
     def test_answering_without_active_quiz_does_not_crash(self):
         context = self._context()
-        cb = MagicMock()
-        cb.callback_query.answer = AsyncMock()
-        cb.callback_query.edit_message_text = AsyncMock()
-        cb.callback_query.data = "edu:0"
+        cb = self._callback_update("edu:0")
         self._run(self.edu.quiz_answer_callback(cb, context))
         cb.callback_query.edit_message_text.assert_called_once_with(self.edu.NO_ACTIVE_QUIZ_TEXT)
+
+    def test_progress_shows_blender_version_captured_from_question(self):
+        # Профиль (Phase 12) захватывает версию Blender прямо из вопросов
+        # через bot/handlers/qa.py — здесь просто проверяем, что get_profile
+        # честно возвращает то, что записано, без выдумывания дефолта.
+        self._test_store.set_blender_version(self.TEST_USER_ID, "4.2")
+        self._test_store.record_quiz_answer(self.TEST_USER_ID, "N-gon", "q1", True)
+
+        update = self._update()
+        self._run(self.edu.progress_command(update, self._context()))
+        text = update.message.reply_text.call_args.args[0]
+        self.assertIn("4.2", text)
 
 
 if __name__ == "__main__":

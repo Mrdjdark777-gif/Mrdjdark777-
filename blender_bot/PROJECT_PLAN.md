@@ -20,8 +20,8 @@ Known issues / Next phase).
 | 9 | Diagnostic engine | ✅ готово |
 | 10 | Source ranking | ✅ готово |
 | 11 | Education engine | ✅ готово |
-| 12 | User profile | ⏳ следующая |
-| 13 | Test suite | ⬜ |
+| 12 | User profile | ✅ готово |
+| 13 | Test suite | ⏳ следующая |
 | 14 | Optimization | ⬜ |
 | 15 | Production deployment | ⬜ (бот уже развёрнут — потребуется миграция) |
 
@@ -1188,3 +1188,111 @@ blender_version, level, topics, completed_topics, weak_topics,
 test_results, mistakes, last_questions, learning_goal). Это разблокирует
 честные версии `/progress`/`/weaknesses` (переживающие перезапуск) и
 станет основой для Level System, отложенной в этой фазе.
+
+---
+
+## Phase 12 — User Profile
+
+### Отчёт (раздел 42 ТЗ)
+
+**Changed**
+
+- `config/__init__.py` — добавлен `PROFILE_DB_PATH`.
+- `.gitignore` — добавлен `data/user_profile.db` (реальные данные
+  пользователей, как `subscribers.json`/`unanswered_log.jsonl`).
+- `bot/handlers/education.py` — `context.user_data["edu_session_log"]` и
+  `["edu_weak_topics"]` заменены на вызовы `UserProfileStore`.
+  `context.user_data["edu_quiz"]`/`["edu_quiz_index"]`/`["edu_current_topic"]`
+  остались как есть — это диалоговое состояние текущего разговора (какой
+  вопрос сейчас), не история, которую просит хранить раздел 19; тот же
+  принцип, что у Diagnostic Engine (Phase 9). `/progress` расширен:
+  теперь показывает ещё и `completed_topics`, и `blender_version`, если
+  профиль их знает.
+- `bot/handlers/qa.py` — `answer_question()` теперь пишет каждый
+  содержательный вопрос в `last_questions` и, если в вопросе распознана
+  версия Blender (`search.engine.extract_version_hint()`, уже готово с
+  Phase 7), обновляет `blender_version` в профиле — версия берётся из
+  того, что пользователь сам написал, не выдумывается.
+
+**Added**
+
+- `profile/user_profile.py` — `UserProfileStore` (SQLite) и `UserProfile`
+  (dataclass со всеми полями раздела 19). Физически — 4 таблицы
+  (`user_profile`, `user_topics`, `test_results`, `last_questions`);
+  `weak_topics`/`completed_topics`/`mistakes` — не отдельные таблицы, а
+  запросы поверх `test_results` (раздел 19: «хранить только данные,
+  необходимые для работы системы» — денормализованное дублирование одного
+  факта в это не укладывается). `completed_topics()` принимает набор
+  «каких вопросов ждём по теме» от вызывающего кода (у самого хранилища
+  нет доступа к содержимому уроков) и считает тему пройденной, если
+  каждый её вопрос хоть раз получил верный ответ (не обязательно подряд).
+  `last_questions` ограничен `LAST_QUESTIONS_LIMIT=20` на пользователя —
+  старые записи вытесняются, а не растут бесконечно.
+- `tests/test_phase12_user_profile.py` — 17 тестов: CRUD-операции
+  хранилища (14, включая изоляцию профилей между разными user_id,
+  ограничение last_questions, completed_topics с ошибкой-затем-успехом) и
+  3 теста интеграции через `bot/handlers/qa.py` (версия из вопроса
+  сохраняется, отсутствие версии не создаёт выдуманного значения,
+  content-вопрос попадает в last_questions).
+- `tests/test_phase11_education.py` — существующие Telegram-тесты
+  переведены на изолированную временную БД: `TelegramLayerTests` теперь
+  подменяет `bot.handlers.education.profile_store` на
+  `UserProfileStore(temp_path)` в `setUp`/`tearDown`, а не пишет в
+  настоящий `data/user_profile.db`. Добавлен тест на то, что `/progress`
+  честно показывает `blender_version`, если он есть в профиле.
+
+**Removed**
+
+Ничего.
+
+**Tests**
+
+`python -m unittest discover tests -v` — **206/206 passed** (188 из Phase
+2-11 + 17 новых Phase 12 + 1 новый в Phase 11 после доработки). Проверено
+руками, что реальный `data/user_profile.db` после полного прогона тестов
+остался пустым (0 строк во всех 4 таблицах) — изоляция через подмену
+`profile_store` в тестах реально работает, а не только выглядит так.
+
+**Известное ограничение — архитектурный компромисс с общим `profile_store`**
+
+`bot/handlers/qa.py` использует `from bot.handlers.education import
+profile_store` — прямая зависимость «основного» QA-хендлера от
+«образовательного», не в самом очевидном направлении. Альтернатива —
+завести отдельный модуль-держатель синглтона (например, `profile/store.py`
+с готовым экземпляром) — не сделана в этой фазе, чтобы не трогать лишний
+раз уже стабильные `bot/handlers/qa.py` и `education.py` больше, чем нужно
+для интеграции (раздел 41 ТЗ: «не переписывать больше, чем нужно»).
+Зафиксировано как осознанный, а не случайный выбор.
+
+**Известное честное ограничение — что не реализовано**
+
+- **Level System (раздел 20 ТЗ) по-прежнему не реализован.** Даже с
+  постоянным хранилищем 3 урока (Mirror Modifier, Boolean Modifier, N-gon)
+  покрывают 1 область компетенций из 10, требуемых разделом 20 (Modeling,
+  Topology, Materials, Lighting, Animation, Rendering, Geometry Nodes,
+  Compositing, Motion Design, Python). Присваивать уровень
+  Beginner/.../Senior на основе такого узкого среза было бы недостоверно
+  — не блокировано отсутствием хранилища (оно теперь есть), а
+  недостаточным охватом контента.
+- `learning_goal` — поле в схеме и метод `set_learning_goal()` есть, но
+  ни одна команда бота его не устанавливает (раздел 18 ТЗ не перечисляет
+  отдельной команды для этого). Задел на будущее, не подключено к
+  Telegram-слою в этой фазе.
+- `level` в `user_profile` — колонка есть, но никогда не записывается
+  (см. Level System выше) — всегда `None`.
+- Один `UserProfileStore` на процесс, соединение sqlite3 с
+  `check_same_thread=False` — этого достаточно для текущего однопоточного
+  `application.run_polling()`, но при переходе на что-то более
+  параллельное потребует пересмотра (например, per-thread соединений или
+  пула).
+
+**Next phase**
+
+Phase 13 — Test suite (раздел 34 ТЗ): минимум 400 тестовых случаев (100
+basic, 100 technical, 100 troubleshooting, 50 version, 50 terminology, 50
+deliberately ambiguous, 50 без ответа в базе), каждый с
+input/expected_intent/expected_topic/expected_source_tier/
+expected_answer_elements/expected_confidence. Это качественно другой тип
+тестов, чем всё написанное в Phase 2-12 (юнит-тесты кода) — Phase 13 нужна
+для оценки качества самой системы отвечать на вопросы, а не корректности
+кода.

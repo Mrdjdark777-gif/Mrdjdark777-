@@ -2,15 +2,19 @@
 
 Команды: /learn, /test, /exam, /progress, /weaknesses, /next.
 
-Важное честное ограничение (см. PROJECT_PLAN.md, Phase 11 Known issues):
-раздел 40 ТЗ ставит User Profile (SQLite, раздел 19) отдельной Phase 12,
-ПОСЛЕ Education Engine. Персистентного хранилища пока нет — весь прогресс
-(`context.user_data["edu_*"]`) живёт только в памяти процесса и пропадает
-при перезапуске бота. /progress и /weaknesses прямо говорят об этом
-пользователю, а не притворяются, что показывают историю за всё время.
-Level System (раздел 20 ТЗ) не реализован вовсе — присвоение уровня
-(Beginner/Junior/...) требует накопленной истории тестов, для которой
-сейчас нет ни хранилища, ни достаточного количества уроков.
+Прогресс с Phase 12 хранится в SQLite (`profile/user_profile.py`, раздел 19
+ТЗ) — переживает перезапуск бота. Активный quiz (какой вопрос сейчас,
+какая тема только что изучалась) остаётся в `context.user_data["edu_*"]`
+намеренно: это диалоговое состояние в рамках одного разговора, не история,
+которую раздел 19 просит хранить (тот же принцип, что Diagnostic Engine,
+Phase 9, для decision-tree диалога).
+
+Level System (раздел 20 ТЗ) по-прежнему не реализован: даже с постоянным
+хранилищем у нас всего 3 урока (Mirror Modifier, Boolean Modifier, N-gon)
+— это покрывает 1 область из 10 требуемых разделом 20 (Modeling, Topology,
+Materials, Lighting, Animation, Rendering, Geometry Nodes, Compositing,
+Motion Design, Python). Присваивать уровень на основе такого узкого среза
+было бы недостоверно, независимо от наличия хранилища.
 """
 
 import random
@@ -18,13 +22,15 @@ import random
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from config import LESSONS_PATH, TERMINOLOGY_PATH
+from config import LESSONS_PATH, PROFILE_DB_PATH, TERMINOLOGY_PATH
 from education.registry import LessonRegistry
 from education.schema import Lesson, QuizQuestion
 from knowledge.terminology import TerminologyRegistry
+from profile.user_profile import UserProfileStore
 
 lesson_registry = LessonRegistry.load(LESSONS_PATH)
 terminology_registry = TerminologyRegistry.load(TERMINOLOGY_PATH)
+profile_store = UserProfileStore(PROFILE_DB_PATH)
 
 NO_LESSONS_TEXT = "Уроки пока не загружены."
 NO_TOPIC_TEXT = (
@@ -38,8 +44,8 @@ NO_ACTIVE_TOPIC_FOR_TEST_TEXT = (
 )
 QUIZ_FINISHED_TEXT = "Вопросов больше нет — набери /next ещё раз или начни заново через /test или /exam."
 NO_ACTIVE_QUIZ_TEXT = "Сейчас нет активного теста. Начни через /test или /exam."
-NO_PROGRESS_TEXT = "В этой сессии ты пока не отвечал ни на один вопрос — начни с /test или /exam."
-NO_WEAKNESSES_TEXT = "Пока не набралось данных о слабых местах в этой сессии."
+NO_PROGRESS_TEXT = "Ты пока не отвечал ни на один вопрос — начни с /test или /exam."
+NO_WEAKNESSES_TEXT = "Пока не набралось данных о слабых местах."
 
 
 def _resolve_lesson(query_text: str) -> Lesson | None:
@@ -106,12 +112,8 @@ def _current_question(context: ContextTypes.DEFAULT_TYPE) -> tuple[Lesson, QuizQ
     return lesson, question
 
 
-def _record_answer(context: ContextTypes.DEFAULT_TYPE, lesson: Lesson, correct: bool) -> None:
-    log = context.user_data.setdefault("edu_session_log", [])
-    log.append({"topic_id": lesson.topic_id, "correct": correct})
-    if not correct:
-        weak = context.user_data.setdefault("edu_weak_topics", {})
-        weak[lesson.topic_id] = weak.get(lesson.topic_id, 0) + 1
+def _lesson_question_ids() -> dict[str, set[str]]:
+    return {lesson.topic_id: {q.question_id for q in lesson.quiz} for lesson in lesson_registry.lessons}
 
 
 async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -130,6 +132,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     context.user_data["edu_current_topic"] = lesson.topic_id
+    profile_store.touch_topic(update.effective_user.id, lesson.topic_id)
     text = (
         f"*{lesson.title}*\n\n"
         f"*Теория:*\n{lesson.theory}\n\n"
@@ -176,8 +179,8 @@ async def next_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     quiz = context.user_data.get("edu_quiz")
     if not quiz:
         # Не в тесте — подсказываем, что изучить дальше: самую слабую тему
-        # этой сессии, если такая есть, иначе первый урок из реестра.
-        weak = context.user_data.get("edu_weak_topics", {})
+        # по накопленной истории (Phase 12), а не только этой сессии.
+        weak = profile_store.weak_topics(update.effective_user.id)
         if weak:
             weakest_topic_id = max(weak, key=weak.get)
             lesson = lesson_registry.get(weakest_topic_id)
@@ -209,29 +212,33 @@ async def next_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    log = context.user_data.get("edu_session_log", [])
-    if not log:
+    user_id = update.effective_user.id
+    summary = profile_store.progress_summary(user_id)
+    if not summary["total"]:
         await update.message.reply_text(NO_PROGRESS_TEXT)
         return
 
-    correct = sum(1 for entry in log if entry["correct"])
-    topics = sorted({entry["topic_id"] for entry in log})
-    text = (
-        f"*Прогресс за эту сессию* (не сохраняется после перезапуска бота):\n\n"
-        f"Отвечено вопросов: {len(log)}\n"
-        f"Правильно: {correct}/{len(log)}\n"
-        f"Темы: {', '.join(topics)}"
-    )
-    await update.message.reply_text(text, parse_mode="Markdown")
+    profile = profile_store.get_profile(user_id, _lesson_question_ids())
+    lines = [
+        "*Твой прогресс:*", "",
+        f"Отвечено вопросов: {summary['total']}",
+        f"Правильно: {summary['correct']}/{summary['total']}",
+        f"Темы: {', '.join(summary['topics']) if summary['topics'] else '—'}",
+    ]
+    if profile.completed_topics:
+        lines.append(f"Пройдено полностью: {', '.join(profile.completed_topics)}")
+    if profile.blender_version:
+        lines.append(f"Твоя версия Blender (по последнему упоминанию): {profile.blender_version}")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
 async def weaknesses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    weak = context.user_data.get("edu_weak_topics", {})
+    weak = profile_store.weak_topics(update.effective_user.id)
     if not weak:
         await update.message.reply_text(NO_WEAKNESSES_TEXT)
         return
 
-    lines = ["*Слабые места за эту сессию* (не сохраняется после перезапуска бота):", ""]
+    lines = ["*Слабые места:*", ""]
     for topic_id, count in sorted(weak.items(), key=lambda item: item[1], reverse=True):
         lines.append(f"• {topic_id} — {count} неверных ответов")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
@@ -254,7 +261,7 @@ async def quiz_answer_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     correct = chosen_index == question.correct_index
-    _record_answer(context, lesson, correct)
+    profile_store.record_quiz_answer(update.effective_user.id, lesson.topic_id, question.question_id, correct)
     context.user_data["edu_quiz_index"] = context.user_data.get("edu_quiz_index", 0) + 1
 
     result_text = _format_result(correct, question)

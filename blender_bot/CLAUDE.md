@@ -47,11 +47,19 @@ diagnostics/  — Diagnostic Engine (Phase 9, разделы 12-13 ТЗ): decisi
                 сообщениями (context.user_data в bot/handlers/diagnostics.py)
 education/    — Education Engine (Phase 11, раздел 18, 22 ТЗ): /learn,
                 /test, /exam, /progress, /weaknesses, /next. 3 урока
-                засеяны. Прогресс живёт только в context.user_data (нет
-                SQLite до Phase 12) — /progress и /weaknesses честно не
-                переживают перезапуск бота. Level System (раздел 20) не
-                реализован — нет истории тестов, чтобы на неё опираться
-profile/      — пользовательские данные (subscribers.py — заготовка для Phase 12)
+                засеяны. С Phase 12 прогресс хранится в SQLite
+                (profile/user_profile.py) и переживает перезапуск бота;
+                активный quiz (какой вопрос сейчас) остаётся в
+                context.user_data — это диалоговое состояние, не история.
+                Level System (раздел 20) всё ещё не реализован — 3 урока
+                покрывают 1 область компетенций из 10 требуемых
+profile/      — пользовательские данные: subscribers.py (список чатов для
+                /broadcast) и user_profile.py (Phase 12, раздел 19 ТЗ:
+                SQLite, user_id/blender_version/level/topics/
+                completed_topics/weak_topics/test_results/mistakes/
+                last_questions/learning_goal — level, competency matrix и
+                общий topics-охват по всем 10 областям раздела 20 всё ещё
+                не заполняются, см. PROJECT_PLAN.md)
 tests/        — автотесты
 scripts/      — разовые/обслуживающие скрипты (build_manual_index.py)
 config/       — настройки, пути к data/
@@ -118,6 +126,11 @@ Next phase:   что дальше по PROJECT_PLAN.md
   (cProfile-related) из stdlib — в проекте это не используется, но если
   когда-то понадобится профилировать код через `import profile`, это имя
   будет перекрыто локальным пакетом.
+- `data/user_profile.db` (Phase 12) — реальные данные пользователей,
+  в `.gitignore`. Тесты (`tests/test_phase11_education.py`,
+  `tests/test_phase12_user_profile.py`) подменяют
+  `bot.handlers.education.profile_store` / `bot.handlers.qa.profile_store`
+  на временную БД — не трогать этот файл напрямую в новых тестах.
 - `data/manual_index.json` и `data/knowledge_base.json` — сырьё для скриптов
   `scripts/build_manual_index.py` / `scripts/migrate_knowledge_base_to_registry.py`
   / `scripts/ingest_manual_to_registry.py`. Живой поиск (`search/engine.py`)

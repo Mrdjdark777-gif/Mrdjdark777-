@@ -27,12 +27,12 @@ diagnostic, workflow, technical. Реализованы первые два — 
 для которых пока нет оснований (см. Known issues Phase 11 в
 `PROJECT_PLAN.md`).
 
-## Известное ограничение — нет персистентного хранилища
+## Обновление Phase 12 — прогресс теперь персистентный
 
-Раздел 40 ТЗ ставит User Profile (SQLite, раздел 19) отдельной **Phase 12,
-после** Education Engine. Весь прогресс (`context.user_data["edu_*"]`)
-живёт только в памяти процесса и пропадает при перезапуске бота —
-`/progress` и `/weaknesses` прямо говорят об этом пользователю. Level
-System (раздел 20 ТЗ, Beginner/Junior/.../Senior) не реализован вовсе —
-присвоение уровня требует накопленной истории тестов за много сессий,
-для которой нет ни хранилища, ни достаточного количества уроков.
+С Phase 12 `/progress` и `/weaknesses` читают `profile/user_profile.py`
+(SQLite, раздел 19 ТЗ) и переживают перезапуск бота. Level System (раздел
+20 ТЗ, Beginner/Junior/.../Senior) по-прежнему не реализован — 3 урока
+покрывают 1 область компетенций из 10, требуемых разделом 20 (Modeling,
+Topology, Materials, Lighting, Animation, Rendering, Geometry Nodes,
+Compositing, Motion Design, Python) — присваивать уровень на основе такого
+узкого среза было бы недостоверно, независимо от наличия хранилища.

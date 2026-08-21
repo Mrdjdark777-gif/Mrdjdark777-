@@ -10,7 +10,9 @@ from config import (
     UNANSWERED_LOG_PATH,
 )
 from bot.handlers.diagnostics import clear_session, try_start_diagnostic
+from bot.handlers.education import profile_store
 from knowledge.schema import KnowledgeChunk
+from search.engine import extract_version_hint
 from search.qa_service import QAService
 
 # Единственный экземпляр на процесс — TF-IDF индекс и данные грузятся один
@@ -127,6 +129,15 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if _is_vague_followup(question):
         await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
         return
+
+    # User Profile (Phase 12, раздел 19 ТЗ): last_questions и
+    # blender_version — реальный, а не выдуманный источник данных
+    # (версия, которую пользователь сам назвал в вопросе).
+    user_id = update.effective_user.id
+    profile_store.record_question(user_id, question)
+    version_hint = extract_version_hint(question)
+    if version_hint:
+        profile_store.set_blender_version(user_id, version_hint)
 
     # Diagnostic Engine (раздел 12 ТЗ) — для TROUBLESHOOTING/ERROR вопросов,
     # похожих на известный сценарий, запускаем decision-tree диалог вместо

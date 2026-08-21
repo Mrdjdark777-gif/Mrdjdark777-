@@ -30,6 +30,7 @@ KNOWLEDGE_CHUNK_PATHS = [
 TERMINOLOGY_PATH = KNOWLEDGE_DIR / "system" / "terminology" / "terms.json"
 DIAGNOSTICS_PATH = KNOWLEDGE_DIR / "system" / "diagnostics" / "problems.json"
 LESSONS_PATH = KNOWLEDGE_DIR / "system" / "education" / "lessons.json"
+PROFILE_DB_PATH = DATA_DIR / "user_profile.db"
 
 BROADCAST_DELAY_SECONDS = 0.05
 
