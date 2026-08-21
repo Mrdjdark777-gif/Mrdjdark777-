@@ -174,7 +174,14 @@ class RealDataEngineTests(unittest.TestCase):
         self.assertGreater(len(self.engine.chunks), 800)
 
     def test_gibberish_scores_low(self):
-        results = self.engine.search("непонятный набор слов зюзюка мяу")
+        # Раньше здесь были настоящие русские слова ("непонятный", "набор",
+        # "слов") вперемешку с выдуманными — после добавления lemmatize()
+        # (PROJECT_PLAN.md, после Phase 15) "набор"/"наборы" стало ложно
+        # совпадать с реальными chunk'ами ("Наборы для лица" и т.п.):
+        # лемматизация в принципе расширяет число совпадений по смыслу
+        # слова, а не только по буквальной словоформе. Фраза заменена на
+        # полностью выдуманные слова без единого настоящего русского.
+        results = self.engine.search("зюзюка бызмпк хрзнык мяу кыш")
         self.assertTrue(all(r.score < 0.3 for r in results))
 
     def test_boolean_query_finds_boolean_content(self):

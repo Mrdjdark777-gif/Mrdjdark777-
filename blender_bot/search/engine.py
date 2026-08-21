@@ -25,7 +25,7 @@ from knowledge.registry import ChunkRegistry
 from knowledge.schema import KnowledgeChunk
 from knowledge.terminology import Term, TerminologyRegistry, normalize as normalize_term
 from knowledge.version import compatible_with_request, detect_conflict, parse_version
-from search.tfidf import TfidfIndex, tokenize
+from search.tfidf import TfidfIndex, lemmatize, tokenize
 
 # Раздел 10 ТЗ: "Повышать score при совпадении версии, официального
 # источника, точного термина, категории... Понижать при старой версии,
@@ -95,7 +95,11 @@ class SearchEngine:
     def _chunk_tokens(chunk: KnowledgeChunk) -> list[str]:
         # Заголовок весит больше содержимого — совпадение в названии темы
         # обычно значимее случайного слова в середине длинного summary.
-        return tokenize(chunk.translated_title) * 2 + tokenize(chunk.original_title) + tokenize(chunk.content)
+        # lemmatize() — словоформы приводятся к начальной форме ДО того, как
+        # попасть в TF-IDF индекс (раздел про естественно сформулированные
+        # вопросы, PROJECT_PLAN.md, после Phase 15).
+        tokens = tokenize(chunk.translated_title) * 2 + tokenize(chunk.original_title) + tokenize(chunk.content)
+        return lemmatize(tokens)
 
     def get_chunk(self, chunk_id: str) -> KnowledgeChunk | None:
         return self._by_id.get(chunk_id)
@@ -191,7 +195,11 @@ class SearchEngine:
         if not self.chunks:
             return []
 
-        query_tokens = tokenize(query)
+        # lemmatize() только для TF-IDF (lexical_score) — чанки в индексе
+        # тоже лемматизированы (_chunk_tokens). _find_term() ниже намеренно
+        # использует term = self._find_term(query) — работает НА СЫРОМ
+        # запросе, свою логику словоформ не трогаем (см. lemmatize()).
+        query_tokens = lemmatize(tokenize(query))
         lexical_scores = self._tfidf.similarities(query_tokens)
         term = self._find_term(query)
 
