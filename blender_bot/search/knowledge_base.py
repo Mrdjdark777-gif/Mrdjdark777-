@@ -19,6 +19,12 @@ def _tokenize(text: str) -> set[str]:
 
 
 class KnowledgeBase:
+    """Наивный lexical-поиск по data/knowledge_base.json.
+
+    Заменяется TF-IDF/BM25-движком в Phase 7 (раздел 10 ТЗ); пока — тот же
+    алгоритм, что был в utils/search.py, только перенесённый под search/.
+    """
+
     def __init__(self, path: Path):
         with open(path, encoding="utf-8") as f:
             self.entries = json.load(f)

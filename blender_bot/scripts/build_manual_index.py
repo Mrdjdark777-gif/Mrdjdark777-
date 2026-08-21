@@ -30,12 +30,20 @@ from deep_translator import GoogleTranslator
 
 REPO_URL = "https://projects.blender.org/blender/blender-manual.git"
 DOCS_BASE_URL = "https://docs.blender.org/manual/en/latest/"
+# ТЗ (раздел 4) явно требует Manual 5.1. Клонируем ветку "latest" репозитория
+# (см. main()) и ПРЕДПОЛАГАЕМ, что на момент запуска она соответствует 5.1 —
+# это не проверяется автоматически против реального номера релиза Blender.
+# Точное версионирование (раздел 7 ТЗ) — задача Phase 5 (version engine).
+MANUAL_VERSION_LABEL = "5.1"
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "manual_index.json"
 TRANSLATE_DELIMITER = " ||| "
 TRANSLATE_DELAY_SECONDS = 0.15
 
 UNDERLINE_RE = re.compile(r"^([=\-~^\"'#*+:.,;!$%&()<>\[\]{}|@])\1{2,}\s*$")
 DIRECTIVE_RE = re.compile(r"^\.\. ")
+# Опции директив (например ":align: right" / ":alt: текст" под ".. figure::")
+# не начинаются с ".. " и раньше просачивались в summary как обычный текст.
+FIELD_LIST_RE = re.compile(r"^:[\w-]+:")
 INLINE_REF_RE = re.compile(r":(?:ref|doc|term|abbr|kbd|menuselection):`([^`<]+?)(?:\s*<[^>]+>)?`")
 INLINE_LITERAL_RE = re.compile(r"``([^`]+)``")
 INLINE_EMPH_RE = re.compile(r"\*\*([^*]+)\*\*|\*([^*]+)\*")
@@ -81,7 +89,7 @@ def parse_rst_file(path: Path) -> dict | None:
                 break
             j += 1
             continue
-        if DIRECTIVE_RE.match(line) or line.startswith("|") or UNDERLINE_RE.match(line):
+        if DIRECTIVE_RE.match(line) or FIELD_LIST_RE.match(line) or line.startswith("|") or UNDERLINE_RE.match(line):
             j += 1
             continue
         summary_lines.append(line)
@@ -110,12 +118,20 @@ def translate_entries(entries: list[dict]) -> None:
     не удваивать число обращений к сервису перевода — их и так много.
     При ошибке перевода конкретная запись остаётся на английском, вместо
     того чтобы прерывать сборку всего индекса целиком.
+
+    Оригинальный английский title/summary сохраняется в title_en/summary_en
+    ДО перевода — раздел 8 ТЗ прямо запрещает терять английские названия;
+    раньше они затирались переводом безвозвратно, и knowledge-registry
+    (Phase 3) не мог бы честно заполнить original_title/translated_title.
     """
     translator = GoogleTranslator(source="auto", target="ru")
     total = len(entries)
     print(f"Перевожу {total} записей на русский (это займёт время, не прерывайте)...")
 
     for i, entry in enumerate(entries, start=1):
+        entry["title_en"] = entry["title"]
+        entry["summary_en"] = entry["summary"]
+
         combined = f"{entry['title']}{TRANSLATE_DELIMITER}{entry['summary']}"
         try:
             translated = translator.translate(combined)
@@ -124,7 +140,7 @@ def translate_entries(entries: list[dict]) -> None:
                 entry["title"] = title_ru.strip(" |")
                 entry["summary"] = summary_ru.strip(" |")
         except Exception:
-            pass  # оставляем оригинал на английском для этой записи
+            pass  # оставляем оригинал на английском для этой записи (title_en/summary_en тоже английские — честно)
 
         time.sleep(TRANSLATE_DELAY_SECONDS)
         if i % 50 == 0 or i == total:
@@ -166,6 +182,8 @@ def main() -> None:
                 "title": parsed["title"],
                 "summary": parsed["summary"],
                 "url": build_url(rst_path, manual_root),
+                "version": MANUAL_VERSION_LABEL,
+                "section_path": rst_path.relative_to(manual_root).with_suffix("").as_posix(),
             }
         )
 

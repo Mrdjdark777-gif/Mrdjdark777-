@@ -3,8 +3,8 @@ import time
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from bot.news_fetcher import get_latest_news
 from config import NEWS_FEEDS_PATH
-from utils.news_fetcher import get_latest_news
 
 
 async def news_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

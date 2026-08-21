@@ -1,0 +1,630 @@
+[
+ {
+  "canonical_name": "Extrude",
+  "russian_name": "Экструдирование (выдавливание)",
+  "category": "mesh",
+  "aliases": [
+   "экструд",
+   "выдавить",
+   "выдавливание"
+  ],
+  "english_aliases": [
+   "extrude"
+  ],
+  "ui_label": "Extrude Region",
+  "related_terms": [
+   "Bevel"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Boolean Modifier",
+  "russian_name": "Модификатор Булеан",
+  "category": "modifiers",
+  "aliases": [
+   "булеан",
+   "вычитание",
+   "объединение объектов"
+  ],
+  "english_aliases": [
+   "boolean"
+  ],
+  "ui_label": "Boolean",
+  "related_terms": [
+   "Apply Transform"
+  ],
+  "common_mistakes": [
+   "Забыть скрыть или удалить второй объект после применения — он остаётся в сцене и рендере."
+  ]
+ },
+ {
+  "canonical_name": "Subdivision Surface Modifier",
+  "russian_name": "Модификатор Подразделения поверхности",
+  "category": "modifiers",
+  "aliases": [
+   "сабдив",
+   "сглаживание",
+   "подразделение"
+  ],
+  "english_aliases": [
+   "subdivision surface",
+   "subsurf"
+  ],
+  "ui_label": "Subdivision Surface",
+  "related_terms": [
+   "N-gon",
+   "Shade Smooth"
+  ],
+  "common_mistakes": [
+   "Применять к сетке с N-gon'ами — сглаживание стягивает геометрию в хаотичный узел."
+  ]
+ },
+ {
+  "canonical_name": "UV Unwrap",
+  "russian_name": "Развёртка UV",
+  "category": "uv",
+  "aliases": [
+   "развертка",
+   "развернуть",
+   "юви"
+  ],
+  "english_aliases": [
+   "unwrap",
+   "uv unwrap"
+  ],
+  "ui_label": "Unwrap",
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Knife Tool",
+  "russian_name": "Инструмент Нож",
+  "category": "mesh",
+  "aliases": [
+   "нож",
+   "разрез"
+  ],
+  "english_aliases": [
+   "knife"
+  ],
+  "ui_label": "Knife",
+  "related_terms": [
+   "Loop Cut"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Cycles",
+  "russian_name": "Cycles",
+  "category": "rendering",
+  "aliases": [
+   "циклес"
+  ],
+  "english_aliases": [
+   "cycles"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "EEVEE"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "EEVEE",
+  "russian_name": "EEVEE",
+  "category": "rendering",
+  "aliases": [
+   "иви"
+  ],
+  "english_aliases": [
+   "eevee"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Cycles"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Principled BSDF",
+  "russian_name": "Principled BSDF (универсальный шейдер)",
+  "category": "shaders",
+  "aliases": [
+   "материал",
+   "шейдер материала"
+  ],
+  "english_aliases": [
+   "principled bsdf",
+   "bsdf"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Shader Editor"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Mirror Modifier",
+  "russian_name": "Модификатор Зеркало",
+  "category": "modifiers",
+  "aliases": [
+   "зеркало",
+   "симметрия модификатор"
+  ],
+  "english_aliases": [
+   "mirror"
+  ],
+  "ui_label": "Mirror",
+  "related_terms": [
+   "Apply Transform",
+   "Origin Point"
+  ],
+  "common_mistakes": [
+   "Неприменённый масштаб (scale) перед Mirror искажает копию.",
+   "Неправильный порядок модификаторов в стеке — фаска по шву получается неровной, если Bevel стоит раньше Mirror."
+  ]
+ },
+ {
+  "canonical_name": "Armature",
+  "russian_name": "Арматура (риг)",
+  "category": "rigging",
+  "aliases": [
+   "риг",
+   "кости",
+   "скелет"
+  ],
+  "english_aliases": [
+   "armature",
+   "rig"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Weight Paint",
+   "Vertex Group"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Weight Paint",
+  "russian_name": "Покраска весов",
+  "category": "rigging",
+  "aliases": [
+   "вес вершин",
+   "покраска весов"
+  ],
+  "english_aliases": [
+   "weight paint"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Armature",
+   "Vertex Group"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Particle System",
+  "russian_name": "Система частиц",
+  "category": "physics",
+  "aliases": [
+   "частицы",
+   "трава",
+   "волосы"
+  ],
+  "english_aliases": [
+   "particle system",
+   "particles"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Environment Texture (HDRI)",
+  "russian_name": "HDRI-освещение",
+  "category": "lighting",
+  "aliases": [
+   "освещение окружением",
+   "окружение"
+  ],
+  "english_aliases": [
+   "hdri",
+   "environment texture",
+   "world lighting"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Shader Editor",
+  "russian_name": "Редактор шейдеров (нод)",
+  "category": "shaders",
+  "aliases": [
+   "ноды",
+   "редактор нод"
+  ],
+  "english_aliases": [
+   "shader editor",
+   "node editor"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Principled BSDF",
+   "Geometry Nodes"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Geometry Nodes",
+  "russian_name": "Геометрические ноды",
+  "category": "geometry_nodes",
+  "aliases": [
+   "геонода",
+   "геометрические ноды"
+  ],
+  "english_aliases": [
+   "geometry nodes",
+   "geonodes"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Shader Editor"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Keyframe",
+  "russian_name": "Ключевой кадр",
+  "category": "animation",
+  "aliases": [
+   "ключ анимации",
+   "кейфрейм"
+  ],
+  "english_aliases": [
+   "keyframe"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Shape Keys"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Cloth Simulation",
+  "russian_name": "Симуляция ткани",
+  "category": "physics",
+  "aliases": [
+   "ткань",
+   "физика ткани"
+  ],
+  "english_aliases": [
+   "cloth",
+   "cloth simulation"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Rigid Body",
+  "russian_name": "Твёрдое тело",
+  "category": "physics",
+  "aliases": [
+   "физика столкновений"
+  ],
+  "english_aliases": [
+   "rigid body"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Fluid Simulation",
+  "russian_name": "Симуляция жидкости",
+  "category": "physics",
+  "aliases": [
+   "жидкость",
+   "вода симуляция"
+  ],
+  "english_aliases": [
+   "fluid",
+   "fluid simulation"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Motion Tracking",
+  "russian_name": "Трекинг движения (камеры)",
+  "category": "motion_tracking",
+  "aliases": [
+   "трекинг",
+   "трекинг камеры"
+  ],
+  "english_aliases": [
+   "motion tracking",
+   "camera tracking"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Add-on",
+  "russian_name": "Аддон (дополнение)",
+  "category": "addons",
+  "aliases": [
+   "аддон",
+   "плагин",
+   "дополнение"
+  ],
+  "english_aliases": [
+   "addon",
+   "add-on",
+   "plugin"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Grease Pencil",
+  "russian_name": "Grease Pencil (2D-рисование)",
+  "category": "grease_pencil",
+  "aliases": [
+   "гризпенсил",
+   "2d рисование"
+  ],
+  "english_aliases": [
+   "grease pencil"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Non-manifold Geometry",
+  "russian_name": "Неманифолдная геометрия",
+  "category": "topology",
+  "aliases": [
+   "неманифолд",
+   "проблемы геометрии"
+  ],
+  "english_aliases": [
+   "non-manifold"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "N-gon"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Retopology",
+  "russian_name": "Ретопология",
+  "category": "topology",
+  "aliases": [
+   "ретопо"
+  ],
+  "english_aliases": [
+   "retopology",
+   "retopo"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "N-gon"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "N-gon",
+  "russian_name": "N-угольник (N-gon)",
+  "category": "mesh",
+  "aliases": [
+   "нгон",
+   "полигон 5+"
+  ],
+  "english_aliases": [
+   "n-gon",
+   "ngon"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Subdivision Surface Modifier",
+   "Non-manifold Geometry"
+  ],
+  "common_mistakes": [
+   "Оставлять N-gon на изогнутых поверхностях — деформируется непредсказуемо при анимации."
+  ]
+ },
+ {
+  "canonical_name": "Apply Transform",
+  "russian_name": "Применить трансформации",
+  "category": "modeling",
+  "aliases": [
+   "применить трансформации",
+   "сбросить масштаб"
+  ],
+  "english_aliases": [
+   "apply transform"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Origin Point",
+   "Mirror Modifier"
+  ],
+  "common_mistakes": [
+   "Не применять масштаб перед Bevel/Mirror — форма получается неровной."
+  ]
+ },
+ {
+  "canonical_name": "Origin Point",
+  "russian_name": "Точка Origin (центр объекта)",
+  "category": "modeling",
+  "aliases": [
+   "точка центра",
+   "пивот"
+  ],
+  "english_aliases": [
+   "origin",
+   "origin point"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Apply Transform",
+   "3D Cursor"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Vertex Group",
+  "russian_name": "Группа вершин",
+  "category": "rigging",
+  "aliases": [
+   "группа вершин"
+  ],
+  "english_aliases": [
+   "vertex group",
+   "vertex groups"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Weight Paint",
+   "Armature"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Shape Keys",
+  "russian_name": "Шейпкеи (формы-ключи)",
+  "category": "animation",
+  "aliases": [
+   "шейпкей",
+   "морфинг"
+  ],
+  "english_aliases": [
+   "shape keys"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Keyframe"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Bevel",
+  "russian_name": "Фаска (скос)",
+  "category": "mesh",
+  "aliases": [
+   "фаска",
+   "срезать угол"
+  ],
+  "english_aliases": [
+   "bevel"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Extrude"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Loop Cut",
+  "russian_name": "Петлевой разрез",
+  "category": "mesh",
+  "aliases": [
+   "петлевой разрез"
+  ],
+  "english_aliases": [
+   "loop cut"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Knife Tool"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Array Modifier",
+  "russian_name": "Модификатор Массив",
+  "category": "modifiers",
+  "aliases": [
+   "массив копий"
+  ],
+  "english_aliases": [
+   "array"
+  ],
+  "ui_label": "Array",
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Displace Modifier",
+  "russian_name": "Модификатор Смещение",
+  "category": "modifiers",
+  "aliases": [
+   "процедурный рельеф"
+  ],
+  "english_aliases": [
+   "displace"
+  ],
+  "ui_label": "Displace",
+  "related_terms": [
+   "Subdivision Surface Modifier"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "3D Cursor",
+  "russian_name": "3D-курсор",
+  "category": "modeling",
+  "aliases": [
+   "3д курсор",
+   "курсор"
+  ],
+  "english_aliases": [
+   "3d cursor"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Origin Point"
+  ],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Snapping",
+  "russian_name": "Привязка (снап)",
+  "category": "modeling",
+  "aliases": [
+   "снап",
+   "примагничивание"
+  ],
+  "english_aliases": [
+   "snap",
+   "snapping"
+  ],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Shade Smooth",
+  "russian_name": "Плавное затенение",
+  "category": "rendering",
+  "aliases": [
+   "сглаживание шейдинг"
+  ],
+  "english_aliases": [
+   "shade smooth",
+   "shade auto smooth"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Subdivision Surface Modifier"
+  ],
+  "common_mistakes": []
+ }
+]

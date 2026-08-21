@@ -3,7 +3,7 @@ import uuid
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import ContextTypes
 
-from handlers.qa import hotkey_lookup, knowledge_base, manual_index
+from bot.handlers.qa import qa_service
 
 MAX_RESULTS = 10
 NO_QUERY_PLACEHOLDER = "Напиши вопрос про Blender или название горячей клавиши"
@@ -65,18 +65,18 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     results = []
 
-    kb_match = knowledge_base.search(query)
+    kb_match = qa_service.knowledge_base.search(query)
     if kb_match:
         results.append(_kb_result(kb_match))
 
-    hotkey_matches = hotkey_lookup.find(query)
+    hotkey_matches = qa_service.hotkey_lookup.find(query)
     for desc, category in hotkey_matches:
         if len(results) >= MAX_RESULTS:
             break
         results.append(_hotkey_result(desc, category))
 
     if len(results) < MAX_RESULTS:
-        manual_match = manual_index.search(query)
+        manual_match = qa_service.manual_index.search(query)
         if manual_match:
             results.append(_manual_result(manual_match))
 

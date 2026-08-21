@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from config import SUBSCRIBERS_PATH
-from utils.subscribers import add_subscriber
+from profile.subscribers import add_subscriber
 
 WELCOME_TEXT = (
     "Привет! Я бот-помощник по Blender.\n\n"

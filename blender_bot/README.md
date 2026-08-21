@@ -55,10 +55,23 @@ Telegram-бот-помощник по Blender: отвечает на вопро�
 
 ## Структура проекта
 
+Начиная с Phase 2 рефакторинга (см. `PROJECT_PLAN.md`, `CLAUDE.md`) проект
+переходит на модульную архитектуру по ТЗ (`docs/Blender_Expert_System_v2_TZ.pdf`,
+раздел 39):
+
 ```
 blender_bot/
-├── bot.py                 # точка входа
-├── config.py               # загрузка токена и путей к данным
+├── bot.py                  # совместимый entry point (systemd всё ещё зовёт его)
+├── app/
+│   └── main.py              # настоящая точка входа: сборка Application, регистрация хендлеров
+├── bot/
+│   ├── handlers/             # обработчики команд/сообщений Telegram (тонкий слой)
+│   └── news_fetcher.py        # RSS + перевод для /news
+├── search/                     # KnowledgeBase, HotkeyLookup, ManualIndex, QAService
+├── profile/                     # subscribers.py (заготовка user profile, Phase 12)
+├── knowledge/                    # база знаний (пока пусто, Phase 3-4)
+├── intents/ diagnostics/ education/  # будущие движки (пока пусто)
+├── config/                        # загрузка токена и путей к данным
 ├── data/
 │   ├── knowledge_base.json # вопросы/ответы по Blender
 │   ├── hotkeys.json        # горячие клавиши по категориям
@@ -67,8 +80,7 @@ blender_bot/
 │   └── manual_index.json   # (генерируется) указатель по докам Blender
 ├── scripts/
 │   └── build_manual_index.py  # сборка указателя по официальному руководству
-├── handlers/                # обработчики команд Telegram
-└── utils/                   # поиск по базе знаний, загрузка новостей
+└── tests/                    # автотесты
 ```
 
 ## Расширение базы знаний

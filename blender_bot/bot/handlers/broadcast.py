@@ -5,7 +5,7 @@ from telegram.error import BadRequest, Forbidden
 from telegram.ext import ContextTypes
 
 from config import BROADCAST_DELAY_SECONDS, OWNER_ID, SUBSCRIBERS_PATH
-from utils.subscribers import get_subscribers, remove_subscriber
+from profile.subscribers import get_subscribers, remove_subscriber
 
 USAGE_TEXT = "Использование: /broadcast текст сообщения"
 NOT_OWNER_TEXT = "Эта команда доступна только владельцу бота."

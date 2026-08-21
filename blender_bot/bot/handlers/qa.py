@@ -4,14 +4,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH, MANUAL_INDEX_PATH, UNANSWERED_LOG_PATH
-from utils.hotkey_lookup import HotkeyLookup
-from utils.logger import log_unanswered
-from utils.manual_index import ManualIndex
-from utils.search import KnowledgeBase
+from search.qa_service import QAService
 
-knowledge_base = KnowledgeBase(KNOWLEDGE_BASE_PATH)
-hotkey_lookup = HotkeyLookup(HOTKEYS_PATH)
-manual_index = ManualIndex(MANUAL_INDEX_PATH)
+# Единственный экземпляр на процесс — данные грузятся один раз, а не при
+# каждом сообщении; bot/handlers/inline.py переиспользует его же.
+qa_service = QAService(KNOWLEDGE_BASE_PATH, HOTKEYS_PATH, MANUAL_INDEX_PATH, UNANSWERED_LOG_PATH)
 
 FALLBACK_TEXT = (
     "Не нашел точного ответа на этот вопрос в своей базе знаний.\n\n"
@@ -71,45 +68,43 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
         return
 
-    kb_match = knowledge_base.search(question)
-    if kb_match:
-        await update.message.reply_text(kb_match["answer"])
+    result = qa_service.answer(question)
+
+    if result.kind == "kb_exact":
+        await update.message.reply_text(result.entry["answer"])
         return
 
-    hotkey_matches = hotkey_lookup.find(question)
-    if hotkey_matches:
+    if result.kind == "hotkeys":
         await update.message.reply_text(
-            _format_hotkey_matches(hotkey_matches), parse_mode="Markdown"
+            _format_hotkey_matches(result.hotkey_matches), parse_mode="Markdown"
         )
         return
 
-    soft_entry, soft_score = knowledge_base.soft_match(question)
-    if soft_entry:
+    if result.kind == "soft_match":
         context.user_data["pending_question"] = question
-        context.user_data["pending_score"] = soft_score
+        context.user_data["pending_score"] = result.score
         keyboard = InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton("Да, это оно", callback_data=f"qa_yes:{soft_entry['_idx']}"),
+                    InlineKeyboardButton(
+                        "Да, это оно", callback_data=f"qa_yes:{result.entry['_idx']}"
+                    ),
                     InlineKeyboardButton("Нет", callback_data="qa_no"),
                 ]
             ]
         )
         await update.message.reply_text(
-            f"Возможно, ты имел в виду:\n«{soft_entry['question']}»?",
+            f"Возможно, ты имел в виду:\n«{result.entry['question']}»?",
             reply_markup=keyboard,
         )
         return
 
-    manual_match = manual_index.search(question)
-    if manual_match:
-        log_unanswered(UNANSWERED_LOG_PATH, question)
+    if result.kind == "manual":
         await update.message.reply_text(
-            _format_manual_match(manual_match), parse_mode="Markdown"
+            _format_manual_match(result.entry), parse_mode="Markdown"
         )
         return
 
-    log_unanswered(UNANSWERED_LOG_PATH, question)
     await update.message.reply_text(FALLBACK_TEXT)
 
 
@@ -120,7 +115,7 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data.pop("pending_score", None)
 
     idx = int(query.data.split(":", 1)[1])
-    entry = knowledge_base.get_by_idx(idx)
+    entry = qa_service.get_kb_entry(idx)
     if entry:
         await query.edit_message_text(entry["answer"])
     else:
@@ -134,9 +129,9 @@ async def qa_decline_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     question = context.user_data.pop("pending_question", None)
     score = context.user_data.pop("pending_score", 0.0)
     if question:
-        log_unanswered(UNANSWERED_LOG_PATH, question, score)
+        qa_service.log_unanswered(question, score)
 
-    manual_match = manual_index.search(question) if question else None
+    manual_match = qa_service.manual_fallback(question) if question else None
     if manual_match:
         await query.edit_message_text(
             _format_manual_match(manual_match), parse_mode="Markdown"
