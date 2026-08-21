@@ -164,6 +164,24 @@
   "common_mistakes": []
  },
  {
+  "canonical_name": "Viewport Shading",
+  "russian_name": "Шейдинг (режимы отображения)",
+  "category": "shaders",
+  "aliases": [
+   "шейдинг"
+  ],
+  "english_aliases": [
+   "viewport shading",
+   "shading mode"
+  ],
+  "ui_label": null,
+  "related_terms": [
+   "Shader Editor",
+   "Principled BSDF"
+  ],
+  "common_mistakes": []
+ },
+ {
   "canonical_name": "Modifier",
   "russian_name": "Модификатор",
   "category": "modifiers",

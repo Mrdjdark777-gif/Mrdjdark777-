@@ -175,6 +175,43 @@ class TelegramLayerTests(unittest.TestCase):
         text = update.message.reply_text.call_args.args[0]
         self.assertIn("Доступные темы", text)
 
+    def test_learn_without_args_sets_awaiting_topic_flag(self):
+        # По обратной связи пользователя: следующее сообщение с названием
+        # темы должно восприниматься как ответ на этот вопрос бота, а не
+        # как новый вопрос/"не помню контекст" (bot/handlers/qa.py).
+        update = self._update()
+        context = self._context(args=[])
+        self._run(self.edu.learn_command(update, context))
+        self.assertTrue(context.user_data.get("edu_awaiting_topic"))
+
+    def test_try_continue_learn_resolves_bare_topic_name(self):
+        update = self._update()
+        context = self._context()
+        context.user_data["edu_awaiting_topic"] = True
+        handled = self._run(self.edu.try_continue_learn("Mirror", update, context))
+        self.assertTrue(handled)
+        text = update.message.reply_text.call_args.args[0]
+        self.assertIn("Mirror", text)
+        self.assertEqual(context.user_data.get("edu_current_topic"), "Mirror Modifier")
+        self.assertNotIn("edu_awaiting_topic", context.user_data)
+
+    def test_try_continue_learn_returns_false_when_not_awaiting(self):
+        update = self._update()
+        context = self._context()
+        handled = self._run(self.edu.try_continue_learn("Mirror", update, context))
+        self.assertFalse(handled)
+        update.message.reply_text.assert_not_called()
+
+    def test_try_continue_learn_consumes_flag_even_when_topic_not_found(self):
+        update = self._update()
+        context = self._context()
+        context.user_data["edu_awaiting_topic"] = True
+        handled = self._run(self.edu.try_continue_learn("совершенно незнакомая тема", update, context))
+        self.assertTrue(handled)
+        text = update.message.reply_text.call_args.args[0]
+        self.assertIn("Не нашёл", text)
+        self.assertNotIn("edu_awaiting_topic", context.user_data)
+
     def test_test_without_active_topic_prompts_to_learn_first(self):
         update = self._update()
         context = self._context()

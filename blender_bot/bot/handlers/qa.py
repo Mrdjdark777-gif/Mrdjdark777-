@@ -10,7 +10,7 @@ from config import (
     UNANSWERED_LOG_PATH,
 )
 from bot.handlers.diagnostics import clear_session, try_start_diagnostic
-from bot.handlers.education import profile_store
+from bot.handlers.education import profile_store, try_continue_learn
 from knowledge.schema import KnowledgeChunk
 from search.engine import extract_version_hint
 from search.qa_service import QAService
@@ -194,6 +194,13 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # (bot/handlers/diagnostics.py) и написал что-то текстом вместо клика
     # по кнопке, эта сессия считается брошенной.
     clear_session(context)
+
+    # "/learn" без темы спросил "какую тему изучаем?" — следующее
+    # сообщение это ответ на ПРЯМОЙ вопрос бота, а не новый вопрос или
+    # "подробнее"/"не помню контекст" (см. education.py:try_continue_learn).
+    # Проверяется раньше всего остального в этой функции.
+    if await try_continue_learn(question, update, context):
+        return
 
     # "Расскажи подробнее"/"дай источники" и т.п. про последний уверенно
     # отвеченный вопрос — проверяется ДО общей проверки расплывчатости

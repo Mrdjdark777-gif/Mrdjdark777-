@@ -1930,5 +1930,28 @@
   "parent_document": null,
   "section_path": null,
   "needs_review": true
+ },
+ {
+  "id": "personal_notes:0084",
+  "source": "personal_notes",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "general",
+  "subtopic": null,
+  "date": null,
+  "url": null,
+  "original_title": "Что такое шейдинг (Viewport Shading)?",
+  "translated_title": "Что такое шейдинг (Viewport Shading)?",
+  "content": "Шейдинг (Viewport Shading) — это режим отображения сцены во вьюпорте, переключается иконками в правом верхнем углу окна 3D-вида или клавишей Z (радиальное меню). Четыре режима: Wireframe (только каркас рёбер, без поверхностей), Solid (базовое серое затенение без материалов и света — быстро, используется при моделировании), Material Preview (показывает материалы и упрощённое освещение) и Rendered (полный расчёт через Cycles или EEVEE — то, что будет на финальном рендере). Материалы и свет не видны в Solid Mode — если сцена выглядит серой или тёмной без причины, это часто просто не тот режим шейдинга, а не баг.",
+  "license": null,
+  "author": null,
+  "content_hash": "7dd1ddf2c43b78b02a083872912df1d05eb39a4aaeea1232b5f7aa2455d1a8d1",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": true
  }
 ]

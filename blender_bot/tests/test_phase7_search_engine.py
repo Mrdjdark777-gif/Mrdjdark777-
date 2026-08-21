@@ -217,6 +217,18 @@ class RealDataEngineTests(unittest.TestCase):
         results = self.engine.search("geometry nodes", top_n=10)
         self.assertTrue(any(r.chunk.source_type == "official_manual" for r in results))
 
+    def test_shading_query_finds_own_note_not_unrelated_display_mode_page(self):
+        # Регрессия: алиас термина Viewport Shading изначально включал
+        # "режим отображения" — фраза дословно совпадала с заголовком
+        # НЕСВЯЗАННОЙ официальной страницы ("Режим отображения" / Display
+        # Mode, про цветовое распределение превью-изображения), из-за чего
+        # exact_term_bonus=1.0 доставался и ей тоже, и она побеждала как
+        # официальный источник. Найдено по обратной связи пользователя.
+        results = self.engine.search("Что такое шейдинг?", top_n=5)
+        self.assertTrue(results)
+        self.assertEqual(results[0].chunk.source_type, "ai_generated_unverified")
+        self.assertIn("шейдинг", results[0].chunk.translated_title.lower())
+
 
 class ResponseTimeTests(unittest.TestCase):
     """Раздел 4.1 ТЗ v3: "автоматический тест, проверяющий, что время

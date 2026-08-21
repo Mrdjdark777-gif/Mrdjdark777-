@@ -82,6 +82,20 @@ TERMS = [
         related_terms=["Principled BSDF", "Cycles", "EEVEE"],
     ),
     Term(
+        # Найдено по прямой обратной связи пользователя: "шейдинг" —
+        # разговорное название режимов Viewport Shading (Wireframe/Solid/
+        # Material Preview/Rendered), термин не был зарегистрирован вообще.
+        # "Режим отображения" НЕ включён отдельным алиасом сознательно —
+        # эта фраза дословно совпадает с заголовком другой официальной
+        # страницы Manual ("Display Mode", про цветовое распределение
+        # превью-изображения), из-за чего та побеждала по exact_term_bonus
+        # вместо реального ответа про шейдинг.
+        canonical_name="Viewport Shading", russian_name="Шейдинг (режимы отображения)",
+        category="shaders", aliases=["шейдинг"],
+        english_aliases=["viewport shading", "shading mode"],
+        related_terms=["Shader Editor", "Principled BSDF"],
+    ),
+    Term(
         # Общее понятие "модификатор" (в отличие от Mirror Modifier, Bevel
         # и т.д. — конкретных модификаторов) не имело собственного термина
         # до сих пор — раньше вопрос "Что такое модификаторы?" вообще не

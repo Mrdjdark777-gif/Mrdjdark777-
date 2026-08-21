@@ -116,21 +116,7 @@ def _lesson_question_ids() -> dict[str, set[str]]:
     return {lesson.topic_id: {q.question_id for q in lesson.quiz} for lesson in lesson_registry.lessons}
 
 
-async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not lesson_registry.lessons:
-        await update.message.reply_text(NO_LESSONS_TEXT)
-        return
-
-    query_text = " ".join(context.args) if context.args else ""
-    if not query_text:
-        await update.message.reply_text(NO_TOPIC_TEXT.format(topics=_topics_list_text()))
-        return
-
-    lesson = _resolve_lesson(query_text)
-    if not lesson:
-        await update.message.reply_text(TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
-        return
-
+async def _send_lesson(lesson: Lesson, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data["edu_current_topic"] = lesson.topic_id
     profile_store.touch_topic(update.effective_user.id, lesson.topic_id)
     text = (
@@ -141,6 +127,50 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         f"Когда попробуешь — набери /test, чтобы проверить себя по этой теме."
     )
     await update.message.reply_text(text, parse_mode="Markdown")
+
+
+async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not lesson_registry.lessons:
+        await update.message.reply_text(NO_LESSONS_TEXT)
+        return
+
+    query_text = " ".join(context.args) if context.args else ""
+    if not query_text:
+        # Раздел 18 ТЗ: следующее свободное сообщение — ответ на этот
+        # вопрос, не новый вопрос боту (см. try_continue_learn ниже и
+        # bot/handlers/qa.py — там это проверяется РАНЬШЕ, чем сообщение
+        # успеет попасть в обычный QA-поток или под "не помню контекст").
+        context.user_data["edu_awaiting_topic"] = True
+        await update.message.reply_text(NO_TOPIC_TEXT.format(topics=_topics_list_text()))
+        return
+
+    lesson = _resolve_lesson(query_text)
+    if not lesson:
+        await update.message.reply_text(TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
+        return
+
+    await _send_lesson(lesson, update, context)
+
+
+async def try_continue_learn(text: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Раздел 18 ТЗ — по прямой обратной связи пользователя после
+    реального использования: `/learn` без темы спрашивает "какую тему
+    изучаем?", а следующее сообщение с названием темы ("Mirror",
+    "Модификатор Mirror") перехватывалось `_is_vague_followup` в qa.py как
+    короткое сообщение без контекста. Тот же принцип, что уже есть у
+    диагностики (`diagnostics.try_start_diagnostic`) — однослотовое
+    диалоговое состояние в `context.user_data`, расходуется за один раз
+    независимо от исхода (не залипает навсегда, если тема не нашлась)."""
+    if not context.user_data.pop("edu_awaiting_topic", False):
+        return False
+
+    lesson = _resolve_lesson(text)
+    if not lesson:
+        await update.message.reply_text(TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
+        return True
+
+    await _send_lesson(lesson, update, context)
+    return True
 
 
 async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
