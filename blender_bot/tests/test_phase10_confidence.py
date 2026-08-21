@@ -152,15 +152,28 @@ class FormattingIntegrationTests(unittest.TestCase):
         self.assertNotIn("невысокая", text)
         self.assertIn("Также нашлась информация", text)
 
-    def test_low_confidence_unverified_answer_has_single_disclaimer_not_duplicated(self):
+    def test_unverified_answer_has_no_routine_source_disclaimer(self):
+        """По обратной связи пользователя (Phase 15, живой прод) —
+        personal-заметки больше не помечаются оговоркой на каждый ответ,
+        это было шумом для простых фактических вопросов."""
+        chunk = KnowledgeChunk(
+            id="x", source="test", source_type="ai_generated_unverified", authority=None,
+            version=None, language="ru", topic="general", subtopic=None, date=None, url=None,
+            original_title="X", translated_title="X", content="Текст ответа.",
+        )
+        text = self.qa_module._format_chunk_answer(chunk, "MEDIUM", None)
+        self.assertNotIn("не сверено", text)
+        self.assertNotIn("невысокая", text)
+
+    def test_unverified_answer_still_gets_low_confidence_disclaimer(self):
         chunk = KnowledgeChunk(
             id="x", source="test", source_type="ai_generated_unverified", authority=None,
             version=None, language="ru", topic="general", subtopic=None, date=None, url=None,
             original_title="X", translated_title="X", content="Текст ответа.",
         )
         text = self.qa_module._format_chunk_answer(chunk, "LOW", None)
-        self.assertEqual(text.count("не сверено"), 1)
-        self.assertNotIn("Уверенность в этом ответе невысокая", text)
+        self.assertNotIn("не сверено", text)
+        self.assertIn("Уверенность в этом ответе невысокая", text)
 
 
 if __name__ == "__main__":

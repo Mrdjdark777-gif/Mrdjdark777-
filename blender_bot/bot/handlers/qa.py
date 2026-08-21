@@ -69,7 +69,18 @@ def _source_label(chunk: KnowledgeChunk) -> str:
 
 
 def _format_citation(chunk: KnowledgeChunk) -> str | None:
-    """Источник, раздел, версия и URL — раздел 15 ТЗ."""
+    """Источник, раздел, версия и URL — раздел 15 ТЗ.
+
+    ai_generated_unverified (личные заметки, Phase 3) сознательно БЕЗ
+    отдельной оговорки под каждым ответом — по прямой обратной связи
+    пользователя после реального использования на проде (Phase 15): для
+    простых фактических вопросов ("какая клавиша у Extrude") постоянная
+    строка "не сверено с официальной документацией" читалась как шум, а
+    не как полезная информация. Раздел 17 (Conflict Engine, см.
+    `_source_label`) и раздел 14 (LOW confidence disclaimer ниже)
+    по-прежнему честно предупреждают, когда источник РЕАЛЬНО ненадёжен
+    или конфликтует с официальным — постоянная пометка на КАЖДОМ personal
+    chunk такой ценности не несла."""
     if chunk.source_type == "official_manual":
         version_note = f" ({chunk.version})" if chunk.version else " (версия не определена)"
         parts = [f"_Источник: официальный Blender Manual{version_note}_"]
@@ -77,10 +88,7 @@ def _format_citation(chunk: KnowledgeChunk) -> str | None:
             parts.append(chunk.url)
         return "\n".join(parts)
     if chunk.source_type == "ai_generated_unverified":
-        return (
-            "_Из личной базы бота, не сверено с официальной документацией — "
-            "если что-то не сходится, доверяй официальному Manual._"
-        )
+        return None
     if chunk.url:
         return f"_Источник: {chunk.source}_\n{chunk.url}"
     return None
@@ -100,9 +108,7 @@ def _format_chunk_answer(
     if citation:
         lines.append(f"\n{citation}")
 
-    # ai_generated_unverified уже честно оговорен в _format_citation —
-    # не дублировать ту же мысль второй раз другими словами.
-    if confidence == "LOW" and chunk.source_type != "ai_generated_unverified":
+    if confidence == "LOW":
         lines.append("\n_Уверенность в этом ответе невысокая._")
 
     if competing_chunk:
