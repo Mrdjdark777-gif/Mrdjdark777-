@@ -1,99 +1,59 @@
-# Blender Assistant Bot
+# Blender Helper
 
-Telegram-бот-помощник по Blender: отвечает на вопросы, показывает горячие клавиши,
-дает подборку ресурсов с 3D-моделями/текстурами и приносит свежие CG-новости.
+Бесплатная экспертная система по Blender в виде Telegram-бота
+(`@Blenderhelpbot`) — работает **без платного AI API** (никакого
+OpenAI/Anthropic/Gemini под капотом), ищет ответы в собственной базе
+знаний (официальный Blender Manual + проверенные личные заметки),
+понимает версии Blender, ведёт диагностику проблем и обучение. Собрана
+по жёсткому техническому заданию (15 фаз), не пытается быть ChatGPT —
+подробности см. `docs/Blender_Expert_System_v2_TZ.pdf`.
 
-## Возможности
+Полная документация, что бот умеет, и пошаговая инструкция по
+разворачиванию/обновлению — **`DEPLOYMENT.md`** (или `DEPLOYMENT.pdf`).
+Журнал фаз и честный список известных ограничений на каждом этапе —
+`PROJECT_PLAN.md`. Архитектурные правила репозитория — `CLAUDE.md`.
 
-- Свободные вопросы про Blender — бот ищет ответ в собственной базе знаний
-  (`data/knowledge_base.json`); при неуверенном совпадении переспрашивает
-  «Возможно, ты имел в виду?» с кнопками, а не отвечает наугад
-- Опционально — указатель по официальному руководству Blender
-  (`data/manual_index.json`, собирается скриптом `scripts/build_manual_index.py`)
-  как запасной источник ссылок для тем вне базы знаний
-- `/hotkeys` — горячие клавиши по категориям (навигация, моделирование, скульптинг,
-  анимация и т.д.)
-- `/resources` — подборка сайтов с 3D-моделями, текстурами, HDRI, аддонами и обучением
-- `/news` — последние новости из RSS-лент BlenderNation, 80 Level, CG Channel
-- `/help` — список команд
-- `/broadcast <текст>` — рассылка всем, кто запускал `/start` (только для владельца бота)
-- Inline-режим — вызов бота из любого чата командой `@ИмяБота вопрос`
-- Автоматический лог вопросов без ответа (`data/unanswered_log.jsonl`) — для
-  дальнейшего пополнения базы знаний
+## Коротко о возможностях
 
-## Установка
+- Обычные вопросы про Blender текстом — поиск по базе знаний с учётом
+  терминов, синонимов и словоформ; при неуверенности переспрашивает, а
+  не отвечает наугад; по фразам вроде «подробнее»/«дай источники» даёт
+  расширенный ответ с несколькими ссылками
+- Диагностика типовых проблем (decision-tree диалог) — например,
+  «после Subdivision модель ломается» или «рендер чёрный»
+- Обучение: `/learn`, `/test`, `/exam`, `/next`, `/progress`, `/weaknesses`
+- `/hotkeys`, `/resources`, `/news`, inline-режим (`@Blenderhelpbot вопрос`)
+- Admin-инструменты для владельца: `/admin`, `/health`, `/stats`,
+  `/sources`, `/version`, `/search`, `/debug`, `/reindex`, `/broadcast`
 
-1. Получи токен бота у [@BotFather](https://t.me/BotFather) в Telegram:
-   - напиши `/newbot`, следуй инструкциям, скопируй выданный токен
-2. Клонируй репозиторий и перейди в папку `blender_bot`
-3. Создай виртуальное окружение и установи зависимости:
+## Быстрый старт (локально, для разработки)
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+```bash
+python -m venv venv
+venv\Scripts\activate            # Windows; на Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env           # затем впиши BOT_TOKEN и OWNER_ID
+python bot.py
+```
 
-4. Скопируй `.env.example` в `.env` и вставь свой токен:
-
-   ```bash
-   cp .env.example .env
-   # затем отредактируй .env: BOT_TOKEN=твой_токен
-   ```
-
-   Чтобы пользоваться `/broadcast`, узнай свой Telegram ID у
-   [@userinfobot](https://t.me/userinfobot) и впиши его в `.env` как `OWNER_ID`.
-   Без этого рассылка отключена.
-
-5. Запусти бота:
-
-   ```bash
-   python bot.py
-   ```
-
-Бот запустится в режиме polling — просто напиши ему в Telegram.
+Полная инструкция (включая разворачивание на бесплатном сервере Oracle
+Cloud и обновление уже работающего бота) — **`DEPLOYMENT.md`**.
 
 ## Структура проекта
 
-Начиная с Phase 2 рефакторинга (см. `PROJECT_PLAN.md`, `CLAUDE.md`) проект
-переходит на модульную архитектуру по ТЗ (`docs/Blender_Expert_System_v2_TZ.pdf`,
-раздел 39):
-
 ```
 blender_bot/
-├── bot.py                  # совместимый entry point (systemd всё ещё зовёт его)
-├── app/
-│   └── main.py              # настоящая точка входа: сборка Application, регистрация хендлеров
-├── bot/
-│   ├── handlers/             # обработчики команд/сообщений Telegram (тонкий слой)
-│   └── news_fetcher.py        # RSS + перевод для /news
-├── search/                     # KnowledgeBase, HotkeyLookup, ManualIndex, QAService
-├── profile/                     # subscribers.py (заготовка user profile, Phase 12)
-├── knowledge/                    # база знаний (пока пусто, Phase 3-4)
-├── intents/ diagnostics/ education/  # будущие движки (пока пусто)
-├── config/                        # загрузка токена и путей к данным
-├── data/
-│   ├── knowledge_base.json # вопросы/ответы по Blender
-│   ├── hotkeys.json        # горячие клавиши по категориям
-│   ├── resources.json      # ссылки на модели/текстуры/обучение
-│   ├── news_feeds.json     # список RSS-лент CG-новостей
-│   └── manual_index.json   # (генерируется) указатель по докам Blender
-├── scripts/
-│   └── build_manual_index.py  # сборка указателя по официальному руководству
-└── tests/                    # автотесты
+├── bot.py                # совместимый entry point для systemd
+├── app/main.py             # настоящая точка входа
+├── bot/handlers/             # Telegram-слой (только формат сообщений/диалоги)
+├── knowledge/                 # база знаний: official/, personal/, system/
+├── search/                     # SearchEngine (TF-IDF + лемматизация + термины), QAService
+├── intents/, diagnostics/, education/, profile/   # движки и хранилище
+├── config/                     # .env, пути к данным
+├── data/                        # hotkeys.json, resources.json, news_feeds.json
+├── scripts/                      # обслуживающие скрипты (сборка/пересборка базы)
+├── tests/                         # 236 юнит-тестов + tests/quality (Quality Score suite)
+└── docs/Blender_Expert_System_v2_TZ.pdf
 ```
 
-## Расширение базы знаний
-
-Чтобы добавить новый вопрос-ответ, добавь объект в `data/knowledge_base.json`:
-
-```json
-{
-  "question": "Текст вопроса",
-  "keywords": ["ключевые", "слова"],
-  "answer": "Текст ответа"
-}
-```
-
-Поиск работает по совпадению ключевых слов и нечеткому сравнению текста — чем точнее
-ключевые слова, тем лучше бот найдет нужный ответ.
+Подробная архитектура и правила работы над репозиторием — `CLAUDE.md`.
