@@ -23,7 +23,7 @@ Known issues / Next phase).
 | 12 | User profile | ✅ готово |
 | 13 | Test suite | ✅ готово |
 | 14 | Optimization | ✅ готово |
-| 15 | Production deployment | ⬜ (бот уже развёрнут — потребуется миграция) |
+| 15 | Production deployment | ✅ готово |
 
 ---
 
@@ -1541,3 +1541,137 @@ Phase 15 — Production deployment (раздел 40 ТЗ). Бот уже раз�
 (включая перенос/создание `data/user_profile.db`, `.env` с `OWNER_ID` для
 новых admin-команд, и проверку, что `bot.py` как точка входа всё ещё
 совместима).
+
+---
+
+## Phase 15 — Production deployment
+
+### Отчёт (раздел 42 ТЗ)
+
+**Как понята задача фазы**
+
+Не первый деплой — на Oracle Cloud (`VM.Standard.E2.1.Micro`, Ubuntu
+20.04, systemd-юнит `blenderbot`) уже год-с-лишним крутился бот на
+дореформенном коде (последний коммит на сервере до этой фазы — `547f9a4`,
+Phase "Blender manual index as fallback", ДО Phase 2 refactor). Задача —
+безопасно перевести живой процесс, обслуживающий реальных пользователей
+Telegram, на текущую архитектуру (Phase 2-14), без длительного простоя и
+без потери пользовательских данных (`data/subscribers.json`,
+`data/unanswered_log.jsonl`).
+
+**Changed**
+
+На сервере (не в git — это операционные действия, не изменения кода):
+
+- `~/Mrdjdark777-/blender_bot` — `git pull --ff-only origin
+  claude/create-application-1ltl3a`: `547f9a4` → `6d53e8d`, 100 файлов,
+  чистый fast-forward без единого конфликта (working tree был чистым —
+  `git status --short` пуст до пула, все untracked-пути — из
+  `.gitignore`). Старые `handlers/`, `utils/`, `config.py` заменены на
+  `bot/handlers/`, `search/`, `config/` и т.д. автоматически как часть
+  обычного git-разрешения rename/delete.
+- venv: `pip install -r requirements.txt` — без изменений (зависимости
+  совпадали с локальными: `python-telegram-bot==22.8`, `feedparser`,
+  `python-dotenv`, `deep-translator`).
+- `blenderbot.service` — `systemctl restart`, подхватил новый `bot.py`
+  (тонкая обёртка над `app/main.py`, раздел про `bot.py` в CLAUDE.md
+  подтвердился на практике — деплой не потребовал менять systemd unit
+  file вообще).
+- Пустые директории-огрызки `handlers/__pycache__`, `utils/__pycache__`
+  (после git-удаления .py файлов) оставлены как есть — `rm -rf` на живом
+  сервере заблокирован защитным классификатором инструмента, косметика,
+  не мешает работе.
+
+**Added**
+
+- На сервере: `data/user_profile.db` создался автоматически при первом
+  импорте `profile/user_profile.py` (Phase 12 SQLite-слой) — подтверждено
+  напрямую (`ls -la data/`), персистентность профилей пользователей на
+  проде работает без ручных действий.
+- `~/backups/blender_bot_pre_migration_20260821_193934.tar.gz` — снапшот
+  всего рабочего каталога ДО миграции (без `venv/`), путь отката, если
+  что-то сломается: `git reset --hard 547f9a4` +
+  `systemctl restart blenderbot`, либо распаковать архив поверх.
+
+**Removed**
+
+Ничего в git. На сервере — по факту стёрты (через git-плагин, не вручную)
+старые `handlers/*.py`, `utils/*.py`, `config.py` — их прямые преемники
+уже перечислены выше.
+
+**Tests**
+
+- `python -m unittest discover tests` **на самом сервере** (не только
+  локально) — 226/226 passed, Quality Score 91.4%, идентично локальному
+  прогону — подтверждена паритетность окружений (Python 3.11.9 через
+  pyenv на сервере, тот же venv-набор версий пакетов).
+- `sudo systemctl status blenderbot` после рестарта — `Active: active
+  (running)`, лог показывает `app.main - INFO - Бот запущен` и
+  `telegram.ext.Application - INFO - Application started`, без единого
+  traceback.
+- **Реальная сквозная проверка от владельца бота** (не мной — я не имею
+  доступа к Telegram) — задан вопрос "Что такое модификаторы?" через
+  реальный Telegram-клиент. Разобрано по логам `journalctl`: бот
+  отправил soft-match предложение ("Возможно, ты имел в виду:
+  «Модификаторы стиля линии»?" с кнопками Да/Нет — `sendMessage` в
+  17:44:31 UTC), пользователь нажал «Нет» (`answerCallbackQuery` +
+  `editMessageText` в 17:44:40 UTC), сообщение честно отредактировалось в
+  fallback-текст — раздел 26 ТЗ (Zero-Hallucination Mode) отработал
+  корректно на реальном трафике, не на тесте.
+
+**Known issues**
+
+- **Найден реальный пробел покрытия Blender Manual (Phase 4), не пойман
+  тестовым набором Phase 13**: для запроса "что такое модификаторы" —
+  одного из самых базовых вопросов про Blender — лучшим совпадением
+  оказалась узкая "Модификаторы стиля линии" (Line Style Modifiers), а не
+  общий обзор. Проверено: в `knowledge/official/manual/5.1/manual.json`
+  проиндексированы 95 отдельных модификаторов (Array, Bevel, Mirror и
+  т.д.), но НЕТ общей landing/overview страницы "Модификаторы"/"Введение
+  в модификаторы" вообще. Тот же класс пробела, что уже отмечался в Phase
+  13 Known issues для "Vertex Group" — не баг search/engine.py, а пробел
+  ingestion (какие-то overview-страницы Blender Manual не попали в
+  индекс при Phase 4). Требует отдельной работы над Phase 4 (доингестия),
+  вне рамок Phase 15.
+- Профилирование производительности из Phase 14 (0.41с старт / 11МБ /
+  50мс на запрос) было получено на dev-машине — на реальном
+  `VM.Standard.E2.1.Micro` отдельно не переизмерялось; судя по
+  `systemctl status` (Memory: 44.1M для всего процесса вскоре после
+  старта) цифры того же порядка, критичных проблем не обнаружено.
+- `rm -rf` пустых `handlers/__pycache__`/`utils/__pycache__` на сервере
+  заблокирован защитным классификатором инструмента — эстетическая
+  недоделка, не влияет на работу бота.
+- Старые файлы `data/knowledge_base.json` и `data/manual_index.json` на
+  сервере остались физически на диске (не в git, `search/engine.py` их
+  больше не читает с Phase 7) — не удалялись в рамках этой фазы, не
+  мешают, но и не убраны для чистоты.
+
+**Финальные критерии готовности v2 (раздел 43 ТЗ) — сверка**
+
+Работает без платного AI API ✅ · индексирует официальный Manual ✅ ·
+различает версии Blender ✅ (Phase 5) · понимает русские и английские
+термины ✅ (Phase 6) · использует aliases ✅ · TF-IDF-retrieval ✅ (Phase 7,
+BM25 сознательно не реализован — раздел 10 называет его optional) ·
+ранжирует источники ✅ (Phase 10) · показывает источники ✅ (citations в
+`_format_citation`) · диагностирует типовые проблемы ✅ (Phase 9, только 2
+проблемы засеяны — охват узкий, честно отмечено в Phase 9 Known issues) ·
+ведёт multi-turn troubleshooting ✅ · имеет UNKNOWN state ✅ (Phase 10,
+Confidence Engine) · SQLite user profile ✅ (Phase 12) · learning system ✅
+(Phase 11, только 3 урока — Level System раздела 20 не реализован,
+честно отмечено там же) · automated tests ✅ (Phase 13, 226 unit +
+540 quality cases) · admin/debug mode ✅ (Phase 14).
+
+Все обязательные критерии выполнены хотя бы частично и честно; узкий
+охват контента (2 диагностики, 3 урока, отсутствующие overview-страницы
+манула) — известное и задокументированное ограничение объёма данных, а
+не архитектурный недостаток.
+
+**Next phase**
+
+Формально все 15 фаз ТЗ пройдены. Дальнейшая работа — не новая фаза, а
+расширение объёма знаний и охвата (доингестия Blender Manual, включая
+пропущенные overview-страницы; больше диагностических деревьев; больше
+уроков и Level System раздела 20; community-источники раздела 4, которые
+пока пустые — `knowledge/community/*`) — по мере того, как реальные
+пользовательские вопросы (`data/unanswered_log.jsonl`, `/stats`) покажут,
+что приоритетнее.
