@@ -195,6 +195,47 @@ class RealSeededDataTests(unittest.TestCase):
         self.assertIsNotNone(problem)
         self.assertEqual(problem.problem_id, "black_material_or_render")
 
+    def test_has_five_problems_after_tz_v3_stage_3(self):
+        self.assertEqual(len(self.registry.problems), 5)
+
+    def test_uv_stretch_problem_findable(self):
+        problem = self.registry.find_problem("После развертки текстура сильно растянута, что делать?")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "uv_unwrap_issues")
+
+    def test_uv_overlap_problem_findable(self):
+        problem = self.registry.find_problem("UV острова накладываются друг на друга")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "uv_unwrap_issues")
+
+    def test_baking_black_spots_problem_findable(self):
+        problem = self.registry.find_problem("После запекания на карте чёрные пятна")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "baking_artifacts")
+
+    def test_baking_seams_problem_findable_with_participle_form(self):
+        # "запек" (запекание) и "запеч" (запечь/запечённой) — разные основы
+        # из-за чередования к/ч, обе должны быть зарегистрированы отдельно
+        # (найдено при проверке этой самой формулировки).
+        problem = self.registry.find_problem("Почему видны швы на запечённой карте")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "baking_artifacts")
+
+    def test_cloth_collision_problem_findable(self):
+        problem = self.registry.find_problem("Ткань проходит сквозь стол, коллизия не работает")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "simulation_collision_issues")
+
+    def test_rigid_body_collision_problem_findable(self):
+        problem = self.registry.find_problem("Твёрдое тело падает сквозь пол")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "simulation_collision_issues")
+
+    def test_fluid_collision_problem_findable(self):
+        problem = self.registry.find_problem("Жидкость не реагирует на препятствие в сцене")
+        self.assertIsNotNone(problem)
+        self.assertEqual(problem.problem_id, "simulation_collision_issues")
+
 
 class TelegramLayerTests(unittest.TestCase):
     """Проверяет сами хендлеры bot/handlers/diagnostics.py через моки

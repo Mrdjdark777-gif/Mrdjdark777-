@@ -221,5 +221,284 @@
   "version": null,
   "sources": [],
   "severity": "medium"
+ },
+ {
+  "problem_id": "uv_unwrap_issues",
+  "title": "Проблемы с UV-разверткой (потяги текстур, наложение островов)",
+  "symptoms": "Текстура выглядит растянутой/искажённой, либо UV-острова накладываются друг на друга",
+  "keywords": [
+   "uv",
+   "развертк",
+   "развёртк",
+   "текстур",
+   "растян",
+   "потяг",
+   "остров",
+   "island",
+   "наклад",
+   "перекрыв"
+  ],
+  "possible_causes": [
+   "Неприменённый масштаб объекта перед разверткой",
+   "Недостаточно швов (seams) на сложных изгибах",
+   "Намеренное наложение островов для тайлинга",
+   "Дублирующиеся грани или Mirror без раздельной развёртки"
+  ],
+  "root_node_id": "root",
+  "nodes": {
+   "root": {
+    "node_id": "root",
+    "kind": "question",
+    "question_text": "Что не так с текстурой на объекте?",
+    "options": [
+     {
+      "label": "Текстура растянута или выглядит искажённой",
+      "next_node_id": "stretch"
+     },
+     {
+      "label": "UV-острова накладываются друг на друга",
+      "next_node_id": "overlap"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "stretch": {
+    "node_id": "stretch",
+    "kind": "question",
+    "question_text": "Масштаб объекта уже применён (Ctrl+A → Scale)?",
+    "options": [
+     {
+      "label": "Нет, не применял",
+      "next_node_id": "stretch_scale"
+     },
+     {
+      "label": "Да, применял",
+      "next_node_id": "stretch_seams"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "stretch_scale": {
+    "node_id": "stretch_scale",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Неприменённый (особенно неравномерный) масштаб искажает пропорции при развёртке — Unwrap считает форму по «сырым» координатам, из-за чего текстура растягивается неравномерно по осям.",
+    "fix": "Object → Apply → Scale (или Ctrl+A → Scale) до развёртки. Если развёртка уже сделана — примени масштаб и переразверни (выдели всё в Edit Mode, U → Unwrap)."
+   },
+   "stretch_seams": {
+    "node_id": "stretch_seams",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Скорее всего, недостаточно швов (seams) на изогнутых участках — автоматическая развёртка (например, Smart UV Project без ручных швов) сжимает сложную геометрию в UV-пространство неравномерно.",
+    "fix": "Включи оверлей UV Editor → N-панель → Display → Stretching, чтобы увидеть растянутые области красным. Добавь Mark Seam (Ctrl+E) на изгибах в этих местах и переразверни (U → Unwrap)."
+   },
+   "overlap": {
+    "node_id": "overlap",
+    "kind": "question",
+    "question_text": "Наложение островов сделано специально (например, для тайлинга текстуры), или это не то, что ты ожидал?",
+    "options": [
+     {
+      "label": "Специально, для повторения текстуры",
+      "next_node_id": "overlap_intentional"
+     },
+     {
+      "label": "Нет, вышло случайно",
+      "next_node_id": "overlap_accidental"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "overlap_intentional": {
+    "node_id": "overlap_intentional",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Это нормальное и частое поведение — намеренное наложение островов экономит текстурное пространство для повторяющихся деталей (например, одинаковые кирпичи или листья).",
+    "fix": "Если наложение всё же мешает в конкретном месте, используй UV Editor → Select → Overlap, чтобы найти именно эти острова, и вручную сдвинь те, что не должны повторяться."
+   },
+   "overlap_accidental": {
+    "node_id": "overlap_accidental",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Чаще всего это дублирующиеся грани (после неаккуратного Duplicate) или модификатор Mirror без раздельной UV-развёртки половин.",
+    "fix": "Проверь на дубли граней: выдели всё (A), Mesh → Clean Up → Merge by Distance (или M → By Distance). Если дело в Mirror — разверни половины по отдельности либо используй опцию Mirror U/V в самом модификаторе."
+   }
+  },
+  "version": null,
+  "sources": [],
+  "severity": "low"
+ },
+ {
+  "problem_id": "baking_artifacts",
+  "title": "Артефакты при запекании карт (Baking / cage issues)",
+  "symptoms": "На запечённой карте видны чёрные пятна, швы, шум, либо запекание не запускается",
+  "keywords": [
+   "запек",
+   "запеч",
+   "bake",
+   "cage",
+   "артефакт",
+   "пятна",
+   "шов",
+   "текстур",
+   "карт",
+   "extrusion",
+   "margin"
+  ],
+  "possible_causes": [
+   "Слишком маленький Ray Distance/Extrusion между high-poly и low-poly",
+   "Слишком маленький Margin вокруг UV-островов",
+   "Недостаточно Samples для запекания в Cycles",
+   "Нет UV-развёртки, либо неверный порядок выделения при Selected to Active"
+  ],
+  "root_node_id": "root",
+  "nodes": {
+   "root": {
+    "node_id": "root",
+    "kind": "question",
+    "question_text": "В чём именно проявляется проблема запекания?",
+    "options": [
+     {
+      "label": "Чёрные пятна или дыры на карте",
+      "next_node_id": "black_spots"
+     },
+     {
+      "label": "Видны швы UV на текстуре",
+      "next_node_id": "visible_seams"
+     },
+     {
+      "label": "Шум/артефакты по краям",
+      "next_node_id": "noise_edges"
+     },
+     {
+      "label": "Запекание вообще не запускается (ошибка)",
+      "next_node_id": "bake_fails"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "black_spots": {
+    "node_id": "black_spots",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Чаще всего дистанция луча (Ray Distance/Extrusion) в настройках Bake слишком маленькая — high-poly объект недостаточно «накрывает» low-poly, и часть лучей не находит поверхность.",
+    "fix": "В Bake Settings увеличь Extrusion (Cage Extrusion), либо создай явный Cage object чуть большего размера, чем high-poly, и укажи его в поле Cage."
+   },
+   "visible_seams": {
+    "node_id": "visible_seams",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Margin (отступ вокруг UV-островов) слишком маленький — при сжатии текстуры или мип-мапировании соседние острова «просачиваются» друг в друга по шву.",
+    "fix": "Увеличь Margin в настройках запекания (Render Properties → Bake → Margin) — обычно 8-16 px достаточно для большинства текстур."
+   },
+   "noise_edges": {
+    "node_id": "noise_edges",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Недостаточно Samples для запекания в Cycles — шум, который в обычном рендере сглаживается за счёт движения камеры/объектов, в статичной запечённой карте виден отчётливо.",
+    "fix": "Увеличь Samples именно для Bake (Render Properties → Sampling → Bake), либо включи Denoising для итогового изображения после запекания."
+   },
+   "bake_fails": {
+    "node_id": "bake_fails",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Три частые причины сразу: (1) у объекта нет UV-развёртки вообще, (2) при Selected to Active low-poly объект выбран не последним (не активный), (3) в Shader Editor не создана/не выделена Image Texture node, куда должен писаться результат.",
+    "fix": "Проверь по порядку: есть ли UV map (Object Data Properties → UV Maps); при Selected to Active клик по low-poly должен быть ПОСЛЕДНИМ с зажатым Shift; в Shader Editor должна быть выделена нужная Image Texture node перед нажатием Bake."
+   }
+  },
+  "version": null,
+  "sources": [],
+  "severity": "medium"
+ },
+ {
+  "problem_id": "simulation_collision_issues",
+  "title": "Симуляция не реагирует на столкновения (ткань, физика, жидкость)",
+  "symptoms": "Объект симуляции проходит сквозь препятствия вместо того, чтобы с ними взаимодействовать",
+  "keywords": [
+   "симуляц",
+   "физик",
+   "коллизи",
+   "collision",
+   "ткан",
+   "cloth",
+   "жидкост",
+   "fluid",
+   "твёрд",
+   "rigid",
+   "провалива",
+   "проходит",
+   "сквозь",
+   "пад",
+   "реагир",
+   "препятств"
+  ],
+  "possible_causes": [
+   "У объекта-препятствия не включена физика Collision",
+   "Оба Rigid Body объекта назначены Active вместо Passive",
+   "Объект-препятствие не назначен Effector в физике жидкости",
+   "Симуляция не пересчитана (Bake) после изменения сцены"
+  ],
+  "root_node_id": "root",
+  "nodes": {
+   "root": {
+    "node_id": "root",
+    "kind": "question",
+    "question_text": "Какая именно симуляция не реагирует на столкновения?",
+    "options": [
+     {
+      "label": "Ткань (Cloth)",
+      "next_node_id": "cloth"
+     },
+     {
+      "label": "Твёрдое тело (Rigid Body)",
+      "next_node_id": "rigid"
+     },
+     {
+      "label": "Жидкость (Fluid)",
+      "next_node_id": "fluid"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "cloth": {
+    "node_id": "cloth",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Cloth реагирует ТОЛЬКО на объекты, у которых явно включена физика Collision — сам факт того, что объект просто «стоит на пути», ничего не даёт.",
+    "fix": "Выдели объект-препятствие → Physics Properties → Collision (добавить). Если ткань всё равно проваливается в тонких местах — увеличь Collision → Distance у препятствия или уменьши Quality Steps у самой ткани."
+   },
+   "rigid": {
+    "node_id": "rigid",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Либо объект-препятствие вообще не назначен Rigid Body, либо оба объекта назначены Active (один из них — например, пол или стена — должен быть Passive), либо Collision Shape не соответствует реальной форме объекта.",
+    "fix": "Physics Properties → Rigid Body → Type: неподвижные препятствия должны быть Passive, падающие/двигающиеся — Active. Для сложной формы выбери Shape → Convex Hull или Mesh вместо Box/Sphere по умолчанию."
+   },
+   "fluid": {
+    "node_id": "fluid",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Объект-препятствие не назначен типом Effector в физике жидкости, либо он физически находится за пределами объёма Domain, либо симуляция не пересчитана (Bake) после изменения сцены.",
+    "fix": "Выдели препятствие → Physics Properties → Fluid → Type: Effector. Проверь, что оно целиком внутри границ Domain, и после любых изменений сцены нажми Bake заново (Physics Properties → Domain → Cache → Bake)."
+   }
+  },
+  "version": null,
+  "sources": [],
+  "severity": "medium"
  }
 ]
