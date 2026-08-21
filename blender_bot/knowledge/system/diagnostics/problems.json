@@ -122,7 +122,9 @@
    "вид",
    "темн",
    "тёмн",
-   "экран"
+   "экран",
+   "cycles",
+   "eevee"
   ],
   "possible_causes": [
    "Viewport Shading не в Material Preview/Rendered",

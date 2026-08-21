@@ -60,7 +60,10 @@ profile/      — пользовательские данные: subscribers.py 
                 last_questions/learning_goal — level, competency matrix и
                 общий topics-охват по всем 10 областям раздела 20 всё ещё
                 не заполняются, см. PROJECT_PLAN.md)
-tests/        — автотесты
+tests/        — автотесты (юнит-тесты кода). tests/quality/ (Phase 13,
+                раздел 34-35 ТЗ) — отдельно: не юнит-тесты, а Quality Score
+                живой системы (540 кейсов через реальный QAService, без
+                моков), см. tests/quality/README.md
 scripts/      — разовые/обслуживающие скрипты (build_manual_index.py)
 config/       — настройки, пути к data/
 data/         — JSON-данные бота

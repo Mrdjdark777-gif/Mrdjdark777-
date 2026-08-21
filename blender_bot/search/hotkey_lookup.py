@@ -3,6 +3,26 @@ import re
 from pathlib import Path
 
 _KEY_TOKEN_RE = re.compile(r"[a-z0-9+]+")
+# Дефис-соединённые сегменты — один токен, не два через дефис-разделитель:
+# без этого "N-gon" разбивался на "n" и "gon", и одиночная "n" ложно
+# совпадала с хоткеем N (показать/скрыть боковую панель) — раздел про
+# находку Phase 13 (build_quality_test_suite) в PROJECT_PLAN.md. Формат
+# hotkeys.json использует em-dash (" — ") как разделитель поле/описание,
+# не ASCII-дефис, так что это не конфликтует с парсингом самого файла.
+# Продолжение после дефиса — \w+ (юникод), а не только ASCII: "N-угольник"
+# (русская приставка после дефиса) страдал тем же багом, что и "N-gon" —
+# найдено Phase 13 на кейсе "Что такое N-угольник (N-gon)?". Сохранённые
+# ключи в by_key дефисов не содержат (_normalize_key фильтрует их через
+# _KEY_TOKEN_RE), так что склеенный "n-угольник"/"n-gon" токен всё равно
+# никогда не совпадёт с одиночным "n" в словаре — только предотвращает
+# ложное разбиение на части.
+_QUERY_TOKEN_RE = re.compile(r"[a-zA-Z0-9+]+(?:-\w+)*")
+# Похожие на версию Blender подстроки ("4.2", "5.1.1") вырезаются из
+# запроса ДО токенизации: без этого "4.2" распадалось на токены "4" и "2",
+# а одиночная "2" ложно совпадала с хоткеем "1/2/3 — режим вершин/рёбер/
+# граней" — найдено Phase 13 (build_quality_test_suite.py) на кейсах вида
+# "в блендере 4.2 subdivision surface".
+_VERSION_LIKE_RE = re.compile(r"\b\d+\.\d+(?:\.\d+)?\b")
 
 
 def _normalize_key(raw: str) -> str | None:
@@ -31,7 +51,8 @@ class HotkeyLookup:
                         self.by_key.setdefault(norm, []).append((item, category))
 
     def find(self, query: str) -> list[tuple[str, str]]:
-        tokens = re.findall(r"[a-zA-Z0-9+]+", query.lower())
+        query = _VERSION_LIKE_RE.sub(" ", query)
+        tokens = _QUERY_TOKEN_RE.findall(query.lower())
 
         matches: list[tuple[str, str]] = []
         seen: set[str] = set()
