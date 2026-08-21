@@ -11,6 +11,15 @@ from telegram.ext import (
 
 from bot.handlers.broadcast import broadcast_command
 from bot.handlers.diagnostics import diag_option_callback
+from bot.handlers.education import (
+    exam_command,
+    learn_command,
+    next_command,
+    progress_command,
+    quiz_answer_callback,
+    test_command,
+    weaknesses_command,
+)
 from bot.handlers.hotkeys import hotkeys_back_callback, hotkeys_callback, hotkeys_command
 from bot.handlers.inline import inline_query
 from bot.handlers.news import news_command
@@ -43,6 +52,12 @@ def main() -> None:
     application.add_handler(CommandHandler("resources", resources_command))
     application.add_handler(CommandHandler("news", news_command))
     application.add_handler(CommandHandler("broadcast", broadcast_command))
+    application.add_handler(CommandHandler("learn", learn_command))
+    application.add_handler(CommandHandler("test", test_command))
+    application.add_handler(CommandHandler("exam", exam_command))
+    application.add_handler(CommandHandler("progress", progress_command))
+    application.add_handler(CommandHandler("weaknesses", weaknesses_command))
+    application.add_handler(CommandHandler("next", next_command))
 
     application.add_handler(CallbackQueryHandler(hotkeys_callback, pattern=r"^hotkeys:\d+$"))
     application.add_handler(CallbackQueryHandler(hotkeys_back_callback, pattern=r"^hotkeys_back$"))
@@ -51,6 +66,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes$"))
     application.add_handler(CallbackQueryHandler(qa_decline_callback, pattern=r"^qa_no$"))
     application.add_handler(CallbackQueryHandler(diag_option_callback, pattern=r"^diag:\d+$"))
+    application.add_handler(CallbackQueryHandler(quiz_answer_callback, pattern=r"^edu:\d+$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))
     application.add_handler(InlineQueryHandler(inline_query))

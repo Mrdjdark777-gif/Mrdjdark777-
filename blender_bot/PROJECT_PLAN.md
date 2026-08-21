@@ -19,8 +19,8 @@ Known issues / Next phase).
 | 8 | Intent engine | ✅ готово |
 | 9 | Diagnostic engine | ✅ готово |
 | 10 | Source ranking | ✅ готово |
-| 11 | Education engine | ⏳ следующая |
-| 12 | User profile | ⬜ |
+| 11 | Education engine | ✅ готово |
+| 12 | User profile | ⏳ следующая |
 | 13 | Test suite | ⬜ |
 | 14 | Optimization | ⬜ |
 | 15 | Production deployment | ⬜ (бот уже развёрнут — потребуется миграция) |
@@ -1076,3 +1076,115 @@ citations, Fact vs Recommendation, Conflict Engine). Сейчас у ответ�
 Phase 11 — Education Engine (раздел 18 ТЗ): команды /learn, /progress,
 /test, /exam, /weaknesses, /next; структура темы Theory → Example →
 Exercise → Quiz → Result → Weakness tracking.
+
+---
+
+## Phase 11 — Education Engine
+
+### Отчёт (раздел 42 ТЗ)
+
+**Changed**
+
+- `config/__init__.py` — добавлен `LESSONS_PATH`.
+- `app/main.py` — зарегистрированы 6 команд (`/learn`, `/test`, `/exam`,
+  `/progress`, `/weaknesses`, `/next`) и `CallbackQueryHandler` для `edu:\d+`.
+- `bot/handlers/start.py` — `WELCOME_TEXT` дополнен новыми командами, иначе
+  никто бы о них не узнал.
+
+**Added**
+
+- `education/schema.py` — `QuizQuestion` (раздел 22 ТЗ: реализованы
+  `multiple_choice` и `true_false` из 6 типов — `scenario`/`diagnostic`/
+  `workflow`/`technical` требуют содержательных сценариев, для которых нет
+  оснований, см. Known issues) и `Lesson` (topic_id, title, theory, example,
+  exercise, quiz — раздел 18). `validate_lesson()`: quiz не пуст, у каждого
+  вопроса ≥2 варианта, `correct_index` в диапазоне, `explanation` не пуст
+  (раздел 22: «после ответа показывать... объяснение»).
+- `education/registry.py` — `LessonRegistry`: `get(topic_id)`,
+  `find_by_title()`, `all_questions()` (для /exam — вопросы вперемешку из
+  всех уроков).
+- `bot/handlers/education.py` — Telegram-слой, шесть команд + один callback.
+  `/learn <тема>` резолвит тему через уже готовый `TerminologyRegistry`
+  (Phase 6) — не примитивным сравнением строк (см. находку ниже).
+  `/test` — квиз по последней изученной теме; `/exam` — вопросы вперемешку
+  по всем урокам (`random.shuffle`); `/next` — либо следующий вопрос
+  активного квиза, либо (вне квиза) подсказка, что изучить: самая слабая
+  тема сессии, если есть данные, иначе первый урок. Прогресс и слабые
+  места — `context.user_data["edu_session_log"]` /
+  `["edu_weak_topics"]` (счётчик неверных ответов по теме накапливается
+  между несколькими /test и /exam за сессию, не сбрасывается на каждый
+  вызов).
+- `knowledge/system/education/lessons.json` — 3 урока: `Mirror Modifier`,
+  `Boolean Modifier`, `N-gon`. Не в исходном списке раздела 5 ТЗ (там
+  synonyms/terminology/intents/diagnostics/rules) — добавлено по аналогии,
+  задокументировано в `knowledge/system/education/README.md`.
+- `scripts/seed_education.py` — сидинг; `common_mistakes` терминов Phase 6
+  и находка Phase 9 (N-gon + Subdivision) напрямую легли в quiz-вопросы.
+- `tests/test_phase11_education.py` — 20 тестов: валидация схемы (6),
+  registry (5), реальные засеянные данные (3), и — как в Phase 9 —
+  **прямые тесты Telegram-хендлеров через `unittest.mock`** (6): полный
+  проход /learn→/test→ответ→/next→/progress→/weaknesses, резолв темы по
+  английскому canonical name, `/test` без активной темы, `/next` без
+  активного квиза предлагает самую слабую тему, ответ без активного квиза
+  не роняет бота.
+
+**Removed**
+
+Ничего.
+
+**Tests**
+
+`python -m unittest discover tests -v` — **188/188 passed** (168 из Phase
+2-10 + 20 новых).
+
+**Находка при ручной проверке (тот же метод, что в Phase 7-9)**
+
+`/learn Mirror Modifier` изначально не находил урок: `Lesson.topic_id`
+задан по-английски ("Mirror Modifier", чтобы совпадать с
+`Term.canonical_name`), а `Lesson.title` — по-русски ("Модификатор
+Mirror"), и `find_by_title()` сравнивал запрос только с `title`. Нашёл
+руками, до всякого юнит-теста. Исправление — не патч сравнения строк, а
+использование уже готового `TerminologyRegistry.find()` (Phase 6):
+`/learn` сначала резолвит запрос в canonical term (значит "mirror",
+"зеркало", "Mirror Modifier" — всё найдёт один и тот же урок), и только
+если термин не распознан — пробует прямое совпадение по `title`.
+
+**Известное честное ограничение — что реализовано, а что нет**
+
+Раздел 40 ТЗ явно ставит **User Profile (SQLite, раздел 19) отдельной
+Phase 12, ПОСЛЕ Education Engine** — то есть на момент этой фазы
+персистентного хранилища architecturally ещё не должно быть. Из этого
+следует:
+
+- ✅ `/learn`, `/test`, `/exam`, `/next` работают полноценно — им не нужна
+  персистентность, только состояние в рамках текущей сессии
+  (`context.user_data`, тот же приём, что в Diagnostic Engine, Phase 9).
+- ⚠️ `/progress` и `/weaknesses` **честно ограничены сессией** — оба текста
+  явно говорят пользователю «не сохраняется после перезапуска бота», а не
+  притворяются, что показывают историю за всё время. Слабые места
+  накапливаются в `edu_weak_topics` между несколькими /test/exam за одну
+  работающую сессию бота (это уже частичная реализация раздела 21,
+  Adaptive Learning — «при повторяющейся ошибке увеличивать weakness
+  score» — просто без переживания рестарта).
+- ❌ **Level System (раздел 20) не реализован вовсе.** Присвоение уровня
+  Beginner/Junior/.../Senior требует накопленной истории тестов за много
+  сессий (раздел 20: «оценка должна опираться на результаты тестов»), для
+  которой сейчас нет ни хранилища (Phase 12), ни достаточного объёма
+  контента (3 урока — это ядро, не полный курс, раздел 36 ТЗ). Competency
+  matrix (Modeling/Topology/Materials/.../Python) из раздела 20 не
+  создавалась намеренно — это была бы пустая структура без логики её
+  заполнения, то есть код ради кода.
+- ⚠️ **Только 2 из 6 типов вопросов раздела 22** реализованы
+  (`multiple_choice`, `true_false`). `scenario`/`diagnostic`/`workflow`/
+  `technical` — не keyword-паттерн вроде Intent Engine, а полноценный
+  контент с сюжетом/сценарием, который нужно писать вручную с той же
+  осторожностью, что и диагностические деревья Phase 9 — отложено, не
+  сделано наспех.
+
+**Next phase**
+
+Phase 12 — User Profile (раздел 19 ТЗ): SQLite-хранилище (user_id,
+blender_version, level, topics, completed_topics, weak_topics,
+test_results, mistakes, last_questions, learning_goal). Это разблокирует
+честные версии `/progress`/`/weaknesses` (переживающие перезапуск) и
+станет основой для Level System, отложенной в этой фазе.

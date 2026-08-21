@@ -45,7 +45,12 @@ diagnostics/  — Diagnostic Engine (Phase 9, разделы 12-13 ТЗ): decisi
                 диалог для TROUBLESHOOTING/ERROR-вопросов. 2 проблемы
                 засеяны. Единственное место в проекте с состоянием между
                 сообщениями (context.user_data в bot/handlers/diagnostics.py)
-education/    — Education Engine (пусто, Phase 11)
+education/    — Education Engine (Phase 11, раздел 18, 22 ТЗ): /learn,
+                /test, /exam, /progress, /weaknesses, /next. 3 урока
+                засеяны. Прогресс живёт только в context.user_data (нет
+                SQLite до Phase 12) — /progress и /weaknesses честно не
+                переживают перезапуск бота. Level System (раздел 20) не
+                реализован — нет истории тестов, чтобы на неё опираться
 profile/      — пользовательские данные (subscribers.py — заготовка для Phase 12)
 tests/        — автотесты
 scripts/      — разовые/обслуживающие скрипты (build_manual_index.py)

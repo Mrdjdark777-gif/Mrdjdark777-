@@ -1,1 +1,1 @@
-"""Education Engine (раздел 18 ТЗ) — реализуется в Phase 11. Пока пусто."""
+"""Education Engine (раздел 18 ТЗ). См. education/schema.py, registry.py."""
