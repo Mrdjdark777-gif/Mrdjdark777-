@@ -224,5 +224,9 @@ class UserProfileStore:
             last_questions=last_questions,
         )
 
+    def total_users(self) -> int:
+        row = self._conn.execute("SELECT COUNT(*) FROM user_profile").fetchone()
+        return row[0]
+
     def close(self) -> None:
         self._conn.close()

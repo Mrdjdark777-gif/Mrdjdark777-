@@ -9,6 +9,16 @@ from telegram.ext import (
     filters,
 )
 
+from bot.handlers.admin import (
+    admin_command,
+    debug_command,
+    health_command,
+    reindex_command,
+    search_command,
+    sources_command,
+    stats_command,
+    version_command,
+)
 from bot.handlers.broadcast import broadcast_command
 from bot.handlers.diagnostics import diag_option_callback
 from bot.handlers.education import (
@@ -58,6 +68,17 @@ def main() -> None:
     application.add_handler(CommandHandler("progress", progress_command))
     application.add_handler(CommandHandler("weaknesses", weaknesses_command))
     application.add_handler(CommandHandler("next", next_command))
+
+    # Admin Commands + Debug Mode (разделы 32-33 ТЗ) — доступны только
+    # OWNER_ID, проверка внутри каждого хендлера (bot/handlers/admin.py).
+    application.add_handler(CommandHandler("admin", admin_command))
+    application.add_handler(CommandHandler("health", health_command))
+    application.add_handler(CommandHandler("stats", stats_command))
+    application.add_handler(CommandHandler("sources", sources_command))
+    application.add_handler(CommandHandler("version", version_command))
+    application.add_handler(CommandHandler("search", search_command))
+    application.add_handler(CommandHandler("debug", debug_command))
+    application.add_handler(CommandHandler("reindex", reindex_command))
 
     application.add_handler(CallbackQueryHandler(hotkeys_callback, pattern=r"^hotkeys:\d+$"))
     application.add_handler(CallbackQueryHandler(hotkeys_back_callback, pattern=r"^hotkeys_back$"))

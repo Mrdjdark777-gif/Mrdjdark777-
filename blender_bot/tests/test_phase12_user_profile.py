@@ -38,6 +38,12 @@ class UserProfileStoreTests(unittest.TestCase):
         self.store.set_learning_goal(1, "Научиться риггингу персонажей")
         self.assertEqual(self.store.get_profile(1).learning_goal, "Научиться риггингу персонажей")
 
+    def test_total_users_counts_distinct_users(self):
+        self.assertEqual(self.store.total_users(), 0)
+        self.store.set_blender_version(1, "4.2")
+        self.store.record_question(2, "как сделать риг")
+        self.assertEqual(self.store.total_users(), 2)
+
     def test_touch_topic_appears_in_engaged_topics(self):
         self.store.touch_topic(1, "Mirror Modifier")
         self.assertIn("Mirror Modifier", self.store.engaged_topics(1))
