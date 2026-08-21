@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 
 from bot.handlers.broadcast import broadcast_command
+from bot.handlers.diagnostics import diag_option_callback
 from bot.handlers.hotkeys import hotkeys_back_callback, hotkeys_callback, hotkeys_command
 from bot.handlers.inline import inline_query
 from bot.handlers.news import news_command
@@ -49,6 +50,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(resources_back_callback, pattern=r"^resources_back$"))
     application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes$"))
     application.add_handler(CallbackQueryHandler(qa_decline_callback, pattern=r"^qa_no$"))
+    application.add_handler(CallbackQueryHandler(diag_option_callback, pattern=r"^diag:\d+$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))
     application.add_handler(InlineQueryHandler(inline_query))

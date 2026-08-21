@@ -1,0 +1,223 @@
+[
+ {
+  "problem_id": "subdivision_breaks_model",
+  "title": "После Subdivision Surface модель ломается или деформируется",
+  "symptoms": "Модификатор Subdivision Surface искажает форму вместо плавного сглаживания",
+  "keywords": [
+   "subdivision",
+   "сабдив",
+   "сглажива",
+   "поплы",
+   "ломае",
+   "деформир",
+   "искажа",
+   "модель",
+   "surface"
+  ],
+  "possible_causes": [
+   "N-gon на плоском участке — пинч в центре",
+   "Нет поддерживающих edge loop у острых углов",
+   "N-gon/non-manifold геометрия вокруг отверстий",
+   "Неприменённый масштаб (Apply Scale)",
+   "Общая грязная топология (N-gon'ы/треугольники по всей модели)"
+  ],
+  "root_node_id": "root",
+  "nodes": {
+   "root": {
+    "node_id": "root",
+    "kind": "question",
+    "question_text": "Где именно появляется проблема после Subdivision?",
+    "options": [
+     {
+      "label": "На углах",
+      "next_node_id": "corners"
+     },
+     {
+      "label": "На отверстиях",
+      "next_node_id": "holes"
+     },
+     {
+      "label": "На плоских поверхностях",
+      "next_node_id": "flat"
+     },
+     {
+      "label": "По всей модели",
+      "next_node_id": "everywhere"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "corners": {
+    "node_id": "corners",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Острые углы «съезжают» и теряют форму, потому что рядом с ними нет дополнительных edge loop, которые удерживали бы геометрию — Subdivision Surface сглаживает всё равномерно, если её не ограничить.",
+    "fix": "Добавь Loop Cut (Ctrl+R) рядом с острыми рёбрами, чтобы создать поддерживающую петлю, либо закрепи ребро через Edge Crease (Ctrl+E → Edge Crease или Shift+E, потянуть до 1.0) — это не даёт Subdivision сглаживать именно это ребро."
+   },
+   "holes": {
+    "node_id": "holes",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Вокруг отверстия, скорее всего, есть N-gon или неманифолдная геометрия (грани сходятся некорректно) — Subdivision Surface плохо обрабатывает такие места и создаёт складки или провалы.",
+    "fix": "Выдели область вокруг отверстия и проверь через Select → Select All by Trait → Non Manifold, замени N-gon на явные quad'ы вручную (Knife или Make Edge/Face)."
+   },
+   "flat": {
+    "node_id": "flat",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Плоский участок, скорее всего, построен как один N-gon (5+ сторон) вместо нескольких quad'ов — Subdivision Surface обрабатывает N-gon особым образом и может создать «звезду»/пинч в его центре вместо ровной плоскости.",
+    "fix": "Раздели N-gon на quad'ы вручную (Face → Grid Fill, либо Loop Cut через центр), чтобы на этом участке была чистая сетка из четырёхугольников."
+   },
+   "everywhere": {
+    "node_id": "everywhere",
+    "kind": "question",
+    "question_text": "Ты уже применял масштаб объекта (Ctrl+A → Scale) перед добавлением модификатора?",
+    "options": [
+     {
+      "label": "Нет, не применял",
+      "next_node_id": "everywhere_scale"
+     },
+     {
+      "label": "Да, применял",
+      "next_node_id": "everywhere_topology"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "everywhere_scale": {
+    "node_id": "everywhere_scale",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Неприменённый (особенно неоднородный) масштаб объекта искажает то, как Subdivision Surface распределяет сглаживание по геометрии — модификатор считает форму по «сырым», непримененным координатам.",
+    "fix": "Object → Apply → All Transforms (или Ctrl+A → All Transforms) до того, как добавлять Subdivision Surface. Если модификатор уже добавлен — примени трансформации, эффект должен исправиться сразу."
+   },
+   "everywhere_topology": {
+    "node_id": "everywhere_topology",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Если масштаб уже применён, а деформация всё равно по всей модели — почти наверняка широко распространённая грязная топология: много N-gon'ов, треугольников или неманифолдных мест сразу в нескольких местах.",
+    "fix": "Включи оверлеи Statistics и Face Orientation, пройди по модели и замени N-gon'ы на quad'ы; Select All by Trait → Non Manifold поможет найти проблемные места по всей модели, а не только в одном."
+   }
+  },
+  "version": null,
+  "sources": [],
+  "severity": "medium"
+ },
+ {
+  "problem_id": "black_material_or_render",
+  "title": "Материал или рендер выглядит чёрным",
+  "symptoms": "Объект или вся сцена выглядит/рендерится чёрным, хотя материал настроен",
+  "keywords": [
+   "черн",
+   "чёрн",
+   "рендер",
+   "материал",
+   "вид",
+   "темн",
+   "тёмн",
+   "экран"
+  ],
+  "possible_causes": [
+   "Viewport Shading не в Material Preview/Rendered",
+   "Нет источника света в сцене",
+   "Перевёрнутые нормали",
+   "Principled BSDF не подключён к Material Output"
+  ],
+  "root_node_id": "root",
+  "nodes": {
+   "root": {
+    "node_id": "root",
+    "kind": "question",
+    "question_text": "Чёрный — это весь вьюпорт/рендер целиком, или только конкретный объект?",
+    "options": [
+     {
+      "label": "Весь вьюпорт или рендер целиком",
+      "next_node_id": "whole_scene"
+     },
+     {
+      "label": "Только один объект",
+      "next_node_id": "single_object"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "whole_scene": {
+    "node_id": "whole_scene",
+    "kind": "question",
+    "question_text": "Ты сейчас в режиме просмотра Material Preview или Rendered (не Solid)?",
+    "options": [
+     {
+      "label": "Нет, я в Solid Mode",
+      "next_node_id": "solid_mode_fix"
+     },
+     {
+      "label": "Да, уже в Material Preview/Rendered",
+      "next_node_id": "no_light"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "solid_mode_fix": {
+    "node_id": "solid_mode_fix",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Solid Mode показывает упрощённое затенение без реального света сцены — материалы и освещение в нём не учитываются, поэтому тёмный вид здесь ожидаем, а не баг.",
+    "fix": "Переключи Viewport Shading (иконки в правом верхнем углу вьюпорта или клавиша Z) на Material Preview или Rendered, чтобы увидеть настоящий результат с материалами и светом."
+   },
+   "no_light": {
+    "node_id": "no_light",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Если сцена всё равно чёрная в Material Preview/Rendered, скорее всего в ней нет источника света вообще (либо он выключен или направлен не туда).",
+    "fix": "Add → Light, добавь источник (Point/Sun/Area), проверь его мощность (Power); для проверки можно временно включить HDRI через World Properties → Color → Environment Texture."
+   },
+   "single_object": {
+    "node_id": "single_object",
+    "kind": "question",
+    "question_text": "У этого объекта нормали смотрят в правильную сторону (не перевёрнуты)?",
+    "options": [
+     {
+      "label": "Не проверял / не уверен",
+      "next_node_id": "check_normals"
+     },
+     {
+      "label": "Проверил, нормали в порядке",
+      "next_node_id": "check_material_output"
+     }
+    ],
+    "cause": null,
+    "fix": null
+   },
+   "check_normals": {
+    "node_id": "check_normals",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Развёрнутые внутрь нормали — самая частая причина, когда именно один объект выглядит чёрным на фоне нормально освещённых.",
+    "fix": "В Edit Mode включи оверлей Face Orientation (синий = наружу, красный = внутрь), выдели всё (A) и нажми Shift+N (Recalculate Outside), чтобы развернуть нормали наружу."
+   },
+   "check_material_output": {
+    "node_id": "check_material_output",
+    "kind": "solution",
+    "question_text": null,
+    "options": [],
+    "cause": "Если нормали в порядке, но материал всё равно чёрный — скорее всего в Shader Editor нода материала физически не подключена к входу Surface ноды Material Output.",
+    "fix": "Открой Shading Workspace, проверь, что провод от Principled BSDF реально идёт в сокет Surface ноды Material Output — если Output отсутствует вовсе, добавь его через Add → Shader → Output → Material Output."
+   }
+  },
+  "version": null,
+  "sources": [],
+  "severity": "medium"
+ }
+]

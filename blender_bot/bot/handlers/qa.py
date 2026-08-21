@@ -9,6 +9,7 @@ from config import (
     TERMINOLOGY_PATH,
     UNANSWERED_LOG_PATH,
 )
+from bot.handlers.diagnostics import clear_session, try_start_diagnostic
 from knowledge.schema import KnowledgeChunk
 from search.qa_service import QAService
 
@@ -79,11 +80,24 @@ def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
 async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     question = update.message.text
 
+    # Свободный текст всегда означает новый вопрос, а не ответ на кнопку
+    # диагностики — если пользователь был в середине decision-tree диалога
+    # (bot/handlers/diagnostics.py) и написал что-то текстом вместо клика
+    # по кнопке, эта сессия считается брошенной.
+    clear_session(context)
+
     # Проверяем расплывчатость ДО поиска: короткое слово вроде «подробнее»
     # может случайно совпасть с чем-то в корпусе, и тогда бот уверенно
     # ответит не по теме.
     if _is_vague_followup(question):
         await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
+        return
+
+    # Diagnostic Engine (раздел 12 ТЗ) — для TROUBLESHOOTING/ERROR вопросов,
+    # похожих на известный сценарий, запускаем decision-tree диалог вместо
+    # того, чтобы сразу вываливать один ответ.
+    intent = qa_service.intent_engine.classify(question)
+    if await try_start_diagnostic(question, intent.question_types, update, context):
         return
 
     result = qa_service.answer(question)

@@ -40,7 +40,10 @@ intents/      — Intent Engine (Phase 8, раздел 11 ТЗ): классиф�
                 по keywords/patterns. Подключено только к логированию
                 unanswered-вопросов (search/qa_service.py); не используется
                 для форматирования ответов или диагностики — это Phase 9+
-diagnostics/  — Diagnostic Engine (пусто, Phase 9)
+diagnostics/  — Diagnostic Engine (Phase 9, разделы 12-13 ТЗ): decision-tree
+                диалог для TROUBLESHOOTING/ERROR-вопросов. 2 проблемы
+                засеяны. Единственное место в проекте с состоянием между
+                сообщениями (context.user_data в bot/handlers/diagnostics.py)
 education/    — Education Engine (пусто, Phase 11)
 profile/      — пользовательские данные (subscribers.py — заготовка для Phase 12)
 tests/        — автотесты

@@ -28,6 +28,7 @@ KNOWLEDGE_CHUNK_PATHS = [
     KNOWLEDGE_DIR / "official" / "manual" / "5.1" / "manual.json",
 ]
 TERMINOLOGY_PATH = KNOWLEDGE_DIR / "system" / "terminology" / "terms.json"
+DIAGNOSTICS_PATH = KNOWLEDGE_DIR / "system" / "diagnostics" / "problems.json"
 
 BROADCAST_DELAY_SECONDS = 0.05
 
