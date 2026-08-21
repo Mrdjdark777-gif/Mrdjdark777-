@@ -1,18 +1,19 @@
-"""Search Engine (раздел 10 ТЗ): многосигнальный поиск по knowledge/ registry.
+"""Search Engine (раздел 10 ТЗ v2; раздел 1.1 ТЗ v3): многосигнальный
+поиск по knowledge/ registry.
 
 Порядок по ТЗ: exact term match → normalized text match → alias match →
-TF-IDF similarity → optional BM25 → metadata filtering. Финальный score
-учитывает lexical_score, semantic_similarity, authority_score,
-version_score, topic_score и exact_term_bonus.
+BM25 → metadata filtering. Финальный score учитывает lexical_score,
+semantic_similarity, authority_score, version_score, topic_score и
+exact_term_bonus.
 
 Честная архитектурная заметка: "semantic_similarity" в этой реализации —
-то же самое значение TF-IDF cosine, что и lexical_score. Полноценная
-семантика потребовала бы embedding-модели, а раздел 2 ТЗ прямо запрещает
-делать внешнюю LLM/тяжёлую ML-зависимость фундаментом системы. Раздел 10
-не обязывает к embeddings буквально — TF-IDF/BM25 названы допустимым
-инструментом, этим и ограничились.
+то же самое значение BM25, что и lexical_score. Полноценная семантика
+потребовала бы embedding-модели, а раздел 2 ТЗ прямо запрещает делать
+внешнюю LLM/тяжёлую ML-зависимость фундаментом системы.
 
-BM25 не реализован — раздел 10 явно помечает его как "optional".
+С ТЗ v3 (раздел 1.1, "Переход на BM25 — замена базовому TF-IDF") лексический
+слой — `BM25Index` (search/tfidf.py); прежний `TfidfIndex` удалён целиком
+(восстановим через git log, см. PROJECT_PLAN.md).
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from knowledge.registry import ChunkRegistry
 from knowledge.schema import KnowledgeChunk
 from knowledge.terminology import Term, TerminologyRegistry, normalize as normalize_term
 from knowledge.version import compatible_with_request, detect_conflict, parse_version
-from search.tfidf import TfidfIndex, lemmatize, tokenize
+from search.tfidf import BM25Index, lemmatize, tokenize
 
 # Раздел 10 ТЗ: "Повышать score при совпадении версии, официального
 # источника, точного термина, категории... Понижать при старой версии,
@@ -100,8 +101,8 @@ class SearchEngine:
         ]
         self._chunk_body_tokens = [set(tokenize(c.content)) for c in self.chunks]
 
-        self._tfidf = TfidfIndex()
-        self._tfidf.fit([self._chunk_tokens(c) for c in self.chunks])
+        self._bm25 = BM25Index()
+        self._bm25.fit([self._chunk_tokens(c) for c in self.chunks])
 
     @staticmethod
     def _chunk_tokens(chunk: KnowledgeChunk) -> list[str]:
@@ -227,7 +228,7 @@ class SearchEngine:
         # использует term = self._find_term(query) — работает НА СЫРОМ
         # запросе, свою логику словоформ не трогаем (см. lemmatize()).
         query_tokens = lemmatize(tokenize(query))
-        lexical_scores = self._tfidf.similarities(query_tokens)
+        lexical_scores = self._bm25.similarities(query_tokens)
         term = self._find_term(query)
 
         results = []

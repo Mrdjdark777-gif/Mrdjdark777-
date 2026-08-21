@@ -1,10 +1,16 @@
-"""Локальный TF-IDF индекс (раздел 10 ТЗ: "TF-IDF similarity → optional BM25").
+"""Локальный лексический индекс — `BM25Index` (раздел 1.1 ТЗ v3: "Переход
+на BM25 (замена базовому TF-IDF)... локальный лёгкий алгоритм на чистом
+Python"). Реализован вручную на стандартной библиотеке — rank_bm25/
+scikit-learn формально допустимы по ТЗ (раздел 2 ТЗ v2), но добавляют
+зависимость ради корпуса в несколько сотен chunks, а бот работает на
+слабом бесплатном сервере (Oracle VM.Standard.E2.1.Micro, см.
+DEPLOYMENT.md).
 
-Реализован вручную на стандартной библиотеке — scikit-learn формально
-допустим по ТЗ (раздел 2), но добавляет тяжёлую зависимость (numpy/scipy)
-ради корпуса в несколько сотен чанков, а бот работает на слабом бесплатном
-сервере (Oracle VM.Standard.E2.1.Micro, см. DEPLOYMENT.md). BM25 не
-реализован — раздел 10 ТЗ явно помечает его как "optional".
+До ТЗ v3 здесь же жил `TfidfIndex` (Phase 7, раздел 10 ТЗ v2) — удалён
+при переходе на BM25, тем же способом, что и более ранние `search/
+knowledge_base.py`/`search/manual_index.py` (Phase 2): полностью заменён,
+восстановим через git log, если когда-нибудь понадобится сравнение
+(см. PROJECT_PLAN.md, ТЗ v3 этап 4).
 """
 
 from __future__ import annotations
@@ -29,7 +35,7 @@ def _get_morph_analyzer():
     # Ленивая инициализация: MorphAnalyzer грузит словарь один раз (~0.1-0.2с),
     # но не всем вызывающим он нужен (например, diagnostics/registry.py
     # использует только tokenize(), не lemmatize()) — незачем платить эту
-    # цену на старте, если TfidfIndex ещё не строился.
+    # цену на старте, если BM25Index ещё не строился.
     global _morph_analyzer
     if _morph_analyzer is None:
         import pymorphy3
@@ -55,8 +61,9 @@ def lemmatize(tokens: list[str]) -> list[str]:
     Английские/незнакомые словоформы (pymorphy3 умеет только русскую
     морфологию) возвращаются без изменений.
 
-    Используется ТОЛЬКО в TF-IDF-слое (SearchEngine._chunk_tokens и
-    lexical_score в SearchEngine.search) — сознательно НЕ применяется в
+    Используется ТОЛЬКО в лексическом слое (SearchEngine._chunk_tokens и
+    lexical_score в SearchEngine.search, сейчас через BM25Index) —
+    сознательно НЕ применяется в
     _find_term()/TerminologyRegistry (exact term/alias match) и в
     diagnostics/registry.py (keyword prefix match): у них уже есть
     собственные, отдельно протестированные способы переживать словоформы
@@ -70,52 +77,89 @@ def lemmatize(tokens: list[str]) -> list[str]:
     ]
 
 
-class TfidfIndex:
-    """TF-IDF индекс с L2-нормализованными векторами (косинус = dot product)."""
+class BM25Index:
+    """Okapi BM25 (раздел 1.1 ТЗ v3) — учитывает длину документа
+    (параметр `b`) и насыщение частоты термина (параметр `k1`), в отличие
+    от простого TF-IDF: слово, повторённое 20 раз, почти не даёт больше
+    веса, чем повторённое 5 раз, а длинный документ не получает
+    незаслуженное преимущество только за счёт объёма текста.
+
+    Сырой BM25-score НЕ ограничен диапазоном [0, 1] (в отличие от
+    косинусного сходства бывшего TfidfIndex, см. докстринг модуля) —
+    необходима калибровка, чтобы результат остался совместим с уже
+    настроенными порогами
+    (HIGH_CONFIDENCE_THRESHOLD/SOFT_MATCH_THRESHOLD в search/qa_service.py)
+    и модификаторами authority/version/topic в search/engine.py, без
+    которых пришлось бы пересчитывать весь конвейер заново — куда более
+    рискованное изменение, чем сама замена алгоритма.
+
+    Два разных способа нормализации были осознанно НЕ выбраны:
+    - Min-max по максимуму СРЕДИ РЕЗУЛЬТАТОВ ЭТОГО ЖЕ запроса (топ-результат
+      всегда становится 1.0) — ломает устойчивость к бессмысленным
+      запросам: даже у гарантированно плохого совпадения topN-результат
+      получил бы score≈1.0, только потому что он лучший ИЗ ХУДШИХ.
+    - Простое отбрасывание/обрезание — теряет сравнимость между разными
+      запросами (одинаковый сырой score для "явно нашёл" и "еле нашёл"
+      разных вопросов может означать разное).
+
+    Вместо этого — насыщающее преобразование `raw / (raw + K)` (та же
+    идея, что и у самого BM25 для tf: асимптотически приближается к 1 при
+    росте score, но 0 остаётся 0, и относительный порядок/масштаб между
+    РАЗНЫМИ запросами сохраняется, а не переопределяется каждый раз
+    относительно её же локального максимума). `K` подобран вручную на
+    реальном корпусе (см. PROJECT_PLAN.md, ТЗ v3 этап 4) так, чтобы
+    сильные совпадения по-прежнему попадали в диапазон chunk_confident."""
+
+    K1 = 1.5
+    B = 0.75
+    SATURATION_K = 8.0
 
     def __init__(self) -> None:
         self.doc_count = 0
-        self.idf: dict[str, float] = {}
-        self.doc_vectors: list[dict[str, float]] = []
+        self.avgdl = 0.0
+        self.doc_freq: dict[str, int] = {}
+        self._doc_term_freqs: list[Counter] = []
+        self._doc_lens: list[int] = []
 
     def fit(self, tokenized_docs: list[list[str]]) -> None:
         self.doc_count = len(tokenized_docs)
+        self._doc_lens = [len(doc) for doc in tokenized_docs]
+        self.avgdl = (sum(self._doc_lens) / self.doc_count) if self.doc_count else 0.0
+        self._doc_term_freqs = [Counter(doc) for doc in tokenized_docs]
+
         doc_freq: dict[str, int] = {}
-        for tokens in tokenized_docs:
-            for term in set(tokens):
+        for tf in self._doc_term_freqs:
+            for term in tf:
                 doc_freq[term] = doc_freq.get(term, 0) + 1
+        self.doc_freq = doc_freq
 
-        # Сглаженный idf (как в scikit-learn по умолчанию): гарантирует
-        # положительный вес даже термину, встретившемуся во всех документах.
-        self.idf = {
-            term: math.log((1 + self.doc_count) / (1 + df)) + 1
-            for term, df in doc_freq.items()
-        }
-        self.doc_vectors = [self._vectorize(tokens) for tokens in tokenized_docs]
-
-    def _vectorize(self, tokens: list[str]) -> dict[str, float]:
-        tf = Counter(tokens)
-        vec: dict[str, float] = {}
-        for term, count in tf.items():
-            idf = self.idf.get(term)
-            if idf is None:
-                continue  # термин запроса не встречался в корпусе на момент fit()
-            vec[term] = count * idf
-        norm = math.sqrt(sum(w * w for w in vec.values())) or 1.0
-        return {term: w / norm for term, w in vec.items()}
-
-    def query_vector(self, tokens: list[str]) -> dict[str, float]:
-        return self._vectorize(tokens)
-
-    @staticmethod
-    def cosine(vec_a: dict[str, float], vec_b: dict[str, float]) -> float:
-        if len(vec_a) > len(vec_b):
-            vec_a, vec_b = vec_b, vec_a
-        return sum(weight * vec_b.get(term, 0.0) for term, weight in vec_a.items())
+    def _idf(self, term: str) -> float:
+        n = self.doc_freq.get(term, 0)
+        # "+1" внутри log (модификация Robertson-Walker) — гарантирует
+        # неотрицательный idf даже термину, встретившемуся во всех
+        # документах, в отличие от классической формулы Okapi BM25, где
+        # такой термин получил бы ОТРИЦАТЕЛЬНЫЙ вес.
+        return math.log((self.doc_count - n + 0.5) / (n + 0.5) + 1)
 
     def similarities(self, query_tokens: list[str]) -> list[float]:
-        """Косинусное сходство запроса с каждым документом в порядке fit()."""
-        qvec = self.query_vector(query_tokens)
-        if not qvec:
-            return [0.0] * len(self.doc_vectors)
-        return [self.cosine(qvec, dvec) for dvec in self.doc_vectors]
+        if not self.doc_count:
+            return []
+        query_terms = set(query_tokens)
+        if not query_terms:
+            return [0.0] * self.doc_count
+
+        idfs = {term: self._idf(term) for term in query_terms}
+        raw_scores = [0.0] * self.doc_count
+        for i in range(self.doc_count):
+            doc_tf = self._doc_term_freqs[i]
+            dl = self._doc_lens[i]
+            length_norm = self.K1 * (1 - self.B + self.B * dl / self.avgdl) if self.avgdl else self.K1
+            score = 0.0
+            for term in query_terms:
+                f = doc_tf.get(term, 0)
+                if f == 0:
+                    continue
+                score += idfs[term] * (f * (self.K1 + 1)) / (f + length_norm)
+            raw_scores[i] = score
+
+        return [s / (s + self.SATURATION_K) for s in raw_scores]

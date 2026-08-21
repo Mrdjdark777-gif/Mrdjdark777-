@@ -30,7 +30,8 @@ knowledge/    — база знаний: schema.py/registry.py/version.py/termin
                 official/*, community/*, system/synonyms — ещё пусто.
                 С Phase 7 knowledge/ — единственный источник данных для
                 живого поиска (через search/engine.py).
-search/       — SearchEngine (Phase 7, раздел 10 ТЗ: TF-IDF + terminology
+search/       — SearchEngine (Phase 7, раздел 10 ТЗ: BM25 — с ТЗ v3
+                раздел 1.1, заменил исходный TF-IDF — + terminology
                 alias match + version/authority/topic score поверх
                 knowledge/ registry), confidence.py (Phase 10, раздел 14:
                 HIGH/MEDIUM/LOW/UNKNOWN) и QAService (бизнес-логика ответа
