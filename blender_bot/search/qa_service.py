@@ -1,76 +1,73 @@
+"""Бизнес-логика ответа на вопрос (Phase 7, раздел 10 ТЗ).
+
+hotkeys (точный справочный поиск) и SearchEngine (exact term match → alias
+match → TF-IDF → metadata filtering по knowledge/ registry) → confidence
+tiers → fallback. С Phase 7 это уже настоящий многосигнальный поиск, а не
+наивное сравнение ключевых слов по data/knowledge_base.json — подробности и
+обоснование порогов см. search/engine.py и PROJECT_PLAN.md, Phase 7.
+"""
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 
+from knowledge.schema import KnowledgeChunk
+from search.engine import SearchEngine, extract_version_hint
 from search.hotkey_lookup import HotkeyLookup
-from search.knowledge_base import KnowledgeBase
-from search.manual_index import ManualIndex
 from search.unanswered_log import log_unanswered
+
+# Пороги подобраны по ручной проверке реального корпуса (PROJECT_PLAN.md,
+# Phase 7): бессмысленные запросы стабильно набирают ~0.13-0.16, слабая, но
+# реальная лексическая релевантность — ~0.2-0.4, уверенные точные совпадения
+# термина — ~0.9-1.13. Открыто для пересмотра, когда появится больше данных
+# о реальных вопросах пользователей (data/unanswered_log.jsonl).
+HIGH_CONFIDENCE_THRESHOLD = 0.75
+SOFT_MATCH_THRESHOLD = 0.20
 
 
 @dataclass
 class QAResult:
-    """Результат эскалации по источникам знаний — без Telegram-форматирования.
-
-    kind: "kb_exact" | "hotkeys" | "soft_match" | "manual" | "fallback".
-    Какое из полей заполнено, зависит от kind: entry для kb_exact/soft_match/
-    manual, hotkey_matches для hotkeys, score только для soft_match.
-    """
+    """kind: "chunk_confident" | "hotkeys" | "soft_match" | "fallback"."""
 
     kind: str
-    entry: dict | None = None
-    hotkey_matches: list[tuple[str, str]] | None = None
+    chunk: KnowledgeChunk | None = None
     score: float = 0.0
+    hotkey_matches: list[tuple[str, str]] | None = None
 
 
 class QAService:
-    """Бизнес-логика ответа на вопрос: KB → hotkeys → soft-match → manual → fallback.
-
-    Раньше эта эскалация была перемешана с Telegram-форматированием прямо в
-    handlers/qa.py (см. Phase 1 architecture map, PROJECT_PLAN.md). Здесь —
-    тот же порядок и те же пороги, только без единой зависимости от
-    telegram-объектов, поэтому логику можно тестировать напрямую и позже
-    заменить на настоящий Search Engine (раздел 10 ТЗ, Phase 7) не трогая
-    Telegram-слой.
-    """
-
     def __init__(
         self,
-        knowledge_base_path: Path,
         hotkeys_path: Path,
-        manual_index_path: Path,
         unanswered_log_path: Path,
+        chunk_paths: list[Path],
+        terminology_path: Path,
     ):
-        self.knowledge_base = KnowledgeBase(knowledge_base_path)
         self.hotkey_lookup = HotkeyLookup(hotkeys_path)
-        self.manual_index = ManualIndex(manual_index_path)
+        self.engine = SearchEngine(chunk_paths, terminology_path)
         self._unanswered_log_path = unanswered_log_path
 
     def answer(self, question: str) -> QAResult:
-        kb_match = self.knowledge_base.search(question)
-        if kb_match:
-            return QAResult(kind="kb_exact", entry=kb_match)
+        requested_version = extract_version_hint(question)
+        results = self.engine.search(question, requested_version=requested_version)
+        top = results[0] if results else None
+
+        if top and top.score >= HIGH_CONFIDENCE_THRESHOLD:
+            return QAResult(kind="chunk_confident", chunk=top.chunk, score=top.score)
 
         hotkey_matches = self.hotkey_lookup.find(question)
         if hotkey_matches:
             return QAResult(kind="hotkeys", hotkey_matches=hotkey_matches)
 
-        soft_entry, soft_score = self.knowledge_base.soft_match(question)
-        if soft_entry:
-            return QAResult(kind="soft_match", entry=soft_entry, score=soft_score)
+        if top and top.score >= SOFT_MATCH_THRESHOLD:
+            return QAResult(kind="soft_match", chunk=top.chunk, score=top.score)
 
-        manual_match = self.manual_index.search(question)
-        if manual_match:
-            self.log_unanswered(question)
-            return QAResult(kind="manual", entry=manual_match)
-
-        self.log_unanswered(question)
+        self.log_unanswered(question, top.score if top else 0.0)
         return QAResult(kind="fallback")
 
-    def get_kb_entry(self, idx: int) -> dict | None:
-        return self.knowledge_base.get_by_idx(idx)
-
-    def manual_fallback(self, question: str) -> dict | None:
-        return self.manual_index.search(question)
+    def get_chunk(self, chunk_id: str) -> KnowledgeChunk | None:
+        return self.engine.get_chunk(chunk_id)
 
     def log_unanswered(self, question: str, score: float = 0.0) -> None:
         log_unanswered(self._unanswered_log_path, question, score)

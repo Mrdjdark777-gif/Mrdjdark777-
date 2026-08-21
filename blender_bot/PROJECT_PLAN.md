@@ -15,8 +15,8 @@ Known issues / Next phase).
 | 4 | Официальный Blender Manual | ✅ готово |
 | 5 | Version engine | ✅ готово |
 | 6 | Terminology | ✅ готово |
-| 7 | Search engine | ⏳ следующая |
-| 8 | Intent engine | ⬜ |
+| 7 | Search engine | ✅ готово |
+| 8 | Intent engine | ⏳ следующая |
 | 9 | Diagnostic engine | ⬜ |
 | 10 | Source ranking | ⬜ |
 | 11 | Education engine | ⬜ |
@@ -585,3 +585,155 @@ Phase 7 — Search engine (раздел 10 ТЗ): наконец подключ�
 → TF-IDF/BM25 → metadata filtering, с multi-signal score (lexical,
 semantic, authority, version, topic, exact_term_bonus). Это первая фаза,
 после которой **изменятся настоящие ответы бота**.
+
+---
+
+## Phase 7 — Search engine
+
+### Отчёт (раздел 42 ТЗ)
+
+**Changed**
+
+- `search/qa_service.py` — переписан полностью. Раньше: KB exact →
+  hotkeys → soft-match → manual → fallback по наивному keyword-overlap
+  (Phase 2). Теперь: `SearchEngine.search()` (multi-signal score) →
+  confident/soft-match/fallback tiers, hotkeys встроены между confident и
+  soft-match (сохранён исходный приоритет: уверенный контент-ответ важнее
+  списка горячих клавиш). Пороги `HIGH_CONFIDENCE_THRESHOLD=0.75`,
+  `SOFT_MATCH_THRESHOLD=0.20` подобраны по ручной проверке реального
+  корпуса (см. Tests).
+- `bot/handlers/qa.py` — формат ответа для уверенных совпадений теперь
+  показывает источник (раздел 15 ТЗ): для `official_manual` — версия
+  Manual + URL; для `ai_generated_unverified` — явная пометка «не сверено
+  с официальной документацией» (раздел 26, Zero-Hallucination Mode) —
+  раньше бот вообще не показывал источники. Soft-match подтверждение
+  (кнопки Да/Нет) хранит `pending_chunk_id` в `context.user_data` вместо
+  кодирования индекса в `callback_data` — chunk id вроде
+  `blender_manual:5.1:contribute_manual_getting_started_local_editing_install_windows`
+  превышает лимит Telegram в 64 байта на `callback_data`, старая схема
+  `qa_yes:{idx}` с числовым индексом столкнулась бы с этим при переходе на
+  строковые id.
+- `bot/handlers/inline.py` — использует `qa_service.engine.search()`
+  вместо трёх независимых наивных объектов; результаты ниже
+  `SOFT_MATCH_THRESHOLD` отфильтровываются, чтобы в inline-режиме не
+  предлагать мусор.
+- `app/main.py` — паттерн `CallbackQueryHandler` для `qa_yes` упрощён с
+  `^qa_yes:\d+$` до `^qa_yes$` (см. выше про `callback_data`).
+- `scripts/seed_terminology.py` — убран алиас `"материал"` у Principled
+  BSDF (см. Known issues/находки ниже), заменён на два более точных
+  двухсловных алиаса.
+- `tests/test_phase2_migration.py` — обрезан: `KnowledgeBaseTests`/
+  `ManualIndexTests`/старый `QAServiceTests` тестировали код, которого
+  больше нет (см. Removed); остался только то, что не менялось
+  (`ConfigPathsTests`, `HotkeyLookupTests`).
+- `knowledge/README.md`, `knowledge/system/terminology/README.md`,
+  `CLAUDE.md` — убраны везде формулировки «пока не подключено к поиску»,
+  замены на актуальное состояние.
+
+**Added**
+
+- `search/tfidf.py` — `TfidfIndex`: ручная реализация TF-IDF (сглаженный
+  idf как в scikit-learn по умолчанию, L2-нормализованные векторы,
+  косинус = dot product). Реализовано вручную, а не через scikit-learn,
+  сознательно: библиотека формально допустима по ТЗ, но бот работает на
+  Oracle VM.Standard.E2.1.Micro (слабый бесплатный сервер), и тащить
+  numpy/scipy ради корпуса в 840 чанков — не оправданная цена. BM25 не
+  реализован — раздел 10 ТЗ прямо помечает его как "optional".
+- `search/engine.py` — `SearchEngine`: грузит все чанки из
+  `config.KNOWLEDGE_CHUNK_PATHS`, строит TF-IDF индекс (заголовок весит
+  ×2 против содержимого), использует `TerminologyRegistry` для exact/alias
+  term match и `knowledge.version` для version_score/detect_conflict.
+  `extract_version_hint()` — грубый regex, достаёт из вопроса подстроку
+  вида "4.2"/"5.1.1" как предполагаемую запрошенную версию.
+- `config.KNOWLEDGE_CHUNK_PATHS`, `config.TERMINOLOGY_PATH` — центральная
+  точка настройки корпуса поиска.
+- `tests/test_phase7_tfidf.py` (9 тестов), `tests/test_phase7_search_engine.py`
+  (18 тестов, включая регрессии — см. Known issues), `tests/test_phase7_qa_service.py`
+  (5 тестов).
+
+**Removed**
+
+- `search/knowledge_base.py`, `search/manual_index.py` — наивные
+  keyword-overlap классы Phase 2, полностью заменены `SearchEngine`.
+  Проверено `grep` по всему репозиторию — ничего больше на них не
+  ссылается. Восстановимы через `git log`, если понадобятся.
+
+**Tests**
+
+- `python -m unittest discover tests -v` — **103/103 passed**.
+- Реальная ручная проверка на живом корпусе (840 чанков) — не просто
+  прогон assert'ов, а чтение результатов по ~20 разным запросам (см.
+  находки ниже). Итоговые пороги 0.75/0.20 откалиброваны по этим цифрам:
+  бессмысленные запросы стабильно дают ~0.13-0.16, слабая, но настоящая
+  лексическая релевантность — ~0.2-0.4, уверенные точные совпадения —
+  ~0.9-1.13.
+- Проверен полный импорт (`app.main`, `bot`) после удаления
+  `knowledge_base.py`/`manual_index.py`.
+- **Не протестировано юнит-тестами**: сами Telegram-хендлеры
+  `qa_confirm_callback`/`qa_decline_callback` (нужны моки
+  `Update`/`CallbackQuery` — вне текущей практики тестирования проекта,
+  которая до сих пор проверяла только бизнес-логику, не Telegram-слой).
+  Формат ответа (`_format_chunk_answer`) проверен вручную через скрипт,
+  не автотестом — стоит закрыть в одной из следующих фаз.
+
+**Находки при ручной проверке (важная часть этой фазы, не просто баги)**
+
+1. **Первая версия формулы score была небезопасной.** Изначально
+   authority/version/topic складывались с lexical_score аддитивно —
+   совершенно бессмысленный запрос («зюзюка мяу абракадабра») получал
+   score≈0.41, почти не уступая реальным совпадениям, только за счёт
+   высокого authority случайно попавшегося official-чанка. Переделано на
+   мультипликативную схему: `relevance` (lexical ИЛИ подтверждённое
+   совпадение термина) — обязательный множитель; без него score=0
+   независимо от authority. После фикса бессмысленный запрос даёт ~0.15,
+   реальные совпадения — 0.9+.
+2. **`_exact_term_bonus` ложно срабатывал на substring, не на слово.**
+   Алиас "риг" (Armature) совпадал внутри слова "ориг**риг**инал" —
+   искал подстроку, а не токен. Исправлено на токенизированное сравнение
+   (все токены алиаса должны присутствовать как отдельные токены чанка).
+3. **Алиас "материал" у Principled BSDF был слишком общим словом** —
+   почти любая страница, упоминающая слово "материал" мимоходом, ложно
+   получала exact_term_bonus=1.0 (например, запрос "материал не виден на
+   объекте" находил общую страницу "Введение" со score=1.130). Заменён на
+   два более специфичных двухсловных алиаса ("шейдер материала",
+   "универсальный шейдер") — многословные алиасы менее склонны к ложным
+   срабатываниям, так как требуют совпадения всех слов сразу.
+4. Официальный Manual теперь корректно обгоняет personal/unverified
+   заметки при прочих равных (например, "как сделать булеан": official
+   1.130 vs personal 0.920) — раньше (Phase 2 наивный поиск) личные
+   заметки выигрывали просто за счёт более точного лексического
+   совпадения, без учёта authority вообще.
+
+**Known issues**
+
+- Веса модификаторов (`AUTHORITY_MODIFIER_WEIGHT=0.3`,
+  `VERSION_MODIFIER_WEIGHT=0.6`, `TOPIC_MODIFIER_WEIGHT=0.2`) и пороги
+  confidence (0.75/0.20) — инженерное решение этой фазы по ручной
+  калибровке на 840 чанках и ~20 запросах, не значения из самого ТЗ (там
+  формула не задана дословно). Требуют пересмотра, когда накопится
+  реальная статистика из `data/unanswered_log.jsonl`.
+- `extract_version_hint()` — грубый regex `\d+\.\d+`, может ложно
+  сработать на любом числе с точкой в вопросе (например, "модель 2.5
+  метра" → воспринимается как версия 2.5). Цена ошибки невелика (влияет
+  только на version_score, мягкий модификатор, не жёсткий фильтр), но
+  это не полноценное распознавание версии из естественного языка.
+- "semantic_similarity" из раздела 10 ТЗ в этой реализации — то же самое
+  значение TF-IDF cosine, что и lexical_score, отдельного семантического
+  слоя (embeddings) нет — раздел 2 ТЗ не требует его буквально, но и не
+  запрещает добавить позже как необязательный слой.
+- BM25 не реализован (раздел 10 ТЗ помечает его как "optional").
+- Полноценная Structural Chunking (раздел 28 ТЗ) по-прежнему не сделана
+  (см. Known issues Phase 4) — content каждого Manual-чанка это summary
+  страницы, не весь текст, что ограничивает то, что вообще может найти
+  поиск.
+- Telegram callback-хендлеры (`qa_confirm_callback`/`qa_decline_callback`)
+  не покрыты юнит-тестами — см. Tests.
+
+**Next phase**
+
+Phase 8 — Intent engine (раздел 11 ТЗ): без LLM определять тип вопроса
+(WHAT_IS, HOW_TO, WHY, ERROR, TROUBLESHOOTING, COMPARISON, WORKFLOW,
+BEST_PRACTICE, LEARNING, EXAM, TERMINOLOGY, VERSION, PYTHON,
+GEOMETRY_NODES, MODELING, MATERIALS...) по keywords/aliases/question
+patterns — сейчас бот ищет релевантный контент, но не различает «что
+такое X» от «как сделать X» от «почему не работает X».

@@ -3,12 +3,19 @@ import re
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from config import HOTKEYS_PATH, KNOWLEDGE_BASE_PATH, MANUAL_INDEX_PATH, UNANSWERED_LOG_PATH
+from config import (
+    HOTKEYS_PATH,
+    KNOWLEDGE_CHUNK_PATHS,
+    TERMINOLOGY_PATH,
+    UNANSWERED_LOG_PATH,
+)
+from knowledge.schema import KnowledgeChunk
 from search.qa_service import QAService
 
-# Единственный экземпляр на процесс — данные грузятся один раз, а не при
-# каждом сообщении; bot/handlers/inline.py переиспользует его же.
-qa_service = QAService(KNOWLEDGE_BASE_PATH, HOTKEYS_PATH, MANUAL_INDEX_PATH, UNANSWERED_LOG_PATH)
+# Единственный экземпляр на процесс — TF-IDF индекс и данные грузятся один
+# раз при старте, а не при каждом сообщении; bot/handlers/inline.py
+# переиспользует его же.
+qa_service = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
 
 FALLBACK_TEXT = (
     "Не нашел точного ответа на этот вопрос в своей базе знаний.\n\n"
@@ -50,28 +57,41 @@ def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _format_manual_match(entry: dict) -> str:
-    return (
-        f"В своей базе знаний точного ответа не нашёл, но, возможно, поможет "
-        f"официальная документация Blender:\n\n"
-        f"*{entry['title']}*\n{entry['summary']}\n\n{entry['url']}"
-    )
+def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
+    """Ответ с указанием источника (раздел 15 ТЗ) и честной пометкой,
+    если источник — непроверенный (раздел 26, Zero-Hallucination Mode)."""
+    lines = [chunk.content]
+    if chunk.source_type == "official_manual":
+        version_note = f" ({chunk.version})" if chunk.version else " (версия не определена)"
+        lines.append(f"\n_Источник: официальный Blender Manual{version_note}_")
+        if chunk.url:
+            lines.append(chunk.url)
+    elif chunk.source_type == "ai_generated_unverified":
+        lines.append(
+            "\n_Из личной базы бота, не сверено с официальной документацией — "
+            "если что-то не сходится, доверяй официальному Manual._"
+        )
+    elif chunk.url:
+        lines.append(f"\n_Источник: {chunk.source}_\n{chunk.url}")
+    return "\n".join(lines)
 
 
 async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     question = update.message.text
 
-    # Проверяем расплывчатость ДО поиска по базе: короткое слово вроде
-    # «подробнее» может случайно совпасть с текстом какого-то вопроса
-    # в базе, и тогда бот уверенно ответит не по теме.
+    # Проверяем расплывчатость ДО поиска: короткое слово вроде «подробнее»
+    # может случайно совпасть с чем-то в корпусе, и тогда бот уверенно
+    # ответит не по теме.
     if _is_vague_followup(question):
         await update.message.reply_text(VAGUE_FOLLOWUP_TEXT)
         return
 
     result = qa_service.answer(question)
 
-    if result.kind == "kb_exact":
-        await update.message.reply_text(result.entry["answer"])
+    if result.kind == "chunk_confident":
+        await update.message.reply_text(
+            _format_chunk_answer(result.chunk), parse_mode="Markdown"
+        )
         return
 
     if result.kind == "hotkeys":
@@ -83,25 +103,18 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if result.kind == "soft_match":
         context.user_data["pending_question"] = question
         context.user_data["pending_score"] = result.score
+        context.user_data["pending_chunk_id"] = result.chunk.id
         keyboard = InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(
-                        "Да, это оно", callback_data=f"qa_yes:{result.entry['_idx']}"
-                    ),
+                    InlineKeyboardButton("Да, это оно", callback_data="qa_yes"),
                     InlineKeyboardButton("Нет", callback_data="qa_no"),
                 ]
             ]
         )
         await update.message.reply_text(
-            f"Возможно, ты имел в виду:\n«{result.entry['question']}»?",
+            f"Возможно, ты имел в виду:\n«{result.chunk.translated_title}»?",
             reply_markup=keyboard,
-        )
-        return
-
-    if result.kind == "manual":
-        await update.message.reply_text(
-            _format_manual_match(result.entry), parse_mode="Markdown"
         )
         return
 
@@ -113,11 +126,11 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
     context.user_data.pop("pending_question", None)
     context.user_data.pop("pending_score", None)
+    chunk_id = context.user_data.pop("pending_chunk_id", None)
 
-    idx = int(query.data.split(":", 1)[1])
-    entry = qa_service.get_kb_entry(idx)
-    if entry:
-        await query.edit_message_text(entry["answer"])
+    chunk = qa_service.get_chunk(chunk_id) if chunk_id else None
+    if chunk:
+        await query.edit_message_text(_format_chunk_answer(chunk), parse_mode="Markdown")
     else:
         await query.edit_message_text(FALLBACK_TEXT)
 
@@ -128,14 +141,8 @@ async def qa_decline_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     question = context.user_data.pop("pending_question", None)
     score = context.user_data.pop("pending_score", 0.0)
+    context.user_data.pop("pending_chunk_id", None)
     if question:
         qa_service.log_unanswered(question, score)
-
-    manual_match = qa_service.manual_fallback(question) if question else None
-    if manual_match:
-        await query.edit_message_text(
-            _format_manual_match(manual_match), parse_mode="Markdown"
-        )
-        return
 
     await query.edit_message_text(FALLBACK_TEXT)

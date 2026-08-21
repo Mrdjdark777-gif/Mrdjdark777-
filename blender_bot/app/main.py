@@ -47,7 +47,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(hotkeys_back_callback, pattern=r"^hotkeys_back$"))
     application.add_handler(CallbackQueryHandler(resources_callback, pattern=r"^resources:\d+$"))
     application.add_handler(CallbackQueryHandler(resources_back_callback, pattern=r"^resources_back$"))
-    application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes:\d+$"))
+    application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes$"))
     application.add_handler(CallbackQueryHandler(qa_decline_callback, pattern=r"^qa_no$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))

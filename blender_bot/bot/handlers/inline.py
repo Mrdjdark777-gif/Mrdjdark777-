@@ -4,17 +4,25 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import ContextTypes
 
 from bot.handlers.qa import qa_service
+from search.engine import ScoredChunk
+from search.qa_service import SOFT_MATCH_THRESHOLD
 
 MAX_RESULTS = 10
 NO_QUERY_PLACEHOLDER = "Напиши вопрос про Blender или название горячей клавиши"
 
 
-def _kb_result(match: dict) -> InlineQueryResultArticle:
+def _chunk_result(scored: ScoredChunk) -> InlineQueryResultArticle:
+    chunk = scored.chunk
+    content = chunk.content
+    if chunk.source_type == "official_manual" and chunk.url:
+        message = f"{chunk.translated_title}\n{content}\n\n{chunk.url}"
+    else:
+        message = f"{chunk.translated_title}\n{content}"
     return InlineQueryResultArticle(
         id=str(uuid.uuid4()),
-        title=match["question"],
-        description=match["answer"][:100],
-        input_message_content=InputTextMessageContent(match["answer"]),
+        title=chunk.translated_title,
+        description=content[:100],
+        input_message_content=InputTextMessageContent(message),
     )
 
 
@@ -25,17 +33,6 @@ def _hotkey_result(desc: str, category: str) -> InlineQueryResultArticle:
         title=f"Клавиша: {key}",
         description=desc,
         input_message_content=InputTextMessageContent(f"{desc}\n(раздел: {category})"),
-    )
-
-
-def _manual_result(entry: dict) -> InlineQueryResultArticle:
-    return InlineQueryResultArticle(
-        id=str(uuid.uuid4()),
-        title=f"Документация: {entry['title']}",
-        description=entry["summary"][:100],
-        input_message_content=InputTextMessageContent(
-            f"{entry['title']}\n{entry['summary']}\n\n{entry['url']}"
-        ),
     )
 
 
@@ -65,10 +62,6 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     results = []
 
-    kb_match = qa_service.knowledge_base.search(query)
-    if kb_match:
-        results.append(_kb_result(kb_match))
-
     hotkey_matches = qa_service.hotkey_lookup.find(query)
     for desc, category in hotkey_matches:
         if len(results) >= MAX_RESULTS:
@@ -76,9 +69,11 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         results.append(_hotkey_result(desc, category))
 
     if len(results) < MAX_RESULTS:
-        manual_match = qa_service.manual_index.search(query)
-        if manual_match:
-            results.append(_manual_result(manual_match))
+        scored_chunks = qa_service.engine.search(query, top_n=MAX_RESULTS - len(results))
+        for scored in scored_chunks:
+            if scored.score < SOFT_MATCH_THRESHOLD:
+                continue
+            results.append(_chunk_result(scored))
 
     if not results:
         results.append(_not_found_result(query))

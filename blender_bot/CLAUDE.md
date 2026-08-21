@@ -28,8 +28,13 @@ knowledge/    — база знаний: schema.py/registry.py/version.py/termin
                 770 chunks); personal/dima_notes заполнен (Phase 3, 70 chunks,
                 нужна ручная проверка — см. PROJECT_PLAN.md). Остальные
                 official/*, community/*, system/synonyms — ещё пусто.
-                Ничего из knowledge/ пока не подключено к search/ — это Phase 7.
-search/       — поисковый движок и QAService (бизнес-логика ответа на вопрос)
+                С Phase 7 knowledge/ — единственный источник данных для
+                живого поиска (через search/engine.py).
+search/       — SearchEngine (Phase 7, раздел 10 ТЗ: TF-IDF + terminology
+                alias match + version/authority/topic score поверх
+                knowledge/ registry) и QAService (бизнес-логика ответа на
+                вопрос, единственная точка входа для bot/handlers/qa.py и
+                bot/handlers/inline.py)
 intents/      — Intent Engine (пусто, Phase 8)
 diagnostics/  — Diagnostic Engine (пусто, Phase 9)
 education/    — Education Engine (пусто, Phase 11)
@@ -100,9 +105,10 @@ Next phase:   что дальше по PROJECT_PLAN.md
   (cProfile-related) из stdlib — в проекте это не используется, но если
   когда-то понадобится профилировать код через `import profile`, это имя
   будет перекрыто локальным пакетом.
-- `data/manual_index.json` в `.gitignore` (сырьё, регенерируется), но
-  `knowledge/official/manual/5.1/manual.json` (770 chunks, результат Phase 4)
-  — уже в git. `search/manual_index.py` по-прежнему читает именно сырой
-  `data/manual_index.json` напрямую (не knowledge/) и корректно деградирует
-  до пустого списка, если его нет локально.
+- `data/manual_index.json` и `data/knowledge_base.json` — сырьё для скриптов
+  `scripts/build_manual_index.py` / `scripts/migrate_knowledge_base_to_registry.py`
+  / `scripts/ingest_manual_to_registry.py`. Живой поиск (`search/engine.py`)
+  их больше не читает — с Phase 7 источник только `knowledge/` через
+  `config.KNOWLEDGE_CHUNK_PATHS`. `data/manual_index.json` в `.gitignore`
+  (регенерируется), `knowledge/official/manual/5.1/manual.json` — в git.
 - Язык интерфейса и общения с пользователем бота — русский (раздел 24 ТЗ).

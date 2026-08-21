@@ -67,7 +67,7 @@ TERMS = [
     ),
     Term(
         canonical_name="Principled BSDF", russian_name="Principled BSDF (универсальный шейдер)",
-        category="shaders", aliases=["материал", "шейдер материала"],
+        category="shaders", aliases=["шейдер материала", "универсальный шейдер"],
         english_aliases=["principled bsdf", "bsdf"], related_terms=["Shader Editor"],
     ),
     Term(

@@ -13,9 +13,9 @@ category, aliases, english_aliases, ui_label, related_terms, common_mistakes
 Blender» — раздел 36 ТЗ («1000 качественных лучше 100000 мусорных»)
 применён здесь к терминам.
 
-## Известное ограничение
+## Интеграция (Phase 7)
 
-Пока нигде не подключено к поиску — `TerminologyRegistry.find()` не
-вызывается ни из `search/`, ни из `bot/handlers/qa.py`. Это alias-match
-слой для будущего Phase 7 (search engine, раздел 10 ТЗ: «exact term match →
-normalized text match → alias match → TF-IDF...»).
+Подключено: `search/engine.py` использует `TerminologyRegistry.find()` как
+alias-match слой (раздел 10 ТЗ: «exact term match → normalized text match →
+alias match → TF-IDF...») — совпадение термина усиливает релевантность
+чанка и учитывается в topic_score.

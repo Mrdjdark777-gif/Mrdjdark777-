@@ -9,15 +9,18 @@ Knowledge registry по разделам 5-6 ТЗ (`docs/Blender_Expert_System_v
 - `registry.py` — `ChunkRegistry`: валидация обязательных полей, save/load
   JSON, черновая проверка дублей по `content_hash`.
 - `version.py` (Phase 5, раздел 7 ТЗ) — парсинг/сравнение версий Blender,
-  `detect_conflict()`, `compatible_with_request()`. Пока нигде не
-  подключено к поиску — интеграция в Phase 7.
+  `detect_conflict()`, `compatible_with_request()`.
 - `terminology.py` (Phase 6, разделы 8-9 ТЗ) — `Term`/`TerminologyRegistry`,
-  двуязычный lookup по canonical/russian name, aliases, UI label. Пока
-  нигде не подключено к поиску — интеграция в Phase 7.
+  двуязычный lookup по canonical/russian name, aliases, UI label.
 
-Ещё не подключено к `search/` — тот продолжает читать `data/*.json` напрямую
-до Phase 7 (search engine). Это по плану: раздел 40 ТЗ ставит knowledge
-registry (Phase 3) раньше search engine (Phase 7).
+**С Phase 7 всё это подключено к живому поиску.** `search/engine.py`
+(`SearchEngine`) читает чанки отсюда через `ChunkRegistry`, использует
+`terminology.py` для exact/alias term match и `version.py` для
+version_score. `search/qa_service.py` — единственная точка входа для
+`bot/handlers/qa.py` и `bot/handlers/inline.py`. `data/knowledge_base.json`
+и `data/manual_index.json` остались только как СЫРЬЁ для скриптов
+миграции/ингеста (`scripts/migrate_knowledge_base_to_registry.py`,
+`scripts/ingest_manual_to_registry.py`), живой поиск их больше не читает.
 
 ## Данные
 

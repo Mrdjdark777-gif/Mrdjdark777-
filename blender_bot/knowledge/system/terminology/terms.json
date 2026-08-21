@@ -130,8 +130,8 @@
   "russian_name": "Principled BSDF (универсальный шейдер)",
   "category": "shaders",
   "aliases": [
-   "материал",
-   "шейдер материала"
+   "шейдер материала",
+   "универсальный шейдер"
   ],
   "english_aliases": [
    "principled bsdf",
