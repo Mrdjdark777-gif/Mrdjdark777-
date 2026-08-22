@@ -71,7 +71,14 @@ MANUAL_VERSION_LABEL = "5.1"
 MANUAL_LICENSE = "CC-BY-SA"
 OUTPUT_PATH = KNOWLEDGE_DIR / "official" / "manual" / MANUAL_VERSION_LABEL / "manual.json"
 
-TRANSLATE_DELIMITER = "\n|||SPLIT|||\n"
+# Раньше был "\n|||SPLIT|||\n" — Google Translate переводит само слово
+# SPLIT ("РАЗДЕЛЕНИЕ"), из-за чего "SPLIT" in translated никогда не
+# совпадало, и КАЖДАЯ запись молча оставалась на английском (полный
+# прогон на ~9000 записей это не поймал — ошибка гасится в except
+# Exception на строке ниже, никакого исключения не бросается вообще).
+# Голые пайпы без слов переживают перевод неизменными — проверено
+# отдельно на реальном GoogleTranslator перед этим фиксом.
+TRANSLATE_DELIMITER = "\n|||\n"
 TRANSLATE_DELAY_SECONDS = 0.15
 MIN_TITLE_LEN = 2
 MAX_CHUNK_CHARS = 1200  # длиннее — обрезается на границе предложения, см. _truncate
@@ -285,18 +292,34 @@ def translate_entries(entries: list[dict], on_checkpoint=None) -> None:
     total = len(entries)
     print(f"Перевожу {total} записей на русский (долго, не прерывать)...")
 
+    marker = TRANSLATE_DELIMITER.strip()
+    smoke_test_size = min(20, total)
+    smoke_test_successes = 0
+
     for i, entry in enumerate(entries, start=1):
         entry["title_en"] = entry["title"]
         entry["content_en"] = entry["content"]
         combined = f"{entry['title']}{TRANSLATE_DELIMITER}{entry['content']}"
         try:
             translated = translator.translate(combined)
-            if translated and "SPLIT" in translated:
-                title_ru, content_ru = translated.split(TRANSLATE_DELIMITER.strip(), 1)
+            if translated and marker in translated:
+                title_ru, content_ru = translated.split(marker, 1)
                 entry["title"] = title_ru.strip(" |\n")
                 entry["content"] = content_ru.strip(" |\n")
+                if i <= smoke_test_size:
+                    smoke_test_successes += 1
         except Exception:
             pass  # запись остаётся на английском (title_en/content_en тоже английские — честно)
+
+        # Раньше молчаливый сбой перевода (см. комментарий у TRANSLATE_DELIMITER
+        # выше) не давал знать о себе часами — first-N smoke test ловит такой
+        # класс проблем за секунды вместо часов впустую потраченного времени.
+        if i == smoke_test_size and smoke_test_successes == 0:
+            raise RuntimeError(
+                f"Перевод не сработал ни для одной из первых {smoke_test_size} записей — "
+                f"похоже, сломался маркер-разделитель или сам переводчик. "
+                f"Прерываю прогон сейчас, а не через часы."
+            )
 
         time.sleep(TRANSLATE_DELAY_SECONDS)
         if i % 100 == 0 or i == total:

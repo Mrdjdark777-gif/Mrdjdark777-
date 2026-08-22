@@ -13,6 +13,7 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -159,6 +160,82 @@ class BuildRegistryTests(unittest.TestCase):
         intro = next(c for c in self.registry.chunks if c.subtopic == "intro")
         self.assertEqual(intro.original_title, "Bevel Modifier")
         self.assertEqual(intro.translated_title, "Модификатор Bevel")
+
+
+class _FakeGoogleTranslatorThatTranslatesEnglishWords:
+    """Имитирует реальную находку: GoogleTranslator переводит английские
+    слова ВНУТРИ маркера-разделителя, если он состоит из обычных слов
+    (было "SPLIT" -> "РАЗДЕЛЕНИЕ"). Голые символы (|||) не трогает —
+    так и было замечено на реальном сервисе, см. TRANSLATE_DELIMITER."""
+
+    def __init__(self, source=None, target=None):
+        pass
+
+    def translate(self, text: str) -> str:
+        translated = text.replace("SPLIT", "РАЗДЕЛЕНИЕ")
+        # грубая имитация перевода остального текста, чтобы отличать
+        # переведённый результат от непереведённого в тестах ниже
+        return translated.replace("Hello", "Привет")
+
+
+class _FakeGoogleTranslatorThatSurvivesPipes:
+    def __init__(self, source=None, target=None):
+        pass
+
+    def translate(self, text: str) -> str:
+        return text.replace("Hello", "Привет").replace("world", "мир")
+
+
+class TranslateEntriesRegressionTests(unittest.TestCase):
+    """Регрессия на реальный найденный баг: старый маркер "\\n|||SPLIT|||\\n"
+    никогда не совпадал после перевода (Google переводил само слово
+    SPLIT), из-за чего translate_entries тихо, без единой ошибки,
+    оставляла ВСЕ записи на английском — целый прогон на ~9000 записей
+    впустую. Смотри комментарий у TRANSLATE_DELIMITER в parse_manual.py."""
+
+    def test_word_based_delimiter_would_have_failed_silently(self):
+        # Демонстрирует сам механизм поломки на старом маркере — не
+        # используется в текущем коде, только документирует находку.
+        old_marker = "|||SPLIT|||"
+        combined = f"Hello{chr(10)}|||SPLIT|||{chr(10)}world"
+        fake = _FakeGoogleTranslatorThatTranslatesEnglishWords()
+        translated = fake.translate(combined)
+        self.assertNotIn(old_marker, translated)  # воспроизводит баг
+
+    def test_current_symbol_only_delimiter_survives_translation(self):
+        marker = pm.TRANSLATE_DELIMITER.strip()
+        self.assertNotIn(" ", marker)
+        # маркер не должен содержать латинских букв — иначе Google может
+        # решить, что это переводимое слово (см. регрессия выше)
+        self.assertFalse(any(ch.isalpha() for ch in marker))
+
+    def test_translate_entries_applies_translation_with_fake_translator(self):
+        entries = [{"title": "Hello", "content": "world"}]
+        with patch.object(pm, "GoogleTranslator", _FakeGoogleTranslatorThatSurvivesPipes):
+            pm.translate_entries(entries)
+        self.assertEqual(entries[0]["title_en"], "Hello")
+        self.assertEqual(entries[0]["content_en"], "world")
+        self.assertEqual(entries[0]["title"], "Привет")
+        self.assertEqual(entries[0]["content"], "мир")
+
+    def test_translate_entries_raises_fast_if_smoke_test_entirely_fails(self):
+        # Раньше это молча тянулось часами на полном корпусе, не бросая
+        # ни одного исключения — теперь падает сразу на первых записях.
+        entries = [{"title": f"T{i}", "content": f"C{i}"} for i in range(25)]
+
+        class _AlwaysBrokenTranslator:
+            def __init__(self, source=None, target=None):
+                pass
+
+            def translate(self, text: str) -> str:
+                # Имитирует реальную находку: перевод "срабатывает", но
+                # сам маркер-разделитель не переживает его и пропадает
+                # из результата — split() никогда не совпадает.
+                return text.replace(pm.TRANSLATE_DELIMITER.strip(), "")
+
+        with patch.object(pm, "GoogleTranslator", _AlwaysBrokenTranslator):
+            with self.assertRaises(RuntimeError):
+                pm.translate_entries(entries)
 
 
 if __name__ == "__main__":
