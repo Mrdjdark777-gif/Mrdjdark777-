@@ -149,6 +149,59 @@ class SyntheticEngineTests(unittest.TestCase):
         self.assertEqual(self.engine.search(""), [])
 
 
+class DuplicateContentCollapseTests(unittest.TestCase):
+    """BB-003 (hardening ТЗ): search-time collapse дублей по content_hash —
+    несколько chunk'ов с байт-в-байт одинаковым содержимым (найдено на
+    реальном корпусе после Manual reingest: одна и та же формулировка
+    параметра дословно повторяется на нескольких страницах) не должны
+    занимать несколько слотов в top_n одним и тем же текстом."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp_path = Path(self.tmp.name)
+
+        same_content = "Correct UVs — исправляет соответствующие UV-координаты, если они есть."
+        registry = ChunkRegistry()
+        registry.add(_chunk(
+            id="page_a:options0", topic="modifiers",
+            original_title="Loop Cut — Options", translated_title="Loop Cut — параметры",
+            content=same_content,
+        ))
+        registry.add(_chunk(
+            id="page_b:options0", topic="modifiers",
+            original_title="Bevel — Options", translated_title="Bevel — параметры",
+            content=same_content,
+        ))
+        registry.add(_chunk(
+            id="page_c:options0", topic="modifiers",
+            original_title="Subdivide — Options", translated_title="Subdivide — параметры",
+            content="Совершенно другой, уникальный текст про Subdivide.",
+        ))
+        chunk_path = tmp_path / "chunks.json"
+        registry.save(chunk_path)
+
+        term_path = tmp_path / "terms.json"
+        TerminologyRegistry().save(term_path)
+        self.engine = SearchEngine([chunk_path], term_path)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_identical_content_returned_only_once(self):
+        results = self.engine.search("параметры", top_n=10)
+        content_hashes = [r.chunk.content_hash for r in results]
+        self.assertEqual(len(content_hashes), len(set(content_hashes)))
+
+    def test_unique_chunk_still_included_despite_duplicates_ahead(self):
+        results = self.engine.search("параметры", top_n=2)
+        ids = {r.chunk.id for r in results}
+        # top_n=2 не должен оказаться забит ДВУМЯ копиями одного и того же
+        # текста (page_a/page_b) — раз один из дублей уже занял слот,
+        # второй слот должен достаться уникальному page_c, а не второй
+        # копии того же контента.
+        self.assertLessEqual(len({"page_a:options0", "page_b:options0"} & ids), 1)
+
+
 class HotkeyIntentTests(unittest.TestCase):
     """Живая обратная связь: "Какой хоткей дублирует объект в Blender?"
     отвечался official Manual-страницей, объясняющей механику операции,

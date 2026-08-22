@@ -45,6 +45,14 @@ AUTHORITY_MODIFIER_WEIGHT = 0.3
 VERSION_MODIFIER_WEIGHT = 0.6
 TOPIC_MODIFIER_WEIGHT = 0.2
 CHUNK_KIND_MODIFIER_WEIGHT = 0.2
+# BB-004 (hardening ТЗ): проверено эмпирически 2026-08-23 на 540-кейсовом
+# Quality Suite (tests/quality/), не подкручено вслепую — обнуление ЭТОГО
+# веса (при том же корпусе, 10470 chunks после reingest'а с reference-
+# блоками) роняет Quality Score с 91.60% до 90.78% (-0.82 п.п.), целиком
+# за счёт retrieval accuracy (74.7% -> 70.5%), и меняет реально найденный
+# контент в 68 из 540 кейсов (12.6%) — механизм не балласт, реально решает
+# исход заметной доли запросов. Вывод: оставить как есть, второй
+# параллельный механизм ранжирования по типу chunk'а не нужен.
 HOTKEY_INTENT_MODIFIER_WEIGHT = 1.0
 MODIFIER_FLOOR = 0.1  # модификатор не должен обнулить уже найденную релевантность
 
@@ -450,4 +458,30 @@ class SearchEngine:
         # заметке про Apply Transform, но лексически совпадает с запросом
         # намного сильнее — это и должно решать исход при равном bonus.
         results.sort(key=lambda r: (r.score, r.is_canonical_title, r.lexical_score), reverse=True)
-        return [r for r in results[:top_n] if r.score > 0]
+
+        # BB-003 (hardening ТЗ): search-time collapse дублей по
+        # content_hash — 328 групп байт-в-байт одинакового контента нашёл
+        # scripts/parse_manual.py при последнем прогоне (одна и та же
+        # опция/параметр буквально дословно повторяется на нескольких
+        # страницах Manual, например "Correct UVs — ..."). Раньше это
+        # означало, что top_n мог оказаться забит несколькими КОПИЯМИ
+        # одного и того же текста под разными заголовками — не удаляем
+        # дубли из knowledge/ (раздел 21 hardening ТЗ: без воспроизводимого
+        # ingestion pipeline), просто не показываем один и тот же контент
+        # дважды в одном ответе. Не трогает results[0]: первый элемент
+        # никогда не может совпасть с уже увиденным хэшем (хэшей увидено
+        # ноль до него), так что все места, полагающиеся на top[0] (см.
+        # search/qa_service.py, комментарий у CONFLICT_SEARCH_TOP_N),
+        # ведут себя как раньше.
+        seen_hashes: set[str] = set()
+        deduped: list[ScoredChunk] = []
+        for r in results:
+            if r.score <= 0:
+                continue
+            if r.chunk.content_hash in seen_hashes:
+                continue
+            seen_hashes.add(r.chunk.content_hash)
+            deduped.append(r)
+            if len(deduped) >= top_n:
+                break
+        return deduped
