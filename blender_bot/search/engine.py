@@ -45,7 +45,33 @@ AUTHORITY_MODIFIER_WEIGHT = 0.3
 VERSION_MODIFIER_WEIGHT = 0.6
 TOPIC_MODIFIER_WEIGHT = 0.2
 CHUNK_KIND_MODIFIER_WEIGHT = 0.2
+HOTKEY_INTENT_MODIFIER_WEIGHT = 1.0
 MODIFIER_FLOOR = 0.1  # модификатор не должен обнулить уже найденную релевантность
+
+# Живая обратная связь: "Какой хоткей дублирует объект в Blender?" даже
+# после регистрации термина "Duplicate" и появления hotkeys-чанков в
+# корпусе (scripts/build_hotkeys_knowledge.py) отвечался official
+# Manual-страницей "Дублировать", которая объясняет МЕХАНИКУ операции,
+# но ни разу не называет саму комбинацию Shift-D в выигравшем sub-
+# chunk'е — авторитетность официального источника (1.0) перевешивала
+# hotkeys-чанк (authority=0.3) даже при равном exact_term_bonus. Для
+# вопроса, СПЕЦИФИЧЕСКИ спрашивающего "какая клавиша"/"какой хоткей",
+# правильный ответ ПО ОПРЕДЕЛЕНИЮ содержит комбинацию клавиш — обычная
+# authority-иерархия (раздел 3 ТЗ: официальный Manual выше personal)
+# здесь неприменима, потому что hotkeys-чанк — единственный источник,
+# который вообще может ответить на ВОПРОС ИМЕННО ПРО КЛАВИШУ. Вместо
+# дальнейшей тонкой подстройки score — прямое распознавание намерения:
+# если запрос явно спрашивает про хоткей, chunk.source=="hotkeys"
+# получает решающий приоритет.
+_HOTKEY_INTENT_RE = re.compile(
+    r"хот[ -]?кей|горяч\w*\s+клавиш|какая?\s+клавиш|какое\s+сочетание\s+клавиш|"
+    r"комбинаци[яю]\s+клавиш|что\s+нажать|каким?\s+клавиш",
+    re.IGNORECASE,
+)
+
+
+def _is_hotkey_intent(query: str) -> bool:
+    return bool(_HOTKEY_INTENT_RE.search(query))
 
 # ТЗ v3, этап 5: умное чанкирование Manual (scripts/parse_manual.py) режет
 # одну страницу на intro/note/warning/options — все с БЛИЗКИМ или равным
@@ -97,6 +123,7 @@ class ScoredChunk:
     topic_score: float
     chunk_kind_score: float
     is_canonical_title: bool = False
+    hotkey_intent_score: float = 0.5
     matched_term: str | None = None
 
 
@@ -310,6 +337,11 @@ class SearchEngine:
             return 0.5
         return _CHUNK_KIND_RANK.get(chunk.subtopic, 0.5)
 
+    def _hotkey_intent_score(self, chunk: KnowledgeChunk, query_is_hotkey_intent: bool) -> float:
+        if not query_is_hotkey_intent:
+            return 0.5  # нейтрально — сигнал вообще не участвует в этом запросе
+        return 1.0 if chunk.source == "hotkeys" else 0.2
+
     def search(
         self, query: str, requested_version: str | None = None, top_n: int = 5
     ) -> list[ScoredChunk]:
@@ -325,6 +357,7 @@ class SearchEngine:
         term = self._find_term(query)
         term_name_token_lists = self._term_name_token_lists(term)
         term_norms = self._term_canonical_norms(term)
+        query_is_hotkey_intent = _is_hotkey_intent(query)
 
         results = []
         for i, (chunk, lexical_score) in enumerate(zip(self.chunks, lexical_scores)):
@@ -341,6 +374,7 @@ class SearchEngine:
             relevance = max(lexical_score, 1.0 if exact_term_bonus >= 1.0 else 0.0)
 
             chunk_kind_score = self._chunk_kind_score(chunk, term)
+            hotkey_intent_score = self._hotkey_intent_score(chunk, query_is_hotkey_intent)
 
             if relevance <= 0:
                 score = 0.0
@@ -357,6 +391,7 @@ class SearchEngine:
                     + VERSION_MODIFIER_WEIGHT * (version_score - 1.0)
                     + TOPIC_MODIFIER_WEIGHT * (topic_score - 0.5)
                     + CHUNK_KIND_MODIFIER_WEIGHT * (chunk_kind_score - 0.5)
+                    + HOTKEY_INTENT_MODIFIER_WEIGHT * (hotkey_intent_score - 0.5)
                 )
                 score = relevance * max(modifier, MODIFIER_FLOOR)
 
@@ -372,6 +407,7 @@ class SearchEngine:
                     topic_score=topic_score,
                     chunk_kind_score=chunk_kind_score,
                     is_canonical_title=self._is_canonical_title(term_norms, i),
+                    hotkey_intent_score=hotkey_intent_score,
                     matched_term=term.canonical_name if term else None,
                 )
             )

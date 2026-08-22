@@ -13,7 +13,7 @@ from config import KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH
 from knowledge.registry import ChunkRegistry
 from knowledge.schema import KnowledgeChunk
 from knowledge.terminology import Term, TerminologyRegistry
-from search.engine import SearchEngine, extract_version_hint
+from search.engine import SearchEngine, _is_hotkey_intent, extract_version_hint
 
 
 def _chunk(**overrides) -> KnowledgeChunk:
@@ -147,6 +147,79 @@ class SyntheticEngineTests(unittest.TestCase):
 
     def test_empty_query_returns_no_results(self):
         self.assertEqual(self.engine.search(""), [])
+
+
+class HotkeyIntentTests(unittest.TestCase):
+    """Живая обратная связь: "Какой хоткей дублирует объект в Blender?"
+    отвечался official Manual-страницей, объясняющей механику операции,
+    но ни разу не называющей саму комбинацию клавиш — авторитетность
+    официального источника перевешивала hotkeys-чанк с ТЕМ ЖЕ термином.
+    См. PROJECT_PLAN.md."""
+
+    def test_regex_matches_hotkey_questions(self):
+        for q in (
+            "Какой хоткей дублирует объект в Blender?",
+            "Какое сочетание клавиш инвертирует выделение?",
+            "Какая клавиша открывает меню добавления объекта?",
+            "Горячие клавиши для выделения",
+        ):
+            self.assertTrue(_is_hotkey_intent(q), q)
+
+    def test_regex_does_not_match_generic_questions(self):
+        for q in (
+            "Что такое модификатор Bevel?",
+            "Как сделать риг персонажа?",
+            "В чем разница между Cycles и EEVEE?",
+        ):
+            self.assertFalse(_is_hotkey_intent(q), q)
+
+    def test_hotkey_chunk_outranks_official_chunk_on_hotkey_question(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            chunks_registry = ChunkRegistry()
+            chunks_registry.add(_chunk(
+                id="hotkeys:duplicate", source="hotkeys", source_type="ai_generated_unverified",
+                authority=None, topic="interface",
+                original_title="Shift+D — дублировать объект (Duplicate)",
+                translated_title="Shift+D — дублировать объект (Duplicate)",
+                content="Shift+D — дублировать объект (Duplicate); копия двигается за курсором.",
+            ))
+            chunks_registry.add(_chunk(
+                id="official:duplicate", source_type="official_manual", authority=100,
+                topic="scene_layout",
+                original_title="Duplicate", translated_title="Дублировать",
+                content="Это создаст визуально идентичную копию выбранных объектов.",
+            ))
+            chunk_path = tmp_path / "chunks.json"
+            chunks_registry.save(chunk_path)
+
+            term_registry = TerminologyRegistry()
+            term_registry.add(Term(
+                canonical_name="Duplicate", russian_name="дублировать объект",
+                category="interface", aliases=["дублирует"],
+            ))
+            term_path = tmp_path / "terms.json"
+            term_registry.save(term_path)
+
+            engine = SearchEngine([chunk_path], term_path)
+            results = engine.search("Какой хоткей дублирует объект в Blender?")
+            self.assertEqual(results[0].chunk.id, "hotkeys:duplicate")
+
+    def test_non_hotkey_question_keeps_neutral_hotkey_intent_score(self):
+        # На обычный вопрос (без hotkey-намерения) hotkey_intent_score
+        # должен быть нейтральным (0.5) и не менять порядок вообще.
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            chunks_registry = ChunkRegistry()
+            chunks_registry.add(_chunk(id="a", content="Отражает меш по оси."))
+            chunk_path = tmp_path / "chunks.json"
+            chunks_registry.save(chunk_path)
+            term_path = tmp_path / "terms.json"
+            TerminologyRegistry().save(term_path)
+
+            engine = SearchEngine([chunk_path], term_path)
+            results = engine.search("mirror modifier")
+            self.assertTrue(all(r.hotkey_intent_score == 0.5 for r in results))
 
 
 class ExtractVersionHintTests(unittest.TestCase):
