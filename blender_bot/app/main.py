@@ -1,11 +1,13 @@
 import logging
 
+from telegram import Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
     InlineQueryHandler,
     MessageHandler,
+    TypeHandler,
     filters,
 )
 
@@ -42,6 +44,7 @@ from bot.handlers.resources import (
     resources_command,
 )
 from bot.handlers.start import help_command, start_command
+from bot.rate_limit import rate_limit_gate
 from config import BOT_TOKEN
 
 logging.basicConfig(
@@ -57,6 +60,14 @@ def main() -> None:
         )
 
     application = Application.builder().token(BOT_TOKEN).build()
+
+    # Раздел 15 / hardening ТЗ (Phase G): rate limiting — группа -1
+    # выполняется РАНЬШЕ всех обычных хендлеров (группа 0 по умолчанию
+    # ниже); ApplicationHandlerStop внутри rate_limit_gate останавливает
+    # обработку этого update'а для всех последующих групп разом, так что
+    # достаточно зарегистрировать его один раз здесь, а не оборачивать
+    # каждый хендлер по отдельности.
+    application.add_handler(TypeHandler(Update, rate_limit_gate), group=-1)
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
@@ -91,7 +102,7 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(qa_confirm_callback, pattern=r"^qa_yes$"))
     application.add_handler(CallbackQueryHandler(qa_decline_callback, pattern=r"^qa_no$"))
     application.add_handler(CallbackQueryHandler(diag_option_callback, pattern=r"^diag:\d+$"))
-    application.add_handler(CallbackQueryHandler(quiz_answer_callback, pattern=r"^edu:\d+$"))
+    application.add_handler(CallbackQueryHandler(quiz_answer_callback, pattern=r"^edu:[\w-]+:\d+$"))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer_question))
     application.add_handler(InlineQueryHandler(inline_query))

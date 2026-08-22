@@ -68,8 +68,13 @@ def _topics_list_text() -> str:
 
 
 def _quiz_keyboard(question: QuizQuestion) -> InlineKeyboardMarkup:
+    # question_id в callback_data (hardening ТЗ, Phase G): без него
+    # нажатие на кнопку СТАРОГО вопроса (двойной тап, старое сообщение
+    # ещё видно на экране после /next) засчитывалось бы против ТЕКУЩЕГО
+    # вопроса — chosen_index сравнивался бы с question.correct_index уже
+    # другого вопроса, тихо портя счёт и пропуская вопрос без ответа.
     buttons = [
-        [InlineKeyboardButton(option, callback_data=f"edu:{i}")]
+        [InlineKeyboardButton(option, callback_data=f"edu:{question.question_id}:{i}")]
         for i, option in enumerate(question.options)
     ]
     return InlineKeyboardMarkup(buttons)
@@ -296,8 +301,17 @@ async def quiz_answer_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     lesson, question = current
 
     try:
-        chosen_index = int(query.data.split(":", 1)[1])
+        _, clicked_question_id, index_str = query.data.split(":", 2)
+        chosen_index = int(index_str)
     except (ValueError, IndexError):
+        await query.edit_message_text(NO_ACTIVE_QUIZ_TEXT)
+        return
+
+    # Кнопка со старого вопроса (двойной тап, предыдущее сообщение ещё на
+    # экране) — не тот вопрос, что сейчас активен по индексу в
+    # user_data. Не засчитываем и не двигаем индекс дальше, иначе теряется
+    # реальный текущий вопрос без ответа.
+    if clicked_question_id != question.question_id:
         await query.edit_message_text(NO_ACTIVE_QUIZ_TEXT)
         return
 

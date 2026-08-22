@@ -233,7 +233,7 @@ class TelegramLayerTests(unittest.TestCase):
         first_question = lesson.quiz[0]
         wrong_index = next(i for i in range(len(first_question.options)) if i != first_question.correct_index)
 
-        cb = self._callback_update(f"edu:{wrong_index}")
+        cb = self._callback_update(f"edu:{first_question.question_id}:{wrong_index}")
         self._run(self.edu.quiz_answer_callback(cb, context))
 
         result_text = cb.callback_query.edit_message_text.call_args.args[0]
@@ -256,6 +256,31 @@ class TelegramLayerTests(unittest.TestCase):
         self._run(self.edu.weaknesses_command(weak_update, context))
         weak_text = weak_update.message.reply_text.call_args.args[0]
         self.assertIn("Mirror Modifier", weak_text)
+
+    def test_stale_button_from_previous_question_is_ignored(self):
+        # Hardening ТЗ (Phase G): кнопка со СТАРОГО вопроса (например,
+        # предыдущее сообщение quiz'а ещё видно на экране и пользователь
+        # нажал именно на него) не должна засчитываться за ТЕКУЩИЙ вопрос
+        # и не должна сдвигать индекс — иначе реальный текущий вопрос
+        # молча пропускается без ответа.
+        learn_update = self._update()
+        context = self._context(args=["Mirror", "Modifier"])
+        self._run(self.edu.learn_command(learn_update, context))
+        self._run(self.edu.test_command(self._update(), context))
+
+        lesson = self.edu.lesson_registry.get("Mirror Modifier")
+        # RealSeededDataTests.test_every_lesson_has_at_least_two_questions
+        # уже гарантирует >= 2 вопроса на урок — полагаемся на это.
+        self.assertGreaterEqual(len(lesson.quiz), 2)
+        stale_question = lesson.quiz[1]
+        # Индекс сейчас указывает на quiz[0], а данные кнопки — от
+        # quiz[1] (заведомо другого вопроса).
+        cb = self._callback_update(f"edu:{stale_question.question_id}:0")
+        self._run(self.edu.quiz_answer_callback(cb, context))
+
+        cb.callback_query.edit_message_text.assert_called_once_with(self.edu.NO_ACTIVE_QUIZ_TEXT)
+        self.assertEqual(context.user_data["edu_quiz_index"], 0, "индекс не должен сдвинуться на устаревшей кнопке")
+        self.assertEqual(self._test_store.progress_summary(self.TEST_USER_ID)["total"], 0)
 
     def test_next_without_quiz_suggests_weakest_topic(self):
         # 3 неверных по N-gon, 1 по Boolean Modifier -> N-gon предложен первым.
