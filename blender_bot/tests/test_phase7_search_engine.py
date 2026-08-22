@@ -232,6 +232,25 @@ class ExtractVersionHintTests(unittest.TestCase):
     def test_no_version_returns_none(self):
         self.assertIsNone(extract_version_hint("как сделать булеан"))
 
+    # BB-010 (hardening ТЗ): раньше ЛЮБОЕ "число.число" в вопросе
+    # считалось версией Blender — "2.5 метра"/"масштаб 1.25" ложно
+    # трактовались как version hint. Теперь номер засчитывается только
+    # рядом со словом "Blender"/"блендер.../версия...".
+    def test_latin_blender_word(self):
+        self.assertEqual(extract_version_hint("Blender 5.1 что нового"), "5.1")
+
+    def test_latin_blender_with_v_prefix(self):
+        self.assertEqual(extract_version_hint("Обновись до Blender v5.1"), "5.1")
+
+    def test_generic_decimal_in_meters_not_treated_as_version(self):
+        self.assertIsNone(extract_version_hint("как сделать стену 2.5 метра высотой"))
+
+    def test_generic_decimal_scale_not_treated_as_version(self):
+        self.assertIsNone(extract_version_hint("масштаб объекта 1.25 в трансформе"))
+
+    def test_generic_decimal_ratio_not_treated_as_version(self):
+        self.assertIsNone(extract_version_hint("какое соотношение сторон 16.9 выбрать"))
+
 
 class RealDataEngineTests(unittest.TestCase):
     """Регрессионные проверки на реальном корпусе (840 chunks на момент
