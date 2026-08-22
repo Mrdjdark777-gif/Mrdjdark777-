@@ -33,6 +33,13 @@ class DecisionNode:
     options: list[DiagnosticOption] = field(default_factory=list)
     cause: str | None = None
     fix: str | None = None
+    # ТЗ v3, раздел 2.2: иллюстрация к шагу диагностики. URL, не файл —
+    # намеренно ссылаемся на картинки самого официального Manual
+    # (docs.blender.org/manual/.../images/...) вместо хостинга своих
+    # скриншотов, т.к. ни один шаг ни в одном из 5 текущих деревьев такой
+    # URL пока не заполняет (нет Blender под рукой, чтобы такие скриншоты
+    # сделать/проверить, см. PROJECT_PLAN.md) — только инфраструктура.
+    image_url: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -47,6 +54,7 @@ class DecisionNode:
             options=options,
             cause=data.get("cause"),
             fix=data.get("fix"),
+            image_url=data.get("image_url"),
         )
 
 

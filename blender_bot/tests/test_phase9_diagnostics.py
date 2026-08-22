@@ -355,5 +355,116 @@ class TelegramLayerTests(unittest.TestCase):
         self.assertNotIn("diag_problem_id", context.user_data)
 
 
+class ImageInfrastructureTests(unittest.TestCase):
+    """ТЗ v3, раздел 2.2: DecisionNode.image_url + send_photo. Реальные 5
+    засеянных деревьев image_url нигде не задают (см. diagnostics/schema.py
+    докстринг) — этот путь проверяется только на синтетической проблеме,
+    построенной прямо в тесте."""
+
+    def setUp(self):
+        from bot.handlers import diagnostics as diag_module
+        self.diag_module = diag_module
+        self._original_registry = diag_module.diagnostic_registry
+
+        nodes = {
+            "root": DecisionNode(
+                node_id="root", kind="question", question_text="Что видно?",
+                image_url="https://docs.blender.org/manual/en/latest/_images/example.png",
+                options=[DiagnosticOption(label="Вот это", next_node_id="sol")],
+            ),
+            "sol": DecisionNode(
+                node_id="sol", kind="solution", cause="Причина", fix="Решение",
+                image_url="https://docs.blender.org/manual/en/latest/_images/solution.png",
+            ),
+        }
+        problem = DiagnosticProblem(
+            problem_id="image_test_problem", title="Тест с картинкой", symptoms="...",
+            keywords=["имейджтест", "картинкатест"], possible_causes=["X"],
+            root_node_id="root", nodes=nodes,
+        )
+        registry = DiagnosticRegistry()
+        registry.add(problem)
+        diag_module.diagnostic_registry = registry
+
+    def tearDown(self):
+        self.diag_module.diagnostic_registry = self._original_registry
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    def test_root_with_image_sends_photo_before_question(self):
+        update = MagicMock()
+        update.message.reply_text = AsyncMock()
+        update.effective_chat.id = 12345
+        context = MagicMock()
+        context.bot.send_photo = AsyncMock()
+        context.user_data = {}
+
+        started = self._run(
+            self.diag_module.try_start_diagnostic(
+                "имейджтест картинкатест", ["TROUBLESHOOTING"], update, context
+            )
+        )
+        self.assertTrue(started)
+        context.bot.send_photo.assert_awaited_once_with(
+            chat_id=12345, photo="https://docs.blender.org/manual/en/latest/_images/example.png"
+        )
+
+    def test_solution_with_image_sends_photo_before_text(self):
+        context = MagicMock()
+        context.bot.send_photo = AsyncMock()
+        context.user_data = {"diag_problem_id": "image_test_problem", "diag_node_id": "root"}
+
+        callback_update = MagicMock()
+        callback_update.callback_query.answer = AsyncMock()
+        callback_update.callback_query.edit_message_text = AsyncMock()
+        callback_update.callback_query.data = "diag:0"
+        callback_update.callback_query.message.chat_id = 999
+
+        self._run(self.diag_module.diag_option_callback(callback_update, context))
+
+        context.bot.send_photo.assert_awaited_once_with(
+            chat_id=999, photo="https://docs.blender.org/manual/en/latest/_images/solution.png"
+        )
+        callback_update.callback_query.edit_message_text.assert_called_once()
+
+    def test_broken_image_url_does_not_break_dialog(self):
+        update = MagicMock()
+        update.message.reply_text = AsyncMock()
+        update.effective_chat.id = 1
+        context = MagicMock()
+        context.bot.send_photo = AsyncMock(side_effect=Exception("Telegram отверг URL"))
+        context.user_data = {}
+
+        started = self._run(
+            self.diag_module.try_start_diagnostic(
+                "имейджтест картинкатест", ["TROUBLESHOOTING"], update, context
+            )
+        )
+        self.assertTrue(started)
+        update.message.reply_text.assert_called_once()
+
+    def test_node_without_image_does_not_call_send_photo(self):
+        # Реальные 5 деревьев: ни у одного узла image_url не задан —
+        # send_photo вообще не должен вызываться на обычном сценарии.
+        registry = DiagnosticRegistry()
+        registry.add(_simple_problem())  # без image_url ни на одном узле
+        self.diag_module.diagnostic_registry = registry
+
+        update = MagicMock()
+        update.message.reply_text = AsyncMock()
+        update.effective_chat.id = 1
+        context = MagicMock()
+        context.bot.send_photo = AsyncMock()
+        context.user_data = {}
+
+        self._run(
+            self.diag_module.try_start_diagnostic(
+                "тест проблема", ["TROUBLESHOOTING"], update, context
+            )
+        )
+        context.bot.send_photo.assert_not_awaited()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -35,6 +35,24 @@ def _format_solution(node: DecisionNode) -> str:
     return f"{node.cause}\n\n*Что делать:*\n{node.fix}"
 
 
+async def _maybe_send_image(context: ContextTypes.DEFAULT_TYPE, chat_id: int, node: DecisionNode) -> None:
+    """Раздел 2.2 ТЗ v3: если у шага диагностики есть картинка — шлём её
+    отдельным сообщением ПЕРЕД текстом вопроса/решения. Telegram не даёт
+    превратить уже отправленное текстовое сообщение в фото через
+    edit_message_text, поэтому картинка не встраивается в тот же edit,
+    а идёт отдельным send_photo; текст со списком вариантов/решением
+    отправляется как обычно следом. Ни у одного узла ни в одном из 5
+    текущих деревьев image_url ещё не заполнен (см. diagnostics/schema.py)
+    — этот путь пока не выполняется на реальных данных, только готов
+    к работе, когда screenshot'ы появятся."""
+    if not node.image_url:
+        return
+    try:
+        await context.bot.send_photo(chat_id=chat_id, photo=node.image_url)
+    except Exception:
+        pass  # битый/недоступный URL не должен ломать сам диагностический диалог
+
+
 def clear_session(context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("diag_problem_id", None)
     context.user_data.pop("diag_node_id", None)
@@ -60,6 +78,7 @@ async def try_start_diagnostic(
     context.user_data["diag_node_id"] = problem.root_node_id
 
     root = problem.root
+    await _maybe_send_image(context, update.effective_chat.id, root)
     await update.message.reply_text(root.question_text, reply_markup=_options_keyboard(root))
     return True
 
@@ -94,9 +113,11 @@ async def diag_option_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     if next_node.kind == "question":
         context.user_data["diag_node_id"] = next_node.node_id
+        await _maybe_send_image(context, query.message.chat_id, next_node)
         await query.edit_message_text(
             next_node.question_text, reply_markup=_options_keyboard(next_node)
         )
     else:
         clear_session(context)
+        await _maybe_send_image(context, query.message.chat_id, next_node)
         await query.edit_message_text(_format_solution(next_node), parse_mode="Markdown")
