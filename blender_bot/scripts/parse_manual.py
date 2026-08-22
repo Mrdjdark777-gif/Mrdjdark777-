@@ -20,11 +20,15 @@ system_message-ошибками и может терять текст вокру
 
 Умное чанкирование (раздел 2.1): с одной RST-страницы получается
 НЕСКОЛЬКО chunk'ов, а не один:
-    - intro   — заголовок + все абзацы до первого подраздела
-    - note    — каждый блок Note/Important/Tip/Hint отдельно
-    - warning — каждый блок Warning отдельно
-    - options — каждый definition list («Affect: Vertices — ...») одним
-                chunk'ом на список, term/definition через " — "
+    - intro     — заголовок + все абзацы до первого подраздела
+    - reference — блок ".. reference::" (Mode/Tool/Menu/Panel/Shortcut) —
+                  единственное место, где Manual явно называет горячую
+                  клавишу инструмента; раньше отбрасывался целиком (см.
+                  hardening ТЗ, живой баг 2026-08-22)
+    - note      — каждый блок Note/Important/Tip/Hint отдельно
+    - warning   — каждый блок Warning отдельно
+    - options   — каждый definition list («Affect: Vertices — ...») одним
+                  chunk'ом на список, term/definition через " — "
 
 Таблицы (raздел 2.1: "таблицы параметров") сознательно НЕ извлекаются в
 этой версии — на практике большинство `.. list-table::` в Manual
@@ -141,9 +145,39 @@ class _IgnoreDirective(Directive):
 
 for _directive_name in (
     "index", "toctree", "seealso", "hlist", "highlight", "peertube",
-    "todo", "function", "code-block", "reference", "youtube",
+    "todo", "function", "code-block", "youtube",
 ):
     directives.register_directive(_directive_name, _IgnoreDirective)
+
+
+class _ReferenceDirective(Directive):
+    """`.. reference::` — блок вида "Mode / Tool / Menu / Panel /
+    Shortcut" в начале почти каждой страницы инструмента (~596 из 2389
+    .rst-файлов корпуса на момент проверки). Раньше "reference" был в
+    списке _IgnoreDirective выше и отбрасывался ЦЕЛИКОМ — единственное
+    место в RST, где Manual явно называет горячую клавишу инструмента
+    (":Shortcut: :kbd:`Ctrl-R`"), терялось на каждой такой странице. Найдено
+    живым багом (2026-08-22): ответ на "Как сделать Loop Cut?" описывал
+    механику, но не называл Ctrl-R, хотя Ctrl-R был у бота в базе для
+    ЭТОГО же вопроса в knowledge/system/hotkeys — просто не пришёл из
+    Manual-чанка, потому что там его больше не было.
+
+    Содержимое директивы — валидный RST field list (":Mode: Edit Mode" и
+    т.д.), просто даём ему распарситься как обычному field list вместо
+    отбрасывания; извлечение пар term/value — ниже в parse_rst_file()."""
+
+    has_content = True
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {}
+
+    def run(self):
+        node = nodes.container(classes=["kb-reference-block"])
+        self.state.nested_parse(self.content, self.content_offset, node)
+        return [node]
+
+
+directives.register_directive("reference", _ReferenceDirective)
 
 
 def _truncate(text: str, limit: int = MAX_CHUNK_CHARS) -> str:
@@ -199,6 +233,33 @@ def parse_rst_file(path: Path) -> dict | None:
             if block_text:
                 bucket.append(block_text)
 
+    reference = []
+    for block in doctree.findall(
+        lambda n: isinstance(n, nodes.container) and "kb-reference-block" in n.get("classes", [])
+    ):
+        # Field list'ы ВНУТРИ нашего _ReferenceDirective (Mode/Tool/Menu/
+        # Shortcut) — специально не doctree.findall(nodes.field_list) по
+        # всему документу: RST field-list синтаксис (":Term: value") могут
+        # порождать и другие места (например, вложенный definition_list
+        # в "options" ниже — на практике встречается, найдено этим же
+        # тестом на синтетической фикстуре), и без этого ограничения
+        # захватывался бы посторонний текст, а не только справочный блок.
+        for fl in block.findall(nodes.field_list):
+            pairs = []
+            for field in fl.children:
+                if not isinstance(field, nodes.field):
+                    continue
+                name_nodes = [c for c in field.children if isinstance(c, nodes.field_name)]
+                body_nodes = [c for c in field.children if isinstance(c, nodes.field_body)]
+                if not name_nodes or not body_nodes:
+                    continue
+                name_text = name_nodes[0].astext().strip()
+                body_text = body_nodes[0].astext().strip()
+                if name_text and body_text:
+                    pairs.append(f"{name_text}: {body_text}")
+            if pairs:
+                reference.append(_truncate(" · ".join(pairs)))
+
     options = []
     for dl in doctree.findall(nodes.definition_list):
         # Опции Blender часто вложенные (термин "Affect" содержит СВОЙ
@@ -223,7 +284,10 @@ def parse_rst_file(path: Path) -> dict | None:
         if pairs:
             options.append(_truncate(" ".join(pairs)))
 
-    return {"title": title, "intro": intro, "notes": notes, "warnings": warnings, "options": options}
+    return {
+        "title": title, "intro": intro, "notes": notes, "warnings": warnings,
+        "options": options, "reference": reference,
+    }
 
 
 def build_url(rst_path: Path, manual_root: Path) -> str:
@@ -256,6 +320,9 @@ def collect_raw_entries(manual_root: Path) -> list[dict]:
 
         if parsed["intro"]:
             entries.append({**base, "kind": "intro", "title": parsed["title"], "content": parsed["intro"]})
+        for i, ref in enumerate(parsed["reference"]):
+            entries.append({**base, "kind": "reference", "title": f"{parsed['title']} — быстрая справка",
+                             "content": ref, "seq": i})
         for i, note in enumerate(parsed["notes"]):
             entries.append({**base, "kind": "note", "title": f"{parsed['title']} — примечание",
                              "content": note, "seq": i})

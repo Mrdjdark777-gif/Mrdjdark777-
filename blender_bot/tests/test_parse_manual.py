@@ -11,6 +11,7 @@
 
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -30,6 +31,12 @@ SAMPLE_RST = """
 ######
 Bevel Modifier
 ######
+
+.. reference::
+
+   :Mode:      Edit Mode and Object Mode
+   :Menu:      :menuselection:`Edge --> Bevel Edges`
+   :Shortcut:  :kbd:`Ctrl-B`
 
 .. figure:: /images/bevel.png
 
@@ -108,6 +115,33 @@ class ParseRstFileTests(unittest.TestCase):
         self.assertNotIn("Unknown interpreted", joined)
         self.assertIn("Invert", joined)
 
+    def test_reference_block_extracted(self):
+        # BB (hardening ТЗ, живой баг 2026-08-22): ".. reference::" раньше
+        # был в списке _IgnoreDirective и отбрасывался целиком вместе с
+        # горячей клавишей — единственным местом в RST, где она явно
+        # названа. Регрессия на реальный найденный случай (loop.rst).
+        self.assertEqual(len(self.result["reference"]), 1)
+        self.assertIn("Ctrl-B", self.result["reference"][0])
+        self.assertIn("Shortcut", self.result["reference"][0])
+        self.assertIn("Mode", self.result["reference"][0])
+
+    def test_reference_does_not_leak_into_intro(self):
+        self.assertNotIn("Ctrl-B", self.result["intro"])
+        self.assertNotIn("Shortcut", self.result["intro"])
+
+
+class CollectRawEntriesTests(unittest.TestCase):
+    def test_reference_kind_included(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "modeling").mkdir()
+            (root / "modeling" / "bevel.rst").write_text(SAMPLE_RST, encoding="utf-8")
+            entries = pm.collect_raw_entries(root)
+        ref_entries = [e for e in entries if e["kind"] == "reference"]
+        self.assertEqual(len(ref_entries), 1)
+        self.assertIn("Ctrl-B", ref_entries[0]["content"])
+        self.assertTrue(ref_entries[0]["title"].endswith("быстрая справка"))
+
 
 class CategoryAndUrlTests(unittest.TestCase):
     def test_category_from_section_path(self):
@@ -134,17 +168,23 @@ class BuildRegistryTests(unittest.TestCase):
                 "category": "modeling", "kind": "note", "title": "Модификатор Bevel — примечание",
                 "content": "Слайдер остаётся активным.", "title_en": "x", "content_en": "y", "seq": 0,
             },
+            {
+                "section_path": "modeling/modifiers/generate/bevel", "url": "https://example/bevel.html",
+                "category": "modeling", "kind": "reference", "title": "Модификатор Bevel — быстрая справка",
+                "content": "Mode: Edit Mode · Shortcut: Ctrl-B", "title_en": "x", "content_en": "y", "seq": 0,
+            },
         ]
         self.registry = pm.build_registry(entries)
 
-    def test_two_chunks_built(self):
-        self.assertEqual(len(self.registry.chunks), 2)
+    def test_three_chunks_built(self):
+        self.assertEqual(len(self.registry.chunks), 3)
 
     def test_ids_unique_and_kind_suffixed(self):
         ids = [c.id for c in self.registry.chunks]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertTrue(any(i.endswith("bevel") for i in ids))
         self.assertTrue(any("note0" in i for i in ids))
+        self.assertTrue(any("reference0" in i for i in ids))
 
     def test_authority_s_tier_official_manual(self):
         for chunk in self.registry.chunks:
@@ -154,7 +194,7 @@ class BuildRegistryTests(unittest.TestCase):
 
     def test_subtopic_is_kind(self):
         kinds = {c.subtopic for c in self.registry.chunks}
-        self.assertEqual(kinds, {"intro", "note"})
+        self.assertEqual(kinds, {"intro", "note", "reference"})
 
     def test_original_title_preserved(self):
         intro = next(c for c in self.registry.chunks if c.subtopic == "intro")
