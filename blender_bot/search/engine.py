@@ -287,7 +287,27 @@ class SearchEngine:
         original_norm, translated_norm = self._chunk_title_normalized[chunk_index]
         return original_norm == canonical_norm or translated_norm == russian_norm
 
-    def _chunk_kind_score(self, chunk: KnowledgeChunk) -> float:
+    def _chunk_kind_score(self, chunk: KnowledgeChunk, term: Term | None) -> float:
+        """Нейтрально (0.5), если термин вообще не распознан в запросе —
+        см. docstring CHUNK_KIND_MODIFIER_WEIGHT: смысл сигнала —
+        выбрать ПРАВИЛЬНЫЙ sub-chunk УЖЕ НАЙДЕННОЙ по термину страницы
+        (intro лучше options для "Что такое X?"), а не отдавать
+        предпочтение intro-чанкам вообще любых, в том числе случайных,
+        совпадений по голому BM25.
+
+        Found & fixed на живой обратной связи (не догадка заранее):
+        запрос "Какое сочетание клавиш инвертирует текущее выделение
+        (Invert Selection) в Edit Mode?" не распознал никакого термина
+        (raздел 1.1 всё ещё не покрывает "Invert Selection"), но
+        chunk_kind_score БЕЗ этой проверки всё равно давал бонус
+        intro-чанку совершенно не в тему ("Инвертировать узел вращения" —
+        Geometry Nodes нода), который выиграл ТОЛЬКО за счёт короткого
+        текста, где слово "инвертировать" встречается несколько раз (BM25
+        закономерно завышает плотность термина в коротких chunk'ах) —
+        этого одного intro-бонуса хватило, чтобы протолкнуть заведомо
+        нерелевантный ответ выше HIGH_CONFIDENCE_THRESHOLD."""
+        if term is None:
+            return 0.5
         return _CHUNK_KIND_RANK.get(chunk.subtopic, 0.5)
 
     def search(
@@ -320,7 +340,7 @@ class SearchEngine:
             # чтобы поднимать нерелевантный чанк с нуля).
             relevance = max(lexical_score, 1.0 if exact_term_bonus >= 1.0 else 0.0)
 
-            chunk_kind_score = self._chunk_kind_score(chunk)
+            chunk_kind_score = self._chunk_kind_score(chunk, term)
 
             if relevance <= 0:
                 score = 0.0
