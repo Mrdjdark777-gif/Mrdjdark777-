@@ -34,21 +34,47 @@ from search.unanswered_log import log_unanswered
 HIGH_CONFIDENCE_THRESHOLD = 0.75
 SOFT_MATCH_THRESHOLD = 0.20
 
+# Раздел 17 ТЗ, Conflict Engine: после ТЗ v3 этапа 5 одна официальная
+# страница Manual регулярно распадается на десятки sub-chunk'ов
+# (intro/note/warning/options на каждую подстраницу того же раздела),
+# все с exact_term_bonus=1.0 по тому же термину — personal-заметка на ту
+# же тему легко оказывается на 20-30 месте, а не на 2-м, просто из-за
+# количества официальных вариаций. SearchEngine.search() всё равно
+# считает score для ВСЕХ chunk'ов на каждый запрос (обрезка top_n —
+# просто срез после сортировки), так что более широкий top_n здесь ничего
+# не стоит по производительности и не меняет сам результат top[0].
+CONFLICT_SEARCH_TOP_N = 30
+
 
 def _find_competing_source(results: list[ScoredChunk]) -> KnowledgeChunk | None:
-    """Conflict Engine (раздел 17 ТЗ): второй по рангу результат считается
-    "конкурирующим источником", только если он тоже точно про распознанный
-    термин (exact_term_bonus>=1.0 — не просто рядом по лексике) И источник
+    """Conflict Engine (раздел 17 ТЗ): результат считается "конкурирующим
+    источником", только если он тоже точно про распознанный термин
+    (exact_term_bonus>=1.0 — не просто рядом по лексике) И источник
     другого типа (иначе это не конфликт источников, а просто два похожих
-    официальных абзаца)."""
+    официальных абзаца).
+
+    Раньше проверялся только rank #2. После ТЗ v3 этапа 5 (полный
+    docutils-парсер Manual) одна страница официального Manual регулярно
+    распадается на несколько sub-chunk'ов (intro/note/warning/options) —
+    все с exact_term_bonus=1.0 по тому же термину, тем же source_type и
+    близким score. #2 теперь почти всегда — другой sub-chunk ТОЙ ЖЕ
+    официальной страницы, а не personal-заметка, из-за чего конкурирующий
+    personal-источник, даже если реально есть в топ-5, никогда не
+    проверялся дальше #2 и Conflict Engine практически перестал
+    срабатывать (найдено по регрессии тестов после этапа 5, не по живой
+    обратной связи). Просматриваем весь переданный список результатов, не
+    только второй — источник должен быть первым НЕсовпадающим по типу
+    точным совпадением, а не обязательно вторым по рангу вообще."""
     if len(results) < 2:
         return None
-    top, runner_up = results[0], results[1]
-    if runner_up.exact_term_bonus < 1.0:
-        return None
-    if top.chunk.source_type == runner_up.chunk.source_type:
-        return None
-    return runner_up.chunk
+    top = results[0]
+    for candidate in results[1:]:
+        if candidate.exact_term_bonus < 1.0:
+            continue
+        if candidate.chunk.source_type == top.chunk.source_type:
+            continue
+        return candidate.chunk
+    return None
 
 
 @dataclass
@@ -78,7 +104,9 @@ class QAService:
 
     def answer(self, question: str) -> QAResult:
         requested_version = extract_version_hint(question)
-        results = self.engine.search(question, requested_version=requested_version)
+        results = self.engine.search(
+            question, requested_version=requested_version, top_n=CONFLICT_SEARCH_TOP_N
+        )
         top = results[0] if results else None
 
         if top and top.score >= HIGH_CONFIDENCE_THRESHOLD:

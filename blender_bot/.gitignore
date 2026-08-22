@@ -8,3 +8,4 @@ data/subscribers.json
 data/manual_index.json
 data/user_profile.db
 knowledge/official/manual/*/manual.json.bak
+.claude/scheduled_tasks.lock

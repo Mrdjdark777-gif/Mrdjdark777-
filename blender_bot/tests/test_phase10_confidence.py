@@ -11,7 +11,7 @@ from config import KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH
 from knowledge.schema import KnowledgeChunk
 from search.confidence import classify_confidence
 from search.engine import ScoredChunk, SearchEngine
-from search.qa_service import _find_competing_source
+from search.qa_service import CONFLICT_SEARCH_TOP_N, _find_competing_source
 
 
 def _chunk(**overrides) -> KnowledgeChunk:
@@ -30,7 +30,7 @@ def _scored(chunk: KnowledgeChunk, **overrides) -> ScoredChunk:
     defaults = dict(
         chunk=chunk, score=1.0, relevance=1.0, lexical_score=0.5,
         authority_score=1.0, exact_term_bonus=1.0, version_score=1.0,
-        topic_score=1.0, matched_term="Mirror Modifier",
+        topic_score=1.0, chunk_kind_score=0.5, matched_term="Mirror Modifier",
     )
     defaults.update(overrides)
     return ScoredChunk(**defaults)
@@ -128,7 +128,17 @@ class RealDataConfidenceTests(unittest.TestCase):
     def test_boolean_query_finds_a_real_competing_source(self):
         # Именно тот случай, что был найден вручную при проверке Phase 10:
         # официальный Manual и личная заметка оба точно про Boolean Modifier.
-        results = self._search("как сделать булеан")
+        #
+        # После ТЗ v3 этапа 5 (полный докутилс-парсер Manual) страница про
+        # Boolean распалась на ~28 официальных sub-chunk'ов, все с
+        # exact_term_bonus=1.0 — personal-заметка о том же опустилась на
+        # 28-е место среди точных совпадений (проверено вручную,
+        # PROJECT_PLAN.md). self._search() здесь использует top_n=5 по
+        # умолчанию (см. _search) и её больше не найдёт — реальный код
+        # (QAService.answer(), search/qa_service.py) использует более
+        # широкий CONFLICT_SEARCH_TOP_N именно из-за этой находки, тест
+        # должен использовать то же значение, а не более узкий top_n.
+        results = self.engine.search("как сделать булеан", top_n=CONFLICT_SEARCH_TOP_N)
         competing = _find_competing_source(results)
         self.assertIsNotNone(competing)
         self.assertEqual(competing.source_type, "ai_generated_unverified")

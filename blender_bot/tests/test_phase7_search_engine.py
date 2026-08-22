@@ -217,17 +217,31 @@ class RealDataEngineTests(unittest.TestCase):
         results = self.engine.search("geometry nodes", top_n=10)
         self.assertTrue(any(r.chunk.source_type == "official_manual" for r in results))
 
-    def test_shading_query_finds_own_note_not_unrelated_display_mode_page(self):
+    def test_shading_query_does_not_find_unrelated_display_mode_page(self):
         # Регрессия: алиас термина Viewport Shading изначально включал
         # "режим отображения" — фраза дословно совпадала с заголовком
         # НЕСВЯЗАННОЙ официальной страницы ("Режим отображения" / Display
         # Mode, про цветовое распределение превью-изображения), из-за чего
         # exact_term_bonus=1.0 доставался и ей тоже, и она побеждала как
         # официальный источник. Найдено по обратной связи пользователя.
+        #
+        # После ТЗ v3 этапа 5 (полный парсер Manual) в корпусе появилась
+        # НАСТОЯЩАЯ официальная страница "Viewport Shading"
+        # (editors/3dview/display/shading) — она теперь заслуженно
+        # побеждает личную заметку по authority (S-tier), и это правильно,
+        # не регрессия. Раньше тест жёстко требовал победы personal-note —
+        # это предположение устарело вместе с ростом корпуса; актуальный
+        # инвариант — что НЕ побеждает та самая, конкретная нерелевантная
+        # страница, независимо от того, кто в итоге побеждает.
         results = self.engine.search("Что такое шейдинг?", top_n=5)
         self.assertTrue(results)
-        self.assertEqual(results[0].chunk.source_type, "ai_generated_unverified")
-        self.assertIn("шейдинг", results[0].chunk.translated_title.lower())
+        self.assertNotIn(
+            "editors_video_sequencer_preview_display_display_mode", results[0].chunk.id
+        )
+        # Победивший chunk должен быть реально ПРО шейдинг/затенение, а не
+        # просто высоко проавторитеченным текстом мимо темы.
+        haystack = f"{results[0].chunk.translated_title} {results[0].chunk.content}".lower()
+        self.assertTrue("шейдинг" in haystack or "затенен" in haystack)
 
 
 class ResponseTimeTests(unittest.TestCase):

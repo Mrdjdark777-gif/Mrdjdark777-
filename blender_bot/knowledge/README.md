@@ -18,14 +18,17 @@ Knowledge registry по разделам 5-6 ТЗ (`docs/Blender_Expert_System_v
 `terminology.py` для exact/alias term match и `version.py` для
 version_score. `search/qa_service.py` — единственная точка входа для
 `bot/handlers/qa.py` и `bot/handlers/inline.py`. `data/knowledge_base.json`
-и `data/manual_index.json` остались только как СЫРЬЁ для скриптов
-миграции/ингеста (`scripts/migrate_knowledge_base_to_registry.py`,
-`scripts/ingest_manual_to_registry.py`), живой поиск их больше не читает.
+остался только как СЫРЬЁ для скрипта миграции
+(`scripts/migrate_knowledge_base_to_registry.py`), живой поиск его больше
+не читает. Manual (`knowledge/official/manual/5.1`) с ТЗ v3 этапа 5
+собирается напрямую через `scripts/parse_manual.py` (docutils-парсер,
+клонирует и переводит без промежуточного `data/manual_index.json`) — см.
+README внутри `knowledge/official/manual/5.1/`.
 
 ## Данные
 
 ```
-knowledge/official/manual/5.1          — 770 chunks (Phase 4, готово)
+knowledge/official/manual/5.1          — 8952 chunks (ТЗ v3, этап 5, готово)
 knowledge/official/python_api/5.1      — пока пусто
 knowledge/official/release_notes       — пока пусто
 knowledge/official/developer_docs      — пока пусто

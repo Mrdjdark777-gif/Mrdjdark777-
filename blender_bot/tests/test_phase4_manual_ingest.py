@@ -111,10 +111,14 @@ class BuildRegistryTests(unittest.TestCase):
 
 
 class IndexedManualTests(unittest.TestCase):
-    """Проверки на реальный knowledge/official/manual/5.1/manual.json, если он
-    уже собран (scripts/build_manual_index.py + ingest_manual_to_registry.py).
-    Пропускаются, если файла ещё нет — сборка занимает ~20 минут и требует
-    интернет, не должна быть обязательным условием для остальных тестов.
+    """Проверки на реальный knowledge/official/manual/5.1/manual.json.
+
+    С ТЗ v3 этапа 5 файл собирается через scripts/parse_manual.py
+    (docutils-парсер), а НЕ build_manual_index.py+ingest_manual_to_registry.py
+    (которые тестировал этот файл изначально, см. PROJECT_PLAN.md Phase 4 —
+    те скрипты устарели, но физически ещё не удалены). Пропускаются, если
+    файла ещё нет — сборка занимает больше часа и требует интернет, не
+    должна быть обязательным условием для остальных тестов.
     """
 
     @classmethod
@@ -124,11 +128,10 @@ class IndexedManualTests(unittest.TestCase):
         cls.registry = ChunkRegistry.load(MANUAL_JSON_PATH)
 
     def test_has_a_substantial_number_of_chunks(self):
-        # 978 из 1748 отфильтрованы как RST field-list мусор (см. PROJECT_PLAN
-        # Phase 4) — реальных страниц должно остаться заметно меньше исходных
-        # 1748, но не ноль.
-        self.assertGreater(len(self.registry.chunks), 500)
-        self.assertLess(len(self.registry.chunks), 1748)
+        # ТЗ v3 этап 5: умное чанкирование (intro/note/warning/options на
+        # страницу) — 8952 chunks с полного прогона на 2389 rst-файлах,
+        # не одно summary на страницу, как раньше (было <1748).
+        self.assertGreater(len(self.registry.chunks), 5000)
 
     def test_every_chunk_is_valid(self):
         for chunk in self.registry.chunks:

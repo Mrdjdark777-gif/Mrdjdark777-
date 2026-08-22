@@ -44,7 +44,25 @@ from search.tfidf import BM25Index, lemmatize, tokenize
 AUTHORITY_MODIFIER_WEIGHT = 0.3
 VERSION_MODIFIER_WEIGHT = 0.6
 TOPIC_MODIFIER_WEIGHT = 0.2
+CHUNK_KIND_MODIFIER_WEIGHT = 0.2
 MODIFIER_FLOOR = 0.1  # модификатор не должен обнулить уже найденную релевантность
+
+# ТЗ v3, этап 5: умное чанкирование Manual (scripts/parse_manual.py) режет
+# одну страницу на intro/note/warning/options — все с БЛИЗКИМ или равным
+# exact_term_bonus/lexical_score по тому же термину. Без этого сигнала
+# короткий "options"-чанк ("Affect — Vertices: ...") систематически
+# обходил "intro"-чанк той же страницы на генерических вопросах "Что
+# такое X?" — сам intro почти всегда ДЛИННЕЕ options-фрагмента, а раз
+# корпус вырос с ~770 до ~9000 chunks (в основном за счёт КОРОТКИХ
+# options/note-чанков), средняя длина документа в BM25 (avgdl,
+# search/tfidf.py) резко упала, и более длинные intro-чанки получили
+# непропорциональный штраф по длине (параметр `b`). Пробовал снижать `b`
+# напрямую (PROJECT_PLAN.md, ТЗ v3 этап 5) — эффект слабый и
+# непоследовательный, точечный модификатор по chunk.subtopic оказался
+# надёжнее. get(chunk.subtopic, 0.5) — нейтрально (0.5, как будто сигнала
+# нет вообще) для chunk'ов без этого понятия (personal notes, hotkeys,
+# будущие community-источники), не только для Manual.
+_CHUNK_KIND_RANK = {"intro": 1.0, "note": 0.5, "warning": 0.5, "options": 0.3}
 
 # Personal/непроверенный контент не имеет числового authority (раздел 3 ТЗ
 # не даёт Custom tier числа) — расчётный базовый вес, примерно на уровне
@@ -77,6 +95,7 @@ class ScoredChunk:
     exact_term_bonus: float
     version_score: float
     topic_score: float
+    chunk_kind_score: float
     matched_term: str | None = None
 
 
@@ -217,6 +236,9 @@ class SearchEngine:
             return 0.5  # нет сигнала по теме вообще — нейтрально
         return 1.0 if chunk.topic == term.category else 0.4
 
+    def _chunk_kind_score(self, chunk: KnowledgeChunk) -> float:
+        return _CHUNK_KIND_RANK.get(chunk.subtopic, 0.5)
+
     def search(
         self, query: str, requested_version: str | None = None, top_n: int = 5
     ) -> list[ScoredChunk]:
@@ -245,6 +267,8 @@ class SearchEngine:
             # чтобы поднимать нерелевантный чанк с нуля).
             relevance = max(lexical_score, 1.0 if exact_term_bonus >= 1.0 else 0.0)
 
+            chunk_kind_score = self._chunk_kind_score(chunk)
+
             if relevance <= 0:
                 score = 0.0
                 authority_score = self._authority_score(chunk)
@@ -259,6 +283,7 @@ class SearchEngine:
                     + AUTHORITY_MODIFIER_WEIGHT * (authority_score - 0.5)
                     + VERSION_MODIFIER_WEIGHT * (version_score - 1.0)
                     + TOPIC_MODIFIER_WEIGHT * (topic_score - 0.5)
+                    + CHUNK_KIND_MODIFIER_WEIGHT * (chunk_kind_score - 0.5)
                 )
                 score = relevance * max(modifier, MODIFIER_FLOOR)
 
@@ -272,6 +297,7 @@ class SearchEngine:
                     exact_term_bonus=exact_term_bonus,
                     version_score=version_score,
                     topic_score=topic_score,
+                    chunk_kind_score=chunk_kind_score,
                     matched_term=term.canonical_name if term else None,
                 )
             )
