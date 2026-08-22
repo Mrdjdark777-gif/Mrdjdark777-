@@ -505,7 +505,8 @@
   "category": "modeling",
   "aliases": [
    "применить трансформации",
-   "сбросить масштаб"
+   "сбросить масштаб",
+   "применит"
   ],
   "english_aliases": [
    "apply transform"
@@ -11842,6 +11843,176 @@
   "russian_name": "Шаблон приложения для раскадровки",
   "category": "vse",
   "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Box Select",
+  "russian_name": "рамка выделения",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Circle Select",
+  "russian_name": "кисть выделения",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Select More",
+  "russian_name": "расширить выделение на следующий связанный слой геометрии",
+  "category": "interface",
+  "aliases": [
+   "расширит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Select Less",
+  "russian_name": "сузить выделение, убрав внешний слой",
+  "category": "interface",
+  "aliases": [
+   "сузит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Grab",
+  "russian_name": "переместить",
+  "category": "interface",
+  "aliases": [
+   "переместит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Scale",
+  "russian_name": "изменить размер",
+  "category": "interface",
+  "aliases": [
+   "изменит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Rotate",
+  "russian_name": "повернуть",
+  "category": "interface",
+  "aliases": [
+   "повернёт"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Duplicate",
+  "russian_name": "дублировать объект",
+  "category": "interface",
+  "aliases": [
+   "дублирует"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "X-Ray",
+  "russian_name": "режим рентгена",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Join",
+  "russian_name": "объединить несколько выделенных объектов в один",
+  "category": "interface",
+  "aliases": [
+   "объединит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Recalculate Normals",
+  "russian_name": "пересчитать нормали наружу",
+  "category": "interface",
+  "aliases": [
+   "пересчитает"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Insert Keyframe",
+  "russian_name": "вставить ключевой кадр",
+  "category": "interface",
+  "aliases": [
+   "вставит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Driver",
+  "russian_name": "процедурное вращение/анимация без ключей",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Adjust Last Operation",
+  "russian_name": "панель параметров последней операции",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Toolbar",
+  "russian_name": "открыть/закрыть панель инструментов",
+  "category": "interface",
+  "aliases": [
+   "откроет"
+  ],
   "english_aliases": [],
   "ui_label": null,
   "related_terms": [],

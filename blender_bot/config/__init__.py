@@ -26,6 +26,12 @@ MANUAL_INDEX_PATH = DATA_DIR / "manual_index.json"
 KNOWLEDGE_CHUNK_PATHS = [
     KNOWLEDGE_DIR / "personal" / "dima_notes" / "dima_notes.json",
     KNOWLEDGE_DIR / "official" / "manual" / "5.1" / "manual.json",
+    # Живая обратная связь после раздела 2.2 (ТЗ v3): data/hotkeys.json
+    # был доступен только через search/hotkey_lookup.py (однонаправленный
+    # поиск "клавиша -> что делает"), реальный вопрос "какая клавиша
+    # делает X" не находил ответа. scripts/build_hotkeys_knowledge.py
+    # превращает каждую строку в knowledge chunk, см. PROJECT_PLAN.md.
+    KNOWLEDGE_DIR / "system" / "hotkeys" / "hotkeys_chunks.json",
 ]
 TERMINOLOGY_PATH = KNOWLEDGE_DIR / "system" / "terminology" / "terms.json"
 DIAGNOSTICS_PATH = KNOWLEDGE_DIR / "system" / "diagnostics" / "problems.json"
