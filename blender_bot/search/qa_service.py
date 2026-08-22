@@ -87,6 +87,11 @@ class QAResult:
     confidence: str = "UNKNOWN"
     competing_chunk: KnowledgeChunk | None = None
     hotkey_matches: list[tuple[str, str]] | None = None
+    # Hardening ТЗ, живой баг (Loop Cut): reference chunk (Mode/Menu/
+    # Shortcut) той же страницы Manual, что и chunk выше — см.
+    # SearchEngine.find_reference_sibling(). None если chunk сам уже
+    # reference, не с Manual, или у страницы такого блока нет.
+    reference_chunk: KnowledgeChunk | None = None
 
 
 class QAService:
@@ -114,6 +119,7 @@ class QAService:
                 kind="chunk_confident", chunk=top.chunk, score=top.score,
                 confidence=classify_confidence(top),
                 competing_chunk=_find_competing_source(results),
+                reference_chunk=self.engine.find_reference_sibling(top.chunk),
             )
 
         hotkey_matches = self.hotkey_lookup.find(question)
@@ -124,6 +130,7 @@ class QAService:
             return QAResult(
                 kind="soft_match", chunk=top.chunk, score=top.score,
                 confidence=classify_confidence(top),
+                reference_chunk=self.engine.find_reference_sibling(top.chunk),
             )
 
         self.log_unanswered(question, top.score if top else 0.0)

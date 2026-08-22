@@ -202,6 +202,64 @@ class DuplicateContentCollapseTests(unittest.TestCase):
         self.assertLessEqual(len({"page_a:options0", "page_b:options0"} & ids), 1)
 
 
+class FindReferenceSiblingTests(unittest.TestCase):
+    """Hardening ТЗ, живой баг (Loop Cut): reference chunk (Mode/Menu/
+    Shortcut) стоит В РАВНОМ ранге с intro (CHUNK_KIND_RANK), поэтому даже
+    после починки парсера обычный "как сделать X" мог отвечать intro-
+    текстом без горячей клавиши, хотя она есть в базе. find_reference_sibling
+    находит этот sibling по общему базовому section_path страницы."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp_path = Path(self.tmp.name)
+        registry = ChunkRegistry()
+        registry.add(_chunk(
+            id="blender_manual:5.1:tools_loop", subtopic="intro",
+            section_path="modeling/tools/loop:intro",
+            original_title="Loop Cut", translated_title="Петлевой вырез",
+            content="Инструмент разбивает цикл граней.",
+        ))
+        registry.add(_chunk(
+            id="blender_manual:5.1:tools_loop_reference0", subtopic="reference",
+            section_path="modeling/tools/loop:reference",
+            original_title="Loop Cut", translated_title="Loop Cut — быстрая справка",
+            content="Режим: Режим редактирования · Ярлык: Ctrl-R",
+        ))
+        registry.add(_chunk(
+            id="blender_manual:5.1:tools_bevel", subtopic="intro",
+            section_path="modeling/tools/bevel:intro",
+            original_title="Bevel", translated_title="Фаска",
+            content="Скашивает края.",
+        ))
+        chunk_path = tmp_path / "chunks.json"
+        registry.save(chunk_path)
+        term_path = tmp_path / "terms.json"
+        TerminologyRegistry().save(term_path)
+        self.engine = SearchEngine([chunk_path], term_path)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_finds_sibling_reference_for_intro(self):
+        intro = self.engine.get_chunk("blender_manual:5.1:tools_loop")
+        sibling = self.engine.find_reference_sibling(intro)
+        self.assertIsNotNone(sibling)
+        self.assertEqual(sibling.id, "blender_manual:5.1:tools_loop_reference0")
+        self.assertIn("Ctrl-R", sibling.content)
+
+    def test_reference_chunk_itself_has_no_sibling(self):
+        reference = self.engine.get_chunk("blender_manual:5.1:tools_loop_reference0")
+        self.assertIsNone(self.engine.find_reference_sibling(reference))
+
+    def test_page_without_reference_block_returns_none(self):
+        bevel_intro = self.engine.get_chunk("blender_manual:5.1:tools_bevel")
+        self.assertIsNone(self.engine.find_reference_sibling(bevel_intro))
+
+    def test_non_manual_chunk_without_section_path_returns_none(self):
+        personal = _chunk(id="personal:x", section_path=None)
+        self.assertIsNone(self.engine.find_reference_sibling(personal))
+
+
 class HotkeyIntentTests(unittest.TestCase):
     """Живая обратная связь: "Какой хоткей дублирует объект в Blender?"
     отвечался official Manual-страницей, объясняющей механику операции,

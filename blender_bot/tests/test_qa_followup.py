@@ -12,6 +12,19 @@ from unittest.mock import AsyncMock, MagicMock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import bot.handlers.qa as qa_module
+from knowledge.schema import KnowledgeChunk
+
+
+def _test_chunk(**overrides) -> KnowledgeChunk:
+    defaults = dict(
+        id="test:0001", source="blender_manual", source_type="official_manual",
+        authority=100, version="5.1", language="ru", topic="modeling",
+        subtopic="intro", date=None, url=None, section_path="modeling/tools/loop:intro",
+        original_title="Loop Cut", translated_title="Петлевой вырез",
+        content="Инструмент разбивает цикл граней.",
+    )
+    defaults.update(overrides)
+    return KnowledgeChunk(**defaults)
 
 
 def _update(text: str, user_id: int = 500000001) -> MagicMock:
@@ -56,6 +69,36 @@ class IsMoreInfoRequestTests(unittest.TestCase):
 
     def test_ordinary_question_not_recognized(self):
         self.assertFalse(qa_module._is_more_info_request("как сделать риг"))
+
+
+class FormatChunkAnswerReferenceTests(unittest.TestCase):
+    """Hardening ТЗ, живой баг (Loop Cut): _format_chunk_answer теперь
+    принимает необязательный reference_chunk и приписывает его содержимое
+    к ответу — иначе горячая клавиша, найденная SearchEngine.
+    find_reference_sibling, никогда не попадала бы в текст, который видит
+    пользователь."""
+
+    def test_no_reference_chunk_unchanged(self):
+        chunk = _test_chunk(content="Просто текст.")
+        text = qa_module._format_chunk_answer(chunk)
+        self.assertEqual(text, "Просто текст.")
+
+    def test_reference_chunk_appended(self):
+        chunk = _test_chunk(content="Инструмент разбивает цикл граней.")
+        reference = _test_chunk(
+            id="test:0001_reference0", subtopic="reference",
+            content="Режим: Режим редактирования · Ярлык: Ctrl-R",
+        )
+        text = qa_module._format_chunk_answer(chunk, reference)
+        self.assertIn("Инструмент разбивает цикл граней.", text)
+        self.assertIn("Ctrl-R", text)
+
+    def test_reference_chunk_content_is_escaped(self):
+        chunk = _test_chunk()
+        reference = _test_chunk(id="test:ref", subtopic="reference", content="<script>")
+        text = qa_module._format_chunk_answer(chunk, reference)
+        self.assertNotIn("<script>", text)
+        self.assertIn("&lt;script&gt;", text)
 
 
 class MoreInfoFlowTests(unittest.TestCase):

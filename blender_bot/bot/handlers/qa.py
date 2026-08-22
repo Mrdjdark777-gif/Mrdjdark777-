@@ -131,8 +131,18 @@ def _source_ref(chunk: KnowledgeChunk) -> str:
     return f"{title}, {escape(chunk.source)}{url_part}"
 
 
-def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
+def _format_chunk_answer(chunk: KnowledgeChunk, reference_chunk: KnowledgeChunk | None = None) -> str:
     """Обычный ответ — только текст, без метаинформации.
+
+    reference_chunk (hardening ТЗ, живой баг Loop Cut): Mode/Menu/Shortcut
+    той же страницы Manual, если у неё есть отдельный ".. reference::"
+    блок (см. SearchEngine.find_reference_sibling) — chunk_kind_score
+    ставит "reference" и "intro" В РАВНЫЙ ранг, поэтому какой из них
+    реально победит в поиске — вопрос tie-break'а (обычно достаётся
+    intro, чей заголовок дословно совпадает с термином). Без этого
+    добавления "как сделать X" мог по-прежнему отвечать описанием БЕЗ
+    горячей клавиши, хотя она объективно есть в базе — просто в другом
+    chunk'е той же страницы, а не в том, что выиграл ranking.
 
     Раздел 15 ТЗ (citations), раздел 14 ("LOW нельзя выдавать за
     уверенное утверждение" — явная оговорка) и раздел 17 (Conflict Engine
@@ -153,7 +163,10 @@ def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
     (parse_manual.py извлекает текст через docutils .astext(), т.е.
     гарантированно plain text) — экранировать целиком безопасно, ничего
     из НАМЕРЕННОГО форматирования не теряется, потому что его там нет."""
-    return escape(chunk.content)
+    text = escape(chunk.content)
+    if reference_chunk is not None:
+        text += f"\n\n{italic(reference_chunk.content)}"
+    return text
 
 
 def _format_more_info(question: str) -> str:
@@ -257,7 +270,9 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if result.kind == "chunk_confident":
         context.user_data["last_question"] = question
-        await send_message_safe(update.message, _format_chunk_answer(result.chunk))
+        await send_message_safe(
+            update.message, _format_chunk_answer(result.chunk, result.reference_chunk)
+        )
         return
 
     if result.kind == "hotkeys":
@@ -299,7 +314,8 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     if chunk:
         # soft_match по построению ниже HIGH_CONFIDENCE_THRESHOLD (Phase 7) —
         # confidence="LOW" здесь всегда честна, пересчитывать не нужно.
-        await edit_message_safe(query, _format_chunk_answer(chunk))
+        reference_chunk = qa_service.engine.find_reference_sibling(chunk)
+        await edit_message_safe(query, _format_chunk_answer(chunk, reference_chunk))
     else:
         await query.edit_message_text(FALLBACK_TEXT)
 

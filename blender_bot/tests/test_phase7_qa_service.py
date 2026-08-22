@@ -42,6 +42,16 @@ class QAServiceTests(unittest.TestCase):
     def test_get_chunk_unknown_id_returns_none(self):
         self.assertIsNone(self.service.get_chunk("does-not-exist"))
 
+    def test_loop_cut_answer_carries_reference_chunk_with_hotkey(self):
+        # Hardening ТЗ, живой баг: этот же вопрос раньше отвечал описанием
+        # механики БЕЗ Ctrl-R, хотя хоткей объективно есть в базе с
+        # 2026-08-23 (см. scripts/parse_manual.py, reference:: fix) —
+        # регрессия на реальных данных, не синтетике.
+        result = self.service.answer("как сделать loop cut")
+        self.assertEqual(result.kind, "chunk_confident")
+        self.assertIsNotNone(result.reference_chunk)
+        self.assertIn("Ctrl-R", result.reference_chunk.content)
+
 
 if __name__ == "__main__":
     unittest.main()

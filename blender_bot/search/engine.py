@@ -156,6 +156,24 @@ class SearchEngine:
             self.chunks.extend(ChunkRegistry.load(path).chunks)
         self._by_id = {c.id: c for c in self.chunks}
 
+        # Hardening ТЗ, живой баг (Loop Cut, 2026-08-23): "reference" kind
+        # (Mode/Menu/Shortcut, scripts/parse_manual.py) и "intro" — РАЗНЫЕ
+        # chunk'и одной страницы с одинаковым CHUNK_KIND_RANK (1.0). При
+        # равном ранге is_canonical_title почти всегда решает исход в
+        # пользу intro (его заголовок дословно совпадает с термином,
+        # заголовок reference — с суффиксом "— быстрая справка") — то есть
+        # даже после починки парсера обычный "как сделать X" вопрос мог
+        # по-прежнему отвечать intro-текстом БЕЗ горячей клавиши, хотя она
+        # объективно есть в базе, просто в другом chunk'е той же страницы.
+        # Индекс "базовый путь страницы -> её reference chunk" даёт
+        # find_reference_sibling() ниже быстро найти этот sibling и
+        # приложить его к ответу, не трогая сам ranking.
+        self._reference_by_section_base: dict[str, KnowledgeChunk] = {}
+        for c in self.chunks:
+            if c.subtopic == "reference" and c.section_path:
+                base = c.section_path.rsplit(":", 1)[0]
+                self._reference_by_section_base.setdefault(base, c)
+
         self.terminology = TerminologyRegistry.load(terminology_path)
 
         # Раздел 4.1 ТЗ v3 (время отклика < 50мс): _exact_term_bonus раньше
@@ -200,6 +218,17 @@ class SearchEngine:
 
     def get_chunk(self, chunk_id: str) -> KnowledgeChunk | None:
         return self._by_id.get(chunk_id)
+
+    def find_reference_sibling(self, chunk: KnowledgeChunk) -> KnowledgeChunk | None:
+        """Reference-chunk (Mode/Menu/Shortcut) той же страницы Manual, что
+        и переданный chunk — None, если chunk сам уже reference, у него нет
+        section_path (не-Manual источник), или у его страницы такого
+        chunk'а просто нет (не каждая страница использует `.. reference::`).
+        См. комментарий у self._reference_by_section_base в __init__."""
+        if chunk.subtopic == "reference" or not chunk.section_path:
+            return None
+        base = chunk.section_path.rsplit(":", 1)[0]
+        return self._reference_by_section_base.get(base)
 
     def _find_term(self, query: str) -> Term | None:
         """Exact term match / alias match (раздел 10 ТЗ).
