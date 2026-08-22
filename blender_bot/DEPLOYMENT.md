@@ -732,6 +732,31 @@ python -m unittest discover tests
 процесс всё ещё работает на старом коде, пользователи не пострадают,
 пока вы не сделали `restart`).
 
+⚠️ **С ТЗ v3 этапа 5 (Manual вырос с 770 до 8952 chunks) полный
+`discover tests` на этом сервере (Oracle VM.Standard.E2.1.Micro,
+952 МБ RAM, без swap) регулярно падает по **OOM** (`dmesg` покажет
+`Out of memory: Killed process ... (python)`), а не по багу в коде —
+несколько тестовых классов (`RealDataEngineTests`,
+`RealDataConfidenceTests`, `QualityScoreTests`, ...) независимо строят
+СВОИ ЭКЗЕМПЛЯРЫ `SearchEngine`/`QAService` (~150 МБ каждый на новом
+корпусе), и они какое-то время живут одновременно, легко превышая
+доступную память. Сам живой бот строит только ОДИН такой экземпляр
+(~150-180 МБ RSS после старта) — под продакшн-нагрузку это безопасно,
+проверено вручную. Если `discover tests` падает на сервере именно по
+OOM (не по логической ошибке) — это не повод откладывать деплой:
+достаточно (а) полного прогона тестов ЛОКАЛЬНО (на дев-машине памяти
+хватает) и (б) быстрой проверки на сервере, что один `QAService`
+строится и отвечает на реальный вопрос без ошибок, например:
+```
+python -c "
+from config import HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH
+from search.qa_service import QAService
+qa = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
+r = qa.answer('что такое модификатор bevel')
+print('ok:', r.chunk is not None)
+"
+```
+
 ### 13.5 Перезапустить и проверить
 
 ```
