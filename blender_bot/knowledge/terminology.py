@@ -14,13 +14,18 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-# Раздел 9 ТЗ — фиксированный список категорий терминов.
+# Раздел 9 ТЗ — фиксированный список категорий терминов. Три категории в
+# конце добавлены при автогенерации словаря из Manual (ТЗ v3, раздел 1.1,
+# scripts/generate_terminology_from_manual.py) — у путей .rst-файлов
+# Manual (editors/, scene_layout/, interface/, files/) не было
+# естественного соответствия среди исходных 24 категорий Phase 6.
 TERMINOLOGY_CATEGORIES = (
     "modeling", "mesh", "topology", "modifiers", "materials", "shaders",
     "rendering", "lighting", "camera", "animation", "rigging",
     "geometry_nodes", "physics", "compositing", "vse", "uv", "texturing",
     "sculpting", "grease_pencil", "python", "addons", "assets",
     "color_management", "motion_tracking",
+    "interface", "scene_layout", "files",
 )
 
 _WS_RE = re.compile(r"\s+")

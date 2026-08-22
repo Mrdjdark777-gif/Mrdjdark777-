@@ -118,7 +118,8 @@ class SyntheticEngineTests(unittest.TestCase):
         engine = SearchEngine([chunk_path], term_path)
         term = engine._find_term("риг")
         self.assertIsNotNone(term)
-        bonus = engine._exact_term_bonus(term, engine._chunk_title_tokens[0], engine._chunk_body_tokens[0])
+        term_tokens = engine._term_name_token_lists(term)
+        bonus = engine._exact_term_bonus(term_tokens, engine._chunk_title_tokens[0], engine._chunk_body_tokens[0])
         self.assertLess(bonus, 1.0)  # не должно ложно сработать на "оригинал"
 
     def test_version_conflict_demotes_score(self):

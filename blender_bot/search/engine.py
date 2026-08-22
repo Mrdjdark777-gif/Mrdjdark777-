@@ -96,6 +96,7 @@ class ScoredChunk:
     version_score: float
     topic_score: float
     chunk_kind_score: float
+    is_canonical_title: bool = False
     matched_term: str | None = None
 
 
@@ -119,6 +120,21 @@ class SearchEngine:
             set(tokenize(f"{c.translated_title} {c.original_title}")) for c in self.chunks
         ]
         self._chunk_body_tokens = [set(tokenize(c.content)) for c in self.chunks]
+        # Раздел 1.1 ТЗ v3 (расширение Terminology Database): normalize_term()
+        # сохраняет порядок слов (в отличие от _chunk_title_tokens выше,
+        # который теряет его в set()) — нужно для точного сравнения "это
+        # ЗАГОЛОВОК chunk'а СОВПАДАЕТ с термином целиком", не просто
+        # "содержит все его слова". Без этого различия при нескольких
+        # official-страницах, чьи заголовки лишь СОДЕРЖАТ слова термина
+        # ("Weight Paint Brushes", "Weight Paint Tools", "Weight Paint Mode"
+        # — все содержат "weight"+"paint"), все получают exact_term_bonus=1.0
+        # поровну, и тай-брейк на сырой BM25 не отдаёт предпочтение
+        # странице, которая ЕСТЬ канонический "Weight Paint" — найдено при
+        # проверке автосгенерированных терминов (PROJECT_PLAN.md).
+        self._chunk_title_normalized = [
+            (normalize_term(c.original_title), normalize_term(c.translated_title))
+            for c in self.chunks
+        ]
 
         self._bm25 = BM25Index()
         self._bm25.fit([self._chunk_tokens(c) for c in self.chunks])
@@ -183,7 +199,22 @@ class SearchEngine:
             names.add(term.ui_label)
         return {normalize_term(n) for n in names}
 
-    def _exact_term_bonus(self, term: Term | None, title_tokens: set[str], body_tokens: set[str]) -> float:
+    def _term_name_token_lists(self, term: Term | None) -> list[list[str]]:
+        """tokenize() каждого имени термина — раньше пересчитывалось
+        ВНУТРИ _exact_term_bonus на КАЖДЫЙ chunk (term при этом один и тот
+        же для всего запроса), т.е. одна и та же токенизация повторялась
+        ~9000 раз за запрос. Профилирование после этапа 5 (раздел 4.1 ТЗ
+        v3, время отклика < 50мс) показало: именно это, а не сам BM25 —
+        реальный узкий бутылочное горлышко (3.1 из 3.9с на 5 запросов,
+        cProfile). Считается ОДИН раз в search() до цикла по чанкам,
+        передаётся в _exact_term_bonus готовым."""
+        if term is None:
+            return []
+        return [tokens for name in self._term_names(term) if (tokens := tokenize(name))]
+
+    def _exact_term_bonus(
+        self, term_name_token_lists: list[list[str]], title_tokens: set[str], body_tokens: set[str]
+    ) -> float:
         """Токенизированное сравнение, НЕ substring: короткий алиас вроде
         "риг" при поиске подстрокой ложно совпадал внутри "ориг[риг]инал".
         Все токены алиаса (для многословных вроде "шейдер материала")
@@ -192,6 +223,9 @@ class SearchEngine:
         title_tokens/body_tokens приходят готовыми из
         self._chunk_title_tokens/self._chunk_body_tokens (посчитаны один
         раз в __init__, а не на каждый запрос — раздел 4.1 ТЗ v3).
+        term_name_token_lists приходит из self._term_name_token_lists(term)
+        — тоже посчитан один раз на весь запрос, не на каждый чанк (см. её
+        докстринг).
 
         Заголовок и содержимое различаются по силе сигнала: термин в
         ЗАГОЛОВКЕ означает, что chunk реально ПРО эту тему; термин,
@@ -203,13 +237,10 @@ class SearchEngine:
         авторитетности официального источника — найдено по обратной
         связи пользователя после реального использования на проде
         (PROJECT_PLAN.md, после Phase 15)."""
-        if term is None:
+        if not term_name_token_lists:
             return 0.0
         found_in_body_only = False
-        for name in self._term_names(term):
-            name_tokens = tokenize(name)
-            if not name_tokens:
-                continue
+        for name_tokens in term_name_token_lists:
             if all(t in title_tokens for t in name_tokens):
                 return 1.0
             if all(t in title_tokens or t in body_tokens for t in name_tokens):
@@ -236,6 +267,26 @@ class SearchEngine:
             return 0.5  # нет сигнала по теме вообще — нейтрально
         return 1.0 if chunk.topic == term.category else 0.4
 
+    def _term_canonical_norms(self, term: Term | None) -> tuple[str, str] | None:
+        """normalize_term(canonical_name/russian_name) — раньше пересчитывалось
+        ВНУТРИ _is_canonical_title на каждый chunk (тот же анти-паттерн,
+        что и у _term_name_token_lists, см. её докстринг и профилирование
+        раздела 4.1 ТЗ v3). Считается один раз в search() до цикла."""
+        if term is None:
+            return None
+        return normalize_term(term.canonical_name), normalize_term(term.russian_name)
+
+    def _is_canonical_title(self, term_norms: tuple[str, str] | None, chunk_index: int) -> bool:
+        """Заголовок chunk'а (на любом из двух языков) ДОСЛОВНО совпадает
+        с именем термина — не просто содержит все его слова где-то внутри
+        более длинного заголовка. См. комментарий у
+        self._chunk_title_normalized в __init__."""
+        if term_norms is None:
+            return False
+        canonical_norm, russian_norm = term_norms
+        original_norm, translated_norm = self._chunk_title_normalized[chunk_index]
+        return original_norm == canonical_norm or translated_norm == russian_norm
+
     def _chunk_kind_score(self, chunk: KnowledgeChunk) -> float:
         return _CHUNK_KIND_RANK.get(chunk.subtopic, 0.5)
 
@@ -252,11 +303,13 @@ class SearchEngine:
         query_tokens = lemmatize(tokenize(query))
         lexical_scores = self._bm25.similarities(query_tokens)
         term = self._find_term(query)
+        term_name_token_lists = self._term_name_token_lists(term)
+        term_norms = self._term_canonical_norms(term)
 
         results = []
         for i, (chunk, lexical_score) in enumerate(zip(self.chunks, lexical_scores)):
             exact_term_bonus = self._exact_term_bonus(
-                term, self._chunk_title_tokens[i], self._chunk_body_tokens[i]
+                term_name_token_lists, self._chunk_title_tokens[i], self._chunk_body_tokens[i]
             )
 
             # relevance — единственный сигнал, отвечающий на вопрос "вообще
@@ -298,15 +351,27 @@ class SearchEngine:
                     version_score=version_score,
                     topic_score=topic_score,
                     chunk_kind_score=chunk_kind_score,
+                    is_canonical_title=self._is_canonical_title(term_norms, i),
                     matched_term=term.canonical_name if term else None,
                 )
             )
 
-        # lexical_score как вторичный ключ сортировки: несколько chunk'ов
-        # часто получают ОДИНАКОВЫЙ exact_term_bonus=1.0 (однословный алиас
-        # вроде "фаска" или "bevel" совпадает и у chunk'а, который реально
-        # ПРО эту тему, и у чанка, который просто упомянул слово мимоходом
-        # — см. _exact_term_bonus). Без вторичного ключа сортировка была
+        # is_canonical_title — первый вторичный ключ сортировки (раздел 1.1
+        # ТЗ v3, расширенная Terminology Database): при нескольких chunk'ах
+        # с ОДИНАКОВЫМ exact_term_bonus=1.0 (заголовок каждого лишь СОДЕРЖИТ
+        # все слова термина, не обязательно РАВЕН ему целиком — "Weight
+        # Paint Brushes", "Weight Paint Tools" и "Weight Paint Mode" все
+        # содержат "weight"+"paint") побеждать должен chunk, чей заголовок
+        # ДОСЛОВНО совпадает с самим термином ("Weight Paint"), а не
+        # случайный из нескольких более узких sub-страниц с тем же набором
+        # слов — найдено при проверке автосгенерированных терминов
+        # (PROJECT_PLAN.md, ТЗ v3, расширение терминологии).
+        #
+        # lexical_score — второй вторичный ключ: несколько chunk'ов часто
+        # получают ОДИНАКОВЫЙ exact_term_bonus=1.0 (однословный алиас вроде
+        # "фаска" или "bevel" совпадает и у chunk'а, который реально ПРО эту
+        # тему, и у чанка, который просто упомянул слово мимоходом — см.
+        # _exact_term_bonus). Без вторичного ключа сортировка была
         # стабильной по порядку файла, и при равном score побеждал более
         # ранний по индексу chunk, а не более релевантный — найдено при
         # добавлении новых personal-заметок (PROJECT_PLAN.md, после Phase
@@ -314,5 +379,5 @@ class SearchEngine:
         # вопрос про Bevel, чем случайное упоминание слова "bevel" в
         # заметке про Apply Transform, но лексически совпадает с запросом
         # намного сильнее — это и должно решать исход при равном bonus.
-        results.sort(key=lambda r: (r.score, r.lexical_score), reverse=True)
+        results.sort(key=lambda r: (r.score, r.is_canonical_title, r.lexical_score), reverse=True)
         return [r for r in results[:top_n] if r.score > 0]

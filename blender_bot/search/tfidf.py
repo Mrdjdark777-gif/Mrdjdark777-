@@ -128,9 +128,20 @@ class BM25Index:
         self._doc_term_freqs = [Counter(doc) for doc in tokenized_docs]
 
         doc_freq: dict[str, int] = {}
-        for tf in self._doc_term_freqs:
+        # Раздел 4.1 ТЗ v3 (время отклика < 50мс): без инвертированного
+        # индекса similarities() проходила по ВСЕМ документам на КАЖДЫЙ
+        # запрос, даже когда подавляющее большинство не содержит ни
+        # одного слова запроса — на 853 chunks (Phase 7) это было терпимо,
+        # но после этапа 5 (рост корпуса до ~9000, в основном за счёт
+        # умного чанкирования Manual) реальный прогон дал 380-475мс вместо
+        # цели 50мс. postings[term] — список индексов документов,
+        # содержащих term, — позволяет similarities() трогать только
+        # документы, реально пересекающиеся с запросом, а не весь корпус.
+        self._postings: dict[str, list[int]] = {}
+        for i, tf in enumerate(self._doc_term_freqs):
             for term in tf:
                 doc_freq[term] = doc_freq.get(term, 0) + 1
+                self._postings.setdefault(term, []).append(i)
         self.doc_freq = doc_freq
 
     def _idf(self, term: str) -> float:
@@ -150,7 +161,12 @@ class BM25Index:
 
         idfs = {term: self._idf(term) for term in query_terms}
         raw_scores = [0.0] * self.doc_count
-        for i in range(self.doc_count):
+
+        candidate_docs: set[int] = set()
+        for term in query_terms:
+            candidate_docs.update(self._postings.get(term, ()))
+
+        for i in candidate_docs:
             doc_tf = self._doc_term_freqs[i]
             dl = self._doc_lens[i]
             length_norm = self.K1 * (1 - self.B + self.B * dl / self.avgdl) if self.avgdl else self.K1

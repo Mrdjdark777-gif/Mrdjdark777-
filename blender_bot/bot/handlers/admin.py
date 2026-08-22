@@ -193,7 +193,8 @@ def _format_scored(scored, index: int) -> str:
         f"({c.source_type}, v={c.version or '?'})\n"
         f"   lexical={scored.lexical_score:.3f} authority={scored.authority_score:.3f} "
         f"version={scored.version_score:.3f} topic={scored.topic_score:.3f} "
-        f"kind={scored.chunk_kind_score:.2f} exact_term={scored.exact_term_bonus:.2f}"
+        f"kind={scored.chunk_kind_score:.2f} exact_term={scored.exact_term_bonus:.2f} "
+        f"canonical={scored.is_canonical_title}"
     )
 
 
