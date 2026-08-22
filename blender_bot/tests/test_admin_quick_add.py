@@ -154,6 +154,68 @@ class QuickAddCommandTests(unittest.TestCase):
         update.message.reply_text.assert_called_once_with(admin_module.NOT_OWNER_TEXT)
         self.assertEqual(json.loads(self._notes_path.read_text(encoding="utf-8")), [])
 
+    def test_duplicate_question_updates_instead_of_appending(self):
+        """BB-008 (hardening ТЗ): повторный /quick_add с тем же (с точностью
+        до регистра/пробелов/пунктуации) вопросом обновляет существующую
+        заметку, а не создаёт вторую."""
+        update1 = _update("/quick_add Что такое Bevel? | Старый ответ.", user_id=1)
+        _run(admin_module.quick_add_command(update1, _context()))
+
+        update2 = _update("/quick_add что такое bevel | Новый, исправленный ответ.", user_id=1)
+        _run(admin_module.quick_add_command(update2, _context()))
+
+        saved = json.loads(self._notes_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(saved), 1, "дубль по нормализованному вопросу не должен создавать вторую запись")
+        self.assertEqual(saved[0]["content"], "Новый, исправленный ответ.")
+        self.assertEqual(saved[0]["id"], "personal_notes:0000")
+
+        text = update2.message.reply_text.call_args[0][0]
+        self.assertIn("Обновлено и переиндексировано", text)
+
+    def test_different_question_appends_new_chunk(self):
+        update1 = _update("/quick_add Что такое Bevel? | Ответ 1.", user_id=1)
+        _run(admin_module.quick_add_command(update1, _context()))
+        update2 = _update("/quick_add Что такое Boolean? | Ответ 2.", user_id=1)
+        _run(admin_module.quick_add_command(update2, _context()))
+
+        saved = json.loads(self._notes_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(saved), 2)
+        self.assertEqual({c["id"] for c in saved}, {"personal_notes:0000", "personal_notes:0001"})
+
+    def test_stable_id_survives_deletion_from_middle(self):
+        """BB-008: раньше id = f"personal_notes:{len(registry.chunks):04d}"
+        — после удаления chunk'а из середины файла (например, вручную на
+        сервере) новый id мог совпасть с ещё существующим. Проверяем, что
+        генератор теперь смотрит на максимальный занятый номер, а не на
+        длину списка."""
+        notes = [
+            {
+                "id": "personal_notes:0000", "source": "personal_notes",
+                "source_type": "ai_generated_unverified", "authority": None,
+                "version": None, "language": "ru", "topic": "general",
+                "subtopic": None, "date": None, "url": None,
+                "original_title": "Вопрос 0", "translated_title": "Вопрос 0",
+                "content": "Ответ 0", "needs_review": True,
+            },
+            {
+                "id": "personal_notes:0002", "source": "personal_notes",
+                "source_type": "ai_generated_unverified", "authority": None,
+                "version": None, "language": "ru", "topic": "general",
+                "subtopic": None, "date": None, "url": None,
+                "original_title": "Вопрос 2", "translated_title": "Вопрос 2",
+                "content": "Ответ 2", "needs_review": True,
+            },
+        ]
+        self._notes_path.write_text(json.dumps(notes, ensure_ascii=False), encoding="utf-8")
+
+        update = _update("/quick_add Новый вопрос | Новый ответ.", user_id=1)
+        _run(admin_module.quick_add_command(update, _context()))
+
+        saved = json.loads(self._notes_path.read_text(encoding="utf-8"))
+        ids = {c["id"] for c in saved}
+        self.assertEqual(len(ids), 3, "не должно быть коллизии id")
+        self.assertIn("personal_notes:0003", ids)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 
 from telegram import Update
@@ -41,7 +42,7 @@ from config import (
 from diagnostics.registry import DiagnosticRegistry
 from education.registry import LessonRegistry
 from knowledge.registry import ChunkRegistry
-from knowledge.schema import KnowledgeChunk, AUTHORITY_TIERS
+from knowledge.schema import KnowledgeChunk, AUTHORITY_TIERS, compute_content_hash
 from profile.subscribers import get_subscribers
 from search.engine import extract_version_hint
 from search.qa_service import QAService
@@ -341,6 +342,31 @@ async def unanswered_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 QUICK_ADD_USAGE_TEXT = "Использование: /quick_add вопрос | ответ"
 
+_QUICK_ADD_ID_RE = re.compile(r"^personal_notes:(\d+)$")
+
+
+def _normalize_question(text: str) -> str:
+    """BB-008 (hardening ТЗ): грубая нормализация для дедупликации —
+    регистр/пробелы/конечная пунктуация не должны создавать "новый"
+    вопрос ("Что такое Bevel?" и "что такое bevel" — один и тот же)."""
+    text = text.strip().rstrip("?!.").strip().lower()
+    return re.sub(r"\s+", " ", text)
+
+
+def _next_chunk_id(registry: ChunkRegistry) -> str:
+    """BB-008: раньше id был `personal_notes:{len(registry.chunks):04d}` —
+    нестабильно, если хоть один chunk когда-либо удалён из середины файла
+    (вручную через nano на сервере): длина списка сдвигается, и новый id
+    может СОВПАСТЬ с id ещё существующего chunk'а. Ищем максимальный
+    занятый номер среди уже существующих `personal_notes:NNNN` id и берём
+    следующий — коллизия невозможна, пока такие id не переиспользуются."""
+    max_n = -1
+    for c in registry.chunks:
+        m = _QUICK_ADD_ID_RE.match(c.id)
+        if m:
+            max_n = max(max_n, int(m.group(1)))
+    return f"personal_notes:{max_n + 1:04d}"
+
 
 async def quick_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Раздел 3.2 ТЗ v3: добавить ответ на неизвестный вопрос прямо из
@@ -364,23 +390,42 @@ async def quick_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
 
     registry = ChunkRegistry.load(_PERSONAL_NOTES_PATH)
-    chunk_id = f"personal_notes:{len(registry.chunks):04d}"
-    registry.add(KnowledgeChunk(
-        id=chunk_id,
-        source="personal_notes",
-        source_type="ai_generated_unverified",
-        authority=None,
-        version=None,
-        language="ru",
-        topic="general",
-        subtopic=None,
-        date=None,
-        url=None,
-        original_title=question,
-        translated_title=question,
-        content=answer,
-        needs_review=True,
-    ))
+
+    # BB-008: если такой (нормализованный) вопрос уже есть в
+    # personal_notes — обновляем существующую заметку, а не плодим
+    # дубль. Иначе повторный /quick_add с той же формулировкой (например,
+    # владелец уточняет ответ) тихо копит несколько версий одного вопроса
+    # в базе, и поиск потом видит их как отдельные, конкурирующие chunks.
+    normalized = _normalize_question(question)
+    existing = next(
+        (c for c in registry.chunks if _normalize_question(c.original_title) == normalized),
+        None,
+    )
+    if existing is not None:
+        existing.content = answer
+        existing.translated_title = question
+        existing.content_hash = compute_content_hash(answer)
+        chunk_id = existing.id
+        action_word = "Обновлено"
+    else:
+        chunk_id = _next_chunk_id(registry)
+        registry.add(KnowledgeChunk(
+            id=chunk_id,
+            source="personal_notes",
+            source_type="ai_generated_unverified",
+            authority=None,
+            version=None,
+            language="ru",
+            topic="general",
+            subtopic=None,
+            date=None,
+            url=None,
+            original_title=question,
+            translated_title=question,
+            content=answer,
+            needs_review=True,
+        ))
+        action_word = "Добавлено"
     registry.save(_PERSONAL_NOTES_PATH)
 
     try:
@@ -401,6 +446,6 @@ async def quick_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # может вставить текст со спецсимволами (например, скопированный код).
     await send_message_safe(
         update.message,
-        f"Добавлено и переиндексировано ({escape(chunk_id)}), chunks теперь: "
+        f"{action_word} и переиндексировано ({escape(chunk_id)}), chunks теперь: "
         f"{len(new_qa_service.engine.chunks)}.\n\nВопрос: {escape(question)}\nОтвет: {escape(answer)}",
     )
