@@ -2,7 +2,7 @@
 14 и 17 ТЗ).
 
 hotkeys (точный справочный поиск) и SearchEngine (exact term match → alias
-match → TF-IDF → metadata filtering по knowledge/ registry) → confidence
+match → BM25 → metadata filtering по knowledge/ registry) → confidence
 tiers → fallback. С Phase 7 это уже настоящий многосигнальный поиск, а не
 наивное сравнение ключевых слов по data/knowledge_base.json — подробности и
 обоснование порогов см. search/engine.py и PROJECT_PLAN.md, Phase 7.

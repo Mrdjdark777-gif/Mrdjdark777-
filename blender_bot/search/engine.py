@@ -185,7 +185,7 @@ class SearchEngine:
         # Заголовок весит больше содержимого — совпадение в названии темы
         # обычно значимее случайного слова в середине длинного summary.
         # lemmatize() — словоформы приводятся к начальной форме ДО того, как
-        # попасть в TF-IDF индекс (раздел про естественно сформулированные
+        # попасть в BM25 индекс (раздел про естественно сформулированные
         # вопросы, PROJECT_PLAN.md, после Phase 15).
         tokens = tokenize(chunk.translated_title) * 2 + tokenize(chunk.original_title) + tokenize(chunk.content)
         return lemmatize(tokens)
@@ -362,7 +362,7 @@ class SearchEngine:
         if not self.chunks:
             return []
 
-        # lemmatize() только для TF-IDF (lexical_score) — чанки в индексе
+        # lemmatize() только для BM25 (lexical_score) — чанки в индексе
         # тоже лемматизированы (_chunk_tokens). _find_term() ниже намеренно
         # использует term = self._find_term(query) — работает НА СЫРОМ
         # запросе, свою логику словоформ не трогаем (см. lemmatize()).

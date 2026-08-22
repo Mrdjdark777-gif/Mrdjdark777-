@@ -16,7 +16,7 @@ from knowledge.schema import KnowledgeChunk
 from search.engine import extract_version_hint
 from search.qa_service import QAService
 
-# Единственный экземпляр на процесс — TF-IDF индекс и данные грузятся один
+# Единственный экземпляр на процесс — BM25 индекс и данные грузятся один
 # раз при старте, а не при каждом сообщении; bot/handlers/inline.py
 # переиспользует его же.
 qa_service = QAService(HOTKEYS_PATH, UNANSWERED_LOG_PATH, KNOWLEDGE_CHUNK_PATHS, TERMINOLOGY_PATH)
