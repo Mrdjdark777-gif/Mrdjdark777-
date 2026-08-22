@@ -27,6 +27,7 @@ import bot.handlers.diagnostics as diagnostics_module
 import bot.handlers.education as education_module
 import bot.handlers.qa as qa_module
 from bot.handlers.hotkeys import HOTKEYS
+from bot.telegram_output import escape, send_message_safe
 from config import (
     DIAGNOSTICS_PATH,
     HOTKEYS_PATH,
@@ -107,7 +108,7 @@ async def health_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         f"Диагностических проблем: {len(diagnostics_module.diagnostic_registry.problems)}",
         f"Уроков: {len(education_module.lesson_registry.lessons)}",
     ]
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 def _count_jsonl_lines(path) -> int:
@@ -134,10 +135,10 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     lines.append(f"Всего knowledge chunks: {len(chunks)}")
     lines.append("По типу источника:")
     for k, v in sorted(by_source_type.items(), key=lambda kv: -kv[1]):
-        lines.append(f"  {k}: {v}")
+        lines.append(f"  {escape(k)}: {v}")
     lines.append("По authority tier:")
     for k, v in sorted(by_tier.items(), key=lambda kv: -kv[1]):
-        lines.append(f"  {k}: {v}")
+        lines.append(f"  {escape(k)}: {v}")
     lines.append("")
     lines.append(f"Терминов: {len(engine.terminology.terms)}")
     lines.append(f"Диагностических проблем: {len(diagnostics_module.diagnostic_registry.problems)}")
@@ -148,7 +149,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     lines.append(f"Профилей пользователей: {education_module.profile_store.total_users()}")
     lines.append(f"Незнакомых вопросов в логе: {_count_jsonl_lines(UNANSWERED_LOG_PATH)}")
 
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 async def sources_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -161,15 +162,15 @@ async def sources_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     lines = ["Подключённые источники знаний (config.KNOWLEDGE_CHUNK_PATHS):", ""]
     for path in KNOWLEDGE_CHUNK_PATHS:
-        lines.append(f"  {path}")
+        lines.append(f"  {escape(path)}")
     lines.append("")
     lines.append("По полю source (chunk.source), chunks в индексе:")
     for source, count in sorted(counts.items(), key=lambda kv: -kv[1]):
-        lines.append(f"  {source}: {count}")
+        lines.append(f"  {escape(source)}: {count}")
     lines.append("")
     lines.append("Приоритет источников (раздел 3 ТЗ): S=100, A=80, B=60, C=30, D=10.")
 
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 async def version_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -181,16 +182,18 @@ async def version_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
     unknown_count = sum(1 for c in qa_module.qa_service.engine.chunks if not c.version)
     lines = ["Версии Blender, покрытые базой знаний (раздел 7 ТЗ):", ""]
-    lines.append(", ".join(versions) if versions else "(нет chunks с указанной версией)")
+    lines.append(escape(", ".join(versions)) if versions else "(нет chunks с указанной версией)")
     lines.append(f"\nChunks без указанной версии: {unknown_count}")
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 def _format_scored(scored, index: int) -> str:
+    # BB-001 (hardening ТЗ): translated_title — knowledge/-данные,
+    # экранируется как любой другой динамический текст.
     c = scored.chunk
     return (
-        f"{index}. [{scored.score:.3f}] {c.translated_title} "
-        f"({c.source_type}, v={c.version or '?'})\n"
+        f"{index}. [{scored.score:.3f}] {escape(c.translated_title)} "
+        f"({escape(c.source_type)}, v={escape(c.version) if c.version else '?'})\n"
         f"   lexical={scored.lexical_score:.3f} authority={scored.authority_score:.3f} "
         f"version={scored.version_score:.3f} topic={scored.topic_score:.3f} "
         f"kind={scored.chunk_kind_score:.2f} exact_term={scored.exact_term_bonus:.2f} "
@@ -212,9 +215,9 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("Ничего не найдено (score=0 для всех chunks).")
         return
 
-    lines = [f"Сырые результаты поиска для: {query!r}", ""]
+    lines = [f"Сырые результаты поиска для: {escape(query)!r}", ""]
     lines.extend(_format_scored(r, i + 1) for i, r in enumerate(results))
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -236,17 +239,17 @@ async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     results = qa_service.engine.search(question, requested_version=intent.version_hint, top_n=3)
     result = qa_service.answer(question)
 
-    lines = [f"Debug: {question!r}", ""]
+    lines = [f"Debug: {escape(question)!r}", ""]
     lines.append(f"question_types: {intent.question_types}")
     lines.append(f"topics: {intent.topics}")
-    lines.append(f"version_hint: {intent.version_hint}")
+    lines.append(f"version_hint: {escape(intent.version_hint) if intent.version_hint else None}")
     lines.append(f"diagnostic_triggered: {bool(diagnostic_hit)}"
-                 + (f" ({diagnostic_hit.problem_id})" if diagnostic_hit else ""))
+                 + (f" ({escape(diagnostic_hit.problem_id)})" if diagnostic_hit else ""))
     lines.append("")
     lines.append(f"QAResult.kind: {result.kind}")
     lines.append(f"QAResult.confidence: {result.confidence}")
     if result.chunk:
-        lines.append(f"selected: {result.chunk.translated_title} ({result.chunk.source_type})")
+        lines.append(f"selected: {escape(result.chunk.translated_title)} ({escape(result.chunk.source_type)})")
     lines.append("")
     lines.append("top raw search results:")
     if results:
@@ -254,7 +257,7 @@ async def debug_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         lines.append("  (пусто)")
 
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 def _reload_knowledge() -> QAService:
@@ -323,13 +326,17 @@ async def unanswered_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("Лог пуст — нет вопросов без уверенного ответа.")
         return
 
+    # BB-001 (hardening ТЗ): r.get("question") — РЕАЛЬНЫЙ текст вопроса
+    # от произвольного Telegram-пользователя (см. search/unanswered_log.py)
+    # — самый высокий по риску динамический текст во всём admin.py,
+    # обязательно экранируется.
     lines = [f"Последние {len(records)} вопросов без уверенного ответа:", ""]
     for r in reversed(records):
         types = ",".join(r.get("question_types") or []) or "?"
-        lines.append(f"• [{r.get('best_score', 0):.2f}] {r.get('question', '?')} ({types})")
+        lines.append(f"• [{r.get('best_score', 0):.2f}] {escape(r.get('question', '?'))} ({escape(types)})")
     lines.append("")
     lines.append("Ответить прямо сейчас: /quick_add вопрос | ответ")
-    await update.message.reply_text("\n".join(lines))
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 QUICK_ADD_USAGE_TEXT = "Использование: /quick_add вопрос | ответ"
@@ -379,13 +386,21 @@ async def quick_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     try:
         new_qa_service = _reload_knowledge()
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        await update.message.reply_text(
-            f"Заметка сохранена ({chunk_id}), но реиндексация не удалась: {exc}\n"
-            f"Попробуй /reindex вручную после исправления."
+        # BB-001 (hardening ТЗ): exc — текст исключения может содержать
+        # произвольные фрагменты (например, куски невалидного JSON) —
+        # экранируется как и любой другой динамический текст.
+        await send_message_safe(
+            update.message,
+            f"Заметка сохранена ({escape(chunk_id)}), но реиндексация не удалась: {escape(exc)}\n"
+            f"Попробуй /reindex вручную после исправления.",
         )
         return
 
-    await update.message.reply_text(
-        f"Добавлено и переиндексировано ({chunk_id}), chunks теперь: "
-        f"{len(new_qa_service.engine.chunks)}.\n\nВопрос: {question}\nОтвет: {answer}"
+    # BB-001: question/answer здесь набирает OWNER (не произвольный
+    # пользователь), но всё равно экранируются для единообразия — owner
+    # может вставить текст со спецсимволами (например, скопированный код).
+    await send_message_safe(
+        update.message,
+        f"Добавлено и переиндексировано ({escape(chunk_id)}), chunks теперь: "
+        f"{len(new_qa_service.engine.chunks)}.\n\nВопрос: {escape(question)}\nОтвет: {escape(answer)}",
     )

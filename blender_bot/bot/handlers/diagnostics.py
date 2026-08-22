@@ -9,6 +9,7 @@ Diagnostic Engine (Phase 9).
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.telegram_output import bold, edit_message_safe, escape, send_message_safe
 from config import DIAGNOSTICS_PATH
 from diagnostics.registry import DiagnosticRegistry
 from diagnostics.schema import DecisionNode
@@ -32,7 +33,11 @@ def _options_keyboard(node: DecisionNode) -> InlineKeyboardMarkup:
 
 
 def _format_solution(node: DecisionNode) -> str:
-    return f"{node.cause}\n\n*Что делать:*\n{node.fix}"
+    # BB-001 (hardening ТЗ): cause/fix — текст из
+    # knowledge/system/diagnostics/problems.json (раздел 12 ТЗ), вручную
+    # авторский, но всё равно ДАННЫЕ, не код приложения — экранируется,
+    # как и любой другой динамический текст.
+    return f"{escape(node.cause)}\n\n{bold('Что делать:')}\n{escape(node.fix)}"
 
 
 async def _maybe_send_image(context: ContextTypes.DEFAULT_TYPE, chat_id: int, node: DecisionNode) -> None:
@@ -79,7 +84,7 @@ async def try_start_diagnostic(
 
     root = problem.root
     await _maybe_send_image(context, update.effective_chat.id, root)
-    await update.message.reply_text(root.question_text, reply_markup=_options_keyboard(root))
+    await send_message_safe(update.message, escape(root.question_text), reply_markup=_options_keyboard(root))
     return True
 
 
@@ -114,10 +119,10 @@ async def diag_option_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     if next_node.kind == "question":
         context.user_data["diag_node_id"] = next_node.node_id
         await _maybe_send_image(context, query.message.chat_id, next_node)
-        await query.edit_message_text(
-            next_node.question_text, reply_markup=_options_keyboard(next_node)
+        await edit_message_safe(
+            query, escape(next_node.question_text), reply_markup=_options_keyboard(next_node)
         )
     else:
         clear_session(context)
         await _maybe_send_image(context, query.message.chat_id, next_node)
-        await query.edit_message_text(_format_solution(next_node), parse_mode="Markdown")
+        await edit_message_safe(query, _format_solution(next_node))

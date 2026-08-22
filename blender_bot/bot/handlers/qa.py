@@ -11,6 +11,7 @@ from config import (
 )
 from bot.handlers.diagnostics import clear_session, try_start_diagnostic
 from bot.handlers.education import profile_store, try_continue_learn
+from bot.telegram_output import edit_message_safe, escape, italic, send_message_safe
 from knowledge.schema import KnowledgeChunk
 from search.engine import extract_version_hint
 from search.qa_service import QAService
@@ -100,9 +101,13 @@ def _is_vague_followup(question: str) -> bool:
 
 
 def _format_hotkey_matches(matches: list[tuple[str, str]]) -> str:
+    """BB-001 (hardening ТЗ): desc/category приходят из data/hotkeys.json —
+    после ТЗ v3 раздела 2.2/живой обратной связи это уже не только
+    вручную написанные строки, но и official-контент из Manual (Ctrl-I,
+    Alt-H и т.п.) — экранируется как любой другой динамический текст."""
     lines = ["Нашел в списке горячих клавиш:", ""]
     for desc, category in matches:
-        lines.append(f"• {desc}\n  _(раздел: {category})_")
+        lines.append(f"• {escape(desc)}\n  {italic(f'раздел: {category}')}")
     return "\n".join(lines)
 
 
@@ -115,14 +120,15 @@ def _source_ref(chunk: KnowledgeChunk) -> str:
     сначала убрали source-специфичную оговорку для personal-заметок,
     затем — и саму строку с источником из обычного ответа целиком ("теперь
     при ответах не нужно указывать источник, просто ответ")."""
+    title = escape(chunk.translated_title)
     if chunk.source_type == "official_manual":
-        version_note = f" ({chunk.version})" if chunk.version else ""
-        url_part = f" — {chunk.url}" if chunk.url else ""
-        return f"{chunk.translated_title}, официальный Blender Manual{version_note}{url_part}"
+        version_note = f" ({escape(chunk.version)})" if chunk.version else ""
+        url_part = f" — {escape(chunk.url)}" if chunk.url else ""
+        return f"{title}, официальный Blender Manual{version_note}{url_part}"
     if chunk.source_type == "ai_generated_unverified":
-        return f"{chunk.translated_title} — личная база бота, не сверено с официальной документацией"
-    url_part = f" — {chunk.url}" if chunk.url else ""
-    return f"{chunk.translated_title}, {chunk.source}{url_part}"
+        return f"{title} — личная база бота, не сверено с официальной документацией"
+    url_part = f" — {escape(chunk.url)}" if chunk.url else ""
+    return f"{title}, {escape(chunk.source)}{url_part}"
 
 
 def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
@@ -140,8 +146,14 @@ def _format_chunk_answer(chunk: KnowledgeChunk) -> str:
     явный запрос "дай источники"/"подробнее" (`_format_more_info`, ниже,
     хотя и она конкурирующий источник отдельно не выделяет) или через
     /debug (раздел 33 ТЗ) для владельца. Отступление от буквы разделов
-    14-15-17 зафиксировано в PROJECT_PLAN.md."""
-    return chunk.content
+    14-15-17 зафиксировано в PROJECT_PLAN.md.
+
+    BB-001 (hardening ТЗ): chunk.content — сырой текст knowledge/ (Manual,
+    personal notes, hotkeys) без какой-либо HTML/Markdown разметки внутри
+    (parse_manual.py извлекает текст через docutils .astext(), т.е.
+    гарантированно plain text) — экранировать целиком безопасно, ничего
+    из НАМЕРЕННОГО форматирования не теряется, потому что его там нет."""
+    return escape(chunk.content)
 
 
 def _format_more_info(question: str) -> str:
@@ -168,8 +180,8 @@ def _format_more_info(question: str) -> str:
     if extra:
         lines.append("Вот что ещё нашлось по теме:\n")
         for r in extra:
-            lines.append(f"• {r.chunk.translated_title}")
-            lines.append(r.chunk.content)
+            lines.append(f"• {escape(r.chunk.translated_title)}")
+            lines.append(escape(r.chunk.content))
             lines.append("")
     else:
         lines.append("Больше материалов по теме в базе знаний нет — вот источники для дальнейшего чтения.\n")
@@ -213,7 +225,7 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if _is_more_info_request(question):
         last_question = context.user_data.get("last_question")
         if last_question:
-            await update.message.reply_text(_format_more_info(last_question), parse_mode="Markdown")
+            await send_message_safe(update.message, _format_more_info(last_question))
         else:
             await update.message.reply_text(NOTHING_TO_EXPAND_TEXT)
         return
@@ -245,16 +257,11 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if result.kind == "chunk_confident":
         context.user_data["last_question"] = question
-        await update.message.reply_text(
-            _format_chunk_answer(result.chunk),
-            parse_mode="Markdown",
-        )
+        await send_message_safe(update.message, _format_chunk_answer(result.chunk))
         return
 
     if result.kind == "hotkeys":
-        await update.message.reply_text(
-            _format_hotkey_matches(result.hotkey_matches), parse_mode="Markdown"
-        )
+        await send_message_safe(update.message, _format_hotkey_matches(result.hotkey_matches))
         return
 
     if result.kind == "soft_match":
@@ -269,8 +276,9 @@ async def answer_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 ]
             ]
         )
-        await update.message.reply_text(
-            f"Возможно, ты имел в виду:\n«{result.chunk.translated_title}»?",
+        await send_message_safe(
+            update.message,
+            f"Возможно, ты имел в виду:\n«{escape(result.chunk.translated_title)}»?",
             reply_markup=keyboard,
         )
         return
@@ -291,9 +299,7 @@ async def qa_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     if chunk:
         # soft_match по построению ниже HIGH_CONFIDENCE_THRESHOLD (Phase 7) —
         # confidence="LOW" здесь всегда честна, пересчитывать не нужно.
-        await query.edit_message_text(
-            _format_chunk_answer(chunk), parse_mode="Markdown"
-        )
+        await edit_message_safe(query, _format_chunk_answer(chunk))
     else:
         await query.edit_message_text(FALLBACK_TEXT)
 

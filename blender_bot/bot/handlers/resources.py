@@ -3,6 +3,7 @@ import json
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.telegram_output import bold, edit_message_safe, escape, link
 from config import RESOURCES_PATH
 
 with open(RESOURCES_PATH, encoding="utf-8") as f:
@@ -33,21 +34,19 @@ async def resources_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     category = CATEGORIES[index]
     items = RESOURCES[category]
 
-    lines = [f"*{category}*", ""]
+    # BB-001 (hardening ТЗ): name/url/note — data/resources.json,
+    # динамические данные — экранируются как любой другой текст. link()
+    # сам экранирует и текст, и URL-атрибут.
+    lines = [bold(category), ""]
     for item in items:
-        lines.append(f"[{item['name']}]({item['url']}) — {item['note']}")
+        lines.append(f"{link(item['name'], item['url'])} — {escape(item['note'])}")
     text = "\n".join(lines)
 
     back_button = InlineKeyboardMarkup(
         [[InlineKeyboardButton("« Назад к категориям", callback_data="resources_back")]]
     )
 
-    await query.edit_message_text(
-        text,
-        parse_mode="Markdown",
-        reply_markup=back_button,
-        disable_web_page_preview=True,
-    )
+    await edit_message_safe(query, text, reply_markup=back_button, disable_web_page_preview=True)
 
 
 async def resources_back_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

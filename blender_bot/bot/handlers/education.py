@@ -22,6 +22,7 @@ import random
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.telegram_output import bold, edit_message_safe, escape, send_message_safe
 from config import LESSONS_PATH, PROFILE_DB_PATH, TERMINOLOGY_PATH
 from education.registry import LessonRegistry
 from education.schema import Lesson, QuizQuestion
@@ -63,7 +64,7 @@ def _resolve_lesson(query_text: str) -> Lesson | None:
 
 
 def _topics_list_text() -> str:
-    return "\n".join(f"• {lesson.title}" for lesson in lesson_registry.lessons)
+    return "\n".join(f"• {escape(lesson.title)}" for lesson in lesson_registry.lessons)
 
 
 def _quiz_keyboard(question: QuizQuestion) -> InlineKeyboardMarkup:
@@ -75,7 +76,10 @@ def _quiz_keyboard(question: QuizQuestion) -> InlineKeyboardMarkup:
 
 
 def _format_question(topic_title: str, question: QuizQuestion) -> str:
-    return f"*{topic_title}*\n\n{question.text}"
+    # BB-001 (hardening ТЗ): topic_title/question.text — данные из
+    # education/ (knowledge/system/education/lessons.json), не код
+    # приложения — экранируются как любой другой динамический текст.
+    return f"{bold(topic_title)}\n\n{escape(question.text)}"
 
 
 def _format_result(correct: bool, question: QuizQuestion) -> str:
@@ -87,8 +91,8 @@ def _format_result(correct: bool, question: QuizQuestion) -> str:
     verdict = "✅ Верно!" if correct else "❌ Неверно."
     return "\n".join([
         verdict,
-        f"Правильный ответ: {question.options[question.correct_index]}",
-        f"\n{question.explanation}",
+        f"Правильный ответ: {escape(question.options[question.correct_index])}",
+        f"\n{escape(question.explanation)}",
     ])
 
 
@@ -122,13 +126,13 @@ async def _send_lesson(lesson: Lesson, update: Update, context: ContextTypes.DEF
     context.user_data["edu_current_topic"] = lesson.topic_id
     profile_store.touch_topic(update.effective_user.id, lesson.topic_id)
     text = (
-        f"*{lesson.title}*\n\n"
-        f"*Теория:*\n{lesson.theory}\n\n"
-        f"*Пример:*\n{lesson.example}\n\n"
-        f"*Упражнение:*\n{lesson.exercise}\n\n"
+        f"{bold(lesson.title)}\n\n"
+        f"{bold('Теория:')}\n{escape(lesson.theory)}\n\n"
+        f"{bold('Пример:')}\n{escape(lesson.example)}\n\n"
+        f"{bold('Упражнение:')}\n{escape(lesson.exercise)}\n\n"
         f"Когда попробуешь — набери /test, чтобы проверить себя по этой теме."
     )
-    await update.message.reply_text(text, parse_mode="Markdown")
+    await send_message_safe(update.message, text)
 
 
 async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -143,12 +147,12 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         # bot/handlers/qa.py — там это проверяется РАНЬШЕ, чем сообщение
         # успеет попасть в обычный QA-поток или под "не помню контекст").
         context.user_data["edu_awaiting_topic"] = True
-        await update.message.reply_text(NO_TOPIC_TEXT.format(topics=_topics_list_text()))
+        await send_message_safe(update.message, NO_TOPIC_TEXT.format(topics=_topics_list_text()))
         return
 
     lesson = _resolve_lesson(query_text)
     if not lesson:
-        await update.message.reply_text(TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
+        await send_message_safe(update.message, TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
         return
 
     await _send_lesson(lesson, update, context)
@@ -168,7 +172,7 @@ async def try_continue_learn(text: str, update: Update, context: ContextTypes.DE
 
     lesson = _resolve_lesson(text)
     if not lesson:
-        await update.message.reply_text(TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
+        await send_message_safe(update.message, TOPIC_NOT_FOUND_TEXT.format(topics=_topics_list_text()))
         return True
 
     await _send_lesson(lesson, update, context)
@@ -185,8 +189,8 @@ async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     _start_quiz(context, [(lesson, q) for q in lesson.quiz])
     current = _current_question(context)
     lesson, question = current
-    await update.message.reply_text(
-        _format_question(lesson.title, question), parse_mode="Markdown",
+    await send_message_safe(
+        update.message, _format_question(lesson.title, question),
         reply_markup=_quiz_keyboard(question),
     )
 
@@ -201,8 +205,8 @@ async def exam_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     random.shuffle(shuffled)
     _start_quiz(context, shuffled)
     lesson, question = _current_question(context)
-    await update.message.reply_text(
-        _format_question(lesson.title, question), parse_mode="Markdown",
+    await send_message_safe(
+        update.message, _format_question(lesson.title, question),
         reply_markup=_quiz_keyboard(question),
     )
 
@@ -217,14 +221,15 @@ async def next_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             weakest_topic_id = max(weak, key=weak.get)
             lesson = lesson_registry.get(weakest_topic_id)
             if lesson:
-                await update.message.reply_text(
-                    f"Судя по прошлым ответам, стоит повторить «{lesson.title}» "
-                    f"— набери /learn {lesson.title}"
+                await send_message_safe(
+                    update.message,
+                    f"Судя по прошлым ответам, стоит повторить «{escape(lesson.title)}» "
+                    f"— набери /learn {escape(lesson.title)}",
                 )
                 return
         if lesson_registry.lessons:
             first = lesson_registry.lessons[0]
-            await update.message.reply_text(f"Начни с /learn {first.title}")
+            await send_message_safe(update.message, f"Начни с /learn {escape(first.title)}")
         else:
             await update.message.reply_text(NO_LESSONS_TEXT)
         return
@@ -237,8 +242,8 @@ async def next_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     lesson, question = current
-    await update.message.reply_text(
-        _format_question(lesson.title, question), parse_mode="Markdown",
+    await send_message_safe(
+        update.message, _format_question(lesson.title, question),
         reply_markup=_quiz_keyboard(question),
     )
 
@@ -251,17 +256,21 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     profile = profile_store.get_profile(user_id, _lesson_question_ids())
+    # BB-001 (hardening ТЗ): summary['topics']/profile.completed_topics —
+    # topic_id строки (обычно safe идентификаторы), profile.blender_version —
+    # ИЗ ПОЛЬЗОВАТЕЛЬСКОГО ВВОДА (extract_version_hint на вопросе, см.
+    # bot/handlers/qa.py) — экранируется как любой другой динамический текст.
     lines = [
-        "*Твой прогресс:*", "",
+        bold("Твой прогресс:"), "",
         f"Отвечено вопросов: {summary['total']}",
         f"Правильно: {summary['correct']}/{summary['total']}",
-        f"Темы: {', '.join(summary['topics']) if summary['topics'] else '—'}",
+        f"Темы: {escape(', '.join(summary['topics'])) if summary['topics'] else '—'}",
     ]
     if profile.completed_topics:
-        lines.append(f"Пройдено полностью: {', '.join(profile.completed_topics)}")
+        lines.append(f"Пройдено полностью: {escape(', '.join(profile.completed_topics))}")
     if profile.blender_version:
-        lines.append(f"Твоя версия Blender (по последнему упоминанию): {profile.blender_version}")
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        lines.append(f"Твоя версия Blender (по последнему упоминанию): {escape(profile.blender_version)}")
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 async def weaknesses_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -270,10 +279,10 @@ async def weaknesses_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(NO_WEAKNESSES_TEXT)
         return
 
-    lines = ["*Слабые места:*", ""]
+    lines = [bold("Слабые места:"), ""]
     for topic_id, count in sorted(weak.items(), key=lambda item: item[1], reverse=True):
-        lines.append(f"• {topic_id} — {count} неверных ответов")
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+        lines.append(f"• {escape(topic_id)} — {count} неверных ответов")
+    await send_message_safe(update.message, "\n".join(lines))
 
 
 async def quiz_answer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -303,4 +312,4 @@ async def quiz_answer_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         result_text += "\n\nНабери /next для следующего вопроса."
 
-    await query.edit_message_text(result_text, parse_mode="Markdown")
+    await edit_message_safe(query, result_text)
