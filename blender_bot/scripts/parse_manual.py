@@ -265,12 +265,22 @@ def collect_raw_entries(manual_root: Path) -> list[dict]:
     return entries
 
 
-def translate_entries(entries: list[dict]) -> None:
+CHECKPOINT_EVERY = 500  # раздел 2.1: полный прогон — часы работы бесплатного
+# переводчика на ~9000 записей; без чекпоинтов сбой сети/сервиса под конец
+# теряет всю проделанную работу, т.к. registry.save() раньше происходил
+# только один раз в самом конце main().
+
+
+def translate_entries(entries: list[dict], on_checkpoint=None) -> None:
     """Тот же приём, что в старом build_manual_index.py: title+content
     одним запросом через разделитель, чтобы не удваивать число обращений
     к бесплатному сервису перевода — их и так тысячи. Английский
     оригинал сохраняется в title_en/content_en ДО перевода (раздел 8 ТЗ:
-    не терять английские названия)."""
+    не терять английские названия).
+
+    on_checkpoint(entries), если передан, вызывается каждые
+    CHECKPOINT_EVERY записей — даёт main() возможность сохранить
+    промежуточный результат на диск, не теряя часы работы при сбое."""
     translator = GoogleTranslator(source="auto", target="ru")
     total = len(entries)
     print(f"Перевожу {total} записей на русский (долго, не прерывать)...")
@@ -291,6 +301,11 @@ def translate_entries(entries: list[dict]) -> None:
         time.sleep(TRANSLATE_DELAY_SECONDS)
         if i % 100 == 0 or i == total:
             print(f"  переведено {i}/{total}")
+        if on_checkpoint and i % CHECKPOINT_EVERY == 0:
+            # Весь список, не только переведённый префикс: непереведённый
+            # хвост просто остаётся на английском в чекпоинте, а не
+            # пропадает из файла целиком.
+            on_checkpoint(entries)
 
 
 _ID_SAFE_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
@@ -345,15 +360,28 @@ def main() -> None:
     entries = collect_raw_entries(manual_root)
     print(f"Собрано {len(entries)} чанков с {len(set(e['section_path'] for e in entries))} страниц.")
 
-    translate_entries(entries)
+    if OUTPUT_PATH.exists():
+        backup_path = OUTPUT_PATH.with_suffix(".json.bak")
+        shutil.copy2(OUTPUT_PATH, backup_path)
+        print(f"Старый {OUTPUT_PATH.name} сохранён как {backup_path.name}")
 
-    registry = build_registry(entries)
-    registry.save(OUTPUT_PATH)
-    print(f"Готово: {len(registry.chunks)} chunks сохранено в {OUTPUT_PATH}")
+    def _checkpoint(entries_so_far: list[dict]) -> None:
+        registry = build_registry(entries_so_far)
+        registry.save(OUTPUT_PATH)
+        print(f"  [чекпоинт] {len(registry.chunks)} chunks сохранено в {OUTPUT_PATH}")
 
-    dupes = registry.duplicate_content_hashes()
-    if dupes:
-        print(f"Внимание: {len(dupes)} групп дублей по content_hash")
+    try:
+        translate_entries(entries, on_checkpoint=_checkpoint)
+    finally:
+        # Сохраняем даже при Ctrl-C/сбое сети посреди перевода — часть
+        # записей останется на английском, но ничего не потеряется.
+        registry = build_registry(entries)
+        registry.save(OUTPUT_PATH)
+        print(f"Готово: {len(registry.chunks)} chunks сохранено в {OUTPUT_PATH}")
+
+        dupes = registry.duplicate_content_hashes()
+        if dupes:
+            print(f"Внимание: {len(dupes)} групп дублей по content_hash")
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
 
