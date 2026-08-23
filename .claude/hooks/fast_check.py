@@ -1,4 +1,11 @@
-"""PostToolUse hook (matcher: Edit|Write, scoped to *.py in settings.json).
+"""PostToolUse hook (matcher: Edit|Write в settings.json - срабатывает на
+ЛЮБОЙ Edit/Write, фильтрация по *.py сделана здесь, а не через settings.json
+`if`-поле: живой smoke test 2026-08-23 показал, что matcher-only PreToolUse
+hook (guard_destructive) реально срабатывает через harness, а PostToolUse с
+"if": "Edit(**/*.py)" - нет, при этом причина не установлена (не воспроизвели
+через claude --debug в рамках сессии). Раз matcher без `if` уже доказанно
+работает - фильтрация по расширению перенесена в сам скрипт (см. ниже), а не
+в непроверенный `if`-механизм. См. CLAUDE_CODE_SETUP_REPORT.md.
 
 Level A ("быстрая проверка после существенных изменений Python") из
 CLAUDE_CODE_SETUP_REPORT.md: синтаксис/compile check + best-effort прогон
