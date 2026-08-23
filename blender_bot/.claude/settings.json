@@ -1,0 +1,81 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_destructive.py\"",
+            "timeout": 15,
+            "statusMessage": "Проверка на деструктивные команды..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(*.py)",
+            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
+            "timeout": 120,
+            "statusMessage": "Быстрая проверка (compile + relevant test)..."
+          },
+          {
+            "type": "command",
+            "if": "Write(*.py)",
+            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
+            "timeout": 120,
+            "statusMessage": "Быстрая проверка (compile + relevant test)..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_reminder.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(//**/.env)",
+      "Read(**/.env)",
+      "Read(//**/*.key)",
+      "Read(**/*.key)",
+      "Edit(//**/.env)",
+      "Edit(**/.env)",
+      "Edit(//**/*.key)",
+      "Edit(**/*.key)",
+      "PowerShell(git push * --force*)",
+      "PowerShell(git push * -f)",
+      "PowerShell(git push * -f *)",
+      "PowerShell(git filter-branch*)",
+      "PowerShell(git add *.env*)",
+      "PowerShell(git add *.key*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git filter-branch*)",
+      "Bash(git add *.env*)",
+      "Bash(git add *.key*)",
+      "Bash(rm -rf *)"
+    ],
+    "ask": [
+      "PowerShell(git reset --hard*)",
+      "PowerShell(git branch -D *)",
+      "PowerShell(Remove-Item * -Recurse -Force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git branch -D *)"
+    ]
+  }
+}
