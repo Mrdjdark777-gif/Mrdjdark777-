@@ -56,6 +56,25 @@ CHUNK_KIND_MODIFIER_WEIGHT = 0.2
 HOTKEY_INTENT_MODIFIER_WEIGHT = 1.0
 MODIFIER_FLOOR = 0.1  # модификатор не должен обнулить уже найденную релевантность
 
+# ТЗ Natural Language, раздел 5 (Query Understanding, Phase 2 — см.
+# NATURAL_LANGUAGE_IMPLEMENTATION_REPORT.md): порог overlap-based
+# concept-detection по user_phrases (раздел 3-4 того же ТЗ). Порог по
+# ДОЛЕ токенов фразы (не запроса) — user_phrases описывают полный
+# симптом/задачу ("у зеркала щель по центру"), запрос пользователя часто
+# длиннее и содержит обвязку ("привет, подскажите, пожалуйста, ..."),
+# поэтому доля от запроса была бы систематически заниженной; доля от
+# ФРАЗЫ отвечает на осмысленный вопрос "встретилась ли в запросе бОльшая
+# часть того, что описывает эта формулировка". MIN_OVERLAP_TOKENS=2 —
+# та же защита от однословных случайных совпадений, что и решение НЕ
+# подключать user_phrases к find()/_find_term() посимвольно (см. Term
+# docstring в knowledge/terminology.py): одно случайно совпавшее слово
+# уже один раз создавало ложные срабатывания в этом проекте (голый алиас
+# "материал", Phase 1 отчёт) — здесь та же ошибка была бы куда тише и
+# незаметнее, так как concept-detection не участвует в relevance
+# напрямую, а тихо подмешивается в topic_score/chunk_kind_score.
+CONCEPT_MIN_OVERLAP_TOKENS = 2
+CONCEPT_MIN_OVERLAP_FRACTION = 0.66
+
 # Живая обратная связь: "Какой хоткей дублирует объект в Blender?" даже
 # после регистрации термина "Duplicate" и появления hotkeys-чанков в
 # корпусе (scripts/build_hotkeys_knowledge.py) отвечался official
@@ -176,6 +195,24 @@ class SearchEngine:
 
         self.terminology = TerminologyRegistry.load(terminology_path)
 
+        # ТЗ Natural Language, раздел 5 (Phase 2): user_phrases каждого
+        # термина лемматизированы и токенизированы ОДИН раз здесь, а не на
+        # каждый запрос — тот же принцип производительности, что и у
+        # term_name_token_lists ниже (раздел 4.1 ТЗ v3, время отклика
+        # <50мс). lemmatize() применён здесь так же, как и к самому
+        # запросу в search() ("фаску"/"фаски" — та же проблема словоформ,
+        # см. docstring lemmatize() в search/tfidf.py), а не только
+        # tokenize() — иначе реальная формулировка пользователя почти
+        # никогда не совпала бы с фразой один-в-один по словоформам.
+        # set() — оверлап считается по УНИКАЛЬНЫМ токенам фразы, повтор
+        # слова внутри одной фразы не должен искусственно завышать долю.
+        self._concept_phrase_tokens: list[tuple[Term, frozenset[str]]] = []
+        for term in self.terminology.terms:
+            for phrase in term.user_phrases:
+                phrase_tokens = frozenset(lemmatize(tokenize(phrase)))
+                if phrase_tokens:
+                    self._concept_phrase_tokens.append((term, phrase_tokens))
+
         # Раздел 4.1 ТЗ v3 (время отклика < 50мс): _exact_term_bonus раньше
         # заново токенизировала title+content КАЖДОГО chunk'а на КАЖДЫЙ
         # запрос — при ~850 chunks это и было настоящим узким местом
@@ -270,6 +307,39 @@ class SearchEngine:
             if fuzzy:
                 return fuzzy
         return None
+
+    def _find_term_by_concept(self, query_lemmas: set[str]) -> Term | None:
+        """ТЗ Natural Language, раздел 5 (Query Understanding, Phase 2):
+        последний, самый слабый уровень распознавания термина — когда
+        запрос вообще не называет ни одно официальное/жаргонное имя
+        термина (_find_term вернул None), но по смыслу описывает готовую
+        user_phrases-формулировку задачи/симптома ("как сделать чтобы
+        одна половина повторяла другую" -> Mirror Modifier, ни разу не
+        упомянув слово "зеркало").
+
+        Overlap-based (ТЗ прямо называет этот метод допустимым, раздел 5):
+        доля УНИКАЛЬНЫХ токенов конкретной user_phrase, встретившихся в
+        запросе (query_lemmas должны быть уже лемматизированы тем же
+        способом, что и self._concept_phrase_tokens — см. __init__ и
+        search()). Порог — CONCEPT_MIN_OVERLAP_TOKENS/_FRACTION выше.
+
+        Побеждает фраза с наибольшей долей (при равенстве — с бОльшим
+        абсолютным числом совпавших токенов) — длинная точная фраза
+        предпочтительнее короткой случайно зацепившей два общих слова."""
+        best_term: Term | None = None
+        best_key = (0.0, 0)
+        for term, phrase_tokens in self._concept_phrase_tokens:
+            overlap = len(query_lemmas & phrase_tokens)
+            if overlap < CONCEPT_MIN_OVERLAP_TOKENS:
+                continue
+            fraction = overlap / len(phrase_tokens)
+            if fraction < CONCEPT_MIN_OVERLAP_FRACTION:
+                continue
+            key = (fraction, overlap)
+            if key > best_key:
+                best_key = key
+                best_term = term
+        return best_term
 
     def _term_names(self, term: Term) -> set[str]:
         names = {term.canonical_name, term.russian_name, *term.aliases, *term.english_aliases}
@@ -405,7 +475,12 @@ class SearchEngine:
         # запросе, свою логику словоформ не трогаем (см. lemmatize()).
         query_tokens = lemmatize(tokenize(query))
         lexical_scores = self._bm25.similarities(query_tokens)
-        term = self._find_term(query)
+        # ТЗ Natural Language, раздел 5 (Phase 2): concept-detection по
+        # user_phrases — только когда явное имя/алиас термина в запросе
+        # не найдено вообще (_find_term уже возвращает None и для
+        # опечаток через find_fuzzy). Явное упоминание термина — сигнал
+        # сильнее и точнее overlap-эвристики, приоритет за ним.
+        term = self._find_term(query) or self._find_term_by_concept(set(query_tokens))
         term_name_token_lists = self._term_name_token_lists(term)
         term_norms = self._term_canonical_norms(term)
         query_is_hotkey_intent = _is_hotkey_intent(query)

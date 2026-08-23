@@ -14,6 +14,7 @@ from knowledge.registry import ChunkRegistry
 from knowledge.schema import KnowledgeChunk
 from knowledge.terminology import Term, TerminologyRegistry
 from search.engine import SearchEngine, _is_hotkey_intent, extract_version_hint
+from search.tfidf import lemmatize, tokenize
 
 
 def _chunk(**overrides) -> KnowledgeChunk:
@@ -147,6 +148,109 @@ class SyntheticEngineTests(unittest.TestCase):
 
     def test_empty_query_returns_no_results(self):
         self.assertEqual(self.engine.search(""), [])
+
+
+class ConceptDetectionTests(unittest.TestCase):
+    """ТЗ Natural Language, раздел 5 (Phase 2 — Query Understanding, см.
+    NATURAL_LANGUAGE_IMPLEMENTATION_REPORT.md): overlap-based распознавание
+    термина по user_phrases, когда запрос не называет ни одно имя/алиас
+    термина явно. Синтетический корпус — проверяем сам механизм
+    _find_term_by_concept/его подключение в search(), не качество реальных
+    данных (для этого RealDataEngineTests ниже)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp_path = Path(self.tmp.name)
+
+        chunks_registry = ChunkRegistry()
+        chunks_registry.add(_chunk(
+            id="official:mirror", topic="modifiers",
+            original_title="Mirror Modifier", translated_title="Модификатор Зеркало",
+            content="Официальное описание модификатора Mirror: отражает меш по оси.",
+        ))
+        chunks_registry.add(_chunk(
+            id="official:boolean", topic="modifiers",
+            original_title="Boolean Modifier", translated_title="Модификатор Булеан",
+            content="Булеан вырезает или объединяет геометрию двух объектов.",
+        ))
+        chunk_path = tmp_path / "chunks.json"
+        chunks_registry.save(chunk_path)
+
+        term_registry = TerminologyRegistry()
+        term_registry.add(Term(
+            canonical_name="Mirror Modifier", russian_name="Модификатор Зеркало",
+            category="modifiers", aliases=["зеркало"], english_aliases=["mirror"],
+            user_phrases=["как сделать вторую половину модели одинаковой"],
+        ))
+        term_registry.add(Term(
+            canonical_name="Boolean Modifier", russian_name="Модификатор Булеан",
+            category="modifiers", aliases=["булеан"], english_aliases=["boolean"],
+            user_phrases=["remove doubles"],
+        ))
+        term_registry.add(Term(
+            canonical_name="Bevel", russian_name="Фаска",
+            category="modifiers", aliases=["фаска"],
+        ))  # без user_phrases вообще — не должен участвовать в concept-detection
+        term_path = tmp_path / "terms.json"
+        term_registry.save(term_path)
+
+        self.engine = SearchEngine([chunk_path], term_path)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    @staticmethod
+    def _lemmas(text: str) -> set[str]:
+        return set(lemmatize(tokenize(text)))
+
+    def test_full_phrase_overlap_matches_concept_term(self):
+        # Запрос ни разу не называет "Mirror"/"зеркало" явно, но по составу
+        # слов почти дословно совпадает с зарегистрированной user_phrase.
+        query = "Ребята подскажите пожалуйста как сделать вторую половину модели одинаковой"
+        term = self.engine._find_term_by_concept(self._lemmas(query))
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Mirror Modifier")
+
+    def test_single_word_overlap_is_not_enough(self):
+        # Только одно слово фразы ("половину") встретилось в запросе —
+        # ниже CONCEPT_MIN_OVERLAP_TOKENS, не должно матчиться.
+        query = "у меня проблема с половиной чего-то совсем другого"
+        term = self.engine._find_term_by_concept(self._lemmas(query))
+        self.assertIsNone(term)
+
+    def test_two_word_phrase_requires_full_match(self):
+        # "remove doubles" — вся фраза из 2 токенов, оба должны совпасть.
+        self.assertIsNone(
+            self.engine._find_term_by_concept({"remove"})
+        )
+        term = self.engine._find_term_by_concept({"remove", "doubles"})
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Boolean Modifier")
+
+    def test_term_without_user_phrases_never_matched_by_concept(self):
+        # Bevel зарегистрирован без user_phrases — какой бы ни был запрос,
+        # concept-detection не должен его вернуть (его просто нет в индексе
+        # self._concept_phrase_tokens).
+        term = self.engine._find_term_by_concept({"фаска", "скругление", "края", "модели"})
+        self.assertIsNone(term)
+
+    def test_explicit_alias_mention_takes_priority_over_concept_match(self):
+        # Запрос одновременно называет алиас "зеркало" (Mirror) И содержит
+        # полное совпадение с user_phrase Boolean ("remove doubles") —
+        # explicit _find_term должен победить через `or` в search(), а не
+        # более слабый concept-fallback.
+        results = self.engine.search("зеркало remove doubles")
+        self.assertTrue(results)
+        self.assertEqual(results[0].matched_term, "Mirror Modifier")
+
+    def test_concept_match_propagates_as_matched_term_in_search(self):
+        # Полная интеграция: concept-only запрос (без явного имени термина)
+        # должен довести найденный концепт до ScoredChunk.matched_term и
+        # поднять релевантный chunk через exact_term_bonus/topic_score.
+        results = self.engine.search("как сделать вторую половину модели одинаковой")
+        self.assertTrue(results)
+        self.assertEqual(results[0].chunk.id, "official:mirror")
+        self.assertEqual(results[0].matched_term, "Mirror Modifier")
 
 
 class DuplicateContentCollapseTests(unittest.TestCase):
@@ -416,6 +520,22 @@ class RealDataEngineTests(unittest.TestCase):
         term = self.engine._find_term("Что такое бевел?")
         self.assertIsNotNone(term)
         self.assertEqual(term.canonical_name, "Bevel")
+
+    def test_concept_detection_finds_term_on_real_seeded_user_phrase(self):
+        # ТЗ Natural Language, раздел 5 (Phase 2): реальная user_phrase
+        # Mirror Modifier из knowledge/system/terminology/terms.json ("как
+        # сделать вторую половину модели") пересказана без единого слова
+        # "зеркало"/"mirror" — _find_term(query) в одиночку это не найдёт.
+        query = "Ребята, подскажите пожалуйста, как сделать вторую половину модели, а то не получается"
+        term = self.engine._find_term_by_concept(
+            set(lemmatize(tokenize(query)))
+        )
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Mirror Modifier")
+
+        results = self.engine.search(query)
+        self.assertTrue(results)
+        self.assertEqual(results[0].matched_term, "Mirror Modifier")
 
     def test_official_manual_present_in_top_results_for_common_query(self):
         results = self.engine.search("geometry nodes", top_n=10)
