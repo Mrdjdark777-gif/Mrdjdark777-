@@ -1229,6 +1229,29 @@
   "subtopic": "Edit Mode (моделирование)",
   "date": null,
   "url": null,
+  "original_title": "M — меню Merge, объединяет выделенные вершины в одну: At Center/At Cursor/At Last...",
+  "translated_title": "M — меню Merge, объединяет выделенные вершины в одну: At Center/At Cursor/At Last...",
+  "content": "M — меню Merge, объединяет выделенные вершины в одну: At Center/At Cursor/At Last (в одну точку), Collapse (каждую отдельную группу связанных вершин — в свою точку) или By Distance (все вершины ближе заданного расстояния друг к другу)",
+  "license": null,
+  "author": null,
+  "content_hash": "1aae53ff4d62a0748273bbaa00c0cabe210e432298d5e4186fd7157110d81996",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:edit_mode_моделирование:15",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Edit Mode (моделирование)",
+  "date": null,
+  "url": null,
   "original_title": "P — меню Separate: отделить часть меша в новый независимый объект (Selection — по...",
   "translated_title": "P — меню Separate: отделить часть меша в новый независимый объект (Selection — по...",
   "content": "P — меню Separate: отделить часть меша в новый независимый объект (Selection — по выделению, By Loose Parts — по несвязанным островкам)",
@@ -1242,7 +1265,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:15",
+  "id": "hotkeys:edit_mode_моделирование:16",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1265,7 +1288,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:16",
+  "id": "hotkeys:edit_mode_моделирование:17",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
