@@ -191,6 +191,16 @@ class ConceptDetectionTests(unittest.TestCase):
             canonical_name="Bevel", russian_name="Фаска",
             category="modifiers", aliases=["фаска"],
         ))  # без user_phrases вообще — не должен участвовать в concept-detection
+        term_registry.add(Term(
+            canonical_name="Simple Deform Modifier", russian_name="Модификатор Простая Деформация",
+            category="modifiers", aliases=["простая деформация"],
+            # Ровно 3 значимых токена ("прорезать"/"грань"/"вручную" —
+            # "как" стоп-слово): по одной только доле 0.66 такой фразе
+            # хватило бы ДВУХ совпадений. Именно эта форма давала ложные
+            # срабатывания на реальных данных — см.
+            # CONCEPT_STRONG_OVERLAP_TOKENS в search/engine.py.
+            user_phrases=["как прорезать грань вручную"],
+        ))
         term_path = tmp_path / "terms.json"
         term_registry.save(term_path)
 
@@ -226,6 +236,21 @@ class ConceptDetectionTests(unittest.TestCase):
         term = self.engine._find_term_by_concept({"remove", "doubles"})
         self.assertIsNotNone(term)
         self.assertEqual(term.canonical_name, "Boolean Modifier")
+
+    def test_two_of_three_tokens_is_not_enough(self):
+        # Регрессия на измеренный баг (см. CONCEPT_STRONG_OVERLAP_TOKENS):
+        # у фразы из 3 токенов доля 0.66 достигается ДВУМЯ совпадениями,
+        # и пара общих слов вытягивала посторонний концепт. Здесь запрос
+        # делит с фразой "как прорезать грань вручную" ровно два слова
+        # ("грань", "вручную") — этого больше не должно хватать.
+        query = "как создать грань или ребро вручную между вершинами"
+        self.assertIsNone(self.engine._find_term_by_concept(self._lemmas(query)))
+
+        # Контроль: та же фраза целиком (все три слова) по-прежнему
+        # находится — правило режет слабые совпадения, а не механизм.
+        term = self.engine._find_term_by_concept(self._lemmas("как прорезать грань вручную"))
+        self.assertIsNotNone(term)
+        self.assertEqual(term.canonical_name, "Simple Deform Modifier")
 
     def test_term_without_user_phrases_never_matched_by_concept(self):
         # Bevel зарегистрирован без user_phrases — какой бы ни был запрос,
