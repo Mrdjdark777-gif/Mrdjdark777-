@@ -99,6 +99,34 @@ class TerminologyRegistryTests(unittest.TestCase):
         registry = TerminologyRegistry.load(Path("does/not/exist.json"))
         self.assertEqual(registry.terms, [])
 
+    def test_user_phrases_roundtrip_through_save_load(self):
+        # ТЗ Natural Language, раздел 3: user_phrases — новое поле,
+        # проверяем, что оно не теряется при сериализации.
+        import tempfile
+
+        registry = TerminologyRegistry()
+        registry.add(_make_term(user_phrases=["как сделать вторую половину модели"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "terms.json"
+            registry.save(path)
+            loaded = TerminologyRegistry.load(path)
+            self.assertEqual(
+                loaded.terms[0].user_phrases, ["как сделать вторую половину модели"]
+            )
+
+    def test_user_phrases_not_findable_via_exact_lookup(self):
+        # Осознанное решение (см. докстринг Term в knowledge/terminology.py):
+        # user_phrases — полные фразы для будущего overlap-based concept
+        # detection (ТЗ Natural Language, Phase 2), не короткие алиасы —
+        # find() ищет ТОЧНОЕ совпадение всей строки, что для целого
+        # предложения почти никогда не происходит на реальных вопросах, и
+        # индексировать их как обычные алиасы означало бы полагаться на
+        # это редкое совпадение вместо специально спроектированного
+        # механизма. Явно фиксируем, что find() их пока не видит.
+        registry = TerminologyRegistry()
+        registry.add(_make_term(user_phrases=["как сделать вторую половину модели"]))
+        self.assertIsNone(registry.find("как сделать вторую половину модели"))
+
 
 class FuzzyFindTests(unittest.TestCase):
     """Раздел 1.1 ТЗ v3: нормализация опечаток (Левенштейн через difflib)."""
@@ -177,6 +205,19 @@ class SeededTerminologyTests(unittest.TestCase):
                     collisions.append((key, seen[key], term.canonical_name))
                 seen.setdefault(key, term.canonical_name)
         self.assertEqual(collisions, [])
+
+    def test_user_phrases_are_unique_within_each_term(self):
+        # ТЗ Natural Language, раздел 4: "не создавать тысячи почти
+        # одинаковых предложений только ради количества" — минимальная,
+        # дешёвая проверка на этот счёт: хотя бы буквальных дублей внутри
+        # одного термина быть не должно.
+        for term in self.registry.terms:
+            if not term.user_phrases:
+                continue
+            self.assertEqual(
+                len(term.user_phrases), len(set(term.user_phrases)),
+                f"{term.canonical_name}: повторяющиеся user_phrases",
+            )
 
     def test_known_lookups(self):
         self.assertEqual(self.registry.find("булеан").canonical_name, "Boolean Modifier")

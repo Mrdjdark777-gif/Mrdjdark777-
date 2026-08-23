@@ -37,11 +37,28 @@ def normalize(text: str) -> str:
 
 @dataclass
 class Term:
-    """Один термин Terminology Database (раздел 9 ТЗ).
+    """Один термин Terminology Database (раздел 9 ТЗ; раздел 3 ТЗ Natural
+    Language: он же "Concept Registry" — не отдельная параллельная
+    структура, а расширение уже существующей, см. раздел 24 того ТЗ:
+    "максимально переиспользуй уже работающую архитектуру").
 
     canonical_name/russian_name — обязательные "официальные" названия
-    (раздел 8: "не удалять английские названия"). aliases — русские
-    синонимы/сленг, english_aliases — английские сокращения/варианты.
+    (раздел 8: "не удалять английские названия"). aliases — короткие
+    русские синонимы/сленг (одно-два слова, для find()/find_fuzzy() —
+    точное или Левенштейн-совпадение ЦЕЛОГО запроса с ЦЕЛЫМ алиасом).
+    english_aliases — английские сокращения/варианты.
+
+    user_phrases (ТЗ Natural Language, раздел 3-4) — ПОЛНЫЕ естественные
+    формулировки задачи/симптома/результата ("как сделать вторую
+    половину", "у зеркала щель по центру"), не отдельные синонимы слова.
+    Принципиально другая роль, чем aliases: find()/find_fuzzy() ищут
+    ЦЕЛИКОМ совпадающую строку — ни один реальный вопрос пользователя не
+    совпадёт с полной фразой один-в-один, поэтому эти строки НЕ
+    участвуют в _index()/find() (см. ниже) и пока не влияют на поиск —
+    они лишь ДАННЫЕ для будущего overlap-based concept detection (ТЗ
+    Natural Language, раздел 5, Phase 2 — ещё не реализовано, см.
+    PROJECT_PLAN.md/NATURAL_LANGUAGE_IMPLEMENTATION_REPORT.md).
+
     ui_label — как термин реально называется в интерфейсе Blender, если
     отличается от canonical_name (раздел 8 явно требует хранить UI label).
     """
@@ -54,6 +71,7 @@ class Term:
     ui_label: str | None = None
     related_terms: list[str] = field(default_factory=list)
     common_mistakes: list[str] = field(default_factory=list)
+    user_phrases: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
