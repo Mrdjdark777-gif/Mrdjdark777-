@@ -631,6 +631,29 @@
   "subtopic": "Базовые манипуляции",
   "date": null,
   "url": null,
+  "original_title": "Alt + D — дублировать со связью (Duplicate Linked): копия использует ТУ ЖЕ меш-данные,...",
+  "translated_title": "Alt + D — дублировать со связью (Duplicate Linked): копия использует ТУ ЖЕ меш-данные,...",
+  "content": "Alt + D — дублировать со связью (Duplicate Linked): копия использует ТУ ЖЕ меш-данные, что оригинал — редактирование геометрии одной копии в Edit Mode меняет все связанные разом (в отличие от Shift + D, где копии полностью независимы)",
+  "license": null,
+  "author": null,
+  "content_hash": "ab39a051acab87c76ebb15d6ec2786aac88022330e253e0bd76add20f48c41cd",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:7",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
   "original_title": "Ctrl + A (Object Mode) — применить трансформации (Apply Transform): закрепить текущий масштаб/поворот...",
   "translated_title": "Ctrl + A (Object Mode) — применить трансформации (Apply Transform): закрепить текущий масштаб/поворот...",
   "content": "Ctrl + A (Object Mode) — применить трансформации (Apply Transform): закрепить текущий масштаб/поворот как «настоящие» значения меша",
@@ -644,7 +667,122 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:базовые_манипуляции:7",
+  "id": "hotkeys:базовые_манипуляции:8",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
+  "original_title": "Ctrl + P (Object Mode, выделены минимум 2 объекта) — Parent: последний выделенный (активный) объект становится родителем остальных,...",
+  "translated_title": "Ctrl + P (Object Mode, выделены минимум 2 объекта) — Parent: последний выделенный (активный) объект становится родителем остальных,...",
+  "content": "Ctrl + P (Object Mode, выделены минимум 2 объекта) — Parent: последний выделенный (активный) объект становится родителем остальных, дочерние объекты наследуют его перемещение/поворот/масштаб",
+  "license": null,
+  "author": null,
+  "content_hash": "51bda331d98b5067316945dc32e75c64440bb64330227452febc90e96cf5af53",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:9",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
+  "original_title": "Alt + P — Clear Parent: снять родительскую связь; пункт Clear and Keep Transform убирает...",
+  "translated_title": "Alt + P — Clear Parent: снять родительскую связь; пункт Clear and Keep Transform убирает...",
+  "content": "Alt + P — Clear Parent: снять родительскую связь; пункт Clear and Keep Transform убирает связь, сохраняя текущее положение объекта в мировых координатах",
+  "license": null,
+  "author": null,
+  "content_hash": "41622db76e54396ee79f59cf1e0e59771de9fadc7037672ff7c7b8012eac41db",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:10",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
+  "original_title": "Ctrl + C / Ctrl + V (Object Mode) — скопировать/вставить выделенные объекты (не путать с копированием значения...",
+  "translated_title": "Ctrl + C / Ctrl + V (Object Mode) — скопировать/вставить выделенные объекты (не путать с копированием значения...",
+  "content": "Ctrl + C / Ctrl + V (Object Mode) — скопировать/вставить выделенные объекты (не путать с копированием значения ОДНОГО поля — это разные сочетания в контексте наведения на конкретный параметр)",
+  "license": null,
+  "author": null,
+  "content_hash": "2dab04bb98b35d5e5045c45b3de778b30b506d21af13661aece98f43eb3a81c7",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:11",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
+  "original_title": "Ctrl + M — Mirror, зеркально отражает выделение по оси (X/Y/Z сразу после — глобальная...",
+  "translated_title": "Ctrl + M — Mirror, зеркально отражает выделение по оси (X/Y/Z сразу после — глобальная...",
+  "content": "Ctrl + M — Mirror, зеркально отражает выделение по оси (X/Y/Z сразу после — глобальная ось, повторное нажатие той же оси — локальная ось объекта)",
+  "license": null,
+  "author": null,
+  "content_hash": "93450cf3be83d179ca02b6b5486c35147f4c83028b9289b5fa7b400b1f831101",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:12",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Базовые манипуляции",
+  "date": null,
+  "url": null,
+  "original_title": "Shift + Tab — включить/выключить привязку (Snapping) целиком, не открывая меню Shift + S",
+  "translated_title": "Shift + Tab — включить/выключить привязку (Snapping) целиком, не открывая меню Shift + S",
+  "content": "Shift + Tab — включить/выключить привязку (Snapping) целиком, не открывая меню Shift + S",
+  "license": null,
+  "author": null,
+  "content_hash": "b57814f11892369a110223b9ebe4dae2d3c9b649faae6d7690174aff6d1bc7da",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:базовые_манипуляции:13",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -667,7 +805,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:базовые_манипуляции:8",
+  "id": "hotkeys:базовые_манипуляции:14",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -690,7 +828,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:базовые_манипуляции:9",
+  "id": "hotkeys:базовые_манипуляции:15",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -713,7 +851,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:базовые_манипуляции:10",
+  "id": "hotkeys:базовые_манипуляции:16",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1091,6 +1229,29 @@
   "subtopic": "Edit Mode (моделирование)",
   "date": null,
   "url": null,
+  "original_title": "V — Rip, разрывает выделенные вершины от остальной геометрии (создаёт дубликаты...",
+  "translated_title": "V — Rip, разрывает выделенные вершины от остальной геометрии (создаёт дубликаты...",
+  "content": "V — Rip, разрывает выделенные вершины от остальной геометрии (создаёт дубликаты вершин, разъединяя грани) и сразу переводит в режим перемещения; V → V (двойное) — Rip Fill, дополнительно заполняет разрыв новой гранью",
+  "license": null,
+  "author": null,
+  "content_hash": "6a93cc7f74479879e1e4c8d8cfab5815a2adf1bba2a9bce9601b932e826a041b",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:edit_mode_моделирование:9",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Edit Mode (моделирование)",
+  "date": null,
+  "url": null,
   "original_title": "O — Proportional Editing, соседние точки смещаются вместе с выделенной с затуханием...",
   "translated_title": "O — Proportional Editing, соседние точки смещаются вместе с выделенной с затуханием...",
   "content": "O — Proportional Editing, соседние точки смещаются вместе с выделенной с затуханием к краям; колесо мыши меняет радиус влияния",
@@ -1104,7 +1265,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:9",
+  "id": "hotkeys:edit_mode_моделирование:10",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1127,7 +1288,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:10",
+  "id": "hotkeys:edit_mode_моделирование:11",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1150,7 +1311,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:11",
+  "id": "hotkeys:edit_mode_моделирование:12",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1173,7 +1334,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:12",
+  "id": "hotkeys:edit_mode_моделирование:13",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1196,7 +1357,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:13",
+  "id": "hotkeys:edit_mode_моделирование:14",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1219,7 +1380,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:14",
+  "id": "hotkeys:edit_mode_моделирование:15",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1242,7 +1403,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:15",
+  "id": "hotkeys:edit_mode_моделирование:16",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1265,7 +1426,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:16",
+  "id": "hotkeys:edit_mode_моделирование:17",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1288,7 +1449,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:edit_mode_моделирование:17",
+  "id": "hotkeys:edit_mode_моделирование:18",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1896,6 +2057,29 @@
   "subtopic": "Интерфейс и рендер",
   "date": null,
   "url": null,
+  "original_title": "Z — круговое меню режимов отображения (Wireframe/Solid/Material Preview/Rendered);...",
+  "translated_title": "Z — круговое меню режимов отображения (Wireframe/Solid/Material Preview/Rendered);...",
+  "content": "Z — круговое меню режимов отображения (Wireframe/Solid/Material Preview/Rendered); Shift + Z — быстрое переключение между текущим режимом и Wireframe",
+  "license": null,
+  "author": null,
+  "content_hash": "84553a3eb9a2d0f9a44960bceee783b5d3e2a2293e28c8e37ae9f9754c206e8c",
+  "ingested_at": null,
+  "last_updated": null,
+  "parent_document": null,
+  "section_path": null,
+  "needs_review": false
+ },
+ {
+  "id": "hotkeys:интерфейс_и_рендер:1",
+  "source": "hotkeys",
+  "source_type": "ai_generated_unverified",
+  "authority": null,
+  "version": null,
+  "language": "ru",
+  "topic": "interface",
+  "subtopic": "Интерфейс и рендер",
+  "date": null,
+  "url": null,
   "original_title": "Ctrl + Z / Ctrl + Shift + Z — отменить / повторить",
   "translated_title": "Ctrl + Z / Ctrl + Shift + Z — отменить / повторить",
   "content": "Ctrl + Z / Ctrl + Shift + Z — отменить / повторить",
@@ -1909,7 +2093,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:1",
+  "id": "hotkeys:интерфейс_и_рендер:2",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1932,7 +2116,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:2",
+  "id": "hotkeys:интерфейс_и_рендер:3",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1955,7 +2139,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:3",
+  "id": "hotkeys:интерфейс_и_рендер:4",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -1978,7 +2162,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:4",
+  "id": "hotkeys:интерфейс_и_рендер:5",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2001,7 +2185,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:5",
+  "id": "hotkeys:интерфейс_и_рендер:6",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2024,7 +2208,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:6",
+  "id": "hotkeys:интерфейс_и_рендер:7",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2047,7 +2231,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:7",
+  "id": "hotkeys:интерфейс_и_рендер:8",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2070,7 +2254,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:8",
+  "id": "hotkeys:интерфейс_и_рендер:9",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2093,7 +2277,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:9",
+  "id": "hotkeys:интерфейс_и_рендер:10",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2116,7 +2300,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:10",
+  "id": "hotkeys:интерфейс_и_рендер:11",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,
@@ -2139,7 +2323,7 @@
   "needs_review": false
  },
  {
-  "id": "hotkeys:интерфейс_и_рендер:11",
+  "id": "hotkeys:интерфейс_и_рендер:12",
   "source": "hotkeys",
   "source_type": "ai_generated_unverified",
   "authority": null,

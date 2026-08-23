@@ -661,7 +661,8 @@
   "category": "modeling",
   "aliases": [
    "снап",
-   "примагничивание"
+   "примагничивание",
+   "включит"
   ],
   "english_aliases": [
    "snap",
@@ -12012,6 +12013,73 @@
   "category": "interface",
   "aliases": [
    "откроет"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Wireframe/Solid/Material Preview/Rendered",
+  "russian_name": "круговое меню режимов отображения",
+  "category": "interface",
+  "aliases": [],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Parent",
+  "russian_name": "назначить родителя",
+  "category": "interface",
+  "aliases": [
+   "родитель",
+   "родительский объект",
+   "parenting",
+   "назначит"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Clear Parent",
+  "russian_name": "снять родительскую связь",
+  "category": "interface",
+  "aliases": [
+   "отвязать от родителя",
+   "убрать родителя",
+   "снимет"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Rip",
+  "russian_name": "разорвать вершину",
+  "category": "interface",
+  "aliases": [
+   "rip",
+   "разрыв вершины",
+   "разорвёт"
+  ],
+  "english_aliases": [],
+  "ui_label": null,
+  "related_terms": [],
+  "common_mistakes": []
+ },
+ {
+  "canonical_name": "Wireframe",
+  "russian_name": "каркасный режим отображения",
+  "category": "interface",
+  "aliases": [
+   "wireframe",
+   "каркас",
+   "режим каркаса"
   ],
   "english_aliases": [],
   "ui_label": null,

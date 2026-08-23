@@ -107,10 +107,24 @@ def main() -> None:
                 # Повторный запуск (идемпотентно, см. докстринг модуля):
                 # термин уже есть — только добавляем спрягаемую форму как
                 # алиас, если её там ещё нет, а не пропускаем целиком.
+                #
+                # Коллизия с ДРУГИМ термином (найдено 2026-08-23,
+                # tests/test_phase6_terminology.py::
+                # test_no_alias_collisions_between_different_terms):
+                # conjugated — это спряжение только ПЕРВОГО слова
+                # russian_name ("дублировать со связью" -> "дублирует"),
+                # без остатка фразы — для двух разных терминов с общим
+                # первым словом ("Duplicate"/"дублировать объект" и
+                # "Duplicate Linked"/"дублировать со связью") конъюгат
+                # совпадает буквально. Добавлять такой алиас термину, у
+                # которого его уже держит ДРУГОЙ термин, значило бы делать
+                # find() неоднозначным — пропускаем, а не добавляем.
                 if conjugated and conjugated not in existing.aliases:
-                    existing.aliases.append(conjugated)
-                    registry._index(existing)
-                    aliased += 1
+                    collision = registry.find(conjugated)
+                    if collision is None or collision is existing:
+                        existing.aliases.append(conjugated)
+                        registry._index(existing)
+                        aliased += 1
                 continue
 
             term = Term(

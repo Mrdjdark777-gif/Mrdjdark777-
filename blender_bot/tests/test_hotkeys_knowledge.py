@@ -138,6 +138,37 @@ class GenerateTerminologyFromHotkeysTests(unittest.TestCase):
         self.assertEqual(len(registry.terms), 1)  # не задвоилось
         self.assertIsNotNone(registry.find("дублирует"))  # алиас всё равно добавлен
 
+    def test_conjugated_alias_not_added_if_already_owned_by_another_term(self):
+        # Регрессия (найдено 2026-08-23, проактивный проход по хоткеям):
+        # "дублировать объект" (Duplicate) и "дублировать со связью"
+        # (Duplicate Linked) спрягают ОДНО И ТО ЖЕ первое слово в один и
+        # тот же алиас "дублирует" — если оба термина уже существуют
+        # (второй, например, пришёл из отдельной автогенерации по
+        # Manual), генератор не должен приписывать чужой алиас второму
+        # термину, иначе find("дублирует") станет неоднозначным между
+        # двумя разными терминами (см.
+        # tests/test_phase6_terminology.py::
+        # test_no_alias_collisions_between_different_terms).
+        existing = [
+            {
+                "canonical_name": "Duplicate", "russian_name": "дублировать объект",
+                "category": "interface", "aliases": ["дублирует"], "english_aliases": [],
+                "ui_label": None, "related_terms": [], "common_mistakes": [],
+            },
+            {
+                "canonical_name": "Duplicate Linked", "russian_name": "Дубликат связан",
+                "category": "scene_layout", "aliases": [], "english_aliases": [],
+                "ui_label": None, "related_terms": [], "common_mistakes": [],
+            },
+        ]
+        data = {"Общее": ["Alt+D — дублировать со связью (Duplicate Linked): копия использует те же меш-данные."]}
+        registry = self._run_with_data(data, existing_terms=existing)
+
+        duplicate = next(t for t in registry.terms if t.canonical_name == "Duplicate")
+        duplicate_linked = next(t for t in registry.terms if t.canonical_name == "Duplicate Linked")
+        self.assertIn("дублирует", duplicate.aliases)
+        self.assertNotIn("дублирует", duplicate_linked.aliases)
+
 
 if __name__ == "__main__":
     unittest.main()
