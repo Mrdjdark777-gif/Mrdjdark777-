@@ -3,3 +3,6 @@
 
 # Локальные артефакты Playwright MCP (снапшоты страниц со smoke-тестов).
 .playwright-mcp/
+
+# Байткод hook-скриптов Claude Code (создаётся при каждом их запуске).
+.claude/hooks/__pycache__/

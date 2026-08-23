@@ -41,6 +41,31 @@ _PROTECTED_TARGET_RE = re.compile(
 )
 
 
+# Тело heredoc'а в `git commit -m "$(cat <<'EOF' ... EOF)"` - это ТЕКСТ
+# сообщения, а не исполняемая команда. Живой ложноположительный случай
+# (2026-08-23): коммит, ОПИСЫВАЮЩИЙ починку этого самого хука, содержал в
+# теле сообщения слова "rm -rf" и "knowledge/" - guard заблокировал
+# собственный коммит про себя же.
+#
+# Вырезаем тело heredoc'а ТОЛЬКО у `git commit`: в общем случае heredoc
+# может скармливаться интерпретатору (`bash <<EOF ... EOF`), и тогда его
+# содержимое реально исполняется - вырезать его вслепую значило бы
+# открыть очевидный обход защиты. У `git commit` heredoc всегда данные.
+# Сама команда (всё вне тела heredoc'а) проверяется как обычно, поэтому
+# `git commit -m "..." && rm -rf knowledge/` по-прежнему ловится.
+_GIT_COMMIT_RE = re.compile(r"\bgit\s+commit\b", re.IGNORECASE)
+_HEREDOC_BODY_RE = re.compile(
+    r"<<-?\s*(['\"]?)(\w+)\1.*?^\s*\2\s*$",
+    re.DOTALL | re.MULTILINE,
+)
+
+
+def _strip_message_bodies(command: str) -> str:
+    if not _GIT_COMMIT_RE.search(command):
+        return command
+    return _HEREDOC_BODY_RE.sub("<<STRIPPED_MESSAGE_BODY", command)
+
+
 def _deny(reason: str) -> None:
     print(json.dumps({
         "hookSpecificOutput": {
@@ -53,11 +78,17 @@ def _deny(reason: str) -> None:
 
 def main() -> int:
     try:
-        # См. fast_check.py: PowerShell добавляет BOM при пайпинге в
-        # stdin, json.load() падает молча без .lstrip() (найдено на
-        # реальном smoke test).
-        raw = sys.stdin.read()
-        payload = json.loads(raw.lstrip("﻿"))
+        # Читаем БАЙТЫ и декодируем UTF-8 явно - см. подробный комментарий
+        # в fast_check.py::main(). Здесь эта ошибка не проявлялась только
+        # потому, что regex ниже сверяет ASCII-текст команды: путь
+        # "D:\Мои документы\..." внутри команды приезжал битым
+        # ("D:\РњРѕРё РґРѕРєСѓРјРµРЅС‚С‹\..."), и деструктивная команда,
+        # нацеленная на кириллический путь, могла НЕ совпасть с
+        # _PROTECTED_TARGET_RE, то есть тихо пройти мимо защиты.
+        # "utf-8-sig" заодно съедает BOM (PowerShell добавляет его при
+        # пайпинге в stdin - найдено на прошлом smoke test).
+        raw = sys.stdin.buffer.read().decode("utf-8-sig")
+        payload = json.loads(raw)
     except Exception:
         return 0
 
@@ -65,6 +96,7 @@ def main() -> int:
     if not command:
         return 0
 
+    command = _strip_message_bodies(command)
     if _DESTRUCTIVE_VERB_RE.search(command) and _PROTECTED_TARGET_RE.search(command):
         _deny(
             "guard_destructive: команда сочетает деструктивное удаление "
