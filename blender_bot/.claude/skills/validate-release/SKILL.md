@@ -10,6 +10,11 @@ description: Full pre-deploy verification gate -- compileall, full unittest suit
 каждого сохранения файла — для этого есть Level A (`run-regression`,
 плюс автоматический fast-check hook на каждый Edit/Write *.py).
 
+**Важно про cwd.** Сессия запущена из корня репозитория (`TG BOT/`), а
+не из `blender_bot/` — venv и tests/ лежат в `blender_bot/`. Сначала
+`cd blender_bot` (Bash) / `Set-Location blender_bot` (PowerShell),
+только потом команды ниже.
+
 ### 1. Compile check (весь проект, не только изменённые файлы)
 
 ```

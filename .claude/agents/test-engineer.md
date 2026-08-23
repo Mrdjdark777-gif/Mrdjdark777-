@@ -12,6 +12,12 @@ model: inherit
 (`tests/quality/`, 540 кейсов) запускается КАК ЧАСТЬ того же discover —
 это не отдельная команда.
 
+**Важно про cwd.** Сессия запущена из корня репозитория (`TG BOT/`), а
+не из `blender_bot/` — venv и tests/ лежат в `blender_bot/`. Перед
+любой командой ниже сначала `cd blender_bot` (Bash) / `Set-Location
+blender_bot` (PowerShell), иначе `venv\Scripts\python.exe` и `tests`
+просто не найдутся по относительному пути.
+
 ## Что делать
 
 1. **Найди релевантные тесты.** Тестовые файлы называются по фазам

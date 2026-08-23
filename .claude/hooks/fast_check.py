@@ -21,7 +21,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
+# CLAUDE_PROJECT_DIR - корень git-репозитория (сессия Claude Code
+# запускается из родительской папки, см. CLAUDE_CODE_SETUP_REPORT.md,
+# раздел про перенос .claude/ в корень), а весь код бота (venv/, tests/)
+# лежит на уровень ниже, в blender_bot/ - отсюда суффикс.
+PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve() / "blender_bot"
 _VENV_PYTHON = PROJECT_DIR / "venv" / "Scripts" / "python.exe"
 PYTHON = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
 

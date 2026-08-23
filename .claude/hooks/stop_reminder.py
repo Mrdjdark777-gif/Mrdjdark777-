@@ -20,8 +20,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
-GIT_ROOT = PROJECT_DIR.parent  # см. CLAUDE.md: git root на уровень выше blender_bot/
+# CLAUDE_PROJECT_DIR сессия Claude Code запускается прямо в корне
+# git-репозитория (см. CLAUDE_CODE_SETUP_REPORT.md, раздел про перенос
+# .claude/ в корень) - GIT_ROOT совпадает с ним напрямую, без .parent.
+GIT_ROOT = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
 
 
 def main() -> int:

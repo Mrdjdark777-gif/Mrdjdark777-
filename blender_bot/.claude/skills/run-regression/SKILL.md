@@ -4,13 +4,18 @@ description: Run the relevant tests for recent changes, then the full regression
 
 ## Текущие незакоммиченные изменения
 
-!`git -C "${CLAUDE_PROJECT_DIR}/.." status --short -- blender_bot`
+!`git -C "${CLAUDE_PROJECT_DIR}" status --short -- blender_bot`
 
 ## Инструкции
 
 Это Level A из двухуровневой схемы проверки проекта (см.
 `CLAUDE_CODE_SETUP_REPORT.md`). Быстрее, чем `validate-release`, для
 использования в середине работы, не только перед самым концом.
+
+**Важно про cwd.** Сессия запущена из корня репозитория (`TG BOT/`) —
+`CLAUDE_PROJECT_DIR` указывает прямо на него (не на `blender_bot/`).
+Команда выше это уже учитывает; для команд ниже (шаг 2) сначала перейди
+в `blender_bot/` (`cd blender_bot` / `Set-Location blender_bot`).
 
 1. По списку изменённых файлов выше определи затронутые тестовые файлы —
    тестовые файлы называются по фазам (`test_phaseN_*.py`) и темам

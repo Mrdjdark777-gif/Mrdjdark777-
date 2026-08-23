@@ -9,6 +9,10 @@ description: Run the natural-language/search quality suite, compare metrics agai
 natural-language cases." Эта skill — практическая реализация того
 правила, не просто пожелание.
 
+**Важно про cwd.** Сессия запущена из корня репозитория (`TG BOT/`), а
+не из `blender_bot/` — сначала `cd blender_bot` (Bash) / `Set-Location
+blender_bot` (PowerShell), только потом команды ниже.
+
 1. **Прогони quality-suite** (реальный `QAService`, не моки, 540
    кейсов):
    ```

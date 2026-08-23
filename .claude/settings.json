@@ -1,4 +1,5 @@
 {
+  "enabledMcpjsonServers": ["playwright"],
   "hooks": {
     "PreToolUse": [
       {
@@ -6,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_destructive.py\"",
+            "command": "\"${CLAUDE_PROJECT_DIR}/blender_bot/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_destructive.py\"",
             "timeout": 15,
             "statusMessage": "Проверка на деструктивные команды..."
           }
@@ -19,15 +20,15 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Edit(*.py)",
-            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
+            "if": "Edit(**/*.py)",
+            "command": "\"${CLAUDE_PROJECT_DIR}/blender_bot/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
             "timeout": 120,
             "statusMessage": "Быстрая проверка (compile + relevant test)..."
           },
           {
             "type": "command",
-            "if": "Write(*.py)",
-            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
+            "if": "Write(**/*.py)",
+            "command": "\"${CLAUDE_PROJECT_DIR}/blender_bot/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fast_check.py\"",
             "timeout": 120,
             "statusMessage": "Быстрая проверка (compile + relevant test)..."
           }
@@ -39,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_reminder.py\"",
+            "command": "\"${CLAUDE_PROJECT_DIR}/blender_bot/venv/Scripts/python.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_reminder.py\"",
             "timeout": 15
           }
         ]

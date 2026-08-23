@@ -1,5 +1,146 @@
 # Claude Code Setup Report
 
+## Обновление (та же дата, новая сессия) — конфиг не подключался, причина найдена и исправлена
+
+Пользователь вернулся в новой сессии с вопросом "это уже работает?" и
+попросил полный повторный аудит. Аудит показал: **ничего из раздела
+Added ниже пересоздавать было не нужно** — всё это уже существовало и
+было правильно написано, но было неактивно по структурной причине, не
+из-за содержимого файлов.
+
+### Причина (подтверждена через официальную документацию, не предположение)
+
+Эта сессия запущена из корня git-репозитория (`TG BOT/`), а не из
+`blender_bot/` — пользователь подтвердил, что **всегда открывает
+родительскую папку**. Весь `.claude/`-конфиг и `.mcp.json` при этом лежали
+в `blender_bot/.claude/` и `blender_bot/.mcp.json`. По официальным докам
+(`code.claude.com/docs/en/mcp`, `.../hooks`, `.../sub-agents`,
+`.../settings`) эти три механизма (в отличие от skills) читаются из
+РАЗНЫХ мест:
+
+| Механизм | Где ищется | Результат при cwd=корень, конфиг в blender_bot/ |
+|---|---|---|
+| Skills | рекурсивно по всему репозиторию (подтверждено: подхватились с префиксом `blender_bot/.claude/skills` в этой же сессии) | ✅ работает |
+| Subagents (`.claude/agents`) | walk-up от cwd к корню репо — путь `blender_bot/.claude/agents` при cwd=корень никогда не проходится (walk идёт вверх, не вниз) | ❌ не подключены |
+| `.mcp.json` | буквально "the folder you start in" (project root) | ❌ не подключён |
+| `.claude/settings.json` (hooks, permissions) | дословно из докки: "Claude Code reads it only from the folder you start in" | ❌ не подключены |
+
+Это объясняет всё: `code-reviewer`/`test-engineer`/`search-quality-reviewer`
+не появлялись в списке доступных агентов, Playwright не давал ни одного
+`mcp__playwright__*` инструмента, а hooks не срабатывали ни разу — не
+потому что что-то было сломано в содержимом, а потому что Claude Code их
+физически не читал с этого cwd.
+
+### Второй, независимый баг — найден по ходу, не связан с cwd
+
+`.claude/settings.json` использовал `"if": "Edit(*.py)"` /
+`"Write(*.py)"` для fast_check hook. По докам permissions/hooks
+(`code.claude.com/docs/en/permissions`, таблица про `*.env`/`*.py`):
+одно-сегментный wildcard-паттерн без `**/` матчит ТОЛЬКО файлы прямо в
+корне, без пути — `Edit(*.py)` матчит `file.py`, но НЕ
+`knowledge/terminology.py`. Почти весь реальный код проекта лежит в
+подпапках (`bot/`, `search/`, `knowledge/`, `tests/`...) — то есть даже
+если бы cwd-проблема не существовала, fast_check hook почти никогда бы не
+срабатывал на реальных правках. Исправлено на `Edit(**/*.py)` /
+`Write(**/*.py)` — теперь матчит на любой глубине.
+
+### Что исправлено
+
+Пользователь выбрал (см. вопрос в сессии): всегда открывает корень
+`TG BOT/`, поэтому конфиг перенесён туда, а не оставлена рекомендация
+сменить привычку запуска.
+
+- `git mv` (история сохранена, не copy+delete):
+  `blender_bot/.mcp.json` → `.mcp.json`,
+  `blender_bot/.claude/settings.json` → `.claude/settings.json`,
+  `blender_bot/.claude/hooks/` → `.claude/hooks/`,
+  `blender_bot/.claude/agents/` → `.claude/agents/`.
+  `.claude/skills/` НЕ перенесён — им это не требовалось (см. таблицу
+  выше), они и так уже правильно подхватывались из `blender_bot/`.
+- `.claude/hooks/fast_check.py`: `PROJECT_DIR` теперь
+  `CLAUDE_PROJECT_DIR / "blender_bot"` (venv и tests/ на уровень ниже
+  нового `CLAUDE_PROJECT_DIR`, который сейчас равен корню репо, а не
+  `blender_bot/`).
+- `.claude/hooks/stop_reminder.py`: `GIT_ROOT` было `PROJECT_DIR.parent`
+  (верно, когда `CLAUDE_PROJECT_DIR` == `blender_bot/`) — стало
+  `PROJECT_DIR` напрямую (верно теперь, когда `CLAUDE_PROJECT_DIR` уже
+  сам корень git).
+- `.claude/hooks/guard_destructive.py` — без изменений (не использует
+  `CLAUDE_PROJECT_DIR`, только regex по тексту команды).
+- `.claude/settings.json`: пути к `venv/Scripts/python.exe` получили
+  префикс `blender_bot/`; `if`-паттерны исправлены на `**/*.py`;
+  добавлен top-level `"enabledMcpjsonServers": ["playwright"]` — по
+  докам `settings-reference`, это заранее одобряет project-scope MCP
+  сервер БЕЗ интерактивного prompt'а при старте (папка уже доверена —
+  `hasTrustDialogAccepted: true` в `~/.claude.json` для этого проекта).
+- `.claude/agents/*.md` (все три) и `.claude/skills/*/SKILL.md` (все
+  четыре): добавлена явная заметка "cwd теперь корень репо, не
+  `blender_bot/` — добавь `cd blender_bot`/`Set-Location blender_bot`
+  перед командами ниже". `code-reviewer.md` также поправлен: "CLAUDE.md в
+  корне проекта" → `blender_bot/CLAUDE.md` (буквально неверно после
+  переноса, корень репо теперь не содержит CLAUDE.md напрямую).
+- `.claude/skills/run-regression/SKILL.md`: автоматически исполняемая
+  строка `!git -C "${CLAUDE_PROJECT_DIR}/.." status --short --
+  blender_bot` предполагала `CLAUDE_PROJECT_DIR == blender_bot/` (нужен
+  был `..`, чтобы попасть в корень git). Теперь `CLAUDE_PROJECT_DIR` уже
+  сам корень — убран `/..`, иначе команда искала бы git-репозиторий на
+  уровень ВЫШЕ `TG BOT/` (несуществующий) и падала бы при каждой загрузке
+  этой skill.
+
+### Проверено напрямую (не "должно работать")
+
+- `.claude/settings.json` — валидный JSON после правок (`json.load`
+  прошёл).
+- `guard_destructive.py` из НОВОГО расположения, с
+  `CLAUDE_PROJECT_DIR=<корень>`: безопасная команда → тихо (exit 0);
+  `rm -rf blender_bot/knowledge/system` → deny JSON (exit 0, как и
+  задумано для PreToolUse deny).
+- `fast_check.py` из нового расположения, тот же `CLAUDE_PROJECT_DIR`:
+  реальный синтаксически сломанный `.py`-файл (абсолютный путь, как
+  реально передаёт Claude Code) → exit 2 с текстом `SyntaxError`.
+- `stop_reminder.py` из нового расположения: корректно нашёл
+  незакоммиченные `.py`-правки этой же сессии (Phase 2 работы) и
+  напечатал напоминание.
+- SSH: `systemctl is-active blenderbot` → `active`, `uptime` — сервер
+  жив, деструктивных действий не выполнялось.
+- GitHub: `git remote -v` — `origin` настроен; `gh` CLI не установлен,
+  но это не требуется — весь прошлый и этот пуш идут через обычный
+  `git push` (HTTPS).
+- Sentry: подтверждено повторно — `grep -ril sentry **/*.py` не находит
+  использования в коде проекта (единственное совпадение — служебный файл
+  внутри `venv/Lib/site-packages/pip`, не имеет отношения к проекту).
+  `SENTRY_RECOMMENDATION.md` не устарел, не менялся.
+
+### Всё ещё НЕ проверено (структурно не может быть проверено без рестарта)
+
+MCP-серверы, project subagents и project `.claude/settings.json`
+читаются Claude Code при СТАРТЕ сессии — то же ограничение, что и в
+первой попытке, но теперь с найденной и исправленной причиной, а не
+просто "подождать и попробовать снова". Нужен реальный рестарт сессии в
+той же папке (`TG BOT/`, как пользователь и открывает), затем:
+
+1. `/agents` — должны появиться `code-reviewer`, `test-engineer`,
+   `search-quality-reviewer`.
+2. `/mcp` — `playwright` должен быть подключён БЕЗ prompt'а (за счёт
+   `enabledMcpjsonServers`).
+3. `/hooks` — три hook'а из `.claude/settings.json`.
+4. Реальный smoke test Playwright: открыть `docs.blender.org`.
+5. Отредактировать любой `.py`-файл в подпапке (например
+   `blender_bot/knowledge/terminology.py`) и убедиться, что fast_check
+   действительно запускается (не просто не падает при ручном вызове).
+
+### Files changed (эта сессия, в дополнение к списку в первой части отчёта)
+
+- `git mv`: `.mcp.json`, `.claude/settings.json`, `.claude/hooks/*.py`
+  (3 файла), `.claude/agents/*.md` (3 файла) — все из `blender_bot/` в
+  корень репозитория.
+- Отредактированы: `.claude/settings.json`, `.claude/hooks/fast_check.py`,
+  `.claude/hooks/stop_reminder.py`, все 3 файла в `.claude/agents/`, все
+  4 файла в `blender_bot/.claude/skills/*/SKILL.md` (остались на месте,
+  только правки cwd-заметок и одной автоисполняемой команды).
+- Этот файл (`CLAUDE_CODE_SETUP_REPORT.md`) — этот раздел.
+
+
 Аудит и настройка Claude Code для проекта Blender Telegram Bot, по
 запросу пользователя от 2026-08-23. Использована актуальная официальная
 документация (code.claude.com/docs), не память модели — команды/формат
