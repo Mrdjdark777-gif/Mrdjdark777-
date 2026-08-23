@@ -36,7 +36,13 @@ search/       — SearchEngine (Phase 7, раздел 10 ТЗ: BM25 — с ТЗ 
                 knowledge/ registry), confidence.py (Phase 10, раздел 14:
                 HIGH/MEDIUM/LOW/UNKNOWN) и QAService (бизнес-логика ответа
                 на вопрос + Conflict Engine раздела 17 — единственная точка
-                входа для bot/handlers/qa.py и bot/handlers/inline.py)
+                входа для bot/handlers/qa.py и bot/handlers/inline.py).
+                Concept layer (ТЗ Natural Language, Phase 2):
+                _find_term_by_concept() распознаёт термин по
+                Term.user_phrases, когда пользователь не назвал его
+                явно. Термин, УГАДАННЫЙ так, намеренно слабее
+                названного — не даёт HIGH и попадает в диапазон
+                soft_match, см. константы CONCEPT_* в search/engine.py
 intents/      — Intent Engine (Phase 8, раздел 11 ТЗ): классификация типа
                 вопроса (WHAT_IS/HOW_TO/...) и темы (RENDERING/RIGGING/...)
                 по keywords/patterns. Подключено только к логированию

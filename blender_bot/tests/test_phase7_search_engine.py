@@ -268,6 +268,28 @@ class ConceptDetectionTests(unittest.TestCase):
         self.assertTrue(results)
         self.assertEqual(results[0].matched_term, "Mirror Modifier")
 
+    def test_guessed_term_is_capped_and_flagged(self):
+        # Термин, УГАДАННЫЙ по user_phrases, не должен быть неотличим от
+        # НАЗВАННОГО: exact_term_bonus не доходит до 1.0, значит и
+        # relevance не подскакивает до 1.0, и confidence не станет HIGH.
+        # См. CONCEPT_GUESSED_TERM_MAX_BONUS в search/engine.py.
+        results = self.engine.search("как сделать вторую половину модели одинаковой")
+        self.assertTrue(results)
+        top = results[0]
+        self.assertEqual(top.matched_term, "Mirror Modifier")
+        self.assertTrue(top.term_from_concept)
+        self.assertLess(top.exact_term_bonus, 1.0)
+
+    def test_explicitly_named_term_is_not_capped(self):
+        # Контроль к предыдущему тесту: когда термин НАЗВАН явно, полный
+        # бонус обязан сохраниться — потолок не должен задеть обычный путь.
+        results = self.engine.search("модификатор зеркало")
+        self.assertTrue(results)
+        top = results[0]
+        self.assertEqual(top.matched_term, "Mirror Modifier")
+        self.assertFalse(top.term_from_concept)
+        self.assertEqual(top.exact_term_bonus, 1.0)
+
     def test_concept_match_propagates_as_matched_term_in_search(self):
         # Полная интеграция: concept-only запрос (без явного имени термина)
         # должен довести найденный концепт до ScoredChunk.matched_term и
@@ -545,6 +567,72 @@ class RealDataEngineTests(unittest.TestCase):
         term = self.engine._find_term("Что такое бевел?")
         self.assertIsNotNone(term)
         self.assertEqual(term.canonical_name, "Bevel")
+
+    def test_guessed_concept_never_answers_with_high_confidence(self):
+        """Регрессия на находку независимого ревью (2026-08-23).
+
+        "как разделить один объект на два отдельных" догадкой уходил в
+        концепт Join (ОБРАТНАЯ операция — объединение) и выдавал
+        score 1.350 с confidence=HIGH на статье "Присоединиться к узлу
+        пакета". Bag-of-words не различает "из двух в один" и "из одного
+        в два": совпадают "два"/"объект"/"один", а различающий глагол —
+        единственный, которого во фразе нет. Никакой порог overlap'а это
+        не ловит, поэтому проверяем не сам матч, а его ЦЕНУ: угаданный
+        термин не имеет права давать максимум доверия."""
+        from search.confidence import classify_confidence
+
+        for query in (
+            "как разделить один объект на два отдельных",
+            "как из одного объекта сделать два",
+        ):
+            with self.subTest(query=query):
+                results = self.engine.search(query)
+                if not results:
+                    continue
+                top = results[0]
+                if not top.term_from_concept:
+                    continue
+                self.assertLess(top.exact_term_bonus, 1.0)
+                self.assertNotEqual(classify_confidence(top), "HIGH")
+
+    def test_every_user_phrase_resolves_to_its_own_term(self):
+        """Самосогласованность всего Concept Registry на РЕАЛЬНЫХ данных.
+
+        Ревью справедливо заметило, что эта проверка прогонялась разово
+        руками и в репозиторий не попала — то есть следующая партия
+        концептов могла сломать её молча. Каждая user_phrase, поданная
+        как запрос, обязана находить свой собственный термин."""
+        mismatches = []
+        for term in self.engine.terminology.terms:
+            for phrase in term.user_phrases:
+                got = self.engine._find_term_by_concept(
+                    set(lemmatize(tokenize(phrase)))
+                )
+                got_name = got.canonical_name if got else None
+                if got_name != term.canonical_name:
+                    mismatches.append(f"{phrase!r}: {term.canonical_name} -> {got_name}")
+        self.assertEqual(mismatches, [], f"фразы находят чужой термин: {mismatches[:5]}")
+
+    def test_unrelated_queries_do_not_trigger_any_concept(self):
+        """Adversarial-набор: вопросы не по теме засеянных концептов, но
+        делящие с ними отдельные общие слова ("модель", "объект",
+        "рендер", "почему") — именно на таких срабатывал слишком мягкий
+        порог до фикса CONCEPT_STRONG_OVERLAP_TOKENS."""
+        for query in (
+            "почему модель не рендерится вообще",
+            "почему объект не виден в вьюпорте",
+            "как сохранить файл проекта",
+            "как экспортировать модель в fbx",
+            "почему блендер вылетает при запуске",
+            "сколько стоит блендер",
+            "почему рендер получается шумным",
+            "как импортировать модель из другой программы",
+        ):
+            with self.subTest(query=query):
+                got = self.engine._find_term_by_concept(set(lemmatize(tokenize(query))))
+                self.assertIsNone(
+                    got, f"{query!r} ложно зацепил концепт {got.canonical_name if got else None!r}"
+                )
 
     def test_concept_detection_finds_term_on_real_seeded_user_phrase(self):
         # ТЗ Natural Language, раздел 5 (Phase 2): реальная user_phrase

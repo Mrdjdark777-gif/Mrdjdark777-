@@ -109,6 +109,53 @@ CONCEPT_MIN_OVERLAP_FRACTION = 0.66
 # двусловные фразы вроде "remove doubles", где 2 токена — это 100%.
 CONCEPT_STRONG_OVERLAP_TOKENS = 3
 
+# Потолок exact_term_bonus для термина, УГАДАННОГО concept-слоем.
+#
+# Найдено независимым ревью (subagent code-reviewer, 2026-08-23) уже
+# ПОСЛЕ коммита партии 2. До Phase 2 exact_term_bonus мог
+# достичь 1.0 только если пользователь НАЗВАЛ термин (или его алиас), и
+# на этом равенстве стоят два независимых решения:
+#   search/engine.py  — relevance = max(lexical, 1.0 if bonus >= 1.0)
+#   search/confidence.py — official_manual + bonus >= 1.0 => "HIGH"
+# Concept-слой начал выдавать bonus 1.0 по ДОГАДКЕ, и оба решения
+# приняли догадку за твёрдый факт. Живой пример на текущих данных:
+#
+#   "как разделить один объект на два отдельных"
+#     с концептом: score 1.350, term=Join, confidence=HIGH,
+#                  ответ "Присоединиться к узлу пакета"
+#     без него:    score 0.603, term=None
+#
+# Запрос про РАЗДЕЛЕНИЕ уверенно отвечался статьёй про ОБЪЕДИНЕНИЕ:
+# bag-of-words не различает "из двух в один" и "из одного в два", а
+# различающий глагол — единственное слово, которого во фразе и не было.
+# Никакой порог overlap'а это не ловит в принципе, поэтому лечим не
+# порог, а последствие: догадка не должна давать максимум доверия.
+#
+# 0.9 < 1.0 ровно настолько, чтобы не пройти порог HIGH в
+# search/confidence.py — угаданный термин даёт максимум MEDIUM.
+CONCEPT_GUESSED_TERM_MAX_BONUS = 0.9
+
+# Relevance, которую УГАДАННЫЙ термин даёт чанку, реально содержащему
+# этот термин (у названного явно тут 1.0).
+#
+# Просто обнулить её нельзя: перекинуть словарный мост — и есть весь
+# смысл concept-слоя. Запрос "как сделать вторую половину модели" не
+# делит с официальной страницей Mirror ни одного слова, лексический
+# score там ~0, и без собственной relevance страница вообще не всплывает
+# (этот регресс поймал синтетический тест сразу после первой версии
+# фикса: потолка бонуса одного оказалось мало).
+#
+# Значение выбрано по УЖЕ существующим порогам ответа
+# (search/qa_service.py): HIGH_CONFIDENCE_THRESHOLD=0.75,
+# SOFT_MATCH_THRESHOLD=0.20. При типичном модификаторе official-чанка
+# (~1.23) relevance 0.5 даёт score ~0.61 — то есть догадка попадает в
+# ДИАПАЗОН SOFT_MATCH ("Возможно, ты имел в виду...?"), а не в уверенный
+# ответ. Именно это и нужно: предположение звучит как предположение.
+# Если лексика независимо подтверждает чанк (lexical > 0.5), побеждает
+# она — max() ниже, и тогда уверенный ответ опирается на реальные
+# совпадения слов, а не на догадку.
+CONCEPT_GUESSED_RELEVANCE = 0.5
+
 # Живая обратная связь: "Какой хоткей дублирует объект в Blender?" даже
 # после регистрации термина "Duplicate" и появления hotkeys-чанков в
 # корпусе (scripts/build_hotkeys_knowledge.py) отвечался official
@@ -200,6 +247,11 @@ class ScoredChunk:
     is_canonical_title: bool = False
     hotkey_intent_score: float = 0.5
     matched_term: str | None = None
+    # Термин УГАДАН concept-слоем по user_phrases, а не НАЗВАН в запросе
+    # (см. CONCEPT_GUESSED_TERM_MAX_BONUS). Отдельное поле, потому что по
+    # одному matched_term эти два случая неразличимы, а доверия они
+    # заслуживают очень разного.
+    term_from_concept: bool = False
 
 
 class SearchEngine:
@@ -522,7 +574,11 @@ class SearchEngine:
         # не найдено вообще (_find_term уже возвращает None и для
         # опечаток через find_fuzzy). Явное упоминание термина — сигнал
         # сильнее и точнее overlap-эвристики, приоритет за ним.
-        term = self._find_term(query) or self._find_term_by_concept(set(query_tokens))
+        term = self._find_term(query)
+        term_from_concept = False
+        if term is None:
+            term = self._find_term_by_concept(set(query_tokens))
+            term_from_concept = term is not None
         term_name_token_lists = self._term_name_token_lists(term)
         term_norms = self._term_canonical_norms(term)
         query_is_hotkey_intent = _is_hotkey_intent(query)
@@ -532,14 +588,26 @@ class SearchEngine:
             exact_term_bonus = self._exact_term_bonus(
                 term_name_token_lists, self._chunk_title_tokens[i], self._chunk_body_tokens[i]
             )
+            # Термин реально встречается в ЭТОМ чанке (а не просто
+            # распознан где-то в запросе) — считаем ДО потолка ниже,
+            # иначе догадка потеряла бы этот факт вместе с бонусом.
+            term_present_in_chunk = exact_term_bonus >= 1.0
+
+            if term_from_concept:
+                # Термин УГАДАН, а не назван: бонус не должен дотянуть до
+                # HIGH в search/confidence.py, а relevance — до уровня
+                # явного совпадения. См. CONCEPT_GUESSED_TERM_MAX_BONUS и
+                # CONCEPT_GUESSED_RELEVANCE.
+                exact_term_bonus = min(exact_term_bonus, CONCEPT_GUESSED_TERM_MAX_BONUS)
+                term_relevance = CONCEPT_GUESSED_RELEVANCE if term_present_in_chunk else 0.0
+            else:
+                term_relevance = 1.0 if term_present_in_chunk else 0.0
 
             # relevance — единственный сигнал, отвечающий на вопрос "вообще
-            # относится ли этот chunk к запросу". Считаем термин найденным
-            # для целей relevance, только если exact_term_bonus == 1.0 —
-            # т.е. термин реально встречается в ЭТОМ чанке, а не просто
-            # распознан где-то в запросе (0.3 — слишком слабый сигнал,
-            # чтобы поднимать нерелевантный чанк с нуля).
-            relevance = max(lexical_score, 1.0 if exact_term_bonus >= 1.0 else 0.0)
+            # относится ли этот chunk к запросу". Слабый bonus (0.3 —
+            # термин распознан, но в этом чанке не встречается) намеренно
+            # не поднимает чанк с нуля.
+            relevance = max(lexical_score, term_relevance)
 
             chunk_kind_score = self._chunk_kind_score(chunk, term)
             hotkey_intent_score = self._hotkey_intent_score(chunk, query_is_hotkey_intent)
@@ -577,6 +645,7 @@ class SearchEngine:
                     is_canonical_title=self._is_canonical_title(term_norms, i),
                     hotkey_intent_score=hotkey_intent_score,
                     matched_term=term.canonical_name if term else None,
+                    term_from_concept=term_from_concept,
                 )
             )
 
