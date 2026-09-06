@@ -60,9 +60,13 @@ else
   GENERATED_NEW_ENV=0
 fi
 
+# Export everything except NODE_ENV: with NODE_ENV=production set, `npm ci`
+# skips devDependencies (drizzle-kit, typescript, tailwindcss...), which
+# breaks the migrate/build steps below. NODE_ENV=production is still applied
+# correctly at runtime via the systemd unit's EnvironmentFile.
 set -a
-# shellcheck disable=SC1091
-source "$APP_DIR/.env"
+# shellcheck disable=SC1090
+source <(grep -v '^NODE_ENV=' "$APP_DIR/.env")
 set +a
 
 echo "== 5/7: сборка =="
