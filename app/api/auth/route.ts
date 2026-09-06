@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
     const password = String(d.password ?? '');
     if (!password || !verifyPassword(password)) throw new Error('Неверный пароль');
-    return result({ ok: true }, 200, { 'Set-Cookie': createSessionCookie() });
+    return result({ ok: true }, 200, { 'Set-Cookie': createSessionCookie(req) });
   } catch (e) {
     return failure(e);
   }

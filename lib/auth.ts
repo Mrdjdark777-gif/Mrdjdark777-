@@ -23,11 +23,27 @@ function sign(payload: string) {
   return createHmac('sha256', secret()).update(payload).digest('base64url');
 }
 
-export function createSessionCookie(): string {
+/**
+ * Only mark the cookie Secure when the request actually arrived over HTTPS.
+ * A Secure cookie set over plain HTTP is silently dropped by the browser,
+ * which would lock the owner out entirely before a domain + TLS cert exist.
+ * Once nginx terminates TLS and forwards `X-Forwarded-Proto: https`, this
+ * automatically starts adding Secure again.
+ */
+function isSecureRequest(req: Request): boolean {
+  if (req.headers.get('x-forwarded-proto') === 'https') return true;
+  try {
+    return new URL(req.url).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function createSessionCookie(req: Request): string {
   const expires = Date.now() + SESSION_TTL_MS;
   const payload = `${OWNER_ID}.${expires}`;
   const token = `${payload}.${sign(payload)}`;
-  const secure = process.env.NODE_ENV === 'production' ? ' Secure;' : '';
+  const secure = isSecureRequest(req) ? ' Secure;' : '';
   return `${COOKIE_NAME}=${token}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`;
 }
 

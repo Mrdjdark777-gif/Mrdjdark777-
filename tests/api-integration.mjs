@@ -43,7 +43,7 @@ const { library, audio, live, auth } = await import(outfile);
 const routes = { library, audio, live };
 
 const ORIGIN = 'https://true-thrills.test';
-const ownerCookie = auth.createSessionCookie().split(';')[0];
+const ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
 
 async function dispatch(pathname, init) {
   const route = routes[pathname];
