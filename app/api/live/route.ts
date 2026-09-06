@@ -1,0 +1,35 @@
+import { and, desc, eq, gt, lt } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { broadcasts, peers } from '@/db/schema';
+import { failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
+export async function GET(req: Request){try{
+  const q=new URL(req.url).searchParams,db=getDb();
+  if(q.has('status')){const live=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,Date.now()-90000))).orderBy(desc(broadcasts.heartbeat)).get();return result({live:live?{id:live.id,title:live.title}:null});}
+  if(q.get('host')){await requireOwner(req);const b=await db.select().from(broadcasts).where(eq(broadcasts.id,q.get('host')!)).get();return result({active:!!b?.active,peers:await db.select({id:peers.id,offer:peers.offer,answer:peers.answer,heartbeat:peers.heartbeat}).from(peers).where(and(eq(peers.broadcastId,q.get('host')!),gt(peers.heartbeat,Date.now()-90000)))});}
+  const p=await db.select().from(peers).where(eq(peers.id,q.get('peer')??'')).get();
+  if(!p||p.tokenHash!==await hash(req.headers.get('x-peer-token')??''))return result({error:'Сессия не найдена'},404);
+  const live=await db.select().from(broadcasts).where(eq(broadcasts.id,p.broadcastId)).get();return result({answer:p.answer,active:!!live?.active&&live.heartbeat>Date.now()-90000});
+}catch(e){return failure(e);}}
+export async function POST(req: Request){try{
+  originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb(),now=Date.now();
+  if(['start','stop','heartbeat','answer'].includes(String(d.action))){
+    await requireOwner(req);
+    if(d.action==='start'){
+      if(!String(d.title??'').trim())throw new Error('Укажите название эфира');
+      const current=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,now-90000))).get();if(current)throw new Error('Другой эфир уже идёт. Сначала завершите его.');
+      await db.update(broadcasts).set({active:0});await db.delete(peers);await db.delete(broadcasts);
+      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1});return result({id});
+    }
+    if(d.action==='stop'){await db.update(broadcasts).set({active:0}).where(eq(broadcasts.id,String(d.id)));return result({ok:true});}
+    if(d.action==='heartbeat'){const b=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!b?.active)return result({error:'Эфир завершён'},409);await db.update(broadcasts).set({heartbeat:now}).where(eq(broadcasts.id,String(d.id)));await db.delete(peers).where(lt(peers.heartbeat,now-60000));return result({ok:true});}
+    if(String(d.answer??'').length>40000)throw new Error('Некорректный ответ');await db.update(peers).set({answer:String(d.answer)}).where(eq(peers.id,String(d.peer)));return result({ok:true});
+  }
+  if(d.action==='join'){
+    const live=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!live?.active||live.heartbeat<now-90000)throw new Error('Эфир уже завершён');
+    const active=await db.select({id:peers.id}).from(peers).where(and(eq(peers.broadcastId,live.id),gt(peers.heartbeat,now-90000)));if(active.length>=8)throw new Error('Тестовый эфир заполнен: до 8 слушателей');
+    const offer=String(d.offer??'');if(offer.length>40000)throw new Error('Некорректное подключение');const parsed=JSON.parse(offer);if(parsed.type!=='offer'||typeof parsed.sdp!=='string')throw new Error('Некорректное подключение');
+    const id=crypto.randomUUID(),token=crypto.randomUUID();await db.insert(peers).values({id,broadcastId:live.id,tokenHash:await hash(token),offer,heartbeat:now});return result({id,token});
+  }
+  const p=await db.select().from(peers).where(eq(peers.id,String(d.peer))).get();if(!p||p.tokenHash!==await hash(String(d.token??'')))return result({error:'Сессия не найдена'},404);
+  if(d.action==='leave')await db.delete(peers).where(eq(peers.id,p.id));else await db.update(peers).set({heartbeat:now}).where(eq(peers.id,p.id));return result({ok:true});
+}catch(e){return failure(e);}}

@@ -1,0 +1,28 @@
+#include <windows.h>
+1 ICON "app.ico"
+1 RT_MANIFEST "app.manifest"
+1 VERSIONINFO
+FILEVERSION 0,4,1,0
+PRODUCTVERSION 0,4,1,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+ BLOCK "StringFileInfo"
+ BEGIN
+  BLOCK "040904B0"
+  BEGIN
+   VALUE "CompanyName", "True Thrills"
+   VALUE "FileDescription", "True Thrills Desktop"
+   VALUE "FileVersion", "0.4.1"
+   VALUE "ProductName", "True Thrills"
+   VALUE "ProductVersion", "0.4.1"
+   VALUE "OriginalFilename", "TrueThrills.exe"
+  END
+ END
+ BLOCK "VarFileInfo"
+ BEGIN
+  VALUE "Translation", 0x409, 1200
+ END
+END
