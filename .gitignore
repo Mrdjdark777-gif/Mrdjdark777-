@@ -43,6 +43,8 @@ next-env.d.ts
 
 *.tsbuildinfo
 /desktop/out/
+/.test-tmp-*/
+/data/
 
 /android/.gradle/
 /android/build/

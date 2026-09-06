@@ -1,13 +1,17 @@
-import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
-import * as schema from "./schema";
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import * as schema from './schema';
+
+let instance: ReturnType<typeof drizzle> | undefined;
 
 export function getDb() {
-  if (!env.DB) {
-    throw new Error(
-      "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` or let your control plane inject the real binding values before using the database."
-    );
-  }
-
-  return drizzle(env.DB, { schema });
+  if (instance) return instance;
+  const path = process.env.DATABASE_PATH ?? './data/truethrills.db';
+  mkdirSync(dirname(path), { recursive: true });
+  const sqlite = new Database(path);
+  sqlite.pragma('journal_mode = WAL');
+  instance = drizzle(sqlite, { schema });
+  return instance;
 }

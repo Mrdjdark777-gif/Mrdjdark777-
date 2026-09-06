@@ -15,7 +15,7 @@ Android-клиент, общий интерфейс и серверную час
 | Сервер и база данных | `worker/`, `db/`, `drizzle/` |
 | Исправление длительности записей и перемотки | `lib/audio-file.ts`, `lib/prepare-audio.ts`, `workers/`, `components/studio/podcast-player.tsx` |
 | Логотип, иконки и другие статические файлы | `public/`, `desktop/app.ico`, `android/app/src/main/res/` |
-| Зависимости и конфигурация сборки | `package.json`, `package-lock.json`, `vite.config.ts`, `build/`, `scripts/`, `.openai/hosting.json` |
+| Зависимости и конфигурация сборки | `package.json`, `package-lock.json`, `next.config.ts`, `drizzle.config.ts`, `.env.example` |
 | Проверки и история изменений | `tests/`, `README.md` |
 
 ## Как устроены два приложения
@@ -64,32 +64,32 @@ Gradle-конфигурация для Android Studio также включен�
 
 ## Общий интерфейс и сервер
 
-Нужны Node.js >=22.13.0 и npm; проверенная среда — Linux/WSL.
-Версии зависимостей зафиксированы в package-lock.json.
+Начиная с этой версии проект — обычное Node.js/Next.js-приложение,
+без Cloudflare Workers, D1/R2 и входа через ChatGPT. Нужны Node.js
+>=22.13.0 и npm.
 
 ```sh
+cp .env.example .env   # задать ADMIN_PASSWORD и SESSION_SECRET
 npm ci
 node_modules/.bin/tsc --noEmit
+npm run db:migrate
 npm run build
+npm start
 ```
 
-Скрипты сборки используют Bash и GNU timeout. Расширенная установка
-`npm run install:ci` дополнительно использует flock, curl и sha256sum.
-
-Сервер написан для Workers с D1 (привязка `DB`) и R2 (`BUCKET`).
-Миграции базы находятся в `drizzle/`. Снимки базы, сами записи подкастов,
-аккаунты, настройки облака и пароли не являются исходным кодом и в ZIP
-не включены. Это не резервная копия пользовательского контента.
+База — файл SQLite (`DATABASE_PATH`, по умолчанию `./data/truethrills.db`),
+миграции — в `drizzle/`. Аудио хранится локально на диске (`STORAGE_DIR`).
+Вход — пароль автора из `ADMIN_PASSWORD` на странице `/login`
+(`lib/auth.ts`, `app/api/auth/route.ts`); слушателям аккаунт не нужен.
+Снимки базы, сами записи подкастов и пароли не являются исходным кодом
+и в ZIP не включены.
 
 Текущий адрес сервиса прописан в `desktop/client.cpp` и
 `android/app/src/main/java/com/truethrills/listener/MainActivity.java`.
-При переносе на другой сервер нужно заменить адреса в клиентах, настроить
-D1/R2 и миграции, а также заменить интеграцию входа Sites/ChatGPT
-(`app/chatgpt-auth.ts`, `lib/server.ts`, `build/sites-vite-plugin.ts`).
-Заголовкам авторизации можно доверять только за доверенным шлюзом,
-который сам устанавливает их и удаляет присланные клиентом значения.
-Самостоятельное размещение с сохранением нынешней авторизации без
-настройки шлюза не поддерживается. ZIP не даёт доступ к чужому хостингу.
+При переносе на свой домен нужно заменить эти адреса и пересобрать
+десктоп-клиент и APK — иначе они продолжат стучаться на старый адрес.
+Приложение должно работать за HTTPS (реверс-прокси): сессионная cookie
+помечена `Secure` в продакшене.
 
 ## Логотип и прозрачность
 

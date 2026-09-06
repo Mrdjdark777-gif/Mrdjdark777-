@@ -8,9 +8,10 @@ export async function POST(req: Request){try{
   if(!['audio/webm','audio/mp4','audio/mpeg','audio/wav','audio/x-wav','audio/ogg','audio/flac','audio/aac'].includes(mime))throw new Error('Поддерживаются MP3, WAV, M4A, WebM, OGG и FLAC');
   const size=Number(req.headers.get('x-upload-size')??req.headers.get('content-length'));
   if(!Number.isSafeInteger(size)||size<=0||size>MAX)throw new Error('Укажите размер файла: от 1 байта до 80 МБ');if(!req.body)throw new Error('Пустой файл');
-  const fixed=new FixedLengthStream(size);
   const key='audio/'+crypto.randomUUID();
-  await Promise.all([req.body.pipeTo(fixed.writable),bucket().put(key,fixed.readable,{httpMetadata:{contentType:mime},customMetadata:{owner:userId(req)!}})]);return result({key});
+  const stored=await bucket().put(key,req.body,{httpMetadata:{contentType:mime},customMetadata:{owner:userId(req)!}});
+  if(stored.size!==size){await bucket().delete(key);throw new Error('Загруженный файл не совпадает по размеру с заявленным');}
+  return result({key});
 }catch(e){return failure(e);}}
 export async function GET(req: Request){try{
   const id=new URL(req.url).searchParams.get('id')??'';
