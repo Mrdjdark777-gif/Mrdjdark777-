@@ -47,7 +47,12 @@ const ownerCookie = auth.createSessionCookie().split(';')[0];
 
 async function dispatch(pathname, init) {
   const route = routes[pathname];
-  const req = new Request(`${ORIGIN}/api/${pathname}${init?.search ?? ''}`, init);
+  // A real HTTP server always supplies a Host header; a bare `new Request()`
+  // does not, so add it explicitly to match production request semantics
+  // (originCheck compares Origin's host against the Host header).
+  const headers = new Headers(init?.headers);
+  if (!headers.has('host')) headers.set('host', new URL(ORIGIN).host);
+  const req = new Request(`${ORIGIN}/api/${pathname}${init?.search ?? ''}`, { ...init, headers });
   return route[req.method](req);
 }
 
