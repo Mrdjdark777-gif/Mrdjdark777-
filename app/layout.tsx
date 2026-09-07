@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Bitter } from "next/font/google";
 import "./globals.css";
+
+const displayFont = Bitter({
+  subsets: ["latin", "cyrillic"],
+  weight: ["700", "800"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "True Thrills — студия и подкасты",
@@ -17,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="dark">
+    <html lang="ru" className={`dark ${displayFont.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );
