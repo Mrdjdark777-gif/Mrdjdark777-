@@ -1,0 +1,49 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/read-link-content-h18psv]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Decode release signing key
+        run: |
+          echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "$RUNNER_TEMP/truethrills-release.jks"
+          printf '%s' "${ANDROID_KEYSTORE_PASSWORD}" > "$RUNNER_TEMP/password.txt"
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Build signed APK
+        run: |
+          python3 android/build.py \
+            --sdk "$ANDROID_HOME" \
+            --output "$RUNNER_TEMP/out" \
+            --keystore "$RUNNER_TEMP/truethrills-release.jks" \
+            --password-file "$RUNNER_TEMP/password.txt"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrueThrills-Android-apk
+          path: ${{ runner.temp }}/out/*.apk
+          retention-days: 30
