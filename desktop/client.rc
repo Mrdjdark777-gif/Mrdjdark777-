@@ -2,8 +2,8 @@
 1 ICON "app.ico"
 1 RT_MANIFEST "app.manifest"
 1 VERSIONINFO
-FILEVERSION 0,4,1,0
-PRODUCTVERSION 0,4,1,0
+FILEVERSION 0,4,2,0
+PRODUCTVERSION 0,4,2,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -15,9 +15,9 @@ BEGIN
   BEGIN
    VALUE "CompanyName", "True Thrills"
    VALUE "FileDescription", "True Thrills Desktop"
-   VALUE "FileVersion", "0.4.1"
+   VALUE "FileVersion", "0.4.2"
    VALUE "ProductName", "True Thrills"
-   VALUE "ProductVersion", "0.4.1"
+   VALUE "ProductVersion", "0.4.2"
    VALUE "OriginalFilename", "TrueThrills.exe"
   END
  END

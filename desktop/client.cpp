@@ -8,8 +8,8 @@
 #include "WebView2.h"
 #include "webview2-uuids.h"
 
-static const wchar_t* SITE=L"https://true-thrills.mrdjdark777.chatgpt.site";
-static const wchar_t* VIEWER=L"https://true-thrills.mrdjdark777.chatgpt.site/?mode=listen&view=live";
+static const wchar_t* SITE=L"https://truethrills.com";
+static const wchar_t* VIEWER=L"https://truethrills.com/?mode=listen&view=live";
 static HWND windowHandle;
 static ICoreWebView2Controller* controller;
 static ICoreWebView2* webview;
