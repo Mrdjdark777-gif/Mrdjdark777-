@@ -23,7 +23,7 @@
 - Локальное восстановление текста новой истории. Это не заменяет серверное сохранение черновика.
 - Прямое аудиовещание WebRTC с серверным обменом предложениями соединения. Пилот на 8 слушателей, без автоматической записи эфира.
 - Внешняя платёжная ссылка, настраиваемая автором. Приложение не обрабатывает платежи и не ведёт статистику поступлений.
-- Адаптивный интерфейс и PWA-манифест для установки из поддерживаемого браузера. Также доступны Windows x64 клиент WebView2 с EXE-установщиком и Android 8+ APK-клиент слушателя на базе Chrome Custom Tabs.
+- Адаптивный интерфейс и PWA-манифест для установки из поддерживаемого браузера. Также доступны Windows x64 клиент WebView2 с EXE-установщиком и Android 8+ APK-клиент слушателя — полноэкранный WebView без видимой панели браузера, с нативными push-уведомлениями через Firebase Cloud Messaging.
 
 ## Развёртывание на своём сервере (VPS)
 
@@ -94,15 +94,17 @@ EXE не подписан сертификатом издателя. Прове�
 
 ## Android-сборка
 
-Исходники находятся в `android/`; package `com.truethrills.listener`, minSdk 26, targetSdk 35, versionCode 3. Разрешение только INTERNET, запись голоса на Android не запрашивается. Launcher использует официальный протокол Custom Tabs: https://developer.chrome.com/docs/android/custom-tabs/howto-custom-tab-low-level-api . Chrome предпочтителен; при отсутствии поддерживаемого браузера предлагается его установить.
+Исходники находятся в `android/`; package `com.truethrills.listener`, minSdk 26, targetSdk 35. Разрешения: INTERNET и POST_NOTIFICATIONS (для push); запись голоса на Android не запрашивается. Launcher — полноэкранный `WebView` (без адресной строки), с мостом `AndroidPush` для нативных push-уведомлений через Firebase Cloud Messaging (`PushService.java`, `PushClient.java`) — см. «Push через Firebase» в `docs/RELEASE-0.5-RU.md`.
 
-Сборка без зависимостей Maven: JDK 17 с модулем компилятора, Android SDK platform 35 и Build Tools 35.0.0. Сборщик компилирует Java/resources, создаёт DEX, выравнивает APK и подписывает существующим ключом. Также сохранена стандартная Gradle-конфигурация для Android Studio; Gradle-сборка в текущей среде не использовалась из-за сетевой ошибки Java.
+Сборка — стандартный Gradle (`com.android.application` + `com.google.gms.google-services`), требует сеть до `google()`/Maven и `google-services.json` в `android/app/` — в этой рабочей среде недоступно, поэтому сборка идёт через GitHub Actions (`.github/workflows/android-build.yml`, кнопка «Run workflow»). Нужны секреты репозитория: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `GOOGLE_SERVICES_JSON_BASE64`.
+
+Для локальной сборки (например, в Android Studio):
 
 ```sh
-python3 android/build.py --sdk /path/to/android-sdk --output /path/to/output --keystore /private/truethrills-release.jks --password-file /private/password.txt
+gradle -p android assembleRelease
 ```
 
-Ключ выпуска и пароль НЕ входят в исходники. Для обновлений используйте тот же ключ из приватного архива `TrueThrills-Android-Signing-Backup.zip`; увеличивайте versionCode. Архив содержит пароль и предназначен только владельцу/разработчику: его нельзя раздавать слушателям. Сборщик проверяет подпись APK, выравнивание и метаданные пакета. Установка на реальный Android, вход, получение живого звука и работа с заблокированным экраном требуют проверки на телефоне.
+Ключ выпуска и пароль НЕ входят в исходники. Для обновлений используйте тот же ключ из приватного архива `TrueThrills-Android-Signing-Backup.zip`; увеличивайте versionCode. Архив содержит пароль и предназначен только владельцу/разработчику: его нельзя раздавать слушателям. Установка на реальный Android, вход, получение живого звука, доставка push и работа с заблокированным экраном требуют проверки на телефоне.
 
 ## Упрощение слушателя 0.3.1
 

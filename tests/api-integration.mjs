@@ -171,8 +171,40 @@ try {
    await request('library',{kind:'story',title:'Retry',body:'Body',published:true});responseStatus=503;await push.flushPush();assert.equal(getDb().$client.prepare("SELECT attempts FROM push_outbox WHERE state='pending'").get().attempts,1);
    getDb().$client.prepare("UPDATE push_outbox SET available_at=0 WHERE state='pending'").run();responseStatus=410;await push.flushPush();assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(sub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
+
+  const {generateKeyPairSync,createVerify}=await import('node:crypto');
+  const {writeFile}=await import('node:fs/promises');
+  const {publicKey:fcmPub,privateKey:fcmPriv}=generateKeyPairSync('rsa',{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}});
+  const saFile=path.join(dir,'firebase-service-account.json');
+  await writeFile(saFile,JSON.stringify({client_email:'push@true-thrills.iam.gserviceaccount.com',private_key:fcmPriv,project_id:'true-thrills'}));
+  process.env.FIREBASE_SERVICE_ACCOUNT_FILE=saFile;
+  assert.equal((await request('notifications',{action:'subscribe',kind:'fcm',token:'short',preferences:7},false)).status,400);
+  const fcmToken='a'.repeat(152);
+  const fcmSub=await request('notifications',{action:'subscribe',kind:'fcm',token:fcmToken,preferences:7},false);assert.equal(fcmSub.status,200);
+  let fcmBody=null,fcmSendStatus=200;
+  globalThis.fetch=async(url,init)=>{
+   const u=new URL(url);
+   if(u.hostname==='oauth2.googleapis.com'){
+    const params=new URLSearchParams(init.body);const [h,c,s]=params.get('assertion').split('.');
+    assert.equal(createVerify('RSA-SHA256').update(`${h}.${c}`).verify(fcmPub,Buffer.from(s,'base64url')),true);
+    return Response.json({access_token:'test-fcm-access',expires_in:3600});
+   }
+   assert.equal(u.href,'https://fcm.googleapis.com/v1/projects/true-thrills/messages:send');
+   assert.equal(init.headers.authorization,'Bearer test-fcm-access');
+   fcmBody=JSON.parse(init.body);
+   return new Response(null,{status:fcmSendStatus});
+  };
+  try{
+   const post=await request('library',{kind:'story',title:'FCM story',body:'Body',published:true});assert.equal(post.status,200);
+   await request('library',{action:'visibility',id:post.data.id,published:true});await push.flushPush();
+   assert.equal(fcmBody.message.token,fcmToken);assert.equal(fcmBody.message.data.body,'FCM story');assert.equal(fcmBody.message.data.tag.startsWith('post:'),true);
+   fcmSendStatus=404;
+   const post2=await request('library',{kind:'story',title:'FCM story 2',body:'Body',published:true});
+   await request('library',{action:'visibility',id:post2.data.id,published:true});await push.flushPush();
+   assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
+  }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

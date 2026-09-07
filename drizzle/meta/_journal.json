@@ -15,6 +15,13 @@
       "when": 1788746525948,
       "tag": "0001_careless_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788819010895,
+      "tag": "0002_graceful_war_machine",
+      "breakpoints": true
     }
   ]
 }

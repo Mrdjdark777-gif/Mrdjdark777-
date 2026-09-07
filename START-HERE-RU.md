@@ -23,7 +23,7 @@ Android-клиент, общий интерфейс и серверную час
 ## Как устроены два приложения
 
 Windows — нативный клиент Win32/C++ с WebView2 и EXE-установщиком.
-Android — нативный Java launcher, открывающий слушателя через Chrome Custom Tabs.
+Android — нативный Java launcher, полноэкранный WebView (без панели браузера) с мостом для нативных push-уведомлений через Firebase Cloud Messaging.
 Оба используют один сервер и один веб-интерфейс. Это онлайн-приложения:
 сам сервер не устанавливается вместе с EXE/APK. Для изменения большинства
 экранов и функций нужно обновить общий интерфейс, а не только клиент.
@@ -46,23 +46,29 @@ python3 desktop/verify.py /path/to/windows-output
 
 ## Сборка Android
 
-Проверенный сборщик `android/build.py` рассчитан на Linux/WSL: нужны Python 3,
-JDK 17, Android SDK Platform 35 и Build Tools 35.0.0. Сборщик использует
-официальные инструменты Android SDK без скачивания Maven-зависимостей.
+С добавлением Firebase Cloud Messaging сборка требует полноценного Gradle
+(тянет `com.google.gms:google-services` и Firebase Maven-зависимости), а не
+прежнего сборщика без Maven — `android/build.py` удалён. Нужны JDK 17,
+Android SDK Platform 35, Build Tools 35.0.0, сеть до `google()`/Maven и
+`google-services.json` в `android/app/` (из консоли Firebase, для приложения
+`com.truethrills.listener`). Собирается через GitHub Actions
+(`.github/workflows/android-build.yml`) — сеть до `dl.google.com` нужна и
+для Android SDK, и для Gradle-зависимостей.
 
 ```sh
-python3 android/build.py --sdk /path/to/android-sdk --output /path/to/android-output --keystore /private/truethrills-release.jks --password-file /private/password.txt
+RELEASE_KEYSTORE=/private/truethrills-release.jks \
+RELEASE_KEYSTORE_PASSWORD=... \
+gradle -p android assembleRelease
 ```
 
-Результат: `TrueThrills-Android-0.4.1.apk`; package `com.truethrills.listener`,
-versionCode 5, minSdk 26, targetSdk 35. Для следующих выпусков увеличивайте
-versionCode в `android/app/build.gradle`.
+Результат: `android/app/build/outputs/apk/release/app-release.apk`; package
+`com.truethrills.listener`, versionCode 7, versionName 0.5.0, minSdk 26,
+targetSdk 35. Для следующих выпусков увеличивайте versionCode в
+`android/app/build.gradle`.
 
 Приватный ключ и пароль хранятся отдельно: ранее переданный владельцу архив
 `TrueThrills-Android-Signing-Backup.zip`. Для обновления установленного APK
 нужен тот же ключ. В этот архив исходников он намеренно не включён.
-Gradle-конфигурация для Android Studio также включена; Gradle wrapper
-не включён, а Gradle-сборка в среде разработки не проверялась.
 
 ## Общий интерфейс и сервер
 
@@ -131,5 +137,7 @@ Android APK подписан тем же ключом, что и предыду�
 
 Это не повторная проверка приложения на физических Windows и Android.
 Текущие ограничения: пилотный эфир до 8 слушателей, STUN без TURN,
-без офлайн-загрузок и нативных push-уведомлений. Донаты — внешняя платёжная
-ссылка. Подробности реализации и прежних проверок приведены в README.md.
+без офлайн-загрузок. Нативные push-уведомления Android (Firebase) добавлены,
+но не проверены на реальном телефоне — см. RELEASE-0.5-RU.md. Донаты —
+внешняя платёжная ссылка. Подробности реализации и прежних проверок
+приведены в README.md.
