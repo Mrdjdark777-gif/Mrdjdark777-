@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {toast} from 'sonner';
+import {stereoDescription} from '@/lib/opus-stereo';
 import {api,errorText} from '@/lib/client';
 const config:RTCConfiguration={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 async function gather(pc:RTCPeerConnection){if(pc.iceGatheringState==='complete')return;await new Promise<void>(resolve=>{const done=()=>{clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',check);resolve();};const check=()=>{if(pc.iceGatheringState==='complete')done();};const timer=setTimeout(done,10000);pc.addEventListener('icegatheringstatechange',check);});}
@@ -25,11 +26,11 @@ export function useLive(){
    const r=await api<{id:string}>('live',{action:'start',title});host.current=r.id;setHosting(r.id);setHostStatus('Эфир запущен');setHostSeconds(0);const began=Date.now();elapsedTimer.current=setInterval(()=>setHostSeconds(Math.floor((Date.now()-began)/1000)),1000);
    let polling=false,errors=0;
    const poll=async()=>{if(polling||host.current!==r.id)return;polling=true;try{
-    await api('live',{action:'heartbeat',id:r.id});const data=await api<{active:boolean;peers:{id:string;offer:string;answer:string|null}[]}>('live?host='+encodeURIComponent(r.id));if(host.current!==r.id)return;errors=0;setHostStatus('Эфир запущен');if(!data.active){await stop();return;}
+    await api('live',{action:'heartbeat',id:r.id,connected:[...pcs.current].filter(([,pc])=>pc.connectionState==='connected').map(([id])=>id)});const data=await api<{active:boolean;peers:{id:string;offer:string;answer:string|null}[]}>('live?host='+encodeURIComponent(r.id));if(host.current!==r.id)return;errors=0;setHostStatus('Эфир запущен');if(!data.active){await stop();return;}
     const ids=new Set<string>(data.peers.map(p=>p.id));pcs.current.forEach((pc,id)=>{if(!ids.has(id)){pc.close();pcs.current.delete(id);}});
     for(const p of data.peers){if(pcs.current.has(p.id))continue;const pc=new RTCPeerConnection(config);pcs.current.set(p.id,pc);s.getTracks().forEach(t=>pc.addTrack(t,s));
      pc.onconnectionstatechange=()=>{if(host.current===r.id)setListeners([...pcs.current.values()].filter(x=>x.connectionState==='connected').length);};
-     void(async()=>{try{await pc.setRemoteDescription(JSON.parse(p.offer));await pc.setLocalDescription(await pc.createAnswer());await gather(pc);if(host.current===r.id)await api('live',{action:'answer',peer:p.id,answer:JSON.stringify(pc.localDescription)});}catch{pc.close();pcs.current.delete(p.id);}})();
+     void(async()=>{try{await pc.setRemoteDescription(JSON.parse(p.offer));await pc.setLocalDescription(stereoDescription(await pc.createAnswer()));await gather(pc);if(host.current===r.id)await api('live',{action:'answer',peer:p.id,answer:JSON.stringify(pc.localDescription)});}catch{pc.close();pcs.current.delete(p.id);}})();
     }
     setListeners([...pcs.current.values()].filter(p=>p.connectionState==='connected').length);
    }catch{if(host.current!==r.id)return;errors++;setHostStatus('Восстанавливаем связь с сервером…');if(errors>=5){void stop().catch(()=>{});setHostStatus('Эфир остановлен: потеряна связь');toast.error('Связь потеряна. Проверь интернет и запусти эфир заново.');}}finally{polling=false;}};
@@ -66,7 +67,7 @@ export function useLive(){
     if(pc.connectionState==='disconnected'){disconnectedAt=Date.now();setListening(false);setPhase('reconnecting');setStatus('Связь прервалась. Переподключаемся…');}
     if(pc.connectionState==='failed')endViewer('error','Соединение не установилось. Попробуй другую сеть и подключись снова.');
    };
-   await pc.setLocalDescription(await pc.createOffer());await gather(pc);if(gen!==generation.current)return;
+   await pc.setLocalDescription(stereoDescription(await pc.createOffer()));await gather(pc);if(gen!==generation.current)return;
    const p=await api<{id:string;token:string}>('live',{action:'join',id,offer:JSON.stringify(pc.localDescription)});if(gen!==generation.current){void api('live',{action:'leave',peer:p.id,token:p.token});return;}peer.current=p;let polling=false,errors=0;disconnectedAt=Date.now();
    const poll=async()=>{if(polling||gen!==generation.current)return;polling=true;try{
     await api('live',{action:'pulse',peer:p.id,token:p.token});const d=await api<{active:boolean;answer:string|null}>('live?peer='+p.id,undefined,{headers:{'x-peer-token':p.token}});if(gen!==generation.current)return;errors=0;
