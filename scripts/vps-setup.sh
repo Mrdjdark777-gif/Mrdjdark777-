@@ -97,6 +97,10 @@ systemctl enable truethrills
 systemctl restart truethrills
 
 echo "== 7/7: nginx + firewall =="
+# Only write the base config once: certbot --nginx edits this same file in
+# place to add the HTTPS server block + redirect, and a plain re-run of this
+# script must never clobber that.
+if [ ! -f /etc/nginx/sites-available/truethrills ]; then
 cat > /etc/nginx/sites-available/truethrills <<'NGINX'
 server {
     listen 80;
@@ -116,6 +120,9 @@ server {
     }
 }
 NGINX
+else
+  echo "nginx config already exists (possibly modified by certbot) — leaving it as-is."
+fi
 ln -sf /etc/nginx/sites-available/truethrills /etc/nginx/sites-enabled/truethrills
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
