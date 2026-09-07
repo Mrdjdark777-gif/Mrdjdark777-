@@ -1,3 +1,4 @@
+import {enqueueNotice,siteOrigin} from '@/lib/push';
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, posts, settings } from '@/db/schema';
@@ -26,7 +27,7 @@ export async function POST(req: Request){try{
     const p=await db.select().from(posts).where(eq(posts.id,String(d.id))).get();
     if(p){await db.delete(posts).where(eq(posts.id,p.id));if(p.audioKey)await bucket().delete(p.audioKey);}return result({ok:true});
   }
-  if(d.action==='visibility'){await db.update(posts).set({published:d.published?1:0}).where(eq(posts.id,String(d.id)));return result({ok:true});}
+  if(d.action==='visibility'){const p=await db.update(posts).set({published:d.published?1:0}).where(eq(posts.id,String(d.id))).returning().get();if(p?.published)notifyPost(p,req);return result({ok:true});}
   const title=String(d.title??'').trim(),kind=String(d.kind??'');
   if(!title||title.length>160)throw new Error('Укажите название до 160 символов');
   if(!['podcast','story'].includes(kind))throw new Error('Неверный тип публикации');
@@ -39,5 +40,7 @@ export async function POST(req: Request){try{
   const id=d.id?String(d.id):crypto.randomUUID();
   const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
   if(d.id)await db.update(posts).set(values).where(eq(posts.id,id));else await db.insert(posts).values({id,...values,createdAt:Date.now()});
-  return result({id});
+  if(values.published)notifyPost({id,...values},req);return result({id});
 }catch(e){return failure(e);}}
+
+function notifyPost(p:{id:string;kind:string;title:string},req:Request){enqueueNotice('post:'+p.id,p.kind==='podcast'?2:4,{title:p.kind==='podcast'?'Новый подкаст True Thrills':'Новая история True Thrills',body:p.title,url:'/?mode=listen&view='+(p.kind==='podcast'?'podcasts':'stories')+'&post='+encodeURIComponent(p.id),tag:'post:'+p.id},siteOrigin(req),86400);}

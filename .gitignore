@@ -52,3 +52,5 @@ next-env.d.ts
 /android/local.properties
 *.jks
 *.keystore
+
+!.env.example

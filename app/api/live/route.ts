@@ -1,3 +1,4 @@
+import {enqueueNotice,siteOrigin} from '@/lib/push';
 import { and, desc, eq, gt, lt } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, peers } from '@/db/schema';
@@ -18,10 +19,10 @@ export async function POST(req: Request){try{
       if(!String(d.title??'').trim())throw new Error('Укажите название эфира');
       const current=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,now-90000))).get();if(current)throw new Error('Другой эфир уже идёт. Сначала завершите его.');
       await db.update(broadcasts).set({active:0});await db.delete(peers);await db.delete(broadcasts);
-      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1});return result({id});
+      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1});enqueueNotice('live:'+id,1,{title:'True Thrills в эфире',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
     }
     if(d.action==='stop'){await db.update(broadcasts).set({active:0}).where(eq(broadcasts.id,String(d.id)));return result({ok:true});}
-    if(d.action==='heartbeat'){const b=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!b?.active)return result({error:'Эфир завершён'},409);await db.update(broadcasts).set({heartbeat:now}).where(eq(broadcasts.id,String(d.id)));await db.delete(peers).where(lt(peers.heartbeat,now-60000));return result({ok:true});}
+    if(d.action==='heartbeat'){const b=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!b?.active)return result({error:'Эфир завершён'},409);await db.update(broadcasts).set({heartbeat:now}).where(eq(broadcasts.id,String(d.id)));if(Array.isArray(d.connected)){for(const id of d.connected.slice(0,8)){if(typeof id==='string')await db.update(peers).set({heartbeat:now}).where(and(eq(peers.id,id),eq(peers.broadcastId,b.id)));}}await db.delete(peers).where(lt(peers.heartbeat,now-60000));return result({ok:true});}
     if(String(d.answer??'').length>40000)throw new Error('Некорректный ответ');await db.update(peers).set({answer:String(d.answer)}).where(eq(peers.id,String(d.peer)));return result({ok:true});
   }
   if(d.action==='join'){

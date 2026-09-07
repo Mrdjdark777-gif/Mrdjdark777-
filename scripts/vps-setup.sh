@@ -35,7 +35,11 @@ echo "== 3/7: код приложения =="
 if [ -d "$APP_DIR/.git" ]; then
   git -C "$APP_DIR" fetch origin "$BRANCH"
   git -C "$APP_DIR" checkout "$BRANCH"
-  git -C "$APP_DIR" reset --hard "origin/$BRANCH"
+  if [ -n "$(git -C "$APP_DIR" status --porcelain --untracked-files=no)" ]; then
+    echo "Есть локальные изменения в коде. Сохрани их перед обновлением." >&2
+    exit 1
+  fi
+  git -C "$APP_DIR" merge --ff-only "origin/$BRANCH"
 else
   git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 fi
@@ -71,7 +75,7 @@ set +a
 
 echo "== 5/7: сборка =="
 cd "$APP_DIR"
-npm ci
+npm ci --include=dev
 npm run db:migrate
 npm run build
 
@@ -85,7 +89,7 @@ After=network.target
 Type=simple
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
-ExecStart=$(command -v npm) start
+ExecStart=$(command -v node) ${APP_DIR}/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
 Restart=always
 RestartSec=5
 
@@ -97,10 +101,8 @@ systemctl enable truethrills
 systemctl restart truethrills
 
 echo "== 7/7: nginx + firewall =="
-# Only write the base config once: certbot --nginx edits this same file in
-# place to add the HTTPS server block + redirect, and a plain re-run of this
-# script must never clobber that.
-if [ ! -f /etc/nginx/sites-available/truethrills ]; then
+# Preserve an existing domain/TLS configuration, especially Certbot changes.
+if [ ! -s /etc/nginx/sites-available/truethrills ]; then
 cat > /etc/nginx/sites-available/truethrills <<'NGINX'
 server {
     listen 80;
@@ -121,12 +123,12 @@ server {
 }
 NGINX
 else
-  echo "nginx config already exists (possibly modified by certbot) — leaving it as-is."
+  echo 'Существующая конфигурация nginx сохранена (включая HTTPS).'
 fi
 ln -sf /etc/nginx/sites-available/truethrills /etc/nginx/sites-enabled/truethrills
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
-systemctl restart nginx
+systemctl reload nginx
 
 ufw allow OpenSSH || true
 ufw allow 80/tcp || true
@@ -139,7 +141,7 @@ iptables -C INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || iptables -I INPUT 
 netfilter-persistent save >/dev/null 2>&1 || true
 
 echo "=================================================="
-echo "Готово. Открой в браузере: http://$(curl -s ifconfig.me || echo '<IP-сервера>')/"
+echo "Готово. Открой свой HTTPS-домен. Для первичной настройки без домена доступен HTTP по IP."
 if [ "${GENERATED_NEW_ENV:-0}" = "1" ]; then
   echo "Пароль автора (сохрани, показывается один раз): ${ADMIN_PASSWORD}"
 fi

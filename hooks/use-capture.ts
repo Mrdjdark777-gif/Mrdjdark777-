@@ -4,7 +4,10 @@ import {toast} from 'sonner';
 import {draftFile,errorText} from '@/lib/client';
 import {prepareAudioFile} from '@/lib/prepare-audio';
 import {discoverMicrophones} from '@/lib/device-discovery';
+import {captureSettingsKey,parseCaptureSettings,type CaptureSettings} from '@/lib/capture-settings';
+import {captureGraph} from '@/lib/capture-graph';
 export function useCapture(){
+ const [mode,setMode]=useState<CaptureSettings['mode']>('mic'),[settingsLoaded,setSettingsLoaded]=useState(false);
  const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[device,setDevice]=useState('default'),[channel,setChannel]=useState('0'),[discovering,setDiscovering]=useState(false);
  const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[paused,setPaused]=useState(false),[seconds,setSeconds]=useState(0),[level,setLevel]=useState(-60),[samples,setSamples]=useState<number[]>(Array(80).fill(0)),[blob,setBlob]=useState<Blob|null>(null),[url,setUrl]=useState('');
  const [gainDb,setGainDb]=useState(0),[muted,setMuted]=useState(false),[lowCut,setLowCut]=useState(false);
@@ -12,23 +15,26 @@ export function useCapture(){
  const prepareGeneration=useRef(0),prepareAbort=useRef<AbortController|null>(null);
  const controls=useRef({gainDb,muted,lowCut});controls.current={gainDb,muted,lowCut};
  const refreshDevices=useCallback(async(requestPermission=false)=>{
-  if(!navigator.mediaDevices?.enumerateDevices){if(requestPermission)toast.error('Аудиоустройства недоступны в этом браузере.');return;}
+  if(!navigator.mediaDevices?.enumerateDevices){if(requestPermission)toast.error(!window.isSecureContext?'Микрофон доступен только по HTTPS. Открой защищённый адрес True Thrills.':'Аудиоустройства недоступны в этом браузере.');return;}
   setDiscovering(true);try{const list=await discoverMicrophones(navigator.mediaDevices,requestPermission);setDevices(list);if(requestPermission&&!list.length)toast.error('Микрофон не найден. Проверь подключение аудиоинтерфейса.');}catch(e){toast.error(e instanceof DOMException&&e.name==='NotAllowedError'?'Разреши доступ к микрофону в окне приложения.':errorText(e));}finally{setDiscovering(false);}
  },[]);
  function release(){raw.current?.getTracks().forEach(t=>{t.onended=null;t.stop();});stream.current?.getTracks().forEach(t=>t.stop());ctx.current?.close().catch(()=>{});raw.current=null;stream.current=null;ctx.current=null;gain.current=null;filter.current=null;if(meter.current)clearInterval(meter.current);setReady(false);setLevel(-60);setSamples(Array(80).fill(0));}
  async function connect(){
   if(connecting.current||recording)return null;connecting.current=true;release();setBusy(true);
   try{
+   if(!window.isSecureContext)throw new Error('Для записи нужен HTTPS. Открой True Thrills по защищённому адресу.');
    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Открой приложение в Edge или Chrome и разреши микрофон.');
    const input=await navigator.mediaDevices.getUserMedia({audio:{deviceId:device==='default'?undefined:{exact:device},echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:2}},video:false});raw.current=input;
    setDevices(await discoverMicrophones(navigator.mediaDevices));
-   const context=new AudioContext();ctx.current=context;await context.resume();const source=context.createMediaStreamSource(input),split=context.createChannelSplitter(2),mono=context.createGain(),hp=context.createBiquadFilter(),dest=context.createMediaStreamDestination(),analyser=context.createAnalyser();
-   gain.current=mono;filter.current=hp;mono.channelCount=1;mono.channelCountMode='explicit';mono.gain.value=controls.current.muted?0:Math.pow(10,controls.current.gainDb/20);hp.type=controls.current.lowCut?'highpass':'allpass';hp.frequency.value=80;hp.Q.value=0.707;
-   source.connect(split);split.connect(hp,Number(channel));hp.connect(mono);mono.connect(dest);mono.connect(analyser);analyser.fftSize=2048;stream.current=dest.stream;
-   const values=new Float32Array(analyser.fftSize);meter.current=setInterval(()=>{analyser.getFloatTimeDomainData(values);let peak=0;for(const x of values)peak=Math.max(peak,Math.abs(x));setLevel(Math.max(-60,20*Math.log10(peak||0.001)));setSamples(Array.from({length:80},(_,i)=>Math.abs(values[i*24]||0)));},80);
-   input.getTracks()[0].onended=()=>{if(rec.current?.state==='recording'||rec.current?.state==='paused')rec.current.stop();release();toast.error('Аудиоинтерфейс отключён');};setReady(true);return dest.stream;
+   const context=new AudioContext();ctx.current=context;await context.resume();const graph=captureGraph(context,input,channel,controls.current);gain.current=graph.gain;filter.current=graph.filter;stream.current=graph.stream;
+   if(channel==='stereo'&&input.getAudioTracks()[0].getSettings().channelCount===1)toast.warning('Устройство отдаёт моно. Для стерео проверь источник и настройки Windows.');
+   const values=graph.analysers.map(a=>new Float32Array(a.fftSize));meter.current=setInterval(()=>{let peak=0;graph.analysers.forEach((a,i)=>{a.getFloatTimeDomainData(values[i]);for(const x of values[i])peak=Math.max(peak,Math.abs(x));});setLevel(Math.max(-60,20*Math.log10(peak||0.001)));setSamples(Array.from({length:80},(_,i)=>Math.max(...values.map(v=>Math.abs(v[i*24]||0)))));},80);
+   input.getTracks()[0].onended=()=>{if(rec.current?.state==='recording'||rec.current?.state==='paused')rec.current.stop();release();toast.error('Аудиоинтерфейс отключён');};setReady(true);return graph.stream;
   }catch(e){release();toast.error(e instanceof DOMException&&e.name==='NotAllowedError'?'Разреши приложению доступ к микрофону.':e instanceof DOMException&&e.name==='OverconstrainedError'?'Выбранный вход недоступен. Обнови список устройств.':errorText(e));return null;}finally{setBusy(false);connecting.current=false;}
  }
+ useEffect(()=>{let raw:string|null=null;try{raw=localStorage.getItem(captureSettingsKey);}catch{}const saved=parseCaptureSettings(raw);setMode(saved.mode);setDevice(saved.device);setChannel(saved.channel);setGainDb(saved.gainDb);setLowCut(saved.lowCut);setSettingsLoaded(true);},[]);
+ useEffect(()=>{if(settingsLoaded){try{localStorage.setItem(captureSettingsKey,JSON.stringify({mode,device,channel,gainDb,lowCut}));}catch{}}},[settingsLoaded,mode,device,channel,gainDb,lowCut]);
+ function changeMode(value:CaptureSettings['mode']){release();setMode(value);setChannel(value==='daw'?'stereo':'0');setGainDb(0);setLowCut(false);setMuted(false);}
  useEffect(()=>{if(gain.current&&ctx.current)gain.current.gain.setTargetAtTime(muted?0:Math.pow(10,gainDb/20),ctx.current.currentTime,0.02);},[gainDb,muted]);
  useEffect(()=>{if(filter.current)filter.current.type=lowCut?'highpass':'allpass';},[lowCut]);
  async function accept(b:Blob){
@@ -58,5 +64,5 @@ export function useCapture(){
  useEffect(()=>{void refreshDevices();const change=()=>void refreshDevices();navigator.mediaDevices?.addEventListener?.('devicechange',change);draftFile().then(b=>{if(b)void accept(b);}).catch(()=>{});return()=>{navigator.mediaDevices?.removeEventListener?.('devicechange',change);if(rec.current&&rec.current.state!=='inactive')rec.current.stop();raw.current?.getTracks().forEach(t=>{t.onended=null;t.stop();});ctx.current?.close();if(meter.current)clearInterval(meter.current);if(time.current)clearInterval(time.current);};},[refreshDevices]);
  useEffect(()=>{if(!blob){setUrl('');return;}const u=URL.createObjectURL(blob);setUrl(u);return()=>URL.revokeObjectURL(u);},[blob]);
  useEffect(()=>{const guard=(e:BeforeUnloadEvent)=>{if(recording){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[recording]);
- return{devices,device,setDevice,channel,setChannel,discovering,refreshDevices,ready,busy,recording,paused,seconds,level,samples,blob,url,accept,start,stop,pause,connect,release,stream,gainDb,setGainDb,muted,setMuted,lowCut,setLowCut};
+ return{mode,changeMode,settingsLoaded,devices,device,setDevice,channel,setChannel,discovering,refreshDevices,ready,busy,recording,paused,seconds,level,samples,blob,url,accept,start,stop,pause,connect,release,stream,gainDb,setGainDb,muted,setMuted,lowCut,setLowCut};
 }
