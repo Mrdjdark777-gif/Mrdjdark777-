@@ -9,7 +9,11 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.widget.FrameLayout;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -23,6 +27,10 @@ import org.json.JSONObject;
 public class MainActivity extends Activity {
     private static final String BASE_HOST = Uri.parse(PushClient.BASE).getHost();
     private WebView webView;
+    private FrameLayout root;
+    private View fullscreenView;
+    private WebChromeClient.CustomViewCallback fullscreenCallback;
+    private WebChromeClient chrome;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -54,16 +62,44 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                // Встроенные плееры (YouTube, Rutube, VK) грузятся во вложенных
+                // фреймах: их нельзя выкидывать во внешний браузер, иначе видео
+                // не проигрывается внутри приложения.
+                if (!request.isForMainFrame()) return false;
                 if (BASE_HOST.equals(uri.getHost())) return false;
                 startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 return true;
             }
         });
-        webView.setWebChromeClient(new WebChromeClient());
-        setContentView(webView);
+        chrome = new WebChromeClient() {
+            @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (fullscreenView != null) { callback.onCustomViewHidden(); return; }
+                fullscreenView = view;
+                fullscreenCallback = callback;
+                webView.setVisibility(View.GONE);
+                root.addView(view, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                setSystemBarsHidden(true);
+            }
+
+            @Override
+            public void onHideCustomView() {
+                if (fullscreenView == null) return;
+                root.removeView(fullscreenView);
+                fullscreenView = null;
+                webView.setVisibility(View.VISIBLE);
+                setSystemBarsHidden(false);
+                if (fullscreenCallback != null) { fullscreenCallback.onCustomViewHidden(); fullscreenCallback = null; }
+            }
+        };
+        webView.setWebChromeClient(chrome);
+        root = new FrameLayout(this);
+        root.addView(webView);
+        setContentView(root);
         String deepLink = savedInstanceState == null ? getIntent().getStringExtra("url") : null;
         if (savedInstanceState != null) webView.restoreState(savedInstanceState);
-        else webView.loadUrl(deepLink != null ? resolveUrl(deepLink) : url("podcasts"));
+        else webView.loadUrl(deepLink != null ? resolveUrl(deepLink) : url("home"));
     }
 
     @Override
@@ -92,8 +128,23 @@ public class MainActivity extends Activity {
         webView.saveState(outState);
     }
 
+    /** Во время полноэкранного видео системные панели убираются, потом возвращаются. */
+    private void setSystemBarsHidden(boolean hidden) {
+        if (Build.VERSION.SDK_INT < 30) return;
+        getWindow().setDecorFitsSystemWindows(!hidden);
+        WindowInsetsController bars = getWindow().getInsetsController();
+        if (bars == null) return;
+        if (hidden) {
+            bars.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            bars.hide(WindowInsets.Type.systemBars());
+        } else {
+            bars.show(WindowInsets.Type.systemBars());
+        }
+    }
+
     @Override
     public void onBackPressed() {
+        if (fullscreenView != null) { chrome.onHideCustomView(); return; }
         if (webView.canGoBack()) webView.goBack();
         else super.onBackPressed();
     }

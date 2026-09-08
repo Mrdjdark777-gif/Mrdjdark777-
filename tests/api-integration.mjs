@@ -93,6 +93,28 @@ try {
   assert.equal((await request('library', { action: 'donation', url: 'javascript:alert(1)' })).status, 400);
   assert.equal((await request('library', { action: 'donation', url: 'https://payments.example/dima' })).status, 200);
 
+  // Видео: сохраняется только ссылка, файл на сервер не попадает.
+  assert.equal((await request('library', { kind: 'video', title: 'No link' })).status, 400);
+  assert.equal((await request('library', { kind: 'video', title: 'Insecure', videoUrl: 'http://youtu.be/dQw4w9WgXcQ' })).status, 400);
+  const video = await request('library', { kind: 'video', title: 'Behind the scenes', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
+  assert.equal(video.status, 200);
+  const listedVideo = (await request('library', undefined, false)).data.items.find(p => p.id === video.data.id);
+  assert.equal(listedVideo.kind, 'video');
+  assert.equal(listedVideo.videoUrl, 'https://youtu.be/dQw4w9WgXcQ');
+  assert.equal(listedVideo.audioKey, null);
+
+  // Ссылки на площадки: только HTTPS и только известные площадки.
+  assert.equal((await request('library', { action: 'links', links: [{ kind: 'tiktok', url: 'http://tiktok.com/@tt' }] })).status, 400);
+  assert.equal((await request('library', { action: 'links', links: [{ kind: 'myspace', url: 'https://myspace.com/tt' }] })).status, 400);
+  assert.equal(
+    (await request('library', {
+      action: 'links',
+      links: [{ kind: 'tiktok', url: 'https://www.tiktok.com/@truethrills' }, { kind: 'bogus', url: 'https://bogus.test' }],
+    })).status,
+    200,
+  );
+  assert.deepEqual((await request('library', undefined, false)).data.links, [{ kind: 'tiktok', url: 'https://www.tiktok.com/@truethrills' }]);
+
   let r = await dispatch('audio', {
     method: 'POST',
     headers: { cookie: ownerCookie, 'Content-Type': 'audio/mpeg', 'X-Upload-Size': '6' },
@@ -204,7 +226,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });
