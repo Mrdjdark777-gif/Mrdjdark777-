@@ -1,6 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bitter } from "next/font/google";
 import "./globals.css";
+
+// viewport-fit=cover makes the browser report real safe-area insets, which the
+// header and bottom nav pad themselves by. Needed because Android 15 draws the
+// app's WebView behind the status bar, which otherwise covers the header.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 const displayFont = Bitter({
   subsets: ["latin", "cyrillic"],
