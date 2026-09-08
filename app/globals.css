@@ -23,8 +23,16 @@
   --popover:#202124;--popover-foreground:#f4f3f1;--primary:#c9603f;--primary-foreground:#161211;
   --secondary:#26272b;--secondary-foreground:#f4f3f1;--muted:#222327;--muted-foreground:#a4a5aa;
   --accent:#2c2524;--accent-foreground:#ffb0a4;--destructive:#c9603f;--border:#303136;--input:#36373c;--ring:#d4714a;
-  --radius:0.75rem;--font-display-fallback:Georgia,serif;--sidebar:#151619;--sidebar-foreground:#c5c5c8;--sidebar-primary:#c9603f;--sidebar-primary-foreground:#101113;
-  --sidebar-accent:#302421;--sidebar-accent-foreground:#ff8b78;--sidebar-border:#2b2c30;--sidebar-ring:#d4714a;
+  --radius:0.75rem;--font-display-fallback:Georgia,serif;--sidebar:rgba(24,20,19,0.55);--sidebar-foreground:#c5c5c8;--sidebar-primary:#c9603f;--sidebar-primary-foreground:#101113;
+  --sidebar-accent:#302421;--sidebar-accent-foreground:#ff8b78;--sidebar-border:rgba(255,255,255,0.08);--sidebar-ring:#d4714a;
+  --glass-border:rgba(255,255,255,0.09);--glass-border-strong:rgba(255,255,255,0.14);
+  --glass-1:linear-gradient(155deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015));
+  --glass-2:linear-gradient(155deg,rgba(255,255,255,0.035),rgba(255,255,255,0.01));
+  --glass-warm-1:linear-gradient(150deg,rgba(230,120,80,0.14),rgba(40,25,22,0.35));
+  --glass-warm-2:linear-gradient(150deg,rgba(230,120,80,0.09),rgba(30,22,21,0.3));
+  --glass-shadow:0 24px 60px -28px rgba(0,0,0,0.85),inset 0 1px 0 0 rgba(255,255,255,0.09);
+  --glass-shadow-warm:0 24px 60px -28px rgba(30,10,5,0.9),inset 0 1px 0 0 rgba(255,180,140,0.12);
+  --glass-blur:blur(20px);
 }
 
 @theme inline {
@@ -91,3 +99,27 @@ body:has(.persistent-player) .main-content{padding-bottom:160px}
 .audio-mode-help{font-size:.875rem;line-height:1.6;color:var(--muted-foreground);margin:12px 0 18px}.mic-setup>.field{margin-bottom:16px}
 .notification-options{display:grid;gap:18px;margin:24px 0}.notification-options label{display:flex;align-items:center;gap:12px;font-size:1rem}
 .settings-actions{display:flex;flex-wrap:wrap;gap:12px}.settings-panel small{display:block;line-height:1.6;margin-top:14px}
+
+/* ---------------------------------------------------------------------- */
+/* Glass redesign: translucent blurred surfaces over a fixed aurora backdrop. */
+/* ---------------------------------------------------------------------- */
+@keyframes tt-drift{0%,100%{transform:translate(0,0) scale(1);opacity:.7}50%{transform:translate(4%,-3%) scale(1.08);opacity:1}}
+@keyframes tt-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.app-aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.app-aurora>span{position:absolute;border-radius:50%;filter:blur(120px)}
+.app-aurora .tt-blob-1{top:-14%;left:-10%;width:46vw;height:46vw;background:rgba(201,96,63,0.22);animation:tt-drift 18s ease-in-out infinite}
+.app-aurora .tt-blob-2{top:4%;right:-12%;width:40vw;height:40vw;background:rgba(224,122,82,0.16);animation:tt-drift 24s ease-in-out infinite reverse}
+.app-aurora .tt-blob-3{bottom:-16%;left:28%;width:44vw;height:44vw;background:rgba(212,113,74,0.14);animation:tt-drift 21s ease-in-out infinite}
+.app-aurora .tt-vignette{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 0%,transparent 45%,rgba(6,5,5,0.88) 100%)}
+.app-aurora .tt-noise{position:absolute;inset:0;opacity:.05;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#tt-app{position:relative;z-index:1}
+
+.recorder-panel,.library-tiles>button,.settings-panel,.empty-state,.post-card,.quick-story,.filter-tabs,.editor-dialog,.audio-editor-preview,[data-slot=dialog-content],[data-slot=alert-dialog-content],.session-status,.broadcast-summary,.login-card,.setup-card{background-image:var(--glass-2);background-color:rgba(20,19,20,0.4);border-color:var(--glass-border)!important;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
+.live-card,.draft-bar,.donation-banner,.pilot-note,.live-main-panel,.onair-banner,.host-running-note,.live-refresh-warning,.session-status.is-onair{background-image:var(--glass-warm-2);background-color:rgba(30,20,18,0.4);border-color:rgba(230,140,100,0.22)!important;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow-warm)}
+.setup-card,.login-card{background-image:var(--glass-1);box-shadow:var(--glass-shadow),0 0 120px -40px rgba(201,96,63,0.35);animation:tt-rise .7s cubic-bezier(.22,1,.36,1)}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(16,17,19,0.55);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+[data-slot=sidebar-container],[data-slot=sidebar-inner]{background:var(--sidebar)!important;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-color:var(--glass-border)!important}
+.persistent-player{background:rgba(30,29,32,0.55)!important;border-top-color:var(--glass-border-strong)!important}
+.podcast-player{background:rgba(14,30,27,0.6)!important;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-top-color:rgba(120,200,185,0.25)!important}
+.page-heading h1{background:linear-gradient(135deg,#f4f3f1,#e07a52);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media(prefers-reduced-motion:reduce){.setup-card,.login-card{animation:none}}

@@ -25,7 +25,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`dark ${displayFont.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <div aria-hidden className="app-aurora">
+          <span className="tt-blob-1" />
+          <span className="tt-blob-2" />
+          <span className="tt-blob-3" />
+          <span className="tt-vignette" />
+          <span className="tt-noise" />
+        </div>
+        <div id="tt-app">{children}</div>
+      </body>
     </html>
   );
 }
