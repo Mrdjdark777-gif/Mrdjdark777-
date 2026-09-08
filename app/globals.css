@@ -126,7 +126,6 @@ body:has(.persistent-player) .main-content{padding-bottom:160px}
 .top-header-actions .quiet-button{padding:8px}
 
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;height:var(--bottom-nav-h);display:grid;grid-template-columns:1fr 1fr 76px 1fr 1fr;align-items:center;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(155deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-top:1px solid rgba(255,255,255,0.1);box-shadow:0 -12px 40px -20px rgba(0,0,0,0.85)}
-.bottom-nav.bottom-nav-flat{grid-template-columns:repeat(4,1fr)}
 .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:#a4a5aa;background:none;border:none;position:relative;padding:4px}
 .bottom-nav-item span{font-size:10px}
 .bottom-nav-item[data-active=true]{color:#6FE7DE}

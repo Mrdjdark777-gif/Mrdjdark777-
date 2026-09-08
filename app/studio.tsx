@@ -136,22 +136,13 @@ export default function Studio(){
  </>}
  <footer className="content-footer"><span>TRUE THRILLS<span className="brand-point">.</span></span><span>Твоя история. Твой голос.</span></footer>
  </main>
- {data&&!data.needsSetup&&(author?
- <nav className="bottom-nav">
+ {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label="Подкасты" onClick={()=>goto('podcasts')}><Headphones size={21}/><span>Подкасты</span></button>
  <button className="bottom-nav-item" data-active={view==='stories'} aria-label="Истории" onClick={()=>goto('stories')}><BookOpen size={21}/><span>Истории</span></button>
- <button className="bottom-nav-home" aria-label="Домой" onClick={()=>goto('home')}><img src="/brand/logo.png?v=0.4.1" width="66" height="66" alt=""/></button>
+ <button className="bottom-nav-home" aria-label="Домой" onClick={()=>goto(author?'home':'podcasts')}><img src="/brand/logo.png?v=0.4.1" width="66" height="66" alt=""/></button>
  <button className="bottom-nav-item" data-active={view==='live'} aria-label="Прямой эфир" onClick={()=>goto('live')}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={21}/><span>Эфир</span></button>
  <button className="bottom-nav-item" data-active={view==='settings'} aria-label="Настройки" onClick={()=>goto('settings')}><Settings size={21}/><span>Настройки</span></button>
- </nav>
- :
- <nav className="bottom-nav bottom-nav-flat">
- <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label="Подкасты" onClick={()=>goto('podcasts')}><Headphones size={21}/><span>Подкасты</span></button>
- <button className="bottom-nav-item" data-active={view==='stories'} aria-label="Истории" onClick={()=>goto('stories')}><BookOpen size={21}/><span>Истории</span></button>
- <button className="bottom-nav-item" data-active={view==='live'} aria-label="Прямой эфир" onClick={()=>goto('live')}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={21}/><span>Эфир</span></button>
- <button className="bottom-nav-item" data-active={view==='settings'} aria-label="Настройки" onClick={()=>goto('settings')}><Settings size={21}/><span>Настройки</span></button>
- </nav>
- )}
+ </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>
  {playing&&<PodcastPlayer key={playing.id} src={'/api/audio?id='+playing.id} title={playing.title} duration={playing.duration} audioRef={player} onClose={()=>{player.current?.pause();setPlaying(null);}}/>}
