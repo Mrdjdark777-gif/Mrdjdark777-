@@ -71,6 +71,8 @@ export const ru = {
   'home.socialCaption': 'Автор на других площадках',
 
   'support.title': 'Поддержать True Thrills',
+  'support.setupTitle': 'Кнопка поддержки не подключена',
+  'support.setupText': 'Добавь платёжную ссылку — она появится у слушателей в шапке и на главном экране.',
   'support.subtitle': 'Разовый донат или подписка на странице автора.',
 
   'live.youAreListening': 'ВЫ СЛУШАЕТЕ ЭФИР',

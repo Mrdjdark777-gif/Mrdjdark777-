@@ -71,6 +71,8 @@ export const it: Record<keyof typeof ru, string> = {
   'home.socialCaption': 'L’autore sulle altre piattaforme',
 
   'support.title': 'Sostieni True Thrills',
+  'support.setupTitle': 'Pulsante di sostegno non collegato',
+  'support.setupText': 'Aggiungi il link di pagamento — comparirà per chi ascolta nell’intestazione e nella home.',
   'support.subtitle': 'Donazione singola o abbonamento sulla pagina dell’autore.',
 
   'live.youAreListening': 'STAI ASCOLTANDO LA DIRETTA',

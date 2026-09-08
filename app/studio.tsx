@@ -93,7 +93,7 @@ export default function Studio(){
  <header className="top-header">
   <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
   <div className="top-header-actions">
-   {!author&&!!data?.donation&&<a className="support-button" href={data.donation} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
+   {!!data?.donation&&<a className="support-button" href={data.donation} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>goto('settings')}><Settings size={18}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author?<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>:<a className="quiet-button" aria-label={t('header.loginAuthor')} title={t('header.loginAuthor')} href="/login"><LogIn size={18}/></a>}
@@ -115,6 +115,7 @@ export default function Studio(){
  <button className="home-tile home-tile-live" onClick={()=>goto('live')}><Radio size={22}/><span>{t('home.startLive')}</span></button>
  <button className="home-tile" onClick={()=>void copyChannelLink()}><Share2 size={22}/><span>{t('home.shareChannel')}</span></button>
  </div>}
+ {view==='home'&&author&&(supportCard??<button className="support-card support-setup" onClick={()=>goto('settings')}><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('support.setupTitle')}</strong><span>{t('support.setupText')}</span></span><ChevronRight size={19}/></button>)}
  {view==='home'&&!author&&<>
  <div className="home-actions">
  <button className="home-tile" onClick={()=>goto('videos')}><Video size={22}/><span>{t('home.watchVideos')}</span></button>

@@ -210,3 +210,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .empty-state h2,.settings-panel h2,.live-main-panel h2,.post-title{font-weight:700;letter-spacing:-.03em}
 /* Текст истории тоже набран основным шрифтом — один шрифт на всё приложение. */
 .reading-body{font-family:var(--font-ui);font-size:19px;line-height:1.85}
+
+/* Автору без подключённой ссылки показывается та же карточка, но приглушённая:
+   это подсказка настроить, а не готовая кнопка доната. */
+.support-setup{width:100%;text-align:left;background-image:none;background-color:rgba(255,255,255,0.04);border-color:var(--glass-border)}
+.support-setup .support-icon{background:rgba(255,255,255,0.08);color:#6FE7DE}
+.support-setup>svg:last-child{color:#8d9196}
