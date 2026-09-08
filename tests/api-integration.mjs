@@ -90,6 +90,9 @@ try {
   assert.equal((await request('library', undefined, false)).data.items.length, 0);
   await request('library', { action: 'visibility', id: draft.data.id, published: true });
   assert.equal((await request('library', undefined, false)).data.items.length, 1);
+  // Ошибки сервера уходят ключами: слова подставляет клиент по своему словарю.
+  assert.equal((await request('library', { kind: 'story', title: '' })).data.error, '#err.titleLength');
+  assert.equal((await request('library', { kind: 'story', title: 'X' }, false)).data.error, '#err.ownerOnly');
   assert.equal((await request('library', { action: 'donation', url: 'javascript:alert(1)' })).status, 400);
   assert.equal((await request('library', { action: 'donation', url: 'https://payments.example/dima' })).status, 200);
 
@@ -202,7 +205,7 @@ try {
   process.env.FIREBASE_SERVICE_ACCOUNT_FILE=saFile;
   assert.equal((await request('notifications',{action:'subscribe',kind:'fcm',token:'short',preferences:7},false)).status,400);
   const fcmToken='a'.repeat(152);
-  const fcmSub=await request('notifications',{action:'subscribe',kind:'fcm',token:fcmToken,preferences:7},false);assert.equal(fcmSub.status,200);
+  const fcmSub=await request('notifications',{action:'subscribe',kind:'fcm',token:fcmToken,preferences:7,locale:'it'},false);assert.equal(fcmSub.status,200);
   let fcmBody=null,fcmSendStatus=200;
   globalThis.fetch=async(url,init)=>{
    const u=new URL(url);
@@ -220,13 +223,16 @@ try {
    const post=await request('library',{kind:'story',title:'FCM story',body:'Body',published:true});assert.equal(post.status,200);
    await request('library',{action:'visibility',id:post.data.id,published:true});await push.flushPush();
    assert.equal(fcmBody.message.token,fcmToken);assert.equal(fcmBody.message.data.body,'FCM story');assert.equal(fcmBody.message.data.tag.startsWith('post:'),true);
+   // Устройство подписалось с locale:'it' — заголовок приходит по-итальянски,
+   // а название публикации остаётся авторским и не переводится.
+   assert.equal(fcmBody.message.data.title,'Nuovo racconto di True Thrills');
    fcmSendStatus=404;
    const post2=await request('library',{kind:'story',title:'FCM story 2',body:'Body',published:true});
    await request('library',{action:'visibility',id:post2.data.id,published:true});await push.flushPush();
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

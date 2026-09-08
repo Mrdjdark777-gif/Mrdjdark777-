@@ -1,0 +1,1 @@
+ALTER TABLE `push_subscriptions` ADD `locale` text DEFAULT 'ru' NOT NULL;

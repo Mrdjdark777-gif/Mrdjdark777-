@@ -201,6 +201,8 @@ public class MainActivity extends Activity {
                             .put("action", "subscribe")
                             .put("kind", "fcm")
                             .put("token", token)
+                            // Уведомления приходят на языке телефона, а не на языке сервера.
+                            .put("locale", java.util.Locale.getDefault().getLanguage())
                             .put("preferences", preferences);
                     JSONObject res = PushClient.post(body, PushClient.prefs(MainActivity.this).getString("manageToken", ""));
                     if (res.has("error")) {

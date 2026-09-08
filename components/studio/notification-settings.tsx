@@ -2,4 +2,17 @@
 import {Bell,Loader2} from 'lucide-react';
 import {Switch} from '@/components/ui/switch';
 import {useNotifications} from '@/hooks/use-notifications';
-export function NotificationSettings(){const n=useNotifications();return <section className="settings-panel"><div className="section-icon"><Bell size={22}/></div><h2>Уведомления на этом устройстве</h2><p>Получай уведомления об эфирах и публикациях. Регистрация не нужна.</p>{n.supported?<><div className="notification-options">{[[1,'Начало эфира'],[2,'Новый подкаст'],[4,'Новая история']].map(([bit,label])=><label key={bit}><Switch checked={!!(n.preferences&Number(bit))} disabled={n.busy} onCheckedChange={checked=>void n.update(checked?n.preferences|Number(bit):n.preferences&~Number(bit))}/>{label}</label>)}</div><div className="settings-actions"><button className="primary-button" disabled={n.busy} onClick={()=>void(n.enabled?n.disable():n.enable())}>{n.busy?<Loader2 className="spin" size={18}/>:<Bell size={18}/>} {n.enabled?'Выключить уведомления':'Включить уведомления'}</button>{n.enabled&&<button className="secondary-button" disabled={n.busy} onClick={()=>void n.test()}>Проверить доставку</button>}</div></>:<p>Для уведомлений открой защищённый адрес True Thrills (HTTPS) в Chrome на Android.</p>}{n.message&&<p role="status">{n.message}</p>}<small>Уведомления приходят даже без открытого приложения. Для экрана блокировки разреши их в настройках Android. Энергосбережение и принудительная остановка приложения (или Chrome — при доступе через браузер) могут мешать доставке.</small></section>;}
+import {useT} from '@/components/i18n-provider';
+
+const OPTIONS:[number,string][]=[[1,'notif.optLive'],[2,'notif.optPodcast'],[4,'notif.optStory']];
+
+export function NotificationSettings(){
+ const n=useNotifications(),{t}=useT();
+ return <section className="settings-panel"><div className="section-icon"><Bell size={22}/></div><h2>{t('notif.title')}</h2><p>{t('notif.text')}</p>
+ {n.supported?<>
+  <div className="notification-options">{OPTIONS.map(([bit,key])=><label key={bit}><Switch checked={!!(n.preferences&bit)} disabled={n.busy} onCheckedChange={checked=>void n.update(checked?n.preferences|bit:n.preferences&~bit)}/>{t(key)}</label>)}</div>
+  <div className="settings-actions"><button className="primary-button" disabled={n.busy} onClick={()=>void(n.enabled?n.disable():n.enable())}>{n.busy?<Loader2 className="spin" size={18}/>:<Bell size={18}/>} {n.enabled?t('notif.disable'):t('notif.enable')}</button>{n.enabled&&<button className="secondary-button" disabled={n.busy} onClick={()=>void n.test()}>{t('notif.test')}</button>}</div>
+ </>:<p>{t('notif.unsupported')}</p>}
+ {n.message&&<p role="status">{n.message}</p>}
+ <small>{t('notif.note')}</small></section>;
+}

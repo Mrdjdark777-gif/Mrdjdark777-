@@ -16,8 +16,8 @@ type Meta = { contentType: string; customMetadata: Record<string, string>; size:
 
 function dataPath(key: string) {
   const target = normalize(join(ROOT, key));
-  if (target !== ROOT && !target.startsWith(ROOT + '/')) throw new Error('Недопустимый ключ хранилища');
-  if (relative(ROOT, target).startsWith('..')) throw new Error('Недопустимый ключ хранилища');
+  if (target !== ROOT && !target.startsWith(ROOT + '/')) throw new Error('#err.badStorageKey');
+  if (relative(ROOT, target).startsWith('..')) throw new Error('#err.badStorageKey');
   return target;
 }
 function metaPath(key: string) {

@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return result({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
     }
     const password = String(d.password ?? '');
-    if (!password || !verifyPassword(password)) throw new Error('Неверный пароль');
+    if (!password || !verifyPassword(password)) throw new Error('#err.badPassword');
     return result({ ok: true }, 200, { 'Set-Cookie': createSessionCookie(req) });
   } catch (e) {
     return failure(e);

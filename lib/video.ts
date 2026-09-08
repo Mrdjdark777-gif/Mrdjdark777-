@@ -33,12 +33,12 @@ export function parseVideo(raw: string): Video | null {
 }
 
 export const SOCIALS = [
-  { kind: 'youtube', label: 'YouTube' },
-  { kind: 'tiktok', label: 'TikTok' },
-  { kind: 'instagram', label: 'Instagram' },
-  { kind: 'telegram', label: 'Telegram' },
-  { kind: 'vk', label: 'ВКонтакте' },
-  { kind: 'site', label: 'Сайт или другое' },
+  { kind: 'youtube', labelKey: 'social.youtube' },
+  { kind: 'tiktok', labelKey: 'social.tiktok' },
+  { kind: 'instagram', labelKey: 'social.instagram' },
+  { kind: 'telegram', labelKey: 'social.telegram' },
+  { kind: 'vk', labelKey: 'social.vk' },
+  { kind: 'site', labelKey: 'social.site' },
 ] as const;
 export type SocialKind = (typeof SOCIALS)[number]['kind'];
 export type SocialLink = { kind: SocialKind; url: string };
