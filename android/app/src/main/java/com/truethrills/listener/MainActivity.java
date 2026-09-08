@@ -38,6 +38,11 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        // Without these, WebView can ignore the site's own
+        // width=device-width viewport meta tag and lay the page out at a
+        // fixed desktop-ish width, spilling content past the screen edges.
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
         webView.addJavascriptInterface(new PushBridge(), "AndroidPush");
         webView.setWebViewClient(new WebViewClient() {
             @Override
