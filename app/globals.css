@@ -18,16 +18,16 @@
   scrollbar-gutter: stable;
 }
 
-/* Шрифт интерфейса задаётся здесь один раз и одинаков для всех языков.
-   Пока это системный стек; подключение своего семейства — правка этой строки
-   (и одного импорта шрифта в app/layout.tsx). */
+/* Шрифт интерфейса задаётся здесь один раз и одинаков для всех языков и для
+   всех экранов: --font-display приходит из next/font (app/layout.tsx), дальше
+   идёт запасной системный стек на случай, если шрифт не успел загрузиться. */
 :root, .dark {
-  --font-ui: Arial, Helvetica, sans-serif;
+  --font-ui: var(--font-display), var(--font-display-fallback);
   --background:#101113;--foreground:#f4f3f1;--card:#18191c;--card-foreground:#f4f3f1;
   --popover:#202124;--popover-foreground:#f4f3f1;--primary:#6FE7DE;--primary-foreground:#08201E;
   --secondary:#26272b;--secondary-foreground:#f4f3f1;--muted:#222327;--muted-foreground:#a4a5aa;
   --accent:#123330;--accent-foreground:#8FEFE8;--destructive:#E0564C;--border:#303136;--input:#36373c;--ring:#6FE7DE;
-  --radius:0.75rem;--font-display-fallback:Georgia,serif;--sidebar:rgba(24,20,19,0.55);--sidebar-foreground:#c5c5c8;--sidebar-primary:#6FE7DE;--sidebar-primary-foreground:#08201E;
+  --radius:0.75rem;--font-display-fallback:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;--sidebar:rgba(24,20,19,0.55);--sidebar-foreground:#c5c5c8;--sidebar-primary:#6FE7DE;--sidebar-primary-foreground:#08201E;
   --sidebar-accent:#123330;--sidebar-accent-foreground:#8FEFE8;--sidebar-border:rgba(255,255,255,0.08);--sidebar-ring:#6FE7DE;
   --glass-border:rgba(255,255,255,0.09);--glass-border-strong:rgba(255,255,255,0.14);
   --glass-1:linear-gradient(155deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015));
@@ -199,3 +199,14 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .language-options{display:flex;flex-wrap:wrap;gap:9px}
 .language-option{padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;color:#e4e3e7;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border)}
 .language-option.is-active{color:#08201E;background:linear-gradient(135deg,#6FE7DE,#54D9C6);border-color:#6FE7DE}
+
+/* Заголовки набираются тем же гротеском: тяжёлое начертание и плотный трекинг
+   дают ту же плотную «плакатную» подачу, что и в референсе. */
+.page-heading h1{font-weight:800;letter-spacing:-.038em}
+.setup-card h1{font-weight:800;letter-spacing:-.032em}
+.live-card h2{font-weight:800;letter-spacing:-.03em}
+.reading-dialog [data-slot=dialog-title]{font-weight:800;letter-spacing:-.03em}
+.top-header-brand{font-weight:800;letter-spacing:-.025em}
+.empty-state h2,.settings-panel h2,.live-main-panel h2,.post-title{font-weight:700;letter-spacing:-.03em}
+/* Текст истории тоже набран основным шрифтом — один шрифт на всё приложение. */
+.reading-body{font-family:var(--font-ui);font-size:19px;line-height:1.85}
