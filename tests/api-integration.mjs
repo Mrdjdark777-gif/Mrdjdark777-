@@ -26,6 +26,7 @@ const outfile = path.join(dir, 'routes.mjs');
 await build({
   stdin: {
     contents: `
+      export * as uiClient from '${root}/lib/client.ts';
       export * as library from '${root}/app/api/library/route.ts';
       export * as audio from '${root}/app/api/audio/route.ts';
       export * as live from '${root}/app/api/live/route.ts';
@@ -46,7 +47,7 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { library, audio, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
+const { uiClient, library, audio, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
 const routes = { library, audio, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
@@ -79,6 +80,7 @@ const request = async (routeName, data, signedIn = true, extraHeaders = {}, sear
 };
 
 try {
+  assert.equal(uiClient.errorText(new Error('#err.notificationsBlocked')),'Разреши уведомления в настройках телефона.');
   process.env.TRUST_PROXY='true';
   for(let i=0;i<10;i++)assert.equal((await request('login',{password:'wrong'},false,{'x-real-ip':'192.0.2.1'})).status,400);
   const limited=await request('login',{password:'test-password'},false,{'x-real-ip':'192.0.2.1'});assert.equal(limited.status,429);assert.ok(Number(limited.headers.get('retry-after'))>0);
