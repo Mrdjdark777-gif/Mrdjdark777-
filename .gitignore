@@ -54,3 +54,5 @@ next-env.d.ts
 *.keystore
 
 !.env.example
+
+__pycache__/

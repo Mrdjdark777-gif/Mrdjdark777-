@@ -8,7 +8,7 @@ previous=$(git rev-parse HEAD)
 git fetch origin claude/read-link-content-h18psv
 git merge-base --is-ancestor HEAD origin/claude/read-link-content-h18psv || { echo 'Branches diverged; manual merge required.' >&2; exit 1; }
 if curl -fsS --max-time 5 http://127.0.0.1:3000/api/live?status=1 | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.exit(JSON.parse(s).live?0:1))'; then echo 'Finish the live before updating.' >&2; exit 1; fi
-trap 'echo "Update failed; service remains stopped. Restore the verified backup and previous commit: $previous" >&2' ERR
+trap 'systemctl stop truethrills; echo "Update failed; service remains stopped. Restore the verified backup and previous commit: $previous" >&2' ERR
 systemctl stop truethrills
 umask 077
 node --env-file=.env scripts/backup-data.mjs /var/backups/truethrills
