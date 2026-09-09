@@ -161,7 +161,7 @@ export default function Studio(){
  </>}
  </section><aside className="live-info"><h3>{author?t('live.infoAuthor'):t('live.infoListener')}</h3>{author?<><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p></>:<><p><Headphones size={18}/>{t('live.listenerTip1')}</p><p><Volume2 size={18}/>{t('live.listenerTip2')}</p></>}{author&&<div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p>{author&&<p>{t('live.pilotNoRecord')}</p>}</div>}{!author&&live.phase==='error'&&<p>{t('live.otherNetwork')}</p>}</aside></div>}
  {view==='settings'&&<div className="settings-grid">
- <NotificationSettings/>
+ <NotificationSettings author={author}/>
  <LanguageSettings/>
  {author?<>
  <section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.supportTitle')}</h2><p>{t('settings.supportText')}</p><label className="field">{t('settings.donationField')}<input type="url" value={donation} onChange={e=>setDonation(e.target.value)} placeholder="https://…"/></label><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'donation',url:donation}),t('settings.donationSaved'))}><Check size={17}/>{t('settings.saveDonation')}</button><small>{t('settings.donationNote')}</small></section>
