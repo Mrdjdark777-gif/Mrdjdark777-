@@ -125,6 +125,7 @@ export const ru = {
   'desc.homeAuthor': 'Запись, видео, история или эфир — начни с главного.',
   'desc.homeListener': 'Видео, подкасты и истории — в одном месте.',
   'desc.studio': 'Запиши. Расскажи. Дай услышать.',
+  'footer.tagline': 'Твоя история. Твой голос.',
   'desc.podcastsAuthor': 'Твои выпуски — от черновика до публикации.',
   'desc.podcastsListener': 'Все опубликованные выпуски True Thrills.',
   'desc.videosAuthor': 'Ссылки на твои видео — слушатель смотрит их прямо здесь.',

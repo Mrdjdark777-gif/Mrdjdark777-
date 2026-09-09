@@ -103,7 +103,7 @@ export default function Studio(){
   <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
   <div className="top-header-actions">
    {view==='home'&&!!data?.donation&&<a className="support-button" href={data.donation} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
-   {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>goto('settings')}><Settings size={18}/></button>}
+   {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><Settings size={22}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
   </div>
@@ -178,7 +178,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('desc.studio')}</span></footer>
+ <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('footer.tagline')}</span></footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}><Headphones size={22}/><span>{t('nav.podcasts')}</span></button>

@@ -126,6 +126,7 @@ export const it: Record<keyof typeof ru, string> = {
   'desc.homeAuthor': 'Registrazione, video, racconto o diretta — parti da qui.',
   'desc.homeListener': 'Video, podcast e racconti — tutto in un posto solo.',
   'desc.studio': 'Registra. Racconta. Fatti ascoltare.',
+  'footer.tagline': 'La tua storia. La tua voce.',
   'desc.podcastsAuthor': 'I tuoi episodi — dalla bozza alla pubblicazione.',
   'desc.podcastsListener': 'Tutti gli episodi pubblicati di True Thrills.',
   'desc.videosAuthor': 'I link ai tuoi video — chi ascolta li guarda direttamente qui.',
