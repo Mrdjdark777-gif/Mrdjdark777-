@@ -241,3 +241,18 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  transform:scale(1.22);
  color:#8FEFE8;
 }
+
+/* Тонированная полоса ровно под системными часами/значками. На Android
+   резкая прокрутка (эффект отдачи «overscroll stretch») на миг растягивает
+   отрисованную страницу за её собственный край — панель гасит это, а не
+   выключатель наверху, который сам может «уехать» вместе со страницей,
+   раз он больше не прилипает к верху. Высота равна вырезу под часы, поэтому
+   на устройствах без выреза (и на ПК) полоса нулевой высоты — незаметна.
+   Тапы сквозь неё проходят: под ней всегда пусто, кнопки шапки ниже. */
+.status-bar-veil{
+ position:fixed;top:0;left:0;right:0;z-index:60;
+ height:env(safe-area-inset-top);
+ background:rgba(12,13,15,0.72);
+ backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+ pointer-events:none;
+}

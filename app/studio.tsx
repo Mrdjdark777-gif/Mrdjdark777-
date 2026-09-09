@@ -91,6 +91,7 @@ export default function Studio(){
  return <>
  <Toaster theme="dark" richColors position="top-center"/>
  <div className="app-shell">
+ <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
   <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
   <div className="top-header-actions">

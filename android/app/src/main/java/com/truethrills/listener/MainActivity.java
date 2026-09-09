@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
     private WebChromeClient chrome;
+    private final PushBridge pushBridge = new PushBridge();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -44,9 +45,21 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 1);
+        } else {
+            // Разрешение уже есть (Android 12 и старше, где системного диалога
+            // вообще нет, либо оно было выдано раньше) — подписываемся сразу,
+            // не дожидаясь, пока слушатель сам найдёт кнопку в настройках.
+            pushBridge.autoEnableIfNeeded();
         }
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(16, 17, 19));
+        // Android 12+ stretches the rendered page a little past its own edge
+        // on a fling past the top or bottom ("overscroll" bounce) — that
+        // stretch is a compositor effect and can visually bulge into the
+        // status bar strip for an instant, even though the WebView's real
+        // layout already stops below it. Turning the effect off is simpler
+        // and more reliable than trying to mask a moving target.
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -57,7 +70,7 @@ public class MainActivity extends Activity {
         // fixed desktop-ish width, spilling content past the screen edges.
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        webView.addJavascriptInterface(new PushBridge(), "AndroidPush");
+        webView.addJavascriptInterface(pushBridge, "AndroidPush");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -100,6 +113,17 @@ public class MainActivity extends Activity {
         String deepLink = savedInstanceState == null ? getIntent().getStringExtra("url") : null;
         if (savedInstanceState != null) webView.restoreState(savedInstanceState);
         else webView.loadUrl(deepLink != null ? resolveUrl(deepLink) : url("home"));
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // Пользователь нажал «Разрешить» в системном диалоге — включаем
+        // уведомления сразу, а не оставляем их выключенными до похода в
+        // настройки приложения: разрешение и есть его ответ на вопрос.
+        if (requestCode == 1 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            pushBridge.autoEnableIfNeeded();
+        }
     }
 
     @Override
@@ -193,7 +217,21 @@ public class MainActivity extends Activity {
             register(preferences, requestId);
         }
 
-        private void register(int preferences, int requestId) {
+        /**
+         * Вызывается один раз — сразу после того, как выдано системное
+         * разрешение на уведомления, — чтобы «Разрешить» в диалоге и правда
+         * включало их, без похода в настройки приложения. Флаг переживает
+         * disable(), поэтому если слушатель потом сам выключит уведомления,
+         * следующий запуск приложения не включит их обратно без его ведома.
+         */
+        void autoEnableIfNeeded() {
+            SharedPreferences prefs = PushClient.prefs(MainActivity.this);
+            if (prefs.getBoolean("auto-enable-tried", false)) return;
+            prefs.edit().putBoolean("auto-enable-tried", true).apply();
+            register(7, null);
+        }
+
+        private void register(int preferences, Integer requestId) {
             new Thread(() -> {
                 try {
                     String token = Tasks.await(FirebaseMessaging.getInstance().getToken());
@@ -206,15 +244,17 @@ public class MainActivity extends Activity {
                             .put("preferences", preferences);
                     JSONObject res = PushClient.post(body, PushClient.prefs(MainActivity.this).getString("manageToken", ""));
                     if (res.has("error")) {
-                        callback(requestId, res);
+                        if (requestId != null) callback(requestId, res);
                         return;
                     }
                     SharedPreferences.Editor editor = PushClient.prefs(MainActivity.this).edit().putString("id", res.getString("id")).putInt("preferences", preferences);
                     if (res.has("token") && !res.isNull("token")) editor.putString("manageToken", res.getString("token"));
                     editor.apply();
-                    callback(requestId, new JSONObject().put("enabled", true).put("preferences", preferences));
+                    if (requestId != null) callback(requestId, new JSONObject().put("enabled", true).put("preferences", preferences));
                 } catch (Exception e) {
-                    callback(requestId, error("Не удалось включить уведомления. Проверь соединение."));
+                    // Автовключение по разрешению — тихая попытка: если сети ещё
+                    // нет, слушатель просто включит уведомления вручную позже.
+                    if (requestId != null) callback(requestId, error("Не удалось включить уведомления. Проверь соединение."));
                 }
             }).start();
         }
@@ -226,7 +266,10 @@ public class MainActivity extends Activity {
                     SharedPreferences prefs = PushClient.prefs(MainActivity.this);
                     String id = prefs.getString("id", null);
                     if (id != null) PushClient.post(new JSONObject().put("action", "unsubscribe").put("id", id), prefs.getString("manageToken", ""));
-                    prefs.edit().clear().apply();
+                    // Точечно, а не .clear(): флаг auto-enable-tried должен
+                    // пережить выключение, иначе следующий запуск приложения
+                    // снова включит уведомления сам, без спроса.
+                    prefs.edit().remove("id").remove("manageToken").remove("preferences").apply();
                     callback(requestId, new JSONObject().put("enabled", false));
                 } catch (Exception e) {
                     callback(requestId, error("Не удалось выключить уведомления."));
