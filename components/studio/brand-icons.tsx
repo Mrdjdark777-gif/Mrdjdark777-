@@ -2,9 +2,9 @@ type IconProps = { size?: number; className?: string };
 
 /**
  * Значок площадки, который сразу узнаётся, вместо обобщённой иконки из
- * lucide (видеокамера не читается как «YouTube»). Нарисован в том же
- * штриховом стиле, что и остальные иконки lucide, — тем же currentColor,
- * поэтому подчиняется общей раскраске и подсветке при нажатии.
+ * lucide (видеокамера не читается как «YouTube»). Цвет фиксированный —
+ * фирменный красный YouTube, а не currentColor: иначе иконка красилась бы
+ * в бирюзовый цвет темы и при нажатии, как остальные chip-иконки.
  */
 export function YoutubeIcon({ size = 24, className }: IconProps) {
   return (
@@ -13,14 +13,10 @@ export function YoutubeIcon({ size = 24, className }: IconProps) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
       className={className}
     >
-      <rect x="2" y="6" width="20" height="12" rx="4" />
-      <path d="M10 9.3 16 12 10 14.7Z" fill="currentColor" stroke="none" />
+      <rect x="1.5" y="5" width="21" height="14" rx="5" fill="#FF0000" />
+      <path d="M10 8.8 16.2 12 10 15.2Z" fill="#FFFFFF" />
     </svg>
   );
 }
