@@ -167,7 +167,7 @@ export default function Studio(){
  {author?<>
  <section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.supportTitle')}</h2><p>{t('settings.supportText')}</p><label className="field">{t('settings.donationField')}<input type="url" value={donation} onChange={e=>setDonation(e.target.value)} placeholder="https://…"/></label><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'donation',url:donation}),t('settings.donationSaved'))}><Check size={17}/>{t('settings.saveDonation')}</button><small>{t('settings.donationNote')}</small></section>
  <section className="settings-panel wide-panel"><div className="section-icon"><Link2 size={22}/></div><h2>{t('settings.linksTitle')}</h2><p>{t('settings.linksText')}</p><div className="links-grid">{SOCIALS.map(sc=><label className="field" key={sc.kind}>{t(sc.labelKey)}<input type="url" value={linkDraft[sc.kind]??''} placeholder="https://…" onChange={e=>setLinkDraft(prev=>({...prev,[sc.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'links',links:SOCIALS.map(sc=>({kind:sc.kind,url:(linkDraft[sc.kind]??'').trim()})).filter(l=>l.url)}),t('settings.linksSaved'))}><Check size={17}/>{t('settings.saveLinks')}</button><small>{t('settings.linksNote')}</small></section>
- </>:!!socialRow&&<section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.authorTitle')}</h2><p>{t('settings.authorText')}</p>{socialRow}</section>}
+ </>:null}
  </div>}
  </>}
  <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('desc.studio')}</span></footer>
