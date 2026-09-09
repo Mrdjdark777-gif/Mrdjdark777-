@@ -20,9 +20,9 @@ const story=await post({kind:'story',title:'История у горного о�
 const wav=Buffer.alloc(44+44100*2*8);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
 const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();
 const podcast=await post({kind:'podcast',title:'Проверка подкаста',audioKey:key,duration:8,published:true});
-browser=await chromium.launch({headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
+browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
 try{
- const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log('Browser:',m.text());});
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page.locator('.podcast-player').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&a.currentTime>1&&a.duration===8;});
  const times=await page.locator('.podcast-times').innerText();assert.match(times,/00:08|0:08/);
@@ -40,7 +40,8 @@ try{
  const studio=await ownerContext.newPage();await studio.goto(base+'/?view=live');await studio.getByLabel('Название эфира').fill('Browser live archive');await studio.getByRole('button',{name:'Начать эфир',exact:true}).click();
  await studio.locator('.stop-live-button').waitFor();
  await page.goto(base+'/?mode=listen&view=live');await page.locator('.listener-playback-actions .primary-button').click();
- await page.waitForFunction(()=>document.querySelector('.session-status.is-onair')!==null,{},{timeout:60000});
+ try{await page.waitForFunction(()=>document.querySelector('.session-status.is-onair')!==null,{},{timeout:45000});}catch(e){await page.screenshot({path:'outputs/ui/live-failure.png',fullPage:true});console.log('Live UI:',await page.locator('.live-console').innerText());
+ throw e;}
  assert.equal(await page.locator('.live-console a.donation-card').getAttribute('href'),'https://example.com/donate');await page.screenshot({path:'outputs/ui/donation-live.png',fullPage:true});
  await studio.locator('.stop-live-button').click();await studio.waitForFunction(()=>!document.querySelector('.stop-live-button'),{},{timeout:30000});
  await page.waitForFunction(async()=>{const r=await fetch('/api/library');return (await r.json()).items.some(p=>p.title==='Browser live archive'&&p.duration>0);},{},{timeout:30000});
@@ -49,6 +50,6 @@ try{
  await page.addInitScript(()=>{const bridge={onmessage:null,postMessage(text){const r=JSON.parse(text);window.__commands=(window.__commands||[]).concat(r.method);setTimeout(()=>bridge.onmessage?.({data:JSON.stringify({id:r.id,data:{id:r.args.id||window.__id,active:true,playing:true,loading:false,position:2000,duration:8000,rate:1,sleepUntil:0}})}),0);if(r.args.id)window.__id=r.args.id;}};window.TrueThrillsNative=bridge;});
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page.locator('.podcast-player').waitFor();await page.waitForFunction(()=>window.__commands?.includes('player.load'));assert.equal(await page.locator('.podcast-player audio').count(),0);
  await page.locator('.podcast-toggle').click();await page.waitForFunction(()=>window.__commands?.includes('player.pause'));
- assert.deepEqual(errors,[]);console.log('PASS: 390px layout, advancing audio duration/progress, rate, story position/font restore, native transport and no duplicate HTML audio');
+ assert.deepEqual(errors,[]);console.log('PASS: 390px layout, audio duration/progress/rate, reading restore, donation visibility/home/live, real MediaRecorder to FFmpeg HLS browser playback and published archive, native transport without duplicate audio');
 }finally{await browser.close();}
 }finally{if(worker){worker.kill('SIGTERM');await new Promise(resolve=>{if(worker.exitCode!==null)resolve();else worker.once('exit',resolve);});}server.kill('SIGTERM');await new Promise(resolve=>{if(server.exitCode!==null)resolve();else server.once('exit',resolve);});await rm(dir,{recursive:true,force:true});}
