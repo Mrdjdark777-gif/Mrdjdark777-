@@ -14,7 +14,7 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.FrameLayout;
-import android.webkit.JavascriptInterface;
+
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -27,6 +27,7 @@ import org.json.JSONObject;
 public class MainActivity extends Activity {
     private static final String BASE_HOST = Uri.parse(PushClient.BASE).getHost();
     private WebView webView;
+    private NativeBridge bridge;
     private FrameLayout root;
     private View fullscreenView;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
@@ -41,10 +42,6 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 30) {
             getWindow().setDecorFitsSystemWindows(true);
         }
-        if (Build.VERSION.SDK_INT >= 33
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] {Manifest.permission.POST_NOTIFICATIONS}, 1);
-        }
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(16, 17, 19));
         webView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -57,7 +54,7 @@ public class MainActivity extends Activity {
         // fixed desktop-ish width, spilling content past the screen edges.
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        webView.addJavascriptInterface(new PushBridge(), "AndroidPush");
+        bridge = new NativeBridge(this, webView);
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -66,8 +63,8 @@ public class MainActivity extends Activity {
                 // фреймах: их нельзя выкидывать во внешний браузер, иначе видео
                 // не проигрывается внутри приложения.
                 if (!request.isForMainFrame()) return false;
-                if (BASE_HOST.equals(uri.getHost())) return false;
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                if ("https".equals(uri.getScheme()) && BASE_HOST.equals(uri.getHost()) && (uri.getPort() == -1 || uri.getPort() == 443)) return false;
+                if ("https".equals(uri.getScheme())) try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (android.content.ActivityNotFoundException ignored) {}
                 return true;
             }
         });
@@ -117,9 +114,14 @@ public class MainActivity extends Activity {
     // Notice.url from the server is always root-relative ("/?mode=...") — see
     // lib/push.ts — so this only needs to graft its query string onto BASE.
     private String resolveUrl(String relative) {
-        String query = relative.startsWith("/") ? relative.substring(1) : relative;
-        String glue = query.contains("?") ? "&" : "?";
-        return PushClient.BASE + query + glue + "client=android";
+        if (!relative.equals("/") && !relative.startsWith("/?")) return url("home");
+        Uri incoming = Uri.parse(relative);
+        Uri.Builder target = Uri.parse(PushClient.BASE).buildUpon().appendQueryParameter("mode", "listen").appendQueryParameter("client", "android");
+        for (String key : new String[]{"view", "post", "broadcast"}) {
+            String value = incoming.getQueryParameter(key);
+            if (value != null && value.length() <= 200) target.appendQueryParameter(key, value);
+        }
+        return target.build().toString();
     }
 
     @Override
@@ -151,105 +153,14 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        bridge.close();
         webView.destroy();
         super.onDestroy();
     }
 
-    private void callback(int requestId, JSONObject data) {
-        runOnUiThread(() -> webView.evaluateJavascript(
-                "window.__ttPushCallback&&window.__ttPushCallback(" + requestId + "," + data.toString() + ")", null));
-    }
-
-    private JSONObject error(String message) {
-        try {
-            return new JSONObject().put("error", message);
-        } catch (Exception e) {
-            return new JSONObject();
-        }
-    }
-
-    /** Bridges the site's notification settings UI (hooks/use-notifications.ts) to native FCM. */
-    private class PushBridge {
-        @JavascriptInterface
-        public String getState() {
-            SharedPreferences prefs = PushClient.prefs(MainActivity.this);
-            try {
-                return new JSONObject()
-                        .put("enabled", prefs.contains("id"))
-                        .put("preferences", prefs.getInt("preferences", 7))
-                        .toString();
-            } catch (Exception e) {
-                return "{}";
-            }
-        }
-
-        @JavascriptInterface
-        public void enable(int preferences, int requestId) {
-            register(preferences, requestId);
-        }
-
-        @JavascriptInterface
-        public void update(int preferences, int requestId) {
-            register(preferences, requestId);
-        }
-
-        private void register(int preferences, int requestId) {
-            new Thread(() -> {
-                try {
-                    String token = Tasks.await(FirebaseMessaging.getInstance().getToken());
-                    JSONObject body = new JSONObject()
-                            .put("action", "subscribe")
-                            .put("kind", "fcm")
-                            .put("token", token)
-                            // Уведомления приходят на языке телефона, а не на языке сервера.
-                            .put("locale", java.util.Locale.getDefault().getLanguage())
-                            .put("preferences", preferences);
-                    JSONObject res = PushClient.post(body, PushClient.prefs(MainActivity.this).getString("manageToken", ""));
-                    if (res.has("error")) {
-                        callback(requestId, res);
-                        return;
-                    }
-                    SharedPreferences.Editor editor = PushClient.prefs(MainActivity.this).edit().putString("id", res.getString("id")).putInt("preferences", preferences);
-                    if (res.has("token") && !res.isNull("token")) editor.putString("manageToken", res.getString("token"));
-                    editor.apply();
-                    callback(requestId, new JSONObject().put("enabled", true).put("preferences", preferences));
-                } catch (Exception e) {
-                    callback(requestId, error("Не удалось включить уведомления. Проверь соединение."));
-                }
-            }).start();
-        }
-
-        @JavascriptInterface
-        public void disable(int requestId) {
-            new Thread(() -> {
-                try {
-                    SharedPreferences prefs = PushClient.prefs(MainActivity.this);
-                    String id = prefs.getString("id", null);
-                    if (id != null) PushClient.post(new JSONObject().put("action", "unsubscribe").put("id", id), prefs.getString("manageToken", ""));
-                    prefs.edit().clear().apply();
-                    callback(requestId, new JSONObject().put("enabled", false));
-                } catch (Exception e) {
-                    callback(requestId, error("Не удалось выключить уведомления."));
-                }
-            }).start();
-        }
-
-        @JavascriptInterface
-        public void test(int requestId) {
-            new Thread(() -> {
-                try {
-                    SharedPreferences prefs = PushClient.prefs(MainActivity.this);
-                    String id = prefs.getString("id", null);
-                    if (id == null) {
-                        callback(requestId, error("Сначала включи уведомления."));
-                        return;
-                    }
-                    JSONObject res = PushClient.post(new JSONObject().put("action", "test").put("id", id), prefs.getString("manageToken", ""));
-                    callback(requestId, res.has("error") ? res : new JSONObject().put("accepted", true));
-                } catch (Exception e) {
-                    callback(requestId, error("Проверка не удалась."));
-                }
-            }).start();
-        }
+    @Override protected void onResume() { super.onResume(); if (bridge != null) bridge.resume(); }
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 71 && bridge != null) bridge.permissionResult();
     }
 }

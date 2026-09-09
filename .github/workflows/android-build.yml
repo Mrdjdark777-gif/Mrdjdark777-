@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch: {}
   push:
-    branches: [claude/read-link-content-h18psv]
+    branches: [claude/read-link-content-h18psv, codex/stabilize-0.8]
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
@@ -39,7 +39,7 @@ jobs:
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
 
       - name: Build signed APK
-        run: gradle -p android assembleRelease
+        run: gradle -p android assembleRelease lintRelease
         env:
           RELEASE_KEYSTORE: ${{ runner.temp }}/truethrills-release.jks
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
