@@ -11,6 +11,10 @@ const target=path.resolve(destination),databasePath=path.resolve(process.env.DAT
 const livePath=path.resolve(process.env.LIVE_DIR||'data/live');
 if(!path.isAbsolute(destination))throw new Error('Use an absolute destination path.');
 await mkdir(target,{recursive:true,mode:0o700});
+// A fresh server with no uploaded files yet never gets data/storage created —
+// lib/storage.ts only mkdir's it lazily, per file, on first write. Ensure it
+// exists so backups don't fail before the first real upload.
+await mkdir(storagePath,{recursive:true,mode:0o700});
 const canonicalTarget=await realpath(target),canonicalStorage=await realpath(storagePath);
 if(canonicalTarget===livePath||canonicalTarget.startsWith(livePath+path.sep))throw new Error('Backup destination must be outside live storage.');
 if(canonicalTarget===canonicalStorage||canonicalTarget.startsWith(canonicalStorage+path.sep))throw new Error('Backup destination must be outside audio storage.');
