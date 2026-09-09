@@ -56,3 +56,6 @@ next-env.d.ts
 !.env.example
 
 __pycache__/
+
+/.test-live-*/
+/.update-staging/

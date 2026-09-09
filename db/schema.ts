@@ -20,3 +20,10 @@ export const pushEvents=sqliteTable('push_events',{id:text('id').primaryKey(),cr
 export const pushOutbox=sqliteTable('push_outbox',{id:text('id').primaryKey(),subscriptionId:text('subscription_id').notNull(),payload:text('payload').notNull(),origin:text('origin').notNull(),category:integer('category').notNull(),expiresAt:integer('expires_at').notNull(),attempts:integer('attempts').notNull().default(0),availableAt:integer('available_at').notNull().default(0),state:text('state').notNull().default('pending')},t=>[index('push_pending_idx').on(t.state,t.availableAt)]);
 
 export const rateLimits=sqliteTable('rate_limits',{id:text('id').primaryKey(),attempts:integer('attempts').notNull(),expiresAt:integer('expires_at').notNull()});
+
+export const liveRecordings=sqliteTable('live_recordings',{
+ id:text('id').primaryKey(),ownerId:text('owner_id').notNull(),title:text('title').notNull(),
+ state:text('state').notNull().default('receiving'),nextSequence:integer('next_sequence').notNull().default(0),
+ bytes:integer('bytes').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull(),
+ playlist:text('playlist'),postId:text('post_id'),error:text('error'),
+});

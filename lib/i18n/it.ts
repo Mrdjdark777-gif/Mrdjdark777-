@@ -1,7 +1,66 @@
-import type {ru} from './ru';
+import type { ru} from './ru';
 
 // Итальянский. Тип требует все ключи из ru.ts — забытый перевод не соберётся.
 export const it: Record<keyof typeof ru, string> = {
+
+  "err.liveUpload": "Invio audio al server non riuscito.",
+
+  "err.liveRecorder": "La diretta richiede WebM/Opus. Aggiorna Windows WebView2.",
+
+  "err.liveLimit": "Limite raggiunto: 8 ore o 1 GiB di audio in ingresso.",
+
+  "err.liveSequence": "Ordine di invio non valido. La parte ricevuta è conservata.",
+
+  "err.livePreparing": "Il server sta preparando l’audio.",
+
+  "err.liveDisk": "Spazio insufficiente sul server. Libera spazio prima della diretta.",
+
+  "err.liveWorker": "Il servizio dirette non è avviato sul server. Installa la manutenzione 0.9.",
+
+  "post.liveArchive": "Diretta registrata",
+
+  "liveArchive.empty": "Le registrazioni delle tue dirette appariranno qui.",
+
+  "liveArchive.download": "Scarica registrazione",
+
+  "liveArchive.retryAction": "Riprova elaborazione",
+
+  "liveArchive.failed": "Elaborazione non riuscita. I frammenti ricevuti sono conservati.",
+
+  "liveArchive.ready": "Registrazione disponibile nei podcast",
+
+  "liveArchive.processingState": "Preparazione della registrazione",
+
+  "liveArchive.closing": "Chiusura della registrazione",
+
+  "liveArchive.receivingState": "Registrazione in corso",
+
+  "liveArchive.title": "Registrazioni delle dirette",
+
+  "liveArchive.ended": "Diretta terminata. La registrazione apparirà nei podcast dopo l’elaborazione.",
+
+  "liveArchive.buffering": "Connessione all’audio del server…",
+
+  "liveArchive.processing": "Diretta terminata. Il server prepara la registrazione: puoi spegnere il PC.",
+
+  "liveArchive.partial": "Invio interrotto. Il server salverà la parte ricevuta; l’audio non inviato potrebbe essere perso.",
+
+  "liveArchive.retry": "Ripristino dell’invio al server…",
+
+  "liveArchive.receiving": "Audio inviato e salvato sul server",
+
+  "liveArchive.saving": "Invio degli ultimi secondi… Non chiudere l’app.",
+
+  "donate.configure": "Aggiungi link",
+
+  "donate.unavailable": "L’autore non ha ancora aggiunto il link per le donazioni.",
+
+  "donate.setup": "Aggiungi il tuo link: sarà visibile nella home e durante le dirette.",
+
+  "donate.free": "Tutti i contenuti sono gratuiti. Il sostegno è facoltativo.",
+
+  "donate.action": "Dona",
+
 "err.loginLimited": "Troppi tentativi. Attendi 10 minuti.",
 "err.coverUrl": "La copertina richiede un link HTTPS.",
 "editor.coverUrl": "Copertina — link HTTPS (facoltativo)",
@@ -42,7 +101,7 @@ export const it: Record<keyof typeof ru, string> = {
   'nav.live': 'Live',
 
   'header.settings': 'Impostazioni',
-  'header.support': 'Sostieni',
+  "header.support": "Dona",
   'header.toStudio': 'Vai allo studio',
   'header.asListener': 'Vista ascoltatore',
   'header.logout': 'Esci',
@@ -88,7 +147,7 @@ export const it: Record<keyof typeof ru, string> = {
   'home.liveNow': 'Diretta\nin corso',
   'home.socialCaption': 'L’autore sulle altre piattaforme',
 
-  'support.title': 'Sostieni True Thrills',
+  "support.title": "Dona",
   'support.setupTitle': 'Pulsante di sostegno non collegato',
   'support.setupText': 'Aggiungi il link di pagamento — comparirà per chi ascolta nell’intestazione e nella home.',
   'support.subtitle': 'Donazione singola o abbonamento sulla pagina dell’autore.',
@@ -156,13 +215,13 @@ export const it: Record<keyof typeof ru, string> = {
   'live.infoListener': 'Ascolto',
   'live.authorTip1': 'Controlla l’onda prima di iniziare. La lista dei microfoni è disponibile senza registrare.',
   'live.authorTip2': 'Guadagno e mute del microfono funzionano durante la diretta.',
-  'live.authorTip3': 'Per la prova su un secondo dispositivo usa le cuffie.',
-  'live.listenerTip1': 'Tocca «Ascolta la diretta» — l’audio parte dopo il collegamento.',
+  "live.authorTip3": "Attendi l’invio degli ultimi secondi dopo la diretta. Poi puoi spegnere il PC.",
+  "live.listenerTip1": "La diretta passa dal server. Su Android 0.9 l’audio usa un servizio dedicato.",
   'live.listenerTip2': 'Il volume si regola qui o con i tasti del telefono.',
   'live.pilotTitle': 'Trasmissione di prova',
-  'live.pilotText': 'Fino a 8 ascoltatori. Su alcune reti mobili il collegamento diretto può non stabilirsi. Per la prova usa la stessa rete Wi-Fi.',
-  'live.pilotNoRecord': 'Per ora la diretta non viene registrata automaticamente.',
-  'live.otherNetwork': 'Se il collegamento non riesce, prova un’altra rete Wi-Fi.',
+  "live.pilotText": "Inizia con un piccolo gruppo fino a 8 ascoltatori. L’audio passa dal server con un breve ritardo.",
+  "live.pilotNoRecord": "La diretta viene salvata sul server e pubblicata nei podcast dopo l’elaborazione.",
+  "live.otherNetwork": "Controlla internet e riprova a collegarti.",
 
   'studio.panelTitle': 'REGISTRAZIONE PODCAST',
   'studio.paused': 'PAUSA',

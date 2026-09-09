@@ -222,3 +222,12 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 /* Reading needs a solid surface; content behind the dialog must not compete with the story. */
 .reading-dialog[data-slot="dialog-content"]{background:#111719;border-color:#344344;box-shadow:0 24px 80px #0009}
 .reading-dialog .reader-scroll{scrollbar-gutter:stable;padding-right:8px}
+
+.donation-card { border: 1px solid var(--accent, #37bca5); min-height: 78px; }
+.live-console > .donation-card { margin-top: 24px; width: 100%; }
+.live-archives { margin: 0 0 20px; padding: 18px; background: #111719; border: 1px solid #29423e; border-radius: 16px; }
+.live-archives summary { cursor: pointer; font-weight: 700; }
+.live-archives article { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #29423e; }
+.live-archives article span { flex: 1 1 220px; color: #b5c5c2; }
+.live-archives article a, .live-archives article button { color: #54d8bf; }
+@media (max-width: 520px) { .donation-card { flex-wrap: wrap; } .donation-card .support-copy { flex: 1 1 150px; } }

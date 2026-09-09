@@ -100,7 +100,7 @@ static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
    case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
    case 103:external(VIEWER);break;
    case 104:external(SITE);break;
-   case 105:MessageBoxW(h,L"True Thrills 0.8.0\nСтудия подкастов, историй и прямых эфиров.\n\nWindows-клиент использует Microsoft Edge WebView2 и подключается к твоему True Thrills через интернет.\n\nДля входа используй пароль автора True Thrills. Слушателям аккаунт не нужен. Веб-версию можно открыть через меню «В браузере».",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
+   case 105:MessageBoxW(h,L"True Thrills 0.9.0\nСтудия подкастов, историй и прямых эфиров.\n\nWindows-клиент использует Microsoft Edge WebView2 и подключается к твоему True Thrills через интернет.\n\nДля входа используй пароль автора True Thrills. Слушателям аккаунт не нужен. Веб-версию можно открыть через меню «В браузере».",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
   }return 0;
   case WM_CLOSE:if(confirmLeave())DestroyWindow(h);return 0;
   case WM_DESTROY:activity(false);if(controller){controller->Close();controller->Release();controller=nullptr;}if(webview){webview->Release();webview=nullptr;}PostQuitMessage(0);return 0;

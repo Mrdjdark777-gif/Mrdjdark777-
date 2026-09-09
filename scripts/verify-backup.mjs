@@ -8,7 +8,7 @@ try{
  if(db.pragma('integrity_check',{simple:true})!=='ok')throw new Error('SQLite integrity check failed.');
  const rows=db.prepare('SELECT id,audio_key FROM posts WHERE audio_key IS NOT NULL').all();
  for(const row of rows){
-  if(!/^audio\/[a-f0-9-]+$/i.test(row.audio_key))throw new Error('Invalid audio key for '+row.id);
+  if(!/^audio\/(?:live-)?[a-f0-9-]+$/i.test(row.audio_key))throw new Error('Invalid audio key for '+row.id);
   const audio=path.join(root,'storage',row.audio_key),meta=audio+'.meta.json';
   const info=await lstat(audio),metadata=await lstat(meta);
   if(!info.isFile()||info.isSymbolicLink()||!metadata.isFile()||metadata.isSymbolicLink()||info.size<=0)throw new Error('Missing or unsafe audio for '+row.id);
