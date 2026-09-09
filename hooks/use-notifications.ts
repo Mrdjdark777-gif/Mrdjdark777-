@@ -1,7 +1,8 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {api,errorText} from '@/lib/client';
 import {runtimeLocale,t} from '@/lib/i18n/runtime';
+import {hasNativeClient,nativeCall} from '@/lib/native-client';
 const storage='tt-push-device';
 type Device={id:string;token:string};
 function saved():Device|null{try{return JSON.parse(localStorage.getItem(storage)||'null');}catch{return null;}}
@@ -23,32 +24,47 @@ function androidCall(method:'enable'|'update'|'disable'|'test',preferences?:numb
  return new Promise<BridgeResult>((resolve,reject)=>{
   const bridge=window.AndroidPush;if(!bridge)return reject(new Error(t('notif.bridgeMissing')));
   const id=nextRequestId++;
-  pendingCalls.set(id,data=>{pendingCalls.delete(id);if(data?.error)reject(new Error(data.error));else resolve(data);});
+  const timer=setTimeout(()=>{pendingCalls.delete(id);reject(new Error('#err.request'));},45000);
+  pendingCalls.set(id,data=>{clearTimeout(timer);pendingCalls.delete(id);if(data?.error)reject(new Error(data.error));else resolve(data);});
   if(method==='enable')bridge.enable(preferences!,id);else if(method==='update')bridge.update(preferences!,id);else if(method==='disable')bridge.disable(id);else bridge.test(id);
  });
 }
 
 export function useNotifications(){
  const [supported,setSupported]=useState(false),[busy,setBusy]=useState(false),[enabled,setEnabled]=useState(false),[preferences,setPreferences]=useState(7),[message,setMessage]=useState('');
+ const syncedLocale=useRef('');
+ const [permitted,setPermitted]=useState(true),[subscribed,setSubscribed]=useState(false),[lastReceivedAt,setLastReceivedAt]=useState(0);
+ const refreshNative=useCallback(async()=>{const state=await nativeCall<{enabled:boolean;permitted:boolean;subscribed:boolean;preferences:number;lastReceivedAt:number;locale:string}>('push.state');setEnabled(state.enabled);setPermitted(state.permitted);setSubscribed(state.subscribed);setPreferences(state.preferences);setLastReceivedAt(state.lastReceivedAt);const locale=runtimeLocale();if(state.enabled&&state.locale!==locale&&syncedLocale.current!==locale){syncedLocale.current=locale;await nativeCall('push.update',{preferences:state.preferences,locale});}},[]);
  useEffect(()=>{
+  if(hasNativeClient()){
+   let active=true;const refresh=()=>{if(active)void refreshNative().then(()=>{if(active)setSupported(true);}).catch(()=>{});};
+   refresh();window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);const timer=setInterval(refresh,5000);
+   return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  }
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate the legacy native bridge state on mount.
   if(window.AndroidPush){setSupported(true);try{const state=JSON.parse(window.AndroidPush.getState()) as {enabled?:boolean;preferences?:number};setEnabled(!!state.enabled);if(typeof state.preferences==='number')setPreferences(state.preferences);}catch{}return;}
   const ok=window.isSecureContext&&'Notification'in window&&'serviceWorker'in navigator&&'PushManager'in window;setSupported(ok);if(!ok)return;let mounted=true;
-  void(async()=>{try{const info=saved();if(!info)return;const sub=await(await registration()).pushManager.getSubscription();if(!sub)return;const r=await api<{current:{preferences:number}|null}>('notifications?id='+encodeURIComponent(info.id),undefined,{headers:headers()});if(mounted&&r.current){setEnabled(true);setPreferences(r.current.preferences);}}catch(e){if(mounted)setMessage(errorText(e));}})();return()=>{mounted=false;};},[]);
+  void(async()=>{try{const info=saved();if(!info)return;const sub=await(await registration()).pushManager.getSubscription();if(!sub)return;const r=await api<{current:{preferences:number}|null}>('notifications?id='+encodeURIComponent(info.id),undefined,{headers:headers()});if(mounted&&r.current){setEnabled(true);setPreferences(r.current.preferences);}}catch(e){if(mounted)setMessage(errorText(e));}})();return()=>{mounted=false;};},[refreshNative]);
  async function persist(sub:PushSubscription,value:number){const r=await api<{id:string;token:string|null}>('notifications',{action:'subscribe',subscription:sub.toJSON(),preferences:value,locale:runtimeLocale()},{headers:headers()});if(r.token)localStorage.setItem(storage,JSON.stringify({id:r.id,token:r.token}));setPreferences(value);setEnabled(true);}
  async function enable(){setBusy(true);setMessage('');try{
+  if(hasNativeClient()){await nativeCall('push.enable',{preferences,locale:runtimeLocale()});await refreshNative();setMessage(t('notif.enabled'));return;}
   if(window.AndroidPush){await androidCall('enable',preferences);setEnabled(true);setMessage(t('notif.enabled'));return;}
   if(await Notification.requestPermission()!=='granted')throw new Error(t('notif.permissionHint'));
  const reg=await registration(),config=await api<{publicKey:string}>('notifications');let sub=await reg.pushManager.getSubscription();if(sub&&!saved()){await sub.unsubscribe();sub=null;}
  sub??=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(atob(config.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0))});await persist(sub,preferences);setMessage(t('notif.enabled'));
  }catch(e){setMessage(errorText(e));}finally{setBusy(false);}}
  async function disable(){setBusy(true);try{
+  if(hasNativeClient()){try{await nativeCall('push.disable');setMessage(t('notif.disabled'));}finally{await refreshNative();}return;}
   if(window.AndroidPush){await androidCall('disable');setEnabled(false);setMessage(t('notif.disabled'));return;}
   const info=saved();if(info)await api('notifications',{action:'unsubscribe',id:info.id},{headers:headers()});await(await(await registration()).pushManager.getSubscription())?.unsubscribe();localStorage.removeItem(storage);setEnabled(false);setMessage(t('notif.disabled'));}catch(e){setMessage(errorText(e));}finally{setBusy(false);}}
  async function update(value:number){if(!enabled){setPreferences(value);return;}setBusy(true);try{
+  if(hasNativeClient()){await nativeCall('push.update',{preferences:value,locale:runtimeLocale()});await refreshNative();return;}
   if(window.AndroidPush){await androidCall('update',value);setPreferences(value);return;}
   const sub=await(await registration()).pushManager.getSubscription();if(!sub)throw new Error(t('notif.reEnable'));await persist(sub,value);}catch(e){setMessage(errorText(e));}finally{setBusy(false);}}
  async function test(){setBusy(true);try{
+  if(hasNativeClient()){await nativeCall('push.test');setMessage(t('notif.accepted'));return;}
   if(window.AndroidPush){await androidCall('test');setMessage(t('notif.accepted'));return;}
   await api('notifications',{action:'test',id:saved()?.id},{headers:headers()});setMessage(t('notif.acceptedFull'));}catch(e){setMessage(errorText(e));}finally{setBusy(false);}}
- return{supported,busy,enabled,preferences,message,enable,disable,update,test};
+ async function openSettings(){try{await nativeCall('push.settings');}catch(e){setMessage(errorText(e));}}
+ return{permitted,subscribed,lastReceivedAt,openSettings,supported,busy,enabled,preferences,message,enable,disable,update,test};
 }

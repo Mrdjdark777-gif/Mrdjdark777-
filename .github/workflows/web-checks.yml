@@ -1,0 +1,47 @@
+name: Web checks
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/read-link-content-h18psv]
+  pull_request:
+    branches: [claude/read-link-content-h18psv]
+concurrency:
+  group: web-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Check server script syntax
+        run: bash -n scripts/update-safe.sh scripts/install-operations.sh scripts/backup-service.sh scripts/export-backup.sh
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/TrueThrills-Server.ps1'), [ref]$tokens, [ref]$errors)
+          if ($errors.Count) { $errors | Format-List; exit 1 }
+      - run: npm run lint
+      - run: npm run build
+      - run: node tests/api-integration.mjs
+      - run: node tests/backup-integration.mjs
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: node tests/live-archive-integration.mjs
+      - name: Install browser test tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install chrome
+      - run: node tests/browser-integration.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TrueThrills-UI-checks
+          path: outputs/ui/*.png
+          retention-days: 14

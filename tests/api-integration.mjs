@@ -1,3 +1,4 @@
+import {createHmac} from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
@@ -25,9 +26,12 @@ const outfile = path.join(dir, 'routes.mjs');
 await build({
   stdin: {
     contents: `
+      export * as uiClient from '${root}/lib/client.ts';
       export * as library from '${root}/app/api/library/route.ts';
       export * as audio from '${root}/app/api/audio/route.ts';
       export * as live from '${root}/app/api/live/route.ts';
+      export * as login from '${root}/app/api/auth/route.ts';
+      export * as ice from '${root}/app/api/ice/route.ts';
       export * as auth from '${root}/lib/auth.ts';
       export * as notifications from '${root}/app/api/notifications/route.ts';
       export * as push from '${root}/lib/push.ts';
@@ -43,8 +47,8 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { library, audio, live, auth, notifications, push, getDb } = await import(outfile);
-const routes = { library, audio, live, notifications };
+const { uiClient, library, audio, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
+const routes = { library, audio, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
 const ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
@@ -76,9 +80,23 @@ const request = async (routeName, data, signedIn = true, extraHeaders = {}, sear
 };
 
 try {
+  assert.equal(uiClient.errorText(new Error('#err.notificationsBlocked')),'Разреши уведомления в настройках телефона.');
+  process.env.TRUST_PROXY='true';
+  for(let i=0;i<10;i++)assert.equal((await request('login',{password:'wrong'},false,{'x-real-ip':'192.0.2.1'})).status,400);
+  const limited=await request('login',{password:'test-password'},false,{'x-real-ip':'192.0.2.1'});assert.equal(limited.status,429);assert.ok(Number(limited.headers.get('retry-after'))>0);
+  assert.equal((await request('login',{password:'test-password'},false,{'x-real-ip':'192.0.2.2'})).status,200);
+  getDb().$client.prepare('DELETE FROM rate_limits').run();
+
   assert.equal((await request('library', undefined, false)).data.needsSetup, true);
   assert.equal((await request('library', { action: 'setup' }, false)).status, 401);
   assert.equal((await request('library', { action: 'setup' })).status, 200);
+  process.env.TURN_SECRET='test-turn-secret';process.env.TURN_URLS='turn:relay.example:3478?transport=udp';
+  const publicIce=await request('ice',undefined,false);assert.equal(publicIce.data.iceServers.length,1);
+  const ownerIce=await request('ice');assert.equal(ownerIce.data.iceServers.length,2);
+  const turn=ownerIce.data.iceServers[1];assert.equal(turn.credential,createHmac('sha1',process.env.TURN_SECRET).update(turn.username).digest('base64'));assert.ok(Number(turn.username.split(':')[0])>Date.now()/1000+3500);
+  assert.notEqual(turn.username,(await request('ice')).data.iceServers[1].username);assert.equal(JSON.stringify(ownerIce.data).includes(process.env.TURN_SECRET),false);
+  delete process.env.TURN_SECRET;delete process.env.TURN_URLS;
+
   assert.equal((await request('library', { kind: 'story', title: 'Secret', body: 'Draft' }, false)).status, 403);
   assert.equal(
     (await request('library', { kind: 'story', title: 'Secret', body: 'Draft' }, true, { origin: 'https://evil.test' }))
@@ -226,6 +244,12 @@ try {
    // Устройство подписалось с locale:'it' — заголовок приходит по-итальянски,
    // а название публикации остаётся авторским и не переводится.
    assert.equal(fcmBody.message.data.title,'Nuovo racconto di True Thrills');
+   await push.sendFcmNotice(fcmToken,{title:'live',body:'test',url:'/',tag:'live:test'},90);
+   assert.equal(fcmBody.message.android.ttl,'90s');assert.ok(Number(fcmBody.message.data.expiresAt)>Date.now()+85000);assert.ok(Number(fcmBody.message.data.expiresAt)<=Date.now()+90000);
+   const rotated=await request('notifications',{action:'subscribe',kind:'fcm',token:'b'.repeat(152),previousId:fcmSub.data.id,preferences:7,locale:'it'},false,{'x-push-token':fcmSub.data.token});assert.equal(rotated.status,200);
+   assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
+   const foreign=await request('notifications',{action:'subscribe',kind:'fcm',token:'c'.repeat(152),previousId:rotated.data.id,preferences:7},false,{'x-push-token':'x'.repeat(43)});assert.notEqual(foreign.status,200);assert.ok(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(rotated.data.id));
+   assert.equal((await request('library',{kind:'story',title:'Unsafe cover',body:'x',coverUrl:'javascript:alert(1)'})).status,400);
    fcmSendStatus=404;
    const post2=await request('library',{kind:'story',title:'FCM story 2',body:'Body',published:true});
    await request('library',{action:'visibility',id:post2.data.id,published:true});await push.flushPush();

@@ -40,13 +40,14 @@ async function fcmAccessToken():Promise<string>{
  cachedFcmToken={token:data.access_token,expires:Date.now()+data.expires_in*1000};
  return cachedFcmToken.token;
 }
-export async function sendFcmNotice(token:string,notice:RenderedNotice){
+export async function sendFcmNotice(token:string,notice:RenderedNotice,ttl=120){
+ const lifetime=Math.max(0,Math.min(86400,Math.floor(ttl)));
  const account=loadServiceAccount();if(!account)throw new Error('#err.fcmNotConfigured');
  const access=await fcmAccessToken();
  return fetch(`https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`,{
   method:'POST',
   headers:{authorization:`Bearer ${access}`,'content-type':'application/json'},
-  body:JSON.stringify({message:{token,data:{title:notice.title,body:notice.body,url:notice.url,tag:notice.tag},android:{priority:notice.tag.startsWith('live:')?'high':'normal'}}}),
+  body:JSON.stringify({message:{token,data:{title:notice.title,body:notice.body,url:notice.url,tag:notice.tag,expiresAt:String(Date.now()+lifetime*1000)},android:{ttl:`${lifetime}s`,priority:notice.tag.startsWith('live:')?'high':'normal'}}}),
   signal:AbortSignal.timeout(5000),
  });
 }
@@ -82,7 +83,7 @@ export async function flushPush(){
   if(!sub||!(sub.preferences&job.category))state='cancelled';else try{
    const text=renderNotice(JSON.parse(job.payload) as Notice,isLocale(sub.locale)?sub.locale:DEFAULT_LOCALE);
    const r=sub.kind==='fcm'
-    ?await sendFcmNotice(JSON.parse(sub.subscription).token,text)
+    ?await sendFcmNotice(JSON.parse(sub.subscription).token,text,Math.max(0,Math.floor((job.expires_at-Date.now())/1000)))
     :await sendNotice(JSON.parse(sub.subscription),text,job.origin,Math.max(1,Math.floor((job.expires_at-Date.now())/1000)));
    if(r.ok)state='sent';else if([404,410].includes(r.status)){state='expired';sql().prepare('DELETE FROM push_subscriptions WHERE id=?').run(job.subscription_id);}else if(r.status>=300&&r.status<500&&r.status!==429)state='failed';await r.body?.cancel();
   }catch{}

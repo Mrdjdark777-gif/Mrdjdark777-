@@ -269,3 +269,18 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);
  pointer-events:none;
 }
+
+.player-extras{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;font-size:13px}.player-extras label{display:flex;align-items:center;gap:6px}.player-extras select,.reader-options select{background:#1e272a;color:#fff;border:1px solid #536363;border-radius:8px;padding:8px}.podcast-timeline input[type=range]{width:100%;accent-color:#6fe7de;min-height:28px}body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 280px)}.listener-highlights{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin-bottom:24px}.listener-highlights button{display:grid;gap:10px;padding:22px;text-align:left;border:1px solid var(--glass-border);border-radius:18px;background:#172628;color:#fff}.listener-highlights span{color:#6fe7de;font-size:13px}.listener-highlights strong{font-size:20px}.reader-options{display:flex;align-items:center;gap:12px}.reader-scroll{max-height:55dvh;overflow:auto;line-height:1.8;overflow-wrap:anywhere}.post-cover-image{width:100%;height:100%;object-fit:cover}
+
+/* Reading needs a solid surface; content behind the dialog must not compete with the story. */
+.reading-dialog[data-slot="dialog-content"]{background:#111719;border-color:#344344;box-shadow:0 24px 80px #0009}
+.reading-dialog .reader-scroll{scrollbar-gutter:stable;padding-right:8px}
+
+.donation-card { border: 1px solid var(--accent, #37bca5); min-height: 78px; }
+.live-console > .donation-card { margin-top: 24px; width: 100%; }
+.live-archives { margin: 0 0 20px; padding: 18px; background: #111719; border: 1px solid #29423e; border-radius: 16px; }
+.live-archives summary { cursor: pointer; font-weight: 700; }
+.live-archives article { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #29423e; }
+.live-archives article span { flex: 1 1 220px; color: #b5c5c2; }
+.live-archives article a, .live-archives article button { color: #54d8bf; }
+@media (max-width: 520px) { .donation-card { flex-wrap: wrap; } .donation-card .support-copy { flex: 1 1 150px; } }

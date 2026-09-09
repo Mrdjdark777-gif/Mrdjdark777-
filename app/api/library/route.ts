@@ -45,13 +45,15 @@ export async function POST(req: Request){try{
     if(!parseVideo(videoUrl))throw new Error('#err.videoUrl');
     if(videoUrl.length>2000)throw new Error('#err.videoUrlLong');
   }
+  const coverUrl=String(d.coverUrl??'').trim()||null;
+  if(coverUrl){const u=new URL(coverUrl);if(coverUrl.length>2000||u.protocol!=='https:'||u.username||u.password)throw new Error('#err.coverUrl');}
   const audioKey=kind==='podcast'?String(d.audioKey??''):null;
   if(kind==='podcast'){
     if(!audioKey?.startsWith('audio/'))throw new Error('#err.audioMissing');
     const obj=await bucket().head(audioKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.audioNotFound');
   }
   const id=d.id?String(d.id):crypto.randomUUID();
-  const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
+  const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
   if(d.id)await db.update(posts).set(values).where(eq(posts.id,id));else await db.insert(posts).values({id,...values,createdAt:Date.now()});
   if(values.published)notifyPost({id,...values},req);return result({id});
 }catch(e){return failure(e);}}

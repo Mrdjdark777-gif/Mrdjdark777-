@@ -24,9 +24,15 @@ export async function POST(req:Request){try{
   const prior=db().prepare('SELECT manage_hash FROM push_subscriptions WHERE id=?').get(id) as {manage_hash:string}|undefined;
   if(prior&&prior.manage_hash!==device(req))return result({error:'#err.subscriptionOther'},403);
   const token=prior?null:newDeviceToken(),manageHash=prior?.manage_hash??tokenHash(token!);
-  const saved=db().prepare(`INSERT INTO push_subscriptions(id,manage_hash,subscription,kind,locale,preferences,created_at)
+  const saved=db().transaction(()=>{
+   if(kind==='fcm'&&typeof d.previousId==='string'&&d.previousId&&d.previousId!==id){
+    const removed=db().prepare("DELETE FROM push_subscriptions WHERE id=? AND manage_hash=? AND kind='fcm'").run(d.previousId,device(req));
+    if(!removed.changes)throw new Error('#err.subscriptionOther');
+   }
+   const row=db().prepare(`INSERT INTO push_subscriptions(id,manage_hash,subscription,kind,locale,preferences,created_at)
    SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM push_subscriptions WHERE id=?) OR (SELECT COUNT(*) FROM push_subscriptions)<100
    ON CONFLICT(id) DO UPDATE SET preferences=excluded.preferences,subscription=excluded.subscription,locale=excluded.locale WHERE push_subscriptions.manage_hash=excluded.manage_hash RETURNING id`).get(id,manageHash,subJson,kind,locale,preferences,Date.now(),id);
+  if(!row)throw new Error('#err.deviceLimit');return row;})();
   if(!saved)throw new Error('#err.deviceLimit');return result({id,token,preferences});
  }
  const id=String(d.id??''),manageHash=device(req),sub=db().prepare('SELECT subscription,kind,locale FROM push_subscriptions WHERE id=? AND manage_hash=?').get(id,manageHash) as {subscription:string;kind:string;locale:string}|undefined;

@@ -56,6 +56,7 @@ DATABASE_PATH=${APP_DIR}/data/truethrills.db
 STORAGE_DIR=${APP_DIR}/data/storage
 PORT=3000
 NODE_ENV=production
+TRUST_PROXY=true
 EOF
   chmod 600 "$APP_DIR/.env"
   GENERATED_NEW_ENV=1

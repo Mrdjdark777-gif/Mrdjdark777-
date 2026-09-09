@@ -60,3 +60,8 @@ next-env.d.ts
 # google-services.json приезжает в сборку Android из секретов GitHub Actions.
 firebase-service-account*.json
 /android/app/google-services.json
+
+__pycache__/
+
+/.test-live-*/
+/.update-staging/
