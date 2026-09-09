@@ -168,7 +168,7 @@ export default function Studio(){
  <div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/>{t('live.volume')}<span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>
 
  </>}
- {supportCard}</section><aside className="live-info"><h3>{author?t('live.infoAuthor'):t('live.infoListener')}</h3>{author?<><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p></>:<><p><Headphones size={18}/>{t('live.listenerTip1')}</p><p><Volume2 size={18}/>{t('live.listenerTip2')}</p></>}{author&&<div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p>{author&&<p>{t('live.pilotNoRecord')}</p>}</div>}{!author&&live.phase==='error'&&<p>{t('live.otherNetwork')}</p>}</aside></div>}
+ {supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:live.phase==='error'&&<aside className="live-info"><p>{t('live.otherNetwork')}</p></aside>}</div>}
  {view==='settings'&&<div className="settings-grid">
  <NotificationSettings author={author}/>
  <LanguageSettings/>
