@@ -1,4 +1,5 @@
 import {t} from '@/lib/i18n/runtime';
+import {hasNativeClient,nativeCall} from '@/lib/native-client';
 
 // Сервер отдаёт не текст, а ключ вида "#err.badKind": он один для всех
 // языков, а слова подставляет клиент по своему словарю. Сообщение без "#"
@@ -16,10 +17,15 @@ export async function api<T=unknown>(path:string,data?:unknown,init?:RequestInit
   const d=await r.json() as T & {error?:string};if(!r.ok)throw new Error(serverMessage(d.error));return d;
 }
 export const clock=(seconds:number)=>{const n=Math.max(0,Math.floor(seconds||0));return `${Math.floor(n/60).toString().padStart(2,'0')}:${(n%60).toString().padStart(2,'0')}`;};
-// Короткий тактильный отклик на тап по нижней навигации. Работает только в
-// Android-приложении (нужно разрешение VIBRATE в манифесте) и в браузерах с
-// Vibration API — на iOS Safari/WebView её нет, поэтому тихо не срабатывает.
-export const haptic=()=>{try{navigator.vibrate?.(10);}catch{}};
+// Короткий тактильный отклик на тап по нижней навигации. В Android-приложении
+// зовёт нативный EFFECT_CLICK через мост (см. NativeBridge.haptic) — это
+// калиброванная волна, а не голая длительность, ощущается заметно чётче.
+// В обычном браузере (или на старом APK без этого метода моста) — запасной
+// вариант через Vibration API; на iOS Safari/WebView её нет, тихо не сработает.
+export const haptic=()=>{
+  if(hasNativeClient()){void nativeCall('ui.haptic').catch(()=>{});return;}
+  try{navigator.vibrate?.(25);}catch{}
+};
 export function errorText(e:unknown){return e instanceof Error?serverMessage(e.message):t('err.generic');}
 export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise((resolve,reject)=>{
   const r=indexedDB.open('true-thrills-drafts',1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onerror=()=>reject(r.error);

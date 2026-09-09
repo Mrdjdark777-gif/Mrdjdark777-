@@ -1,10 +1,13 @@
 package com.truethrills.listener;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.webkit.WebView;
 import androidx.webkit.*;
@@ -49,6 +52,7 @@ final class NativeBridge {
         if (method.equals("push.settings")) {
             activity.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName())); reply.accept(new JSONObject()); return;
         }
+        if (method.equals("ui.haptic")) { haptic(); reply.accept(new JSONObject()); return; }
         Runnable task = () -> network.execute(() -> {
             try {
                 SharedPreferences p = PushClient.prefs(activity);
@@ -103,6 +107,18 @@ final class NativeBridge {
                 // Тихая попытка: если сети ещё нет, слушатель включит уведомления вручную позже.
             }
         });
+    }
+    /**
+     * Тап по нижней навигации отзывается коротким щелчком. EFFECT_CLICK — это
+     * калиброванная производителем волна, а не просто «вибрируй N мс»: на
+     * современных телефонах ощущается отчётливее и «собраннее», ближе к
+     * тактильному отклику клавиатуры вроде SwiftKey, чем raw one-shot.
+     */
+    private void haptic() {
+        Vibrator vibrator = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        if (Build.VERSION.SDK_INT >= 29) vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
+        else vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
     }
     void close() { closed = true; permissionAction = null; permissionReply = null; network.shutdownNow(); player.close(); }
 }
