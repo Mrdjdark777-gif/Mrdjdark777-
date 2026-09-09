@@ -140,7 +140,7 @@ body:has(.persistent-player) .main-content{padding-bottom:160px}
 .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:#a4a5aa;background:none;border:none;position:relative;padding:4px;min-width:0}
 .bottom-nav-item span{font-size:10px}
 .bottom-nav-item[data-active=true]{color:#6FE7DE}
-.bottom-nav-item svg{padding:7px;border-radius:13px;background:rgba(255,255,255,0.04);box-shadow:var(--glass-bevel-sm)}
+.bottom-nav-item svg{padding:11px;border-radius:16px;background:rgba(255,255,255,0.04);box-shadow:var(--glass-bevel-sm)}
 .bottom-nav-item[data-active=true] svg{background:rgba(111,231,222,0.13);box-shadow:var(--glass-bevel-sm),0 0 14px -3px rgba(111,231,222,0.55)}
 .bottom-nav-dot{position:absolute;top:-2px;right:calc(50% - 15px);width:7px;height:7px;border-radius:50%;background:#ff6a55}
 .bottom-nav-home{display:flex;align-items:center;justify-content:center;padding:0;border:none;background:none;min-width:0}
@@ -255,15 +255,17 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
    резкая прокрутка (эффект отдачи «overscroll stretch») на миг растягивает
    отрисованную страницу за её собственный край — панель гасит это, а не
    выключатель наверху, который сам может «уехать» вместе со страницей,
-   раз он больше не прилипает к верху. Высота равна вырезу под часы, поэтому
-   на устройствах без выреза (и на ПК) полоса нулевой высоты — незаметна.
-   Тапы сквозь неё проходят: под ней всегда пусто, кнопки шапки ниже. */
+   раз он больше не прилипает к верху. Высота чуть больше выреза под часы —
+   лишний запас снизу уходит в mask-градиент, поэтому у полосы нет жёсткого
+   края: она плавно тает, а не обрывается линией. На устройствах без выреза
+   (и на ПК) она почти незаметна. Тапы сквозь неё проходят: под ней всегда
+   пусто, кнопки шапки ниже. */
 .status-bar-veil{
  position:fixed;top:0;left:0;right:0;z-index:60;
- height:env(safe-area-inset-top);
- background-image:linear-gradient(180deg,rgba(18,51,48,0.55),rgba(12,13,15,0.6));
- background-color:rgba(12,13,15,0.55);
- border-bottom:1px solid var(--glass-border);
- backdrop-filter:var(--glass-blur);
+ height:calc(env(safe-area-inset-top) + 16px);
+ background-image:linear-gradient(180deg,rgba(18,51,48,0.42),rgba(12,13,15,0.46));
+ -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+ -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);
+ mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);
  pointer-events:none;
 }

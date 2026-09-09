@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Mic,Radio,BookOpen,Headphones,Settings,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,LogIn,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2} from 'lucide-react';
+import {Mic,Radio,BookOpen,Headphones,Settings,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
@@ -95,10 +95,10 @@ export default function Studio(){
  <header className="top-header">
   <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
   <div className="top-header-actions">
-   {!!data?.donation&&<a className="support-button" href={data.donation} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
+   {view==='home'&&!!data?.donation&&<a className="support-button" href={data.donation} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>goto('settings')}><Settings size={18}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
-   {author?<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>:<a className="quiet-button" aria-label={t('header.loginAuthor')} title={t('header.loginAuthor')} href="/login"><LogIn size={18}/></a>}
+   {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
   </div>
  </header>
  <main className={'main-content '+(!author?'listener-main':'')}>
@@ -141,7 +141,6 @@ export default function Studio(){
  {(view==='podcasts'||view==='stories'||view==='videos')&&<>
  {author&&<Tabs value={filter} onValueChange={setFilter}><TabsList className="filter-tabs"><TabsTrigger value="all">{t('filter.all')}</TabsTrigger><TabsTrigger value="published">{t('filter.published')}</TabsTrigger><TabsTrigger value="draft">{t('filter.drafts')}</TabsTrigger></TabsList></Tabs>}
  {listed.length===0?<section className="empty-state"><span className="empty-icon">{view==='podcasts'?<Headphones size={36}/>:view==='videos'?<Video size={36}/>:<BookOpen size={36}/>}</span><h2>{filter!=='all'?t('empty.sectionEmpty'):view==='podcasts'?t('empty.firstPodcast'):view==='videos'?t('empty.firstVideo'):t('empty.firstStory')}</h2><p>{!author?t('empty.listener'):view==='podcasts'?t('empty.podcastHint'):view==='videos'?t('empty.videoHint'):t('empty.storyHint')}</p>{author&&<button className="secondary-button" onClick={()=>view==='podcasts'?setView('studio'):openEditor(view==='videos'?'video':'story')}><Plus size={17}/>{view==='podcasts'?t('empty.toStudio'):view==='videos'?t('empty.addVideo'):t('studio.writeStory')}</button>}</section>:<div className="post-list">{listed.map((p,i)=><article className="post-card" key={p.id}><button className={'post-cover '+(p.kind==='story'?'story-cover':p.kind==='video'?'video-cover':'')} onClick={()=>openPost(p)} aria-label={t(p.kind==='podcast'?'post.listenAria':p.kind==='video'?'post.watchAria':'post.readAria',{title:p.title})}>{p.kind==='podcast'?<img className="post-logo" src="/brand/logo.png?v=0.4.1" width="76" height="76" alt=""/>:p.kind==='video'?<Play size={30}/>:<BookOpen size={34}/>}<span>{String(i+1).padStart(2,'0')}</span></button><div className="post-content"><div className="post-meta">{p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story')}<span>{new Date(p.createdAt).toLocaleDateString(tag)}</span>{author&&<span className={'publish-tag '+(p.published?'published':'')}>{p.published?t('post.published'):t('post.draft')}</span>}</div><button className="post-title" onClick={()=>openPost(p)}>{p.title}</button><p>{p.description||(p.kind==='story'?p.body.slice(0,130):p.kind==='video'?t('post.defaultVideo'):t('post.defaultPodcast'))}</p><div className="post-actions"><button className="text-button" onClick={()=>openPost(p)}>{p.kind==='podcast'?<Play size={15}/>:p.kind==='video'?<Video size={15}/>:<BookOpen size={15}/>} {p.kind==='podcast'?t('post.listen'):p.kind==='video'?t('post.watch'):t('post.read')}{p.duration>0&&<span>{clock(p.duration)}</span>}</button>{author&&<><button aria-label={t('post.edit')} onClick={()=>openEditor(p.kind as 'podcast'|'story'|'video',p)}><Pencil size={16}/></button><button aria-label={p.published?t('post.unpublish'):t('post.publish')} onClick={()=>void run(()=>api('library',{action:'visibility',id:p.id,published:!p.published}),p.published?t('post.movedToDrafts'):t('post.publishedToast'))}>{p.published?<EyeOff size={16}/>:<Eye size={16}/>}</button><button aria-label={t('post.delete')} onClick={()=>setConfirmDelete(p)}><Trash2 size={16}/></button></>}</div></div></article>)}</div>}
- {!author&&supportCard}
  </>}
  {view==='live'&&<div className="live-layout"><section className="live-main-panel live-console">
  {author?<>
@@ -168,17 +167,17 @@ export default function Studio(){
  {author?<>
  <section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.supportTitle')}</h2><p>{t('settings.supportText')}</p><label className="field">{t('settings.donationField')}<input type="url" value={donation} onChange={e=>setDonation(e.target.value)} placeholder="https://…"/></label><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'donation',url:donation}),t('settings.donationSaved'))}><Check size={17}/>{t('settings.saveDonation')}</button><small>{t('settings.donationNote')}</small></section>
  <section className="settings-panel wide-panel"><div className="section-icon"><Link2 size={22}/></div><h2>{t('settings.linksTitle')}</h2><p>{t('settings.linksText')}</p><div className="links-grid">{SOCIALS.map(sc=><label className="field" key={sc.kind}>{t(sc.labelKey)}<input type="url" value={linkDraft[sc.kind]??''} placeholder="https://…" onChange={e=>setLinkDraft(prev=>({...prev,[sc.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'links',links:SOCIALS.map(sc=>({kind:sc.kind,url:(linkDraft[sc.kind]??'').trim()})).filter(l=>l.url)}),t('settings.linksSaved'))}><Check size={17}/>{t('settings.saveLinks')}</button><small>{t('settings.linksNote')}</small></section>
- </>:(!!data.donation||!!socialRow)&&<section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.authorTitle')}</h2><p>{t('settings.authorText')}</p>{supportCard}{socialRow}</section>}
+ </>:!!socialRow&&<section className="settings-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.authorTitle')}</h2><p>{t('settings.authorText')}</p>{socialRow}</section>}
  </div>}
  </>}
  <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('desc.studio')}</span></footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>goto('podcasts')}><Headphones size={21}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>goto('videos')}><Video size={21}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>goto('podcasts')}><Headphones size={24}/><span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>goto('videos')}><Video size={24}/><span>{t('nav.videos')}</span></button>
  <button className="bottom-nav-home" aria-label={t('nav.home')} onClick={()=>goto('home')}><img src="/brand/logo.png?v=0.4.1" width="66" height="66" alt=""/></button>
- <button className="bottom-nav-item" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>goto('stories')}><BookOpen size={21}/><span>{t('nav.stories')}</span></button>
- <button className="bottom-nav-item" data-active={view==='live'} aria-label={t('heading.live')} onClick={()=>goto('live')}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={21}/><span>{t('nav.live')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>goto('stories')}><BookOpen size={24}/><span>{t('nav.stories')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='live'} aria-label={t('heading.live')} onClick={()=>goto('live')}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={24}/><span>{t('nav.live')}</span></button>
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>
