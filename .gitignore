@@ -54,3 +54,9 @@ next-env.d.ts
 *.keystore
 
 !.env.example
+
+# Секреты сервисов. Приватный ключ служебного аккаунта Firebase кладётся на
+# сервер рядом с приложением и не должен попасть в репозиторий даже случайно;
+# google-services.json приезжает в сборку Android из секретов GitHub Actions.
+firebase-service-account*.json
+/android/app/google-services.json
