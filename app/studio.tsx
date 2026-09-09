@@ -15,12 +15,13 @@ import {LanguageSettings} from '@/components/studio/language-settings';
 import {Slider} from '@/components/ui/slider';
 import {api,clock,errorText} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
+import {YoutubeIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,type SocialKind,type SocialLink} from '@/lib/video';
 import {useT} from '@/components/i18n-provider';
 
 type Post={id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;duration:number;published:number;createdAt:number};
 type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donation:string;links:SocialLink[];live:{id:string;title:string}|null};
-const SOCIAL_ICON:Record<SocialKind,typeof Globe>={youtube:Video,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
+const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 export default function Studio(){
  const {t,tag}=useT();

@@ -224,3 +224,20 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 /* На широком экране панель — отдельная плавающая плашка по центру, ей нужен
    свой контур, иначе иконки повисают в воздухе. */
 @media(min-width:640px){.bottom-nav{border-top:1px solid rgba(255,255,255,0.08)}}
+
+/* Иконка отвечает на нажатие: чуть подрастает и вспыхивает акцентным
+   цветом, затем плавно возвращается к обычному виду и цвету. Растёт сама
+   иконка, а не вся кнопка, — от этого не дёргается текст и разметка рядом. */
+.quiet-button svg,.icon-button svg,.round-button svg,
+.bottom-nav-item svg,.bottom-nav-home img,
+.home-tile svg,.social-chip svg,.support-button svg,
+.post-actions button svg,.library-tiles>button .tile-icon svg{
+ transition:transform .22s cubic-bezier(.34,1.56,.64,1),color .22s ease;
+}
+.quiet-button:active svg,.icon-button:active svg,.round-button:active svg,
+.bottom-nav-item:active svg,.bottom-nav-home:active img,
+.home-tile:active svg,.social-chip:active svg,.support-button:active svg,
+.post-actions button:active svg,.library-tiles>button:active .tile-icon svg{
+ transform:scale(1.22);
+ color:#8FEFE8;
+}
