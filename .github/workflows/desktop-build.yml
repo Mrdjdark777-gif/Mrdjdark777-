@@ -2,7 +2,7 @@ name: Build Windows EXE
 on:
   workflow_dispatch: {}
   push:
-    branches: [claude/read-link-content-h18psv, codex/stabilize-0.8]
+    branches: [claude/read-link-content-h18psv]
     paths: ["desktop/**", ".github/workflows/desktop-build.yml"]
 jobs:
   build:

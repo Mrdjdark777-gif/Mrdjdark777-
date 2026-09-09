@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch: {}
   push:
-    branches: [claude/read-link-content-h18psv, codex/stabilize-0.8]
+    branches: [claude/read-link-content-h18psv]
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"

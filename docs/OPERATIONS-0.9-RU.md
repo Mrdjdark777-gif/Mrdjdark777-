@@ -12,7 +12,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server.ps1 -Action Update -KeyPath $Key
 ```
 
-Если SSH-аккаунт другой, добавь `-Server 'имя@адрес'`. Для установки строго проверенного commit добавь `-ExpectedCommit 'полный SHA из финальной передачи'`. Имя ветки codex/stabilize-0.8 историческое; в ней разрабатывается 0.9. Скрипт не требует оставлять PowerShell или ПК включённым после завершения: службы работают на VPS через systemd.
+Если SSH-аккаунт другой, добавь `-Server 'имя@адрес'`. Для установки строго проверенного commit добавь `-ExpectedCommit 'полный SHA из финальной передачи'`. Рабочая ветка — claude/read-link-content-h18psv. Скрипт не требует оставлять PowerShell или ПК включённым после завершения: службы работают на VPS через systemd.
 
 Что делает Update: проверяет чистоту отслеживаемого кода и возможность fast-forward; получает целевой commit; запрещает обновление в активном эфире; устанавливает FFmpeg, если его нет; останавливает службы; делает проверенную копию до изменения схемы; обновляет зависимости/код, собирает, применяет миграции; включает LIVE_ENABLED и службы/таймеры; проверяет health. `.env` не заменяется файлом из архива. Оригинальный ключ подписи APK сохраняется.
 

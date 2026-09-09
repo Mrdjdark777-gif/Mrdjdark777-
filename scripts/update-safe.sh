@@ -3,7 +3,7 @@ set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo 'Run with sudo.' >&2; exit 1; }
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd /opt/truethrills
-branch=${1:-codex/stabilize-0.8}
+branch=${1:-claude/read-link-content-h18psv}
 expected=${2:-}
 [[ "$branch" =~ ^[A-Za-z0-9._/-]+$ ]] && [[ "$branch" != -* ]] || exit 2
 [[ -z "$expected" || "$expected" =~ ^[a-f0-9]{40}$ ]] || exit 2

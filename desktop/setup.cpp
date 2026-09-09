@@ -39,6 +39,6 @@ int WINAPI wWinMain(HINSTANCE self,HINSTANCE,LPWSTR args,int){
  if(!payload(self,100,L"TrueThrills.exe")||!payload(self,101,L"WebView2Loader.dll")||!payload(self,102,L"WebView2-LICENSE.txt")){message(L"Не удалось записать файлы. Проверь свободное место и закрой приложение, если оно запущено.",true);CoUninitialize();return 1;}
  wchar_t source[MAX_PATH],uninstaller[MAX_PATH],exe[MAX_PATH];GetModuleFileNameW(nullptr,source,MAX_PATH);join(uninstaller,appDir,L"Uninstall.exe");join(exe,appDir,L"TrueThrills.exe");
  if(!CopyFileW(source,uninstaller,FALSE)||!shortcut(desktopLink,exe)||!shortcut(menuLink,exe)||!registerApp(exe,uninstaller)){message(L"Файлы приложения сохранены, но не удалось завершить настройку ярлыков или удаления. Повтори установку.",true);CoUninitialize();return 1;}
- if(MessageBoxW(nullptr,L"True Thrills установлен.\n\nОткрыть приложение? При первом запуске войди в свой аккаунт ChatGPT.",L"Установка завершена",MB_YESNO|MB_ICONINFORMATION)==IDYES)ShellExecuteW(nullptr,L"open",exe,nullptr,appDir,SW_SHOWNORMAL);
+ if(MessageBoxW(nullptr,L"True Thrills установлен.\n\nОткрыть приложение? При первом запуске войди с паролем автора True Thrills.",L"Установка завершена",MB_YESNO|MB_ICONINFORMATION)==IDYES)ShellExecuteW(nullptr,L"open",exe,nullptr,appDir,SW_SHOWNORMAL);
  CoUninitialize();return 0;
 }
