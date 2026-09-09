@@ -2,6 +2,24 @@
 // языках: it.ts типизирован как Record<keyof typeof ru, string>, поэтому
 // забытый перевод ломает сборку, а не всплывает у слушателя.
 export const ru = {
+"err.loginLimited": "Слишком много попыток. Подожди 10 минут.",
+"err.coverUrl": "Для обложки нужна ссылка HTTPS.",
+"editor.coverUrl": "Обложка — ссылка HTTPS (необязательно)",
+
+"err.nativeUnavailable": "Обнови приложение и Android System WebView.",
+"err.notificationsBlocked": "Разреши уведомления в настройках телефона.",
+"err.playback": "Не удалось воспроизвести подкаст. Проверь соединение и нажми воспроизведение.",
+"notif.blocked": "Телефон блокирует уведомления True Thrills.",
+"notif.openSettings": "Настройки телефона",
+"notif.lastReceived": "Последнее уведомление принято телефоном",
+"player.rate": "Скорость",
+"player.sleep": "Таймер сна",
+"player.sleepOff": "Выключен",
+"player.minutes": "мин",
+"home.continue": "Продолжить слушать",
+"home.latest": "Последняя публикация",
+"reader.size": "Размер текста",
+
   'common.retry': 'Повторить',
   'common.refresh': 'Обновить',
   'common.cancel': 'Отмена',

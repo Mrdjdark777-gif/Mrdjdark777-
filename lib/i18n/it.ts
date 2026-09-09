@@ -2,6 +2,24 @@ import type {ru} from './ru';
 
 // Итальянский. Тип требует все ключи из ru.ts — забытый перевод не соберётся.
 export const it: Record<keyof typeof ru, string> = {
+"err.loginLimited": "Troppi tentativi. Attendi 10 minuti.",
+"err.coverUrl": "La copertina richiede un link HTTPS.",
+"editor.coverUrl": "Copertina — link HTTPS (facoltativo)",
+
+"err.nativeUnavailable": "Aggiorna l’app e Android System WebView.",
+"err.notificationsBlocked": "Consenti le notifiche nelle impostazioni del telefono.",
+"err.playback": "Riproduzione non riuscita. Controlla la connessione e premi Riproduci.",
+"notif.blocked": "Il telefono blocca le notifiche di True Thrills.",
+"notif.openSettings": "Impostazioni del telefono",
+"notif.lastReceived": "Ultima notifica ricevuta dal telefono",
+"player.rate": "Velocità",
+"player.sleep": "Timer di spegnimento",
+"player.sleepOff": "Disattivato",
+"player.minutes": "min",
+"home.continue": "Continua ad ascoltare",
+"home.latest": "Ultima pubblicazione",
+"reader.size": "Dimensione del testo",
+
   'common.retry': 'Riprova',
   'common.refresh': 'Aggiorna',
   'common.cancel': 'Annulla',

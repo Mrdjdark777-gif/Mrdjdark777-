@@ -4,17 +4,17 @@ import {toast} from 'sonner';
 import {stereoDescription} from '@/lib/opus-stereo';
 import {api,errorText} from '@/lib/client';
 import {t} from '@/lib/i18n/runtime';
-const config:RTCConfiguration={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+async function iceConfig():Promise<RTCConfiguration>{try{return await api<RTCConfiguration>('ice');}catch{return {iceServers:[{urls:'stun:stun.l.google.com:19302'}]};}};
 async function gather(pc:RTCPeerConnection){if(pc.iceGatheringState==='complete')return;await new Promise<void>(resolve=>{const done=()=>{clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',check);resolve();};const check=()=>{if(pc.iceGatheringState==='complete')done();};const timer=setTimeout(done,10000);pc.addEventListener('icegatheringstatechange',check);});}
 export type ListenPhase='idle'|'connecting'|'waiting'|'playing'|'paused'|'reconnecting'|'blocked'|'ended'|'error';
 export function useLive(){
  const [hosting,setHosting]=useState(''),[connecting,setConnecting]=useState(false),[listeners,setListeners]=useState(0),[status,setStatus]=useState(''),[listening,setListening]=useState(false),[joined,setJoined]=useState(false),[phase,setPhase]=useState<ListenPhase>('idle');
  const [hostStatus,setHostStatus]=useState(''),[hostSeconds,setHostSeconds]=useState(0),[volume,setVolume]=useState(100),[level,setLevel]=useState(-60),[samples,setSamples]=useState<number[]>(Array(64).fill(0));
- const joinedId=useRef('');
+ const joinedId=useRef('');const [activeId,setActiveId]=useState('');
  const host=useRef(''),starting=useRef(false),pcs=useRef(new Map<string,RTCPeerConnection>()),viewer=useRef<RTCPeerConnection|null>(null),peer=useRef<{id:string;token:string}|null>(null),audio=useRef<HTMLAudioElement|null>(null),hostTimer=useRef<ReturnType<typeof setInterval>|null>(null),listenTimer=useRef<ReturnType<typeof setInterval>|null>(null),elapsedTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),context=useRef<AudioContext|null>(null),generation=useRef(0),volumeRef=useRef(100);
- volumeRef.current=volume;
+ useEffect(()=>{volumeRef.current=volume;},[volume]);
  function endViewer(next:ListenPhase='idle',message=''){
-  joinedId.current='';generation.current++;if(listenTimer.current)clearInterval(listenTimer.current);if(meterTimer.current)clearInterval(meterTimer.current);viewer.current?.close();viewer.current=null;
+  joinedId.current='';setActiveId('');generation.current++;if(listenTimer.current)clearInterval(listenTimer.current);if(meterTimer.current)clearInterval(meterTimer.current);viewer.current?.close();viewer.current=null;
   if(peer.current)void api('live',{action:'leave',peer:peer.current.id,token:peer.current.token}).catch(()=>{});peer.current=null;
   if(audio.current){audio.current.onplaying=null;audio.current.onpause=null;audio.current.onerror=null;audio.current.pause();audio.current.srcObject=null;}
   void context.current?.close().catch(()=>{});context.current=null;setListening(false);setJoined(false);setConnecting(false);setPhase(next);setStatus(message);setLevel(-60);setSamples(Array(64).fill(0));
@@ -29,7 +29,7 @@ export function useLive(){
    const poll=async()=>{if(polling||host.current!==r.id)return;polling=true;try{
     await api('live',{action:'heartbeat',id:r.id,connected:[...pcs.current].filter(([,pc])=>pc.connectionState==='connected').map(([id])=>id)});const data=await api<{active:boolean;peers:{id:string;offer:string;answer:string|null}[]}>('live?host='+encodeURIComponent(r.id));if(host.current!==r.id)return;errors=0;setHostStatus(t('liveHook.started'));if(!data.active){await stop();return;}
     const ids=new Set<string>(data.peers.map(p=>p.id));pcs.current.forEach((pc,id)=>{if(!ids.has(id)){pc.close();pcs.current.delete(id);}});
-    for(const p of data.peers){if(pcs.current.has(p.id))continue;const pc=new RTCPeerConnection(config);pcs.current.set(p.id,pc);s.getTracks().forEach(t=>pc.addTrack(t,s));
+    for(const p of data.peers){if(pcs.current.has(p.id))continue;const pc=new RTCPeerConnection(await iceConfig());pcs.current.set(p.id,pc);s.getTracks().forEach(t=>pc.addTrack(t,s));
      pc.onconnectionstatechange=()=>{if(host.current===r.id)setListeners([...pcs.current.values()].filter(x=>x.connectionState==='connected').length);};
      void(async()=>{try{await pc.setRemoteDescription(JSON.parse(p.offer));await pc.setLocalDescription(stereoDescription(await pc.createAnswer()));await gather(pc);if(host.current===r.id)await api('live',{action:'answer',peer:p.id,answer:JSON.stringify(pc.localDescription)});}catch{pc.close();pcs.current.delete(p.id);}})();
     }
@@ -42,10 +42,10 @@ export function useLive(){
  function pause(){audio.current?.pause();}
  async function listen(id:string,title=t('liveHook.title')){
   if(joinedId.current===id)return;
-  endViewer();joinedId.current=id;const gen=generation.current;setConnecting(true);setJoined(true);setPhase('connecting');setStatus(t('liveHook.connectingToAuthor'));
+  endViewer();joinedId.current=id;setActiveId(id);const gen=generation.current;setConnecting(true);setJoined(true);setPhase('connecting');setStatus(t('liveHook.connectingToAuthor'));
   try{
    const ctx=new AudioContext();context.current=ctx;void ctx.resume().catch(()=>{});
-   let disconnectedAt=Date.now(),playbackBlocked=false,userPaused=false;const pc=new RTCPeerConnection(config);viewer.current=pc;pc.addTransceiver('audio',{direction:'recvonly'});const el=audio.current??new Audio();audio.current=el;el.autoplay=true;el.volume=volumeRef.current/100;
+   let disconnectedAt=Date.now(),playbackBlocked=false,userPaused=false;const pc=new RTCPeerConnection(await iceConfig());viewer.current=pc;pc.addTransceiver('audio',{direction:'recvonly'});const el=audio.current??new Audio();audio.current=el;el.autoplay=true;el.volume=volumeRef.current/100;
    el.onplaying=()=>{if(gen!==generation.current)return;playbackBlocked=false;userPaused=false;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';};
    el.onpause=()=>{if(gen!==generation.current)return;userPaused=true;setListening(false);setPhase('paused');setStatus(t('liveHook.paused'));if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';};
    el.onerror=()=>{if(gen===generation.current)endViewer('error',t('liveHook.playFailed'));};
@@ -80,5 +80,5 @@ export function useLive(){
  }
  useEffect(()=>{if(audio.current)audio.current.volume=volume/100;},[volume]);
  useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;window.removeEventListener('beforeunload',before);for(const t of [hostTimer,listenTimer,elapsedTimer,meterTimer])if(t.current)clearInterval(t.current);pcs.current.forEach(p=>p.close());viewer.current?.close();audio.current?.pause();void context.current?.close().catch(()=>{});};},[]);
- return{hosting,connecting,listeners,status,listening,joined,activeId:joinedId.current,phase,hostStatus,hostSeconds,volume,setVolume,level,samples,start,stop,listen,leave,resume,pause,unmute:resume};
+ return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,level,samples,start,stop,listen,leave,resume,pause,unmute:resume};
 }

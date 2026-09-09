@@ -1,0 +1,26 @@
+name: Build Windows EXE
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/read-link-content-h18psv, codex/stabilize-0.8]
+    paths: ["desktop/**", ".github/workflows/desktop-build.yml"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned compiler
+        run: pip install ziglang==0.13.0
+      - name: Build installer
+        run: |
+          zig_path=$(python -c 'import pathlib,ziglang; print(pathlib.Path(ziglang.__file__).parent / "zig")')
+          python desktop/build.py --zig "$zig_path"
+          python desktop/verify.py desktop/out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrueThrills-Windows-exe
+          path: desktop/out/TrueThrills-Setup-*.exe
+          retention-days: 30
