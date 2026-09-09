@@ -16,6 +16,10 @@ export async function api<T=unknown>(path:string,data?:unknown,init?:RequestInit
   const d=await r.json() as T & {error?:string};if(!r.ok)throw new Error(serverMessage(d.error));return d;
 }
 export const clock=(seconds:number)=>{const n=Math.max(0,Math.floor(seconds||0));return `${Math.floor(n/60).toString().padStart(2,'0')}:${(n%60).toString().padStart(2,'0')}`;};
+// Короткий тактильный отклик на тап по нижней навигации. Работает только в
+// Android-приложении (нужно разрешение VIBRATE в манифесте) и в браузерах с
+// Vibration API — на iOS Safari/WebView её нет, поэтому тихо не срабатывает.
+export const haptic=()=>{try{navigator.vibrate?.(10);}catch{}};
 export function errorText(e:unknown){return e instanceof Error?serverMessage(e.message):t('err.generic');}
 export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise((resolve,reject)=>{
   const r=indexedDB.open('true-thrills-drafts',1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onerror=()=>reject(r.error);

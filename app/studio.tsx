@@ -17,7 +17,7 @@ import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-c
 import {NotificationSettings} from '@/components/studio/notification-settings';
 import {LanguageSettings} from '@/components/studio/language-settings';
 import {Slider} from '@/components/ui/slider';
-import {api,clock,errorText} from '@/lib/client';
+import {api,clock,errorText,haptic} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
 import {YoutubeIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,type SocialKind,type SocialLink} from '@/lib/video';
@@ -181,11 +181,11 @@ export default function Studio(){
  <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('desc.studio')}</span></footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>goto('podcasts')}><Headphones size={24}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>goto('videos')}><Video size={24}/><span>{t('nav.videos')}</span></button>
- <button className="bottom-nav-home" aria-label={t('nav.home')} onClick={()=>goto('home')}><img src="/brand/logo.png?v=0.4.1" width="66" height="66" alt=""/></button>
- <button className="bottom-nav-item" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>goto('stories')}><BookOpen size={24}/><span>{t('nav.stories')}</span></button>
- <button className="bottom-nav-item" data-active={view==='live'} aria-label={t('heading.live')} onClick={()=>goto('live')}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={24}/><span>{t('nav.live')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}><Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-home" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="66" height="66" alt=""/></button>
+ <button className="bottom-nav-item" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
+ <button className="bottom-nav-item" data-active={view==='live'} aria-label={t('heading.live')} onClick={()=>{haptic();goto('live');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={22}/><span>{t('nav.live')}</span></button>
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>
