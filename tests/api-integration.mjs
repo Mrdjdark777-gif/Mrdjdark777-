@@ -111,8 +111,18 @@ try {
   // Ошибки сервера уходят ключами: слова подставляет клиент по своему словарю.
   assert.equal((await request('library', { kind: 'story', title: '' })).data.error, '#err.titleLength');
   assert.equal((await request('library', { kind: 'story', title: 'X' }, false)).data.error, '#err.ownerOnly');
-  assert.equal((await request('library', { action: 'donation', url: 'javascript:alert(1)' })).status, 400);
-  assert.equal((await request('library', { action: 'donation', url: 'https://payments.example/dima' })).status, 200);
+  assert.equal((await request('library', { action: 'donations', links: [{ kind: 'boosty', url: 'javascript:alert(1)' }] })).status, 400);
+  assert.equal(
+    (await request('library', {
+      action: 'donations',
+      links: [{ kind: 'boosty', url: 'https://boosty.to/truethrills' }, { kind: 'paypal', url: 'https://paypal.me/truethrills' }],
+    })).status,
+    200,
+  );
+  assert.deepEqual((await request('library', undefined, false)).data.donations, [
+    { kind: 'boosty', url: 'https://boosty.to/truethrills' },
+    { kind: 'paypal', url: 'https://paypal.me/truethrills' },
+  ]);
 
   // Видео: сохраняется только ссылка, файл на сервер не попадает.
   assert.equal((await request('library', { kind: 'video', title: 'No link' })).status, 400);

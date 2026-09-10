@@ -43,18 +43,33 @@ export const SOCIALS = [
 export type SocialKind = (typeof SOCIALS)[number]['kind'];
 export type SocialLink = { kind: SocialKind; url: string };
 
-export function parseLinks(raw: string): SocialLink[] {
+export const DONATIONS = [
+  { kind: 'boosty', labelKey: 'donate.boosty' },
+  { kind: 'paypal', labelKey: 'donate.paypal' },
+] as const;
+export type DonationKind = (typeof DONATIONS)[number]['kind'];
+export type DonationLink = { kind: DonationKind; url: string };
+
+/** Общий разбор списка «площадка → ссылка»: HTTPS, без логина/пароля в URL, только известные ключи. */
+function parseKindUrlList<K extends string>(raw: string, kinds: readonly K[]): { kind: K; url: string }[] {
   let list: unknown;
   try { list = JSON.parse(raw || '[]'); } catch { return []; }
   if (!Array.isArray(list)) return [];
-  const kinds = SOCIALS.map(s => s.kind) as readonly string[];
   return list.flatMap(item => {
     if (!item || typeof item !== 'object') return [];
     const { kind, url } = item as Record<string, unknown>;
-    if (typeof kind !== 'string' || typeof url !== 'string' || !kinds.includes(kind)) return [];
+    if (typeof kind !== 'string' || typeof url !== 'string' || !(kinds as readonly string[]).includes(kind)) return [];
     const value = url.trim();
     if (!value) return [];
     try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password) return []; } catch { return []; }
-    return [{ kind: kind as SocialKind, url: value }];
+    return [{ kind: kind as K, url: value }];
   }).slice(0, 8);
+}
+
+export function parseLinks(raw: string): SocialLink[] {
+  return parseKindUrlList(raw, SOCIALS.map(s => s.kind));
+}
+
+export function parseDonations(raw: string): DonationLink[] {
+  return parseKindUrlList(raw, DONATIONS.map(d => d.kind));
 }

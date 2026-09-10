@@ -60,6 +60,10 @@ export const ru = {
 
   "donate.action": "Донат",
 
+  "donate.boosty": "Boosty",
+
+  "donate.paypal": "PayPal",
+
 "err.loginLimited": "Слишком много попыток. Подожди 10 минут.",
 "err.coverUrl": "Для обложки нужна ссылка HTTPS.",
 "editor.coverUrl": "Обложка — ссылка HTTPS (необязательно)",
@@ -345,9 +349,8 @@ export const ru = {
   'confirm.replaceText': 'Новая запись заменит локальный аудиочерновик. Сначала скачай или опубликуй предыдущую запись, если она нужна.',
 
   'settings.supportTitle': 'Кнопка поддержки',
-  'settings.supportText': 'Вставь готовую платёжную ссылку своего сервиса — Boosty или любую другую страницу оплаты по HTTPS. Она станет кнопкой «Поддержать» в шапке и на главном экране слушателя.',
-  'settings.donationField': 'Ссылка для донатов',
-  'settings.saveDonation': 'Сохранить ссылку',
+  'settings.supportText': 'Добавь ссылки на Boosty и PayPal — кнопка «Поддержать» появится в шапке и на главном экране слушателя. Можно заполнить один сервис или оба сразу.',
+  'settings.saveDonation': 'Сохранить ссылки',
   'settings.donationSaved': 'Ссылка сохранена',
   'settings.donationNote': 'Платежи обрабатывает выбранный сервис. Приложение не хранит данные карт.',
   'settings.linksTitle': 'Твои площадки',
@@ -500,7 +503,7 @@ export const ru = {
   'err.badOrigin': 'Недопустимый источник запроса',
   'err.signIn': 'Войдите в аккаунт',
   'err.studioClaimed': 'Студия уже закреплена за автором',
-  'err.donationUrl': 'Нужна платёжная ссылка HTTPS',
+  'err.donationsUrl': 'Нужны ссылки HTTPS на Boosty или PayPal',
   'err.linksUrl': 'Нужны ссылки HTTPS на известные площадки',
   'err.titleLength': 'Укажите название до 160 символов',
   'err.badKind': 'Неверный тип публикации',

@@ -177,6 +177,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .support-copy strong{font-size:16px}
 .support-copy span{font-size:13px;line-height:1.5;color:#a9b6b4}
 .support-card>svg:last-child{margin-left:auto;flex-shrink:0;color:#6FE7DE}
+.support-card.has-links{flex-direction:column;align-items:stretch;gap:14px}
+.support-card-top{display:flex;align-items:center;gap:16px}
+.support-links{gap:10px}
 .home-social{margin-bottom:26px}
 .social-caption{display:block;font-size:12px;letter-spacing:.14em;color:#8d9196;margin-bottom:12px}
 .social-row{display:flex;flex-wrap:wrap;gap:9px}

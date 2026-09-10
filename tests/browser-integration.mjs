@@ -31,9 +31,11 @@ try{
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await page.locator('.reader-scroll').waitFor();assert.equal(await page.locator('.reading-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 23, 25)');await page.locator('.reader-options select').selectOption('22');await page.locator('.reader-scroll').evaluate(el=>el.scrollTop=500);await page.waitForTimeout(150);await page.screenshot({path:'outputs/ui/reader-mobile.png',fullPage:true});
  await page.reload();await page.locator('.reader-scroll').waitFor();await page.waitForFunction(()=>document.querySelector('.reader-scroll')?.scrollTop>400);assert.equal(await page.locator('.reader-options select').inputValue(),'22');
- // Donation remains visible with no URL, and becomes a real link when configured.
- await page.goto(base+'/?mode=listen');await page.locator('.donation-card').waitFor();assert.match(await page.locator('.donation-card').innerText(),/Донат/);assert.equal(await page.locator('a.donation-card').count(),0);
- await post({action:'donation',url:'https://example.com/donate'});await page.reload();await page.locator('a.donation-card').waitFor();assert.equal(await page.locator('a.donation-card').getAttribute('href'),'https://example.com/donate');await page.screenshot({path:'outputs/ui/donation-home.png',fullPage:true});
+ // Donation remains visible with no links, and lists real buttons once platforms are configured.
+ await page.goto(base+'/?mode=listen');await page.locator('.donation-card').waitFor();assert.match(await page.locator('.donation-card').innerText(),/Донат/);assert.equal(await page.locator('.donation-card .social-chip').count(),0);
+ await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});await page.reload();await page.locator('.donation-card .social-chip').first().waitFor();
+ assert.deepEqual(await page.locator('.donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills']);
+ await page.screenshot({path:'outputs/ui/donation-home.png',fullPage:true});
  // Real browser MediaRecorder -> HTTP upload -> FFmpeg HLS -> browser playback.
  const ownerContext=await browser.newContext({permissions:['microphone'],viewport:{width:1280,height:900}});
  const eq=cookie.indexOf('=');await ownerContext.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
@@ -42,7 +44,7 @@ try{
  await page.goto(base+'/?mode=listen&view=live');await page.locator('.listener-playback-actions .primary-button').click();
  try{await page.waitForFunction(()=>document.querySelector('.session-status.is-onair')!==null,{},{timeout:45000});}catch(e){await page.screenshot({path:'outputs/ui/live-failure.png',fullPage:true});console.log('Live UI:',await page.locator('.live-console').innerText());
  throw e;}
- assert.equal(await page.locator('.live-console a.donation-card').getAttribute('href'),'https://example.com/donate');await page.screenshot({path:'outputs/ui/donation-live.png',fullPage:true});
+ assert.deepEqual(await page.locator('.live-console .donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills']);await page.screenshot({path:'outputs/ui/donation-live.png',fullPage:true});
  await studio.locator('.stop-live-button').click();await studio.waitForFunction(()=>!document.querySelector('.stop-live-button'),{},{timeout:30000});
  await page.waitForFunction(async()=>{const r=await fetch('/api/library');return (await r.json()).items.some(p=>p.title==='Browser live archive'&&p.duration>0);},{},{timeout:30000});
  await ownerContext.close();

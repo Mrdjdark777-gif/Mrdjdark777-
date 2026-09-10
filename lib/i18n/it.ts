@@ -61,6 +61,10 @@ export const it: Record<keyof typeof ru, string> = {
 
   "donate.action": "Dona",
 
+  "donate.boosty": "Boosty",
+
+  "donate.paypal": "PayPal",
+
 "err.loginLimited": "Troppi tentativi. Attendi 10 minuti.",
 "err.coverUrl": "La copertina richiede un link HTTPS.",
 "editor.coverUrl": "Copertina — link HTTPS (facoltativo)",
@@ -346,9 +350,8 @@ export const it: Record<keyof typeof ru, string> = {
   'confirm.replaceText': 'La nuova registrazione sostituirà la bozza audio locale. Se ti serve, prima scarica o pubblica quella precedente.',
 
   'settings.supportTitle': 'Pulsante di sostegno',
-  'settings.supportText': 'Incolla il link di pagamento del tuo servizio — Boosty o qualsiasi altra pagina di pagamento in HTTPS. Diventerà il pulsante «Sostieni» nell’intestazione e nella home di chi ascolta.',
-  'settings.donationField': 'Link per le donazioni',
-  'settings.saveDonation': 'Salva il link',
+  'settings.supportText': 'Aggiungi i link a Boosty e PayPal — il pulsante «Sostieni» apparirà nell’intestazione e nella home di chi ascolta. Puoi compilare uno dei due o entrambi.',
+  'settings.saveDonation': 'Salva i link',
   'settings.donationSaved': 'Link salvato',
   'settings.donationNote': 'I pagamenti sono gestiti dal servizio scelto. L’app non conserva i dati delle carte.',
   'settings.linksTitle': 'Le tue piattaforme',
@@ -501,7 +504,7 @@ export const it: Record<keyof typeof ru, string> = {
   'err.badOrigin': 'Origine della richiesta non valida',
   'err.signIn': 'Accedi all’account',
   'err.studioClaimed': 'Lo studio è già assegnato a un autore',
-  'err.donationUrl': 'Serve un link di pagamento HTTPS',
+  'err.donationsUrl': 'Servono link HTTPS a Boosty o PayPal',
   'err.linksUrl': 'Servono link HTTPS a piattaforme note',
   'err.titleLength': 'Indica un titolo di massimo 160 caratteri',
   'err.badKind': 'Tipo di contenuto non valido',
