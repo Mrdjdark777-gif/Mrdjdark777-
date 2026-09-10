@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
-import { posts } from '@/db/schema';
+import { broadcasts, posts } from '@/db/schema';
 import { bucket, failure, owner, requireOwner, result, setting, userId } from '@/lib/server';
 const MAX = 12 * 1024 * 1024;
 export async function POST(req: Request) {
@@ -23,6 +23,11 @@ export async function GET(req: Request) {
     const id = new URL(req.url).searchParams.get('id') ?? '';
     let key: string | null, isPublic: boolean;
     if (id === 'channel') { key = (await setting('channelArt')) || null; isPublic = true; }
+    // Обложка конкретного эфира: сам эфир публичный, значит и она тоже.
+    else if (id.startsWith('live:')) {
+      const b = await getDb().select().from(broadcasts).where(eq(broadcasts.id, id.slice(5))).get();
+      key = b?.coverKey ?? null; isPublic = true;
+    }
     else {
       const p = await getDb().select().from(posts).where(eq(posts.id, id)).get();
       key = p?.coverKey ?? null; isPublic = !!p?.published;

@@ -3,7 +3,7 @@ import {enqueueNotice,siteOrigin} from '@/lib/push';
 import { and, desc, eq, gt, lt } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { liveRecordings, broadcasts, peers } from '@/db/schema';
-import { failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
+import { bucket, failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
 export async function GET(req: Request){try{
   const q=new URL(req.url).searchParams,db=getDb();
   if(q.has('status')){const live=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,Date.now()-90000))).orderBy(desc(broadcasts.heartbeat)).get();return result({live:live?{id:live.id,title:live.title}:null});}
@@ -21,7 +21,9 @@ export async function POST(req: Request){try{
       if(!String(d.title??'').trim())throw new Error('#err.liveTitle');
       const current=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,now-90000))).get();if(current)throw new Error('#err.liveBusy');
       await db.update(broadcasts).set({active:0});await db.delete(peers);
-      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1});if(d.transport==='hls')await db.insert(liveRecordings).values({id,ownerId:userId(req)!,title:String(d.title).slice(0,160),createdAt:now,updatedAt:now});enqueueNotice('live:'+id,1,{titleKey:'push.liveTitle',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
+      const coverKey=String(d.coverKey??'').trim()||null;
+      if(coverKey){if(!coverKey.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(coverKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
+      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1,coverKey});if(d.transport==='hls')await db.insert(liveRecordings).values({id,ownerId:userId(req)!,title:String(d.title).slice(0,160),createdAt:now,updatedAt:now});enqueueNotice('live:'+id,1,{titleKey:'push.liveTitle',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
     }
     if(d.action==='stop'){await db.update(liveRecordings).set({state:'closing'}).where(and(eq(liveRecordings.id,String(d.id)),eq(liveRecordings.state,'receiving')));await db.update(broadcasts).set({active:0}).where(eq(broadcasts.id,String(d.id)));return result({ok:true});}
     if(d.action==='heartbeat'){const b=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!b?.active)return result({error:'#err.liveGone'},409);await db.update(broadcasts).set({heartbeat:now}).where(eq(broadcasts.id,String(d.id)));if(Array.isArray(d.connected)){for(const id of d.connected.slice(0,8)){if(typeof id==='string')await db.update(peers).set({heartbeat:now}).where(and(eq(peers.id,id),eq(peers.broadcastId,b.id)));}}await db.delete(peers).where(lt(peers.heartbeat,now-60000));return result({ok:true});}

@@ -9,6 +9,7 @@ export const posts = sqliteTable('posts', {
 export const broadcasts = sqliteTable('broadcasts', {
   id: text('id').primaryKey(), title: text('title').notNull(), ownerId: text('owner_id').notNull(),
   heartbeat: integer('heartbeat').notNull(), active: integer('active').notNull().default(1),
+  coverKey: text('cover_key'),
 });
 export const peers = sqliteTable('peers', {
   id: text('id').primaryKey(), broadcastId: text('broadcast_id').notNull(), tokenHash: text('token_hash').notNull(),

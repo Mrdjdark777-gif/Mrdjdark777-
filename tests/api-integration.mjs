@@ -227,6 +227,18 @@ try {
   );
   assert.equal((await request('live', { action: 'heartbeat', id: liveRes.data.id })).status, 409);
 
+  // Обложка конкретного эфира: без неё 404, чужой ключ не принимается,
+  // свой отдаётся публично — слушателю она нужна до всякого входа.
+  assert.equal((await dispatch('cover', { search: '?id=live:' + liveRes.data.id })).status, 404);
+  assert.equal((await request('live', { action: 'start', title: 'Bad cover', coverKey: 'audio/not-a-cover' })).status, 400);
+  const liveCover = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '4' }, body: new Blob(['live']).stream(), duplex: 'half' });
+  const withArt = await request('live', { action: 'start', title: 'Cover live', coverKey: (await liveCover.json()).key });
+  assert.equal(withArt.status, 200);
+  const shownCover = await dispatch('cover', { search: '?id=live:' + withArt.data.id });
+  assert.equal(shownCover.status, 200);
+  assert.equal(await shownCover.text(), 'live');
+  await request('live', { action: 'stop', id: withArt.data.id });
+
   await request('library', { action: 'delete', id: p.data.id });
   r = await dispatch('audio', { search: '?id=' + p.data.id });
   assert.equal(r.status, 404);

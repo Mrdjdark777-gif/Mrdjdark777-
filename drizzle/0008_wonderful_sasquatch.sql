@@ -1,0 +1,1 @@
+ALTER TABLE `broadcasts` ADD `cover_key` text;

@@ -36,11 +36,11 @@ export function useLive(){
   })();stopTask.current=task;
   try{await task;}finally{stopTask.current=null;setConnecting(false);}
  }
- async function start(title:string,stream:MediaStream){
+ async function start(title:string,stream:MediaStream,coverKey?:string){
   if(starting.current||host.current)return;starting.current=true;setConnecting(true);setHostStatus(t('liveHook.starting'));
   try{
    if(!MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))throw new Error('#err.liveRecorder');
-   const r=await api<{id:string}>('live',{action:'start',title,transport:'hls'});
+   const r=await api<{id:string}>('live',{action:'start',title,transport:'hls',...(coverKey?{coverKey}:{})});
    host.current=r.id;uploadError.current=null;queue.current=Promise.resolve();queued.current=0;
    const rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:128000});recorder.current=rec;let seq=0;
    rec.ondataavailable=e=>{if(!e.data.size)return;const n=seq++;queued.current++;
