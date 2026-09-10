@@ -10,7 +10,7 @@ import {t} from '@/lib/i18n/runtime';
 export function useCapture(){
  const [mode,setMode]=useState<CaptureSettings['mode']>('mic'),[settingsLoaded,setSettingsLoaded]=useState(false);
  const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[device,setDevice]=useState('default'),[channel,setChannel]=useState('0'),[discovering,setDiscovering]=useState(false);
- const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[paused,setPaused]=useState(false),[seconds,setSeconds]=useState(0),[level,setLevel]=useState(-60),[samples,setSamples]=useState<number[]>(Array(80).fill(0)),[blob,setBlob]=useState<Blob|null>(null),[url,setUrl]=useState('');
+ const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[paused,setPaused]=useState(false),[seconds,setSeconds]=useState(0),[level,setLevel]=useState(-60),[clipping,setClipping]=useState(false),[samples,setSamples]=useState<number[]>(Array(80).fill(0)),[blob,setBlob]=useState<Blob|null>(null),[url,setUrl]=useState('');
  const [gainDb,setGainDb]=useState(0),[muted,setMuted]=useState(false),[lowCut,setLowCut]=useState(false);
  const raw=useRef<MediaStream|null>(null),stream=useRef<MediaStream|null>(null),ctx=useRef<AudioContext|null>(null),rec=useRef<MediaRecorder|null>(null),meter=useRef<ReturnType<typeof setInterval>|null>(null),time=useRef<ReturnType<typeof setInterval>|null>(null),gain=useRef<GainNode|null>(null),filter=useRef<BiquadFilterNode|null>(null),connecting=useRef(false);
  const prepareGeneration=useRef(0),prepareAbort=useRef<AbortController|null>(null);
@@ -19,7 +19,7 @@ export function useCapture(){
   if(!navigator.mediaDevices?.enumerateDevices){if(requestPermission)toast.error(!window.isSecureContext?t('capture.needHttpsMic'):t('capture.devicesUnavailable'));return;}
   setDiscovering(true);try{const list=await discoverMicrophones(navigator.mediaDevices,requestPermission);setDevices(list);if(requestPermission&&!list.length)toast.error(t('capture.micNotFound'));}catch(e){toast.error(e instanceof DOMException&&e.name==='NotAllowedError'?t('capture.allowMicWindow'):errorText(e));}finally{setDiscovering(false);}
  },[]);
- function release(){raw.current?.getTracks().forEach(t=>{t.onended=null;t.stop();});stream.current?.getTracks().forEach(t=>t.stop());ctx.current?.close().catch(()=>{});raw.current=null;stream.current=null;ctx.current=null;gain.current=null;filter.current=null;if(meter.current)clearInterval(meter.current);setReady(false);setLevel(-60);setSamples(Array(80).fill(0));}
+ function release(){raw.current?.getTracks().forEach(t=>{t.onended=null;t.stop();});stream.current?.getTracks().forEach(t=>t.stop());ctx.current?.close().catch(()=>{});raw.current=null;stream.current=null;ctx.current=null;gain.current=null;filter.current=null;if(meter.current)clearInterval(meter.current);setReady(false);setLevel(-60);setClipping(false);setSamples(Array(80).fill(0));}
  async function connect(){
   if(connecting.current||recording)return null;connecting.current=true;release();setBusy(true);
   try{
@@ -29,7 +29,25 @@ export function useCapture(){
    setDevices(await discoverMicrophones(navigator.mediaDevices));
    const context=new AudioContext();ctx.current=context;await context.resume();const graph=captureGraph(context,input,channel,controls.current);gain.current=graph.gain;filter.current=graph.filter;stream.current=graph.stream;
    if(channel==='stereo'&&input.getAudioTracks()[0].getSettings().channelCount===1)toast.warning(t('capture.monoOnly'));
-   const values=graph.analysers.map(a=>new Float32Array(a.fftSize));meter.current=setInterval(()=>{let peak=0;graph.analysers.forEach((a,i)=>{a.getFloatTimeDomainData(values[i]);for(const x of values[i])peak=Math.max(peak,Math.abs(x));});setLevel(Math.max(-60,20*Math.log10(peak||0.001)));setSamples(Array.from({length:80},(_,i)=>Math.max(...values.map(v=>Math.abs(v[i*24]||0)))));},80);
+   const values=graph.analysers.map(a=>new Float32Array(a.fftSize));
+   const bars=80,step=Math.max(1,Math.floor(graph.analysers[0].fftSize/bars));
+   let shown=-60,clipUntil=0;
+   meter.current=setInterval(()=>{
+    let peak=0;
+    for(let i=0;i<graph.analysers.length;i++){graph.analysers[i].getFloatTimeDomainData(values[i]);const v=values[i];for(let j=0;j<v.length;j++){const m=Math.abs(v[j]);if(m>peak)peak=m;}}
+    // Быстрый подъём, плавный спад: иначе цифра скачет на каждом транзиенте музыки.
+    const db=Math.max(-60,20*Math.log10(peak||0.001));
+    shown=db>shown?db:Math.max(db,shown-2);
+    setLevel(shown);
+    // Клиппинг — это сигнал, реально упёршийся в потолок, а не просто громкий.
+    // Держим индикатор 1.5 с, чтобы короткий щелчок было видно, но обычная
+    // громкая музыка (пики около −4 dBFS) больше не считалась перегрузом.
+    if(peak>=0.999)clipUntil=Date.now()+1500;
+    setClipping(Date.now()<clipUntil);
+    // Каждая полоска — пик своего участка буфера. Раньше бралась одна выборка
+    // через каждые 24 отсчёта, из-за чего рисунок был случайной «травой».
+    setSamples(Array.from({length:bars},(_,i)=>{let m=0;for(const v of values){const end=Math.min(v.length,(i+1)*step);for(let j=i*step;j<end;j++){const x=Math.abs(v[j]);if(x>m)m=x;}}return m;}));
+   },80);
    input.getTracks()[0].onended=()=>{if(rec.current?.state==='recording'||rec.current?.state==='paused')rec.current.stop();release();toast.error(t('capture.interfaceLost'));};setReady(true);return graph.stream;
   }catch(e){release();toast.error(e instanceof DOMException&&e.name==='NotAllowedError'?t('capture.allowMic'):e instanceof DOMException&&e.name==='OverconstrainedError'?t('capture.inputUnavailable'):errorText(e));return null;}finally{setBusy(false);connecting.current=false;}
  }
@@ -68,5 +86,5 @@ export function useCapture(){
  // eslint-disable-next-line react-hooks/set-state-in-effect -- An object URL belongs to this effect and must be revoked with its blob.
  useEffect(()=>{if(!blob){setUrl('');return;}const u=URL.createObjectURL(blob);setUrl(u);return()=>URL.revokeObjectURL(u);},[blob]);
  useEffect(()=>{const guard=(e:BeforeUnloadEvent)=>{if(recording){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[recording]);
- return{mode,changeMode,settingsLoaded,devices,device,setDevice,channel,setChannel,discovering,refreshDevices,ready,busy,recording,paused,seconds,level,samples,blob,url,accept,start,stop,pause,connect,release,stream,gainDb,setGainDb,muted,setMuted,lowCut,setLowCut};
+ return{mode,changeMode,settingsLoaded,devices,device,setDevice,channel,setChannel,discovering,refreshDevices,ready,busy,recording,paused,seconds,level,clipping,samples,blob,url,accept,start,stop,pause,connect,release,stream,gainDb,setGainDb,muted,setMuted,lowCut,setLowCut};
 }
