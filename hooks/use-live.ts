@@ -112,5 +112,8 @@ export function useLive(){
  }
  useEffect(()=>{volumeRef.current=volume;if(audio.current)audio.current.volume=volume/100;if(native.current)void nativeCall('player.volume',{value:volume/100}).catch(()=>{});},[volume]);
  useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
- return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,level:-60,samples:Array(64).fill(0) as number[],start,stop,listen,leave,resume,pause,unmute:resume};
+ // Уровня звука здесь нет намеренно: в приложении эфир играет нативно, мимо
+ // веб-части, и измерить его громкость отсюда нечем. Раньше тут стояли
+ // константы -60 dB и нули, из-за чего индикатор всегда показывал тишину.
+ return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,start,stop,listen,leave,resume,pause,unmute:resume};
 }
