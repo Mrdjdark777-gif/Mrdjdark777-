@@ -25,13 +25,13 @@ export async function GET(req:Request){try{
   if(peerId&&token){const peer=await db.select().from(peers).where(and(eq(peers.id,peerId),eq(peers.broadcastId,id))).get();if(peer?.tokenHash===await hash(token))await db.update(peers).set({heartbeat:Date.now()}).where(eq(peers.id,peerId));}
 
   if(!recording.playlist)return result({error:'#err.livePreparing'},503,{'Retry-After':'2'});
-  const playlist=await readFile(path.join(liveRoot(),id,recording.playlist),'utf8');
+  const playlist=await readFile(path.join(/*turbopackIgnore: true*/ liveRoot(),id,recording.playlist),'utf8');
   const generation=recording.playlist.split('/')[0];
   const body=playlist.split('\n').map(line=>line&&!line.startsWith('#')?'?id='+id+'&file='+generation+'/'+line:line).join('\n');
   return new Response(body,{headers:{'Content-Type':'application/vnd.apple.mpegurl','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
  }
  if(!/^g-[a-f0-9-]{36}\/seg-\d{6}\.ts$/.test(file))return result({error:'#err.notFound'},404);
- const bytes=await readFile(path.join(liveRoot(),id,file));
+ const bytes=await readFile(path.join(/*turbopackIgnore: true*/ liveRoot(),id,file));
  return new Response(bytes,{headers:{'Content-Type':'video/mp2t','Cache-Control':'private, max-age=30','X-Content-Type-Options':'nosniff'}});
 }catch{return result({error:'#err.notFound'},404);}}
 export async function POST(req:Request){try{
