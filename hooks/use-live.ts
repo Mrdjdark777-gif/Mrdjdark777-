@@ -76,7 +76,7 @@ export function useLive(){
    native.current=!!state?.liveSupported;let attached=false,polling=false,errors=0;
    const attach=async()=>{
     if(attached||gen!==generation.current)return;attached=true;
-    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});return;}
+    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});return;}
     const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;
     el.onplaying=()=>{if(gen!==generation.current)return;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));};
     el.onpause=()=>{if(gen!==generation.current)return;setListening(false);setPhase('paused');setStatus(t('liveHook.paused'));};

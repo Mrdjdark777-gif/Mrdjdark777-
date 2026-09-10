@@ -33,8 +33,9 @@ final class PlayerBridge {
                         MediaItem current = p.getCurrentMediaItem();
                         if (current == null || !id.equals(current.mediaId)) {
                             String title = args.optString("title", "True Thrills");
+                            String cover = args.optString("cover", PushClient.BASE + "brand/logo.png");
                             MediaMetadata metadata = new MediaMetadata.Builder().setTitle(title.substring(0, Math.min(160, title.length())))
-                                .setArtist("True Thrills").setArtworkUri(Uri.parse(PushClient.BASE + "brand/logo.png")).build();
+                                .setArtist("True Thrills").setArtworkUri(Uri.parse(cover)).build();
                             long position = args.has("position") ? args.optLong("position", 0) : id.equals(saved.getString("id", "")) ? saved.getLong("position", 0) : 0;
                             p.setMediaItem(new MediaItem.Builder().setMediaId(id).setUri(PushClient.BASE + "api/audio?id=" + id).setMediaMetadata(metadata).build(), Math.max(0, position));
                             p.prepare(); p.setPlaybackSpeed(saved.getFloat("rate", 1));
@@ -47,7 +48,10 @@ final class PlayerBridge {
                         if (!id.matches("[a-f0-9-]{36}") || !peer.matches("[a-f0-9-]{36}") || !token.matches("[a-f0-9-]{36}")) throw new Exception("#err.playback");
                         String mediaId="live:"+id;
                         if (p.getCurrentMediaItem()==null || !mediaId.equals(p.getCurrentMediaItem().mediaId)) {
-                            MediaMetadata metadata=new MediaMetadata.Builder().setTitle(args.optString("title","True Thrills Live")).setArtist("True Thrills").build();
+                            MediaMetadata.Builder metaBuilder=new MediaMetadata.Builder().setTitle(args.optString("title","True Thrills Live")).setArtist("True Thrills");
+                            String liveCover=args.optString("cover","");
+                            if(!liveCover.isEmpty()) metaBuilder.setArtworkUri(Uri.parse(liveCover));
+                            MediaMetadata metadata=metaBuilder.build();
                             p.setMediaItem(new MediaItem.Builder().setMediaId(mediaId)
                                 .setUri(PushClient.BASE+"api/live-stream?id="+id+"&file=index.m3u8&peer="+peer+"&token="+token)
                                 .setMimeType(MimeTypes.APPLICATION_M3U8).setMediaMetadata(metadata).build());

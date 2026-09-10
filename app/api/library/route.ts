@@ -20,6 +20,11 @@ export async function POST(req: Request){try{
     return result({ok:true});
   }
   await requireOwner(req);
+  if(d.action==='channelArt'){
+    const key=String(d.key??'').trim();
+    if(key){if(!key.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(key);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
+    await db.insert(settings).values({key:'channelArt',value:key}).onConflictDoUpdate({target:settings.key,set:{value:key}});return result({ok:true});
+  }
   if(d.action==='donations'){
     // parseDonations отбрасывает всё, что не HTTPS и не из известного списка платформ.
     const clean=parseDonations(JSON.stringify(d.links??[])),value=clean.length?JSON.stringify(clean):'';
@@ -34,7 +39,7 @@ export async function POST(req: Request){try{
   }
   if(d.action==='delete'){
     const p=await db.select().from(posts).where(eq(posts.id,String(d.id))).get();
-    if(p){await db.delete(posts).where(eq(posts.id,p.id));if(p.audioKey)await bucket().delete(p.audioKey);}return result({ok:true});
+    if(p){await db.delete(posts).where(eq(posts.id,p.id));if(p.audioKey)await bucket().delete(p.audioKey);if(p.coverKey)await bucket().delete(p.coverKey);}return result({ok:true});
   }
   if(d.action==='visibility'){const p=await db.update(posts).set({published:d.published?1:0}).where(eq(posts.id,String(d.id))).returning().get();if(p?.published)notifyPost(p,req);return result({ok:true});}
   const title=String(d.title??'').trim(),kind=String(d.kind??'');
@@ -49,13 +54,15 @@ export async function POST(req: Request){try{
   }
   const coverUrl=String(d.coverUrl??'').trim()||null;
   if(coverUrl){const u=new URL(coverUrl);if(coverUrl.length>2000||u.protocol!=='https:'||u.username||u.password)throw new Error('#err.coverUrl');}
+  const coverKey=String(d.coverKey??'').trim()||null;
+  if(coverKey){if(!coverKey.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(coverKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
   const audioKey=kind==='podcast'?String(d.audioKey??''):null;
   if(kind==='podcast'){
     if(!audioKey?.startsWith('audio/'))throw new Error('#err.audioMissing');
     const obj=await bucket().head(audioKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.audioNotFound');
   }
   const id=d.id?String(d.id):crypto.randomUUID();
-  const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
+  const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,coverKey,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
   if(d.id)await db.update(posts).set(values).where(eq(posts.id,id));else await db.insert(posts).values({id,...values,createdAt:Date.now()});
   if(values.published)notifyPost({id,...values},req);return result({id});
 }catch(e){return failure(e);}}

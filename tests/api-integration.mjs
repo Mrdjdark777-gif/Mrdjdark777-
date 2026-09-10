@@ -29,6 +29,7 @@ await build({
       export * as uiClient from '${root}/lib/client.ts';
       export * as library from '${root}/app/api/library/route.ts';
       export * as audio from '${root}/app/api/audio/route.ts';
+      export * as cover from '${root}/app/api/cover/route.ts';
       export * as live from '${root}/app/api/live/route.ts';
       export * as login from '${root}/app/api/auth/route.ts';
       export * as ice from '${root}/app/api/ice/route.ts';
@@ -47,8 +48,8 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, library, audio, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
-const routes = { library, audio, live, notifications, login, ice };
+const { uiClient, library, audio, cover, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
+const routes = { library, audio, cover, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
 const ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
@@ -164,6 +165,30 @@ try {
   assert.equal(r.headers.get('content-range'), 'bytes 1-3/6');
   assert.equal(await r.text(), 'bcd');
 
+  // Обложки: загрузка своего изображения вместо ссылки, и фон эфира (channelArt).
+  assert.equal((await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'text/plain', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' })).status, 400);
+  let cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' });
+  assert.equal(cr.status, 200);
+  const { key: coverKey } = await cr.json();
+  const withCover = await request('library', { kind: 'video', title: 'Cover test', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey, published: false });
+  assert.equal(withCover.status, 200);
+  assert.equal((await dispatch('cover', { search: '?id=' + withCover.data.id })).status, 404);
+  await request('library', { action: 'visibility', id: withCover.data.id, published: true });
+  cr = await dispatch('cover', { search: '?id=' + withCover.data.id });
+  assert.equal(cr.status, 200);
+  assert.equal(await cr.text(), 'xyz');
+  await request('library', { action: 'delete', id: withCover.data.id });
+  assert.equal((await dispatch('cover', { search: '?id=' + withCover.data.id })).status, 404);
+
+  assert.equal((await dispatch('cover', { search: '?id=channel' })).status, 404);
+  cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': '6' }, body: new Blob(['channl']).stream(), duplex: 'half' });
+  const { key: artKey } = await cr.json();
+  assert.equal((await request('library', { action: 'channelArt', key: 'not-a-cover-key' })).status, 400);
+  assert.equal((await request('library', { action: 'channelArt', key: artKey })).status, 200);
+  cr = await dispatch('cover', { search: '?id=channel' });
+  assert.equal(cr.status, 200);
+  assert.equal(await cr.text(), 'channl');
+
   assert.equal((await request('live', { action: 'start', title: 'Unauthorized' }, false)).status, 403);
   const liveRes = await request('live', { action: 'start', title: 'Test broadcast' });
   assert.equal(liveRes.status, 200);
@@ -266,7 +291,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

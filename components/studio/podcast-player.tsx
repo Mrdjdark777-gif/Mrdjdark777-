@@ -9,7 +9,7 @@ import {NativePodcastPlayer} from './native-podcast-player';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
 import {useT} from '@/components/i18n-provider';
 
-function WebPodcastPlayer({src,title,duration:initialDuration=0,audioRef,onClose}:{src:string;title:string;duration?:number;audioRef:RefObject<HTMLAudioElement|null>;onClose:()=>void}){
+function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,onClose}:{src:string;title:string;duration?:number;cover?:string;audioRef:RefObject<HTMLAudioElement|null>;onClose:()=>void}){
  const postId=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const restored=useRef(false),lastSaved=useRef(0);
  const [rate,setRate]=useState(1),[sleep,setSleep]=useState(0),[isRepairing,setIsRepairing]=useState(false);
@@ -19,7 +19,8 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,audioRef,onClose
  const local=useRef<HTMLAudioElement|null>(null),repairing=useRef(false),attempted=useRef(false),controller=useRef<AbortController|null>(null),objectUrl=useRef(''),wanted=useRef(true),scrubbing=useRef(false),alive=useRef(true);
  const session=()=>{
   const el=local.current;if(!el||!('mediaSession'in navigator))return;
-  navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills',album:t('player.album'),artwork:[{src:location.origin+'/icon-512.png?v=0.4.1',sizes:'512x512',type:'image/png'}]});
+  const art=cover?new URL(cover,location.origin).toString():location.origin+'/icon-512.png?v=0.4.1';
+  navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills',album:t('player.album'),artwork:[{src:art,sizes:cover?'':'512x512',type:cover?'':'image/png'}]});
   navigator.mediaSession.setActionHandler('play',()=>{wanted.current=true;void play();});
   navigator.mediaSession.setActionHandler('pause',()=>{wanted.current=false;el.pause();});
   navigator.mediaSession.setActionHandler('seekbackward',d=>seek(el.currentTime-(d.seekOffset??15)));

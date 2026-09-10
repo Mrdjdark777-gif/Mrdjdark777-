@@ -3,7 +3,7 @@ export const settings = sqliteTable('settings', { key: text('key').primaryKey(),
 export const posts = sqliteTable('posts', {
   id: text('id').primaryKey(), kind: text('kind').notNull(), title: text('title').notNull(),
   description: text('description').notNull().default(''), body: text('body').notNull().default(''),
-  audioKey: text('audio_key'), videoUrl: text('video_url'), coverUrl:text('cover_url'), duration: integer('duration').notNull().default(0),
+  audioKey: text('audio_key'), videoUrl: text('video_url'), coverUrl:text('cover_url'), coverKey:text('cover_key'), duration: integer('duration').notNull().default(0),
   published: integer('published').notNull().default(0), createdAt: integer('created_at').notNull(),
 });
 export const broadcasts = sqliteTable('broadcasts', {
