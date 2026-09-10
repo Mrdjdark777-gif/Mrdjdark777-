@@ -21,6 +21,12 @@ final class PlayerBridge {
         future = new MediaController.Builder(context, new SessionToken(context, new ComponentName(context, PlaybackService.class))).buildAsync();
     }
     void command(String method, JSONObject args, Consumer<JSONObject> reply) {
+        // Уровни звука лежат в статике и не зависят от MediaController, поэтому
+        // отвечаем сразу: их опрашивают десятки раз в секунду, пока открыт эфир.
+        if (method.equals("levels")) {
+            try { reply.accept(LevelTap.snapshot()); } catch (Exception ignored) {}
+            return;
+        }
         future.addListener(() -> {
             if (closed) return;
             try {
@@ -61,8 +67,8 @@ final class PlayerBridge {
                     }
                     case "volume": p.setVolume((float)Math.max(0,Math.min(1,args.optDouble("value",1)))); break;
                     case "play": if (p.getPlaybackState() == Player.STATE_IDLE) p.prepare(); if (p.isCurrentMediaItemLive()) p.seekToDefaultPosition(); else if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0); p.play(); break;
-                    case "pause": p.pause(); break;
-                    case "stop": p.pause(); p.stop(); p.clearMediaItems(); break;
+                    case "pause": p.pause(); LevelTap.silence(); break;
+                    case "stop": p.pause(); p.stop(); p.clearMediaItems(); LevelTap.silence(); break;
                     case "seek": p.seekTo(Math.max(0, args.optLong("position", 0))); break;
                     case "rate": p.setPlaybackSpeed((float) Math.max(0.5, Math.min(2, args.optDouble("rate", 1)))); break;
                     case "sleep": saved.edit().putLong("sleepUntil", args.optInt("minutes", 0) <= 0 ? 0 : System.currentTimeMillis() + Math.min(120, args.optInt("minutes")) * 60000L).apply(); break;

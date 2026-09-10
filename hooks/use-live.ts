@@ -11,17 +11,50 @@ type NativeState={id:string;playing:boolean;loading:boolean;ended:boolean;liveSu
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 export function useLive(){
  const [hosting,setHosting]=useState(''),[connecting,setConnecting]=useState(false),[listeners,setListeners]=useState(0),[status,setStatus]=useState(''),[listening,setListening]=useState(false),[joined,setJoined]=useState(false),[phase,setPhase]=useState<ListenPhase>('idle');
+ const [levels,setLevels]=useState<number[]>(()=>Array(28).fill(0));
  const [hostStatus,setHostStatus]=useState(''),[hostSeconds,setHostSeconds]=useState(0),[volume,setVolume]=useState(100),[activeId,setActiveId]=useState('');
  const host=useRef(''),starting=useRef(false),recorder=useRef<MediaRecorder|null>(null),queue=useRef(Promise.resolve()),queued=useRef(0),uploadError=useRef<Error|null>(null),stopTask=useRef<Promise<void>|null>(null);
  const audio=useRef<HTMLAudioElement|null>(null),hls=useRef<Hls|null>(null),native=useRef(false),joinedId=useRef(''),generation=useRef(0),peer=useRef<{id:string;token:string}|null>(null);
  const hostTimer=useRef<ReturnType<typeof setInterval>|null>(null),listenTimer=useRef<ReturnType<typeof setInterval>|null>(null),volumeRef=useRef(100);
+ // Индикатор звука. В приложении эфир играет нативно, поэтому уровни берём из
+ // плеера через мост; в браузере считаем их сами из <audio> через Web Audio.
+ const meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterCtx=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null);
+ // Контекст создаётся один раз и живёт до размонтирования: закрыть его, пока
+ // <audio> подключён к графу, значит оставить слушателя без звука совсем.
+ function stopMeter(){if(meterTimer.current)clearInterval(meterTimer.current);meterTimer.current=null;analyser.current?.disconnect();analyser.current=null;setLevels(Array(28).fill(0));}
+ function startMeter(el:HTMLAudioElement|null){
+  stopMeter();
+  if(el){
+   try{
+    const context=meterCtx.current??new AudioContext();meterCtx.current=context;
+    void context.resume().catch(()=>{});
+    const node=context.createAnalyser();node.fftSize=1024;node.smoothingTimeConstant=0.6;
+    context.createMediaElementSource(el).connect(node);node.connect(context.destination);
+    analyser.current=node;
+   }catch{
+    // Звук важнее индикатора: если граф не построился, эфир играет как раньше.
+    stopMeter();return;
+   }
+  }
+  const data=new Uint8Array(analyser.current?analyser.current.fftSize:0);
+  meterTimer.current=setInterval(()=>{
+   const node=analyser.current;
+   if(node){
+    node.getByteTimeDomainData(data);
+    const per=Math.max(1,Math.floor(data.length/28));
+    setLevels(Array.from({length:28},(_,i)=>{let peak=0;for(let j=i*per;j<Math.min(data.length,(i+1)*per);j++){const v=Math.abs(data[j]-128)/128;if(v>peak)peak=v;}return peak;}));
+    return;
+   }
+   void nativeCall<{levels:number[]}>('player.levels').then(r=>{if(Array.isArray(r.levels))setLevels(r.levels);}).catch(()=>{});
+  },60);
+ }
  function endViewer(next:ListenPhase='idle',message='',stopNative=true){
   generation.current++;joinedId.current='';setActiveId('');if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();hls.current=null;
   if(peer.current)void api('live',{action:'leave',peer:peer.current.id,token:peer.current.token}).catch(()=>{});peer.current=null;
   if(audio.current){audio.current.onplaying=null;audio.current.onpause=null;audio.current.onended=null;audio.current.onwaiting=null;audio.current.onerror=null;audio.current.pause();audio.current.removeAttribute('src');audio.current.load();}
   if(native.current&&stopNative)void nativeCall('player.stop').catch(()=>{});native.current=false;
   if('mediaSession'in navigator&&!hasNativeClient()){navigator.mediaSession.metadata=null;for(const action of ['play','pause'] as MediaSessionAction[])navigator.mediaSession.setActionHandler(action,null);}
-  setListening(false);setJoined(false);setConnecting(false);setPhase(next);setStatus(message);
+  stopMeter();setListening(false);setJoined(false);setConnecting(false);setPhase(next);setStatus(message);
  }
  function leave(){endViewer();}
  async function stop(){
@@ -76,8 +109,8 @@ export function useLive(){
    native.current=!!state?.liveSupported;let attached=false,polling=false,errors=0;
    const attach=async()=>{
     if(attached||gen!==generation.current)return;attached=true;
-    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});return;}
-    const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;
+    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
+    const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;el.crossOrigin='anonymous';startMeter(el);
     el.onplaying=()=>{if(gen!==generation.current)return;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));};
     el.onpause=()=>{if(gen!==generation.current)return;setListening(false);setPhase('paused');setStatus(t('liveHook.paused'));};
     el.onwaiting=()=>{if(gen!==generation.current)return;setListening(false);setPhase('reconnecting');setStatus(t('liveArchive.buffering'));};
@@ -111,9 +144,6 @@ export function useLive(){
   }catch(e){if(gen===generation.current)endViewer('error',errorText(e));}
  }
  useEffect(()=>{volumeRef.current=volume;if(audio.current)audio.current.volume=volume/100;if(native.current)void nativeCall('player.volume',{value:volume/100}).catch(()=>{});},[volume]);
- useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
- // Уровня звука здесь нет намеренно: в приложении эфир играет нативно, мимо
- // веб-части, и измерить его громкость отсюда нечем. Раньше тут стояли
- // константы -60 dB и нули, из-за чего индикатор всегда показывал тишину.
- return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,start,stop,listen,leave,resume,pause,unmute:resume};
+ useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;stopMeter();void meterCtx.current?.close().catch(()=>{});meterCtx.current=null;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
+ return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,levels,start,stop,listen,leave,resume,pause,unmute:resume};
 }
