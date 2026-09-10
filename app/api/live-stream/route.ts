@@ -46,7 +46,7 @@ export async function POST(req:Request){try{
  const db=getDb();
  return db.transaction(tx=>{
   const row=tx.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();if(!row)throw new Error('#err.notFound');
-  const dir=path.join(liveRoot(),id,'chunks'),file=path.join(dir,String(seq).padStart(6,'0')+'.webm');
+  const dir=path.join(/*turbopackIgnore: true*/ liveRoot(),id,'chunks'),file=path.join(dir,String(seq).padStart(6,'0')+'.webm');
   if(seq<row.nextSequence){if(!existsSync(file)||createHash('sha256').update(readFileSync(file)).digest('hex')!==digest)throw new Error('#err.liveSequence');return result({ok:true,received:row.nextSequence});}
   if(row.state!=='receiving'||seq!==row.nextSequence)throw new Error('#err.liveSequence');
   if(Date.now()-row.createdAt>8*3600000||row.bytes+size>1024**3)throw new Error('#err.liveLimit');

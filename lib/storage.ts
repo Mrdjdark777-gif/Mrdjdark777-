@@ -15,7 +15,7 @@ const ROOT = normalize(process.env.STORAGE_DIR ?? './data/storage');
 type Meta = { contentType: string; customMetadata: Record<string, string>; size: number; etag: string };
 
 function dataPath(key: string) {
-  const target = normalize(join(ROOT, key));
+  const target = normalize(join(/*turbopackIgnore: true*/ ROOT, key));
   if (target !== ROOT && !target.startsWith(ROOT + '/')) throw new Error('#err.badStorageKey');
   if (relative(ROOT, target).startsWith('..')) throw new Error('#err.badStorageKey');
   return target;
