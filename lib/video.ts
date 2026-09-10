@@ -59,7 +59,12 @@ function parseKindUrlList<K extends string>(raw: string, kinds: readonly K[]): {
     if (!item || typeof item !== 'object') return [];
     const { kind, url } = item as Record<string, unknown>;
     if (typeof kind !== 'string' || typeof url !== 'string' || !(kinds as readonly string[]).includes(kind)) return [];
-    const value = url.trim();
+    // «tiktok.com/@name» — это то, что человек копирует из адресной строки,
+    // и молча выбрасывать такую ссылку нельзя. Схему дописываем только когда
+    // её нет вовсе: явный http:// (или что-то вроде javascript:) остаётся как
+    // есть и по-прежнему отсеивается ниже.
+    const typed = url.trim();
+    const value = !typed || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(typed) ? typed : 'https://' + typed;
     if (!value) return [];
     try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password) return []; } catch { return []; }
     return [{ kind: kind as K, url: value }];

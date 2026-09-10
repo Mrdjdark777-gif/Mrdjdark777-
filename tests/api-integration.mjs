@@ -146,6 +146,9 @@ try {
     200,
   );
   assert.deepEqual((await request('library', undefined, false)).data.links, [{ kind: 'tiktok', url: 'https://www.tiktok.com/@truethrills' }]);
+  // Адрес, скопированный из строки браузера без схемы, дополняется, а не теряется молча.
+  assert.equal((await request('library', { action: 'links', links: [{ kind: 'tiktok', url: 'tiktok.com/@true_thrills' }] })).status, 200);
+  assert.deepEqual((await request('library', undefined, false)).data.links, [{ kind: 'tiktok', url: 'https://tiktok.com/@true_thrills' }]);
 
   let r = await dispatch('audio', {
     method: 'POST',
