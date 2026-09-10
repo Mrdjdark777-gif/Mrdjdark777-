@@ -1,6 +1,6 @@
 package com.truethrills.listener;
 
-import androidx.media3.common.audio.TeeAudioProcessor;
+import androidx.media3.exoplayer.audio.TeeAudioProcessor;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.json.JSONArray;
@@ -21,7 +21,7 @@ import org.json.JSONObject;
 final class LevelTap implements TeeAudioProcessor.AudioBufferSink {
     static final int BARS = 28;
     private static final float[] LEVELS = new float[BARS];
-    private static volatile boolean pcm16;
+    private static volatile int encoding = androidx.media3.common.C.ENCODING_INVALID;
 
     static JSONObject snapshot() throws Exception {
         JSONArray out = new JSONArray();
@@ -35,17 +35,24 @@ final class LevelTap implements TeeAudioProcessor.AudioBufferSink {
         synchronized (LEVELS) { java.util.Arrays.fill(LEVELS, 0f); }
     }
 
-    @Override public void flush(int sampleRateHz, int channelCount, int encoding) {
-        pcm16 = encoding == androidx.media3.common.C.ENCODING_PCM_16BIT;
+    @Override public void flush(int sampleRateHz, int channelCount, int pcmEncoding) {
+        encoding = pcmEncoding;
         silence();
     }
 
     @Override public void handleBuffer(ByteBuffer buffer) {
-        if (!pcm16) return;
+        int enc = encoding;
+        // Обычно декодер отдаёт 16 бит; float появляется, если устройство
+        // включило вывод с плавающей точкой. Остальное (passthrough, offload)
+        // сюда вообще не доходит.
+        boolean isFloat = enc == androidx.media3.common.C.ENCODING_PCM_FLOAT;
+        if (!isFloat && enc != androidx.media3.common.C.ENCODING_PCM_16BIT) return;
+        int width = isFloat ? 4 : 2;
         // duplicate(), чтобы не сдвинуть позицию у буфера, который пойдёт дальше
         // на воспроизведение; порядок байт после duplicate() сбрасывается.
+        // Буфер приходит read-only, поэтому читаем только по абсолютным индексам.
         ByteBuffer view = buffer.duplicate().order(ByteOrder.LITTLE_ENDIAN);
-        int base = view.position(), samples = view.remaining() / 2;
+        int base = view.position(), samples = view.remaining() / width;
         if (samples <= 0) return;
         int per = Math.max(1, samples / BARS);
         synchronized (LEVELS) {
@@ -53,7 +60,8 @@ final class LevelTap implements TeeAudioProcessor.AudioBufferSink {
                 int start = i * per, end = Math.min(samples, start + per);
                 float peak = 0f;
                 for (int j = start; j < end; j++) {
-                    float v = Math.abs(view.getShort(base + j * 2) / 32768f);
+                    int at = base + j * width;
+                    float v = isFloat ? Math.abs(view.getFloat(at)) : Math.abs(view.getShort(at) / 32768f);
                     if (v > peak) peak = v;
                 }
                 // Мгновенный подъём и мягкий спад: полоска успевает отработать

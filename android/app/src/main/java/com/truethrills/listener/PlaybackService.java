@@ -8,7 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import androidx.media3.common.*;
 import androidx.media3.common.audio.AudioProcessor;
-import androidx.media3.common.audio.TeeAudioProcessor;
+import androidx.media3.exoplayer.audio.TeeAudioProcessor;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.audio.AudioSink;
@@ -42,7 +42,11 @@ public class PlaybackService extends MediaSessionService {
         // отдаёт копию уже декодированного потока, ничего не меняя в нём.
         DefaultRenderersFactory renderers = new DefaultRenderersFactory(this) {
             @Override protected AudioSink buildAudioSink(Context context, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
+                // Флаги те же, что у DefaultRenderersFactory по умолчанию: мы
+                // только добавляем ответвление, а не меняем режим вывода.
                 return new DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(new AudioProcessor[]{ new TeeAudioProcessor(new LevelTap()) })
                     .build();
             }
