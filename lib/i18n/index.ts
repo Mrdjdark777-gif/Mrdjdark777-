@@ -1,28 +1,34 @@
 import {ru} from './ru';
 import {it} from './it';
+import {uk} from './uk';
+import {ro} from './ro';
 
-export const LOCALES = ['ru', 'it'] as const;
+export const LOCALES = ['ru', 'it', 'uk', 'ro'] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'ru';
-/** Названия языков пишутся на самом языке — так их узнают, не понимая интерфейса. */
-export const LOCALE_NAMES: Record<Locale, string> = {ru: 'Русский', it: 'Italiano'};
 /** Тег для toLocaleDateString и атрибута lang. */
-export const LOCALE_TAGS: Record<Locale, string> = {ru: 'ru-RU', it: 'it-IT'};
+export const LOCALE_TAGS: Record<Locale, string> = {ru: 'ru-RU', it: 'it-IT', uk: 'uk-UA', ro: 'ro-MD'};
 
 export type Dict = typeof ru;
 export type Key = keyof Dict;
-const DICTS: Record<Locale, Dict> = {ru, it};
+const DICTS: Record<Locale, Dict> = {ru, it, uk, ro};
 
-export const LOCALE_COOKIE = 'tt_lang';
+/**
+ * Устаревшие и региональные коды, которые телефон может прислать вместо
+ * нашего. «mo» — снятый с учёта код молдавского: в Молдове государственный
+ * язык румынский, и словарь у них общий.
+ */
+const ALIASES: Record<string, Locale> = {mo: 'ro', mol: 'ro', ukr: 'uk', rus: 'ru', ita: 'it', ron: 'ro', rum: 'ro'};
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
 }
 
 /**
- * Язык телефона приходит в Accept-Language. Берём первый тег, который мы
- * поддерживаем; сравниваем по базовому языку, чтобы it-CH тоже считался
- * итальянским. Если ничего не подошло — язык автора.
+ * Язык интерфейса — это язык телефона, и только он: ручного выбора в
+ * приложении нет. Берём из Accept-Language первый тег, который мы понимаем,
+ * сравнивая по базовому языку, чтобы it-CH считался итальянским, а ro-MD —
+ * румынским. Если не совпало ничего — язык автора.
  */
 export function localeFromHeader(header: string | null | undefined): Locale {
   for (const part of String(header ?? '').split(',')) {
@@ -30,13 +36,9 @@ export function localeFromHeader(header: string | null | undefined): Locale {
     if (!tag) continue;
     const base = tag.split('-')[0];
     if (isLocale(base)) return base;
+    if (ALIASES[base]) return ALIASES[base];
   }
   return DEFAULT_LOCALE;
-}
-
-/** Ручной выбор языка (cookie) имеет приоритет над языком телефона. */
-export function resolveLocale(cookie: string | null | undefined, header: string | null | undefined): Locale {
-  return isLocale(cookie) ? cookie : localeFromHeader(header);
 }
 
 export function translate(locale: Locale, key: string, vars?: Record<string, string | number>): string {

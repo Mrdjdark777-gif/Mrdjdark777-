@@ -73,6 +73,8 @@ export const ru = {
 "err.coverNotFound": "Загруженная обложка не найдена",
 "editor.cover": "Обложка",
 "editor.coverUpload": "Загрузить обложку",
+"editor.coverNote": "Вертикальная обложка 9:16 — например 1080×1920. Она заполняет карточку по высоте; другое соотношение обрежется по центру.",
+
 "editor.coverUrlPlaceholder": "или вставь ссылку https://…",
 "editor.coverTooBig": "Файл обложки — до 12 МБ",
 
@@ -99,11 +101,6 @@ export const ru = {
   'common.mb': 'МБ',
   'meta.title': 'True Thrills — студия и подкасты',
   'meta.description': 'Подкасты, истории и прямые эфиры True Thrills.',
-
-  'lang.title': 'Язык приложения',
-  'lang.text': 'По умолчанию берётся язык телефона. Здесь его можно задать вручную.',
-  'lang.auto': 'Как на телефоне',
-  'lang.saved': 'Язык изменён',
 
   'nav.podcasts': 'Подкасты',
   'nav.videos': 'Видео',
@@ -145,8 +142,8 @@ export const ru = {
   'desc.storiesAuthor': 'Место для историй, которые ты хочешь рассказать.',
   'desc.storiesListener': 'Истории True Thrills в текстовом формате.',
   'desc.live': 'Голос и слушатели. В реальном времени.',
-  'desc.settingsAuthor': 'Поддержка, площадки, язык и уведомления.',
-  'desc.settingsListener': 'Уведомления, язык, площадки и поддержка автора.',
+  'desc.settingsAuthor': 'Поддержка, площадки и уведомления.',
+  'desc.settingsListener': 'Уведомления, площадки и поддержка автора.',
 
   'home.record': 'Записать\nвыпуск',
   'home.addVideo': 'Добавить\nвидео',

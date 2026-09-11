@@ -74,6 +74,8 @@ export const it: Record<keyof typeof ru, string> = {
 "err.coverNotFound": "Copertina caricata non trovata",
 "editor.cover": "Copertina",
 "editor.coverUpload": "Carica copertina",
+"editor.coverNote": "Copertina verticale 9:16 — per esempio 1080×1920. Riempie la scheda in altezza; un altro rapporto viene ritagliato al centro.",
+
 "editor.coverUrlPlaceholder": "oppure incolla un link https://…",
 "editor.coverTooBig": "Il file della copertina può arrivare a 12 MB",
 
@@ -100,11 +102,6 @@ export const it: Record<keyof typeof ru, string> = {
   'common.mb': 'MB',
   'meta.title': 'True Thrills — studio e podcast',
   'meta.description': 'Podcast, racconti e dirette di True Thrills.',
-
-  'lang.title': 'Lingua dell’app',
-  'lang.text': 'Di default viene usata la lingua del telefono. Qui puoi impostarla a mano.',
-  'lang.auto': 'Come sul telefono',
-  'lang.saved': 'Lingua cambiata',
 
   'nav.podcasts': 'Podcast',
   'nav.videos': 'Video',
@@ -146,8 +143,8 @@ export const it: Record<keyof typeof ru, string> = {
   'desc.storiesAuthor': 'Lo spazio per le storie che vuoi raccontare.',
   'desc.storiesListener': 'I racconti di True Thrills in formato testo.',
   'desc.live': 'La voce e chi ascolta. In tempo reale.',
-  'desc.settingsAuthor': 'Sostegno, piattaforme, lingua e notifiche.',
-  'desc.settingsListener': 'Notifiche, lingua, piattaforme e sostegno all’autore.',
+  'desc.settingsAuthor': 'Sostegno, piattaforme e notifiche.',
+  'desc.settingsListener': 'Notifiche, piattaforme e sostegno all’autore.',
 
   'home.record': 'Registra\nun episodio',
   'home.addVideo': 'Aggiungi\nun video',
