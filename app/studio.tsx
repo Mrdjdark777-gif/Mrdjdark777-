@@ -27,9 +27,9 @@ type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;dona
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
-// Цвета сняты пипеткой с логотипа: закат снизу, небо сверху. Бас окрашен в
-// оранжевый низ логотипа, середина — в жёлтое солнце, верх — в бирюзовую
-// ленту.
+// Цвета сняты пипеткой с логотипа и лежат так же, как на нём самом: закат
+// наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
+// верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
 const RING_STOPS:[number,[number,number,number]][]=[
  [0,[0xFE,0x34,0x02]],[0.24,[0xFE,0x6F,0x03]],[0.48,[0xFD,0xB5,0x01]],
  [0.66,[0xFE,0xC6,0x03]],[0.84,[0x34,0xC6,0xAE]],[1,[0x6F,0xE7,0xDE]]];
@@ -43,14 +43,14 @@ function ringColor(position:number){
 // относительно вертикали. При rotate(0) луч смотрит вниз, поэтому смещение
 // 2,81° ставит бас внизу, середину по бокам, а верхние частоты наверху.
 const RING=Array.from({length:64},(_,i)=>{const band=i<32?i:63-i;
- return{band,angle:i*5.625+2.8125,color:ringColor(band/31)};});
+ return{band,angle:i*5.625+2.8125,color:ringColor(1-band/31)};});
 export default function Studio(){
  const {t,tag}=useT();
  const noticeHandler=useRef<(url:string)=>Promise<void>>(async()=>{});
  const [coverUrl,setCoverUrl]=useState('');
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false),[androidClient,setAndroidClient]=useState(false);
- const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveArtMissing,setLiveArtMissing]=useState(false),[liveCoverSrc,setLiveCoverSrc]=useState(''),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('all'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false);
+ const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('all'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
@@ -62,7 +62,6 @@ export default function Studio(){
  useEffect(()=>{void refreshLive();const timer=setInterval(()=>void refreshLive(),3000);const resume=()=>{if(document.visibilityState==='visible')void refreshLive();};document.addEventListener('visibilitychange',resume);window.addEventListener('focus',resume);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume);};},[refreshLive]);
  // Сначала обложка самого эфира, если автор её загрузил; иначе общий баннер.
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Источник картинки зависит от того, какой эфир сейчас в сети.
- useEffect(()=>{setLiveCoverSrc(liveStatus?'/api/cover?id=live:'+liveStatus.id:'/api/cover?id=channel');setLiveArtMissing(false);},[liveStatus?.id]);
  useEffect(()=>{if(live.hosting&&!capture.ready){void live.stop().catch(()=>{});toast.error(t('live.micLost'));}},[capture.ready,live.hosting]);
  const load=useCallback(async()=>{try{const d=await api<Data>('library');setData(d);setError('');return d as Data;}catch(e){setError(errorText(e));return null;}},[]);
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial server synchronization updates loading/error state.
@@ -185,7 +184,6 @@ export default function Studio(){
  {liveStatus&&!live.hosting&&<button className="quiet-button" onClick={()=>void run(async()=>{await api('live',{action:'stop',id:liveStatus!.id});await refreshLive();},t('live.stopped'))}>{t('live.stopFromOtherWindow')}</button>}
  </>:<>
  <div className={'session-status '+(live.phase==='playing'?'is-onair':'')} role="status"><Headphones size={25}/><div><strong>{live.phase==='playing'?t('live.listeningNow'):live.phase==='paused'?t('live.paused'):live.phase==='reconnecting'?t('live.reconnecting'):live.phase==='connecting'||live.phase==='waiting'?t('live.connectingState'):live.phase==='blocked'?t('live.needSound'):live.phase==='error'?t('live.connectFailed'):live.phase==='ended'?t('live.ended'):liveStatus?t('live.authorOnAirPlain'):t('live.noneNow')}</strong><span>{live.status||(liveStatus?t('live.tapToConnect'):t('live.willAppearHere'))}</span></div></div>
- {!liveArtMissing&&!!liveCoverSrc&&<img className="live-cover" src={liveCoverSrc} alt="" onError={()=>{if(liveCoverSrc.includes('id=live:'))setLiveCoverSrc('/api/cover?id=channel');else setLiveArtMissing(true);}}/>}
  <h2>{liveStatus?.title??'True Thrills Live'}</h2>
  <div className="listener-playback-actions">{live.joined?<>{live.listening?<button className="primary-button" onClick={live.pause}><Pause size={20}/>{t('live.pause')}</button>:live.phase==='paused'||live.phase==='blocked'||live.phase==='error'?<button className="primary-button" onClick={()=>void live.resume()}><Play size={20}/>{live.phase==='blocked'?t('live.enableSound'):t('live.resume')}</button>:<button className="primary-button" disabled aria-busy="true"><Loader2 className="spin" size={20}/>{live.phase==='reconnecting'?t('live.reconnectingShort'):t('live.connecting')}</button>}<button className="quiet-button" onClick={live.leave}>{live.connecting||live.phase==='waiting'||live.phase==='reconnecting'?t('common.cancel'):t('live.leave')}</button></>:liveStatus?<button className="primary-button" onClick={openLive}><Headphones size={20}/>{live.phase==='error'?t('live.tryAgain'):t('live.listen')}</button>:null}</div>
  {live.listening&&<div className="live-ring" role="status" aria-label={t('live.playing')}>

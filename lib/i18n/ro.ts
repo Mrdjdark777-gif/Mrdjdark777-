@@ -283,7 +283,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.coverChange": "Alege alta",
 
-  "live.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Se arată ascultătorilor pe pagina emisiunii și rămâne coperta episodului la podcasturi. Dacă nu încarci una, se ia bannerul general al canalului.",
+  "live.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Devine coperta episodului la podcasturi. Dacă nu încarci una, pe card rămâne logoul.",
 
   "live.titlePlaceholder": "Despre ce povestești azi?",
 
