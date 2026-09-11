@@ -46,7 +46,7 @@ async function processRecording(row){
   db.transaction(()=>{
    db.prepare("INSERT INTO posts(id,kind,title,description,body,audio_key,duration,published,created_at) VALUES(?,'podcast',?,'','','',0,1,?) ON CONFLICT(id) DO NOTHING").run(row.id,row.title,row.created_at);
    db.prepare('UPDATE posts SET audio_key=?,duration=? WHERE id=?').run(key,Math.round(duration),row.id);
-   db.prepare("UPDATE live_recordings SET state='ready',post_id=?,playlist=NULL,error=NULL,updated_at=? WHERE id=?").run(row.id,Date.now(),row.id);
+   db.prepare("UPDATE live_recordings SET state='ready',post_id=?,playlist=?,error=NULL,updated_at=? WHERE id=?").run(row.id,generation+'/index.m3u8',Date.now(),row.id);
    db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);
    const event='post:'+row.id;
    if(db.prepare('INSERT OR IGNORE INTO push_events(id,created_at) VALUES(?,?)').run(event,Date.now()).changes){
@@ -54,17 +54,30 @@ async function processRecording(row){
     db.prepare(`INSERT INTO push_outbox(id,subscription_id,payload,origin,category,expires_at) SELECT ?||':'||id,id,?,?,2,? FROM push_subscriptions WHERE (preferences & 2)!=0`).run(event,payload,process.env.PUBLIC_SITE_URL||'https://truethrills.com',Date.now()+86400000);
    }
   })();
-  // Выпуск уже в хранилище, значит куски от студии и нарезка HLS больше не
-  // нужны: раньше они оставались навсегда и занимали втрое больше места, чем
-  // сам выпуск, да ещё и попадали в каждый бэкап. Чистим только после успеха —
-  // у неудачной записи из этих же кусков собирают повтор.
-  // Ошибка уборки не должна помечать готовый выпуск сломанным, поэтому она
-  // своя, отдельная от общего catch.
-  try{await rm(dir,{recursive:true,force:true});}catch(e){console.error(JSON.stringify({event:'cleanup-failed',id:row.id,error:String(e.message).slice(0,200)}));}
   console.log(JSON.stringify({event:'archive-ready',id:row.id,seconds:Math.round(duration),bytes:size}));
  }catch(error){
   ff.kill('SIGKILL');await exit;
   if(!quitting){db.prepare("UPDATE live_recordings SET state='failed',error=? WHERE id=?").run(String(error.message).slice(0,500),row.id);db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);console.error(JSON.stringify({event:'archive-failed',id:row.id}));}
+ }
+}
+// Куски от студии и нарезка HLS раньше не удалялись никогда: час эфира
+// оставлял около 115 МБ рядом с 58 МБ выпуска, и каждый бэкап их копировал.
+// Но удалять сразу нельзя. Плейлист доживает конец эфира намеренно: слушатель,
+// подключённый в последнюю минуту, дотягивает по нему остаток, а закрытый
+// выпуск отзывает и запись (это проверяет live-archive-integration). Поэтому
+// ждём паузу и только потом сносим каталог целиком.
+const CLEANUP_AFTER_MS=30*60*1000;
+async function cleanupFinished(){
+ const ready=db.prepare("SELECT id FROM live_recordings WHERE state='ready' AND playlist IS NOT NULL AND updated_at < ?").all(Date.now()-CLEANUP_AFTER_MS);
+ for(const {id} of ready){
+  if(active.has(id))continue;
+  try{
+   // Сначала база, потом файлы: так запрос между двумя шагами получит честный
+   // 404, а не ошибку чтения наполовину удалённого каталога.
+   db.prepare('UPDATE live_recordings SET playlist=NULL WHERE id=?').run(id);
+   await rm(path.join(root,id),{recursive:true,force:true});
+   console.log(JSON.stringify({event:'live-cleaned',id}));
+  }catch(e){console.error(JSON.stringify({event:'cleanup-failed',id,error:String(e.message).slice(0,200)}));}
  }
 }
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{quitting=true;for(const child of children){child.stdin.destroy();child.kill('SIGTERM');const timer=setTimeout(()=>child.kill('SIGKILL'),3000);timer.unref();}});
@@ -73,6 +86,7 @@ while(!quitting){
  for(const row of db.prepare("SELECT * FROM live_recordings WHERE state IN ('receiving','closing','processing')").all()){
   if(!active.has(row.id)){const task=processRecording(row).finally(()=>active.delete(row.id));active.set(row.id,task);}
  }
+ await cleanupFinished();
  await delay(1000);
 }
 await rm(path.join(root,'worker.json'),{force:true});await Promise.allSettled([...active.values()]);db.close();
