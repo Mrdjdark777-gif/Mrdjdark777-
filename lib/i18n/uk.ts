@@ -53,13 +53,13 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "donate.configure": "Додати посилання",
 
-  "donate.unavailable": "Автор ще не додав посилання для донату.",
+  "donate.unavailable": "Підтримку ще не підключили.",
 
   "donate.setup": "Додай своє посилання: кнопка з'явиться у слухачів на головній і в ефірі.",
 
-  "donate.free": "Увесь контент безкоштовний. Підтримка — лише за бажанням.",
+  "donate.free": "Усе безкоштовно і залишиться безкоштовним. Підтримка йде на сервер, дорогу та спорядження — навіть €1 тримає проєкт у повітрі.",
 
-  "donate.action": "Донат",
+  "donate.action": "Підтримати True Thrills",
 
   "donate.boosty": "Boosty",
 
@@ -145,7 +145,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "header.settings": "Налаштування",
 
-  "header.support": "Донат",
+  "header.support": "Підтримати",
 
   "header.toStudio": "У студію",
 
@@ -231,13 +231,11 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "home.socialCaption": "Автор на інших майданчиках",
 
-  "support.title": "Донат",
-
   "support.setupTitle": "Кнопку підтримки не під'єднано",
 
   "support.setupText": "Додай платіжне посилання — воно з'явиться у слухачів у шапці та на головному екрані.",
 
-  "support.subtitle": "Разовий донат або підписка на сторінці автора.",
+  "support.subtitle": "Boosty — раз на місяць, PayPal — один раз. Скасувати можна будь-коли.",
 
   "live.youAreListening": "ВИ СЛУХАЄТЕ ЕФІР",
 
@@ -451,7 +449,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "studio.donationSet": "Посилання під'єднано",
 
-  "studio.donationMissing": "Додати посилання для донатів",
+  "studio.donationMissing": "Додати посилання для підтримки",
 
   "studio.monitorDaw": "Для контролю FL Studio: навушники в Komplete, INPUT/HOST до HOST; прослуховування CABLE Output — у Komplete 1/2.",
 

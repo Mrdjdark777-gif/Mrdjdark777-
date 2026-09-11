@@ -52,13 +52,13 @@ export const ru = {
 
   "donate.configure": "Добавить ссылку",
 
-  "donate.unavailable": "Автор ещё не добавил ссылку для доната.",
+  "donate.unavailable": "Поддержку пока не подключили.",
 
   "donate.setup": "Добавь свою ссылку: кнопка появится у слушателей на главной и в эфире.",
 
-  "donate.free": "Весь контент бесплатный. Поддержка — только по желанию.",
+  "donate.free": "Всё бесплатно и останется бесплатным. Поддержка идёт на сервер, дорогу и снаряжение — даже €1 держит проект в воздухе.",
 
-  "donate.action": "Донат",
+  "donate.action": "Поддержать True Thrills",
 
   "donate.boosty": "Boosty",
 
@@ -109,7 +109,7 @@ export const ru = {
   'nav.live': 'Эфир',
 
   'header.settings': 'Настройки',
-  "header.support": "Донат",
+  "header.support": "Поддержать",
   'header.toStudio': 'В студию',
   'header.asListener': 'Как слушатель',
   'header.logout': 'Выйти',
@@ -155,11 +155,9 @@ export const ru = {
   'home.readStories': 'Читать\nистории',
   'home.liveNow': 'Прямой\nэфир',
   'home.socialCaption': 'Автор на других площадках',
-
-  "support.title": "Донат",
   'support.setupTitle': 'Кнопка поддержки не подключена',
   'support.setupText': 'Добавь платёжную ссылку — она появится у слушателей в шапке и на главном экране.',
-  'support.subtitle': 'Разовый донат или подписка на странице автора.',
+  'support.subtitle': "Boosty — раз в месяц, PayPal — один раз. Отписаться можно в любой момент.",
 
   'live.youAreListening': 'ВЫ СЛУШАЕТЕ ЭФИР',
   'live.authorOnAir': 'АВТОР В ПРЯМОМ ЭФИРЕ',
@@ -268,7 +266,7 @@ export const ru = {
   'studio.librarySubtitle': 'Контент, который остаётся.',
   'studio.supportTile': 'Поддержка',
   'studio.donationSet': 'Ссылка подключена',
-  'studio.donationMissing': 'Добавить ссылку для донатов',
+  'studio.donationMissing': "Добавить ссылку для поддержки",
   'studio.monitorDaw': 'Для контроля FL Studio: наушники в Komplete, INPUT/HOST к HOST; прослушивание CABLE Output — в Komplete 1/2.',
   'studio.monitorMic': 'Для контроля голоса используй наушники и Direct Monitor аудиоинтерфейса.',
   'studio.uploadEpisode': 'Загрузить выпуск',

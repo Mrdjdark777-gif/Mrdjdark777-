@@ -53,13 +53,13 @@ export const it: Record<keyof typeof ru, string> = {
 
   "donate.configure": "Aggiungi link",
 
-  "donate.unavailable": "L’autore non ha ancora aggiunto il link per le donazioni.",
+  "donate.unavailable": "Il sostegno non è ancora attivo.",
 
   "donate.setup": "Aggiungi il tuo link: sarà visibile nella home e durante le dirette.",
 
-  "donate.free": "Tutti i contenuti sono gratuiti. Il sostegno è facoltativo.",
+  "donate.free": "Tutto è gratuito e resterà gratuito. Il sostegno va al server, ai viaggi e all’attrezzatura — basta 1 € per tenere il progetto in volo.",
 
-  "donate.action": "Dona",
+  "donate.action": "Sostieni True Thrills",
 
   "donate.boosty": "Boosty",
 
@@ -110,7 +110,7 @@ export const it: Record<keyof typeof ru, string> = {
   'nav.live': 'Live',
 
   'header.settings': 'Impostazioni',
-  "header.support": "Dona",
+  "header.support": "Sostieni",
   'header.toStudio': 'Vai allo studio',
   'header.asListener': 'Vista ascoltatore',
   'header.logout': 'Esci',
@@ -156,11 +156,9 @@ export const it: Record<keyof typeof ru, string> = {
   'home.readStories': 'Leggi\ni racconti',
   'home.liveNow': 'Diretta\nin corso',
   'home.socialCaption': 'L’autore sulle altre piattaforme',
-
-  "support.title": "Dona",
   'support.setupTitle': 'Pulsante di sostegno non collegato',
   'support.setupText': 'Aggiungi il link di pagamento — comparirà per chi ascolta nell’intestazione e nella home.',
-  'support.subtitle': 'Donazione singola o abbonamento sulla pagina dell’autore.',
+  'support.subtitle': "Boosty — una volta al mese, PayPal — una volta sola. Puoi annullare quando vuoi.",
 
   'live.youAreListening': 'STAI ASCOLTANDO LA DIRETTA',
   'live.authorOnAir': 'L’AUTORE È IN DIRETTA',
@@ -269,7 +267,7 @@ export const it: Record<keyof typeof ru, string> = {
   'studio.librarySubtitle': 'I contenuti che restano.',
   'studio.supportTile': 'Sostegno',
   'studio.donationSet': 'Link collegato',
-  'studio.donationMissing': 'Aggiungi il link per le donazioni',
+  'studio.donationMissing': "Aggiungi un link per il sostegno",
   'studio.monitorDaw': 'Per il monitoraggio con FL Studio: cuffie nella Komplete, INPUT/HOST su HOST; l’ascolto di CABLE Output va sulla Komplete 1/2.',
   'studio.monitorMic': 'Per il monitoraggio della voce usa le cuffie e il Direct Monitor dell’interfaccia audio.',
   'studio.uploadEpisode': 'Carica un episodio',

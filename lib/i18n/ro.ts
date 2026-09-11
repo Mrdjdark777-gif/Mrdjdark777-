@@ -53,13 +53,13 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "donate.configure": "Adaugă un link",
 
-  "donate.unavailable": "Autorul nu a adăugat încă un link pentru donații.",
+  "donate.unavailable": "Susținerea nu e încă activată.",
 
   "donate.setup": "Adaugă-ți linkul: butonul va apărea la ascultători pe pagina principală și în emisiune.",
 
-  "donate.free": "Tot conținutul este gratuit. Susținerea este doar opțională.",
+  "donate.free": "Totul e gratuit și va rămâne gratuit. Susținerea merge la server, la drum și la echipament — chiar și 1 € ține proiectul în aer.",
 
-  "donate.action": "Donație",
+  "donate.action": "Susține True Thrills",
 
   "donate.boosty": "Boosty",
 
@@ -145,7 +145,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "header.settings": "Setări",
 
-  "header.support": "Donație",
+  "header.support": "Susține",
 
   "header.toStudio": "În studio",
 
@@ -231,13 +231,11 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "home.socialCaption": "Autorul pe alte platforme",
 
-  "support.title": "Donație",
-
   "support.setupTitle": "Butonul de susținere nu este conectat",
 
   "support.setupText": "Adaugă un link de plată — va apărea la ascultători în antet și pe ecranul principal.",
 
-  "support.subtitle": "Donație unică sau abonament pe pagina autorului.",
+  "support.subtitle": "Boosty — o dată pe lună, PayPal — o singură dată. Poți renunța oricând.",
 
   "live.youAreListening": "ASCULȚI EMISIUNEA",
 
@@ -451,7 +449,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "studio.donationSet": "Linkul este conectat",
 
-  "studio.donationMissing": "Adaugă un link pentru donații",
+  "studio.donationMissing": "Adaugă un link pentru susținere",
 
   "studio.monitorDaw": "Pentru monitorizarea FL Studio: căștile în Komplete, INPUT/HOST pe HOST; ascultarea CABLE Output — în Komplete 1/2.",
 
