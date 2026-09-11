@@ -107,7 +107,7 @@ body:has(.persistent-player) .main-content{padding-bottom:160px}
 .live-cover{width:100%;max-width:232px;aspect-ratio:9/16;object-fit:cover;border-radius:14px;border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
 /* Настоящая звуковая волна: высоты полосок приходят из плеера, поэтому здесь
    нет анимации — движение задаёт сам звук. transition сглаживает шаг опроса. */
-.live-ring{position:relative;align-self:center;flex-shrink:0;--ring-size:min(300px,74vw);--ring-r:calc(var(--ring-size)*.3);width:var(--ring-size);height:var(--ring-size)}
+.live-ring{position:relative;align-self:center;flex-shrink:0;--ring-size:min(300px,74vw);--ring-r:calc(var(--ring-size)*.25);width:var(--ring-size);height:var(--ring-size)}
 /* Мягкое свечение общим фоном, а не тенью на каждом из 64 лучей: 64 тени
    заметно грузят телефон, а выглядит это одинаково. */
 .live-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle closest-side,rgba(255,196,60,.07),rgba(111,231,222,.09) 55%,transparent 78%)}
