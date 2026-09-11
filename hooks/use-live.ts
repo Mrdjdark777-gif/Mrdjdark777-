@@ -5,42 +5,45 @@ import {toast} from 'sonner';
 import {api,errorText} from '@/lib/client';
 import {hasNativeClient,nativeCall} from '@/lib/native-client';
 import {t} from '@/lib/i18n/runtime';
+import {BANDS,FFT_SIZE,spectrum} from '@/lib/spectrum';
 export type ListenPhase='idle'|'connecting'|'waiting'|'playing'|'paused'|'reconnecting'|'blocked'|'ended'|'error';
 type Recording={id:string;title:string;state:string;ready:boolean;postId:string|null;listeners?:number};
 type NativeState={id:string;playing:boolean;loading:boolean;ended:boolean;liveSupported?:boolean;livePeer?:string;liveToken?:string;playbackError?:string};
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
-// Полос в индикаторе и шаг замера: 28 x 60 мс - около 1,7 секунды звука на
-// экране. Этого хватает, чтобы увидеть фразу целиком, а не отдельный слог.
-const BARS=28,METER_MS=60;
+// Шаг замера: круг обновляется примерно 17 раз в секунду. Чаще смысла нет —
+// окно БПФ всё равно длиннее.
+const METER_MS=60;
 export function useLive(){
  const [hosting,setHosting]=useState(''),[connecting,setConnecting]=useState(false),[listeners,setListeners]=useState(0),[status,setStatus]=useState(''),[listening,setListening]=useState(false),[joined,setJoined]=useState(false),[phase,setPhase]=useState<ListenPhase>('idle');
- const [levels,setLevels]=useState<number[]>(()=>Array(BARS).fill(0));
+ const [levels,setLevels]=useState<number[]>(()=>Array(BANDS).fill(0));
  const [hostStatus,setHostStatus]=useState(''),[hostSeconds,setHostSeconds]=useState(0),[volume,setVolume]=useState(100),[activeId,setActiveId]=useState('');
  const host=useRef(''),starting=useRef(false),recorder=useRef<MediaRecorder|null>(null),queue=useRef(Promise.resolve()),queued=useRef(0),uploadError=useRef<Error|null>(null),stopTask=useRef<Promise<void>|null>(null);
  const audio=useRef<HTMLAudioElement|null>(null),hls=useRef<Hls|null>(null),native=useRef(false),joinedId=useRef(''),generation=useRef(0),peer=useRef<{id:string;token:string}|null>(null);
  const hostTimer=useRef<ReturnType<typeof setInterval>|null>(null),listenTimer=useRef<ReturnType<typeof setInterval>|null>(null),volumeRef=useRef(100);
- // Индикатор звука. Каждый тик — один замер громкости, который уезжает в
- // историю: полоски ползут справа налево и повторяют ритм речи. Раньше тут был
- // мгновенный срез формы волны, и на глаз он читался как случайная рябь.
- // В приложении эфир играет нативно, поэтому громкость берём из плеера через
- // мост; в браузере считаем её сами из <audio> через Web Audio. История одна и
- // та же, так что движение в приложении и в браузере выглядит одинаково.
- const meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterCtx=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null),history=useRef<number[]>(Array(BARS).fill(0));
- function pushLevel(value:number){
-  const level=Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
-  history.current=[...history.current.slice(1),level];
-  setLevels(history.current);
+ // Круговой индикатор: 32 полосы спектра. В приложении эфир играет нативно,
+ // поэтому полосы считает плеер и отдаёт через мост; в браузере считаем сами из
+ // <audio>. Алгоритм общий — lib/spectrum.ts и LevelTap.java, — иначе круг в
+ // приложении и в браузере двигался бы по-разному на одном и том же звуке.
+ const meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterCtx=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null),shown=useRef<number[]>(Array(BANDS).fill(0));
+ function pushBands(next:number[]){
+  // Мгновенный подъём и мягкий спад: полоса успевает отработать удар, но не
+  // моргает на каждом кадре.
+  shown.current=shown.current.map((was,i)=>{
+   const value=Number.isFinite(next[i])?Math.max(0,Math.min(1,next[i])):0;
+   return value>was?value:was*0.72+value*0.28;
+  });
+  setLevels(shown.current);
  }
  // Контекст создаётся один раз и живёт до размонтирования: закрыть его, пока
  // <audio> подключён к графу, значит оставить слушателя без звука совсем.
- function stopMeter(){if(meterTimer.current)clearInterval(meterTimer.current);meterTimer.current=null;analyser.current?.disconnect();analyser.current=null;history.current=Array(BARS).fill(0);setLevels(history.current);}
+ function stopMeter(){if(meterTimer.current)clearInterval(meterTimer.current);meterTimer.current=null;analyser.current?.disconnect();analyser.current=null;shown.current=Array(BANDS).fill(0);setLevels(shown.current);}
  function startMeter(el:HTMLAudioElement|null){
   stopMeter();
   if(el){
    try{
     const context=meterCtx.current??new AudioContext();meterCtx.current=context;
     void context.resume().catch(()=>{});
-    const node=context.createAnalyser();node.fftSize=1024;node.smoothingTimeConstant=0;
+    const node=context.createAnalyser();node.fftSize=FFT_SIZE;
     context.createMediaElementSource(el).connect(node);node.connect(context.destination);
     analyser.current=node;
    }catch{
@@ -48,16 +51,17 @@ export function useLive(){
     stopMeter();return;
    }
   }
-  const data=new Uint8Array(analyser.current?analyser.current.fftSize:0);
+  const samples=new Float32Array(FFT_SIZE);
   meterTimer.current=setInterval(()=>{
    const node=analyser.current;
    if(node){
-    node.getByteTimeDomainData(data);
-    let sum=0;for(let i=0;i<data.length;i++){const v=(data[i]-128)/128;sum+=v*v;}
-    pushLevel(Math.sqrt(sum/data.length));
+    // Берём сырые отсчёты, а не готовый спектр Web Audio: у него своя
+    // нормировка, которую в Java не повторить, и круг разъехался бы.
+    node.getFloatTimeDomainData(samples);
+    pushBands(spectrum(samples,node.context.sampleRate));
     return;
    }
-   void nativeCall<{level:number}>('player.levels').then(r=>pushLevel(Number(r.level))).catch(()=>{});
+   void nativeCall<{bands:number[]}>('player.levels').then(r=>{if(Array.isArray(r.bands))pushBands(r.bands);}).catch(()=>{});
   },METER_MS);
  }
  function endViewer(next:ListenPhase='idle',message='',stopNative=true){
