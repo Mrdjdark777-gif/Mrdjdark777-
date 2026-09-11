@@ -57,7 +57,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "donate.setup": "Додай своє посилання: кнопка з'явиться у слухачів на головній і в ефірі.",
 
-  "donate.free": "Усе безкоштовно і залишиться безкоштовним. Підтримка йде на сервер, дорогу та спорядження — навіть €1 тримає проєкт у повітрі.",
+  "donate.free": "Усе безкоштовно і залишиться безкоштовним.",
 
   "donate.action": "Підтримати True Thrills",
 
@@ -234,8 +234,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "support.setupTitle": "Кнопку підтримки не під'єднано",
 
   "support.setupText": "Додай платіжне посилання — воно з'явиться у слухачів у шапці та на головному екрані.",
-
-  "support.subtitle": "Boosty — раз на місяць, PayPal — один раз. Скасувати можна будь-коли.",
 
   "live.youAreListening": "ВИ СЛУХАЄТЕ ЕФІР",
 

@@ -57,7 +57,7 @@ export const it: Record<keyof typeof ru, string> = {
 
   "donate.setup": "Aggiungi il tuo link: sarà visibile nella home e durante le dirette.",
 
-  "donate.free": "Tutto è gratuito e resterà gratuito. Il sostegno va al server, ai viaggi e all’attrezzatura — basta 1 € per tenere il progetto in volo.",
+  "donate.free": "Tutto è gratuito e resterà gratuito.",
 
   "donate.action": "Sostieni True Thrills",
 
@@ -158,7 +158,6 @@ export const it: Record<keyof typeof ru, string> = {
   'home.socialCaption': 'L’autore sulle altre piattaforme',
   'support.setupTitle': 'Pulsante di sostegno non collegato',
   'support.setupText': 'Aggiungi il link di pagamento — comparirà per chi ascolta nell’intestazione e nella home.',
-  'support.subtitle': "Boosty — una volta al mese, PayPal — una volta sola. Puoi annullare quando vuoi.",
 
   'live.youAreListening': 'STAI ASCOLTANDO LA DIRETTA',
   'live.authorOnAir': 'L’AUTORE È IN DIRETTA',

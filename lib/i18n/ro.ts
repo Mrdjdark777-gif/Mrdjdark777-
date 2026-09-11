@@ -57,7 +57,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "donate.setup": "Adaugă-ți linkul: butonul va apărea la ascultători pe pagina principală și în emisiune.",
 
-  "donate.free": "Totul e gratuit și va rămâne gratuit. Susținerea merge la server, la drum și la echipament — chiar și 1 € ține proiectul în aer.",
+  "donate.free": "Totul e gratuit și va rămâne gratuit.",
 
   "donate.action": "Susține True Thrills",
 
@@ -234,8 +234,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "support.setupTitle": "Butonul de susținere nu este conectat",
 
   "support.setupText": "Adaugă un link de plată — va apărea la ascultători în antet și pe ecranul principal.",
-
-  "support.subtitle": "Boosty — o dată pe lună, PayPal — o singură dată. Poți renunța oricând.",
 
   "live.youAreListening": "ASCULȚI EMISIUNEA",
 
