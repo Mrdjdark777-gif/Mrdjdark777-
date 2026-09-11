@@ -3,6 +3,11 @@ import Database from 'better-sqlite3';
 import {readFile,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 const folder=process.argv[2];if(!folder||!path.isAbsolute(folder))throw new Error('Supply an absolute backup directory.');
+// Сколько выпусков со звуком было в живой базе на момент копирования. Без этой
+// сверки бэкап пустой базы проходит проверку молча — печатает «0» и выглядит
+// успешным, хотя спасать им нечего.
+const expected=process.argv[3]===undefined?null:Number(process.argv[3]);
+if(expected!==null&&!Number.isInteger(expected))throw new Error('Expected audio count must be an integer.');
 const root=await realpath(folder),db=new Database(path.join(root,'truethrills.db'),{readonly:true,fileMustExist:true});
 try{
  if(db.pragma('integrity_check',{simple:true})!=='ok')throw new Error('SQLite integrity check failed.');
@@ -14,5 +19,6 @@ try{
   if(!info.isFile()||info.isSymbolicLink()||!metadata.isFile()||metadata.isSymbolicLink()||info.size<=0)throw new Error('Missing or unsafe audio for '+row.id);
   const data=JSON.parse(await readFile(meta,'utf8'));if(data.size!==info.size||!data.contentType?.startsWith('audio/'))throw new Error('Invalid audio metadata for '+row.id);
  }
- console.log('Verified SQLite and audio files:',rows.length);
+ if(expected!==null&&rows.length!==expected)throw new Error('Backup holds '+rows.length+' episodes with audio, the live database has '+expected+'. Do not rely on this backup.');
+ console.log('Verified SQLite and audio files:',rows.length+(expected===null?'':' of '+expected+' in the live database'));
 }finally{db.close();}
