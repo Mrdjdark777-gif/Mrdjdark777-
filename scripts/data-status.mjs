@@ -35,6 +35,11 @@ try{
  console.log('из них со звуком:', withAudio);
  const rec = db.prepare('SELECT state, COUNT(*) AS n FROM live_recordings GROUP BY state').all();
  console.log('записи эфиров   :', rec.length ? rec.map(r => `${r.state}=${r.n}`).join(', ') : 'нет');
+ // Обложка выпуска берётся отсюда. Если тут пусто, значит она не доехала при
+ // запуске эфира, а не потерялась при сохранении.
+ const airs = db.prepare('SELECT id,title,cover_key,active FROM broadcasts').all();
+ console.log('\nэфиров в базе:', airs.length);
+ for(const a of airs) console.log(` - «${a.title}» обложка=${a.cover_key || 'НЕТ'} ${a.active ? 'идёт' : 'завершён'} id=${a.id}`);
  console.log('\nfiles storage/audio:', await count(path.join(storage, 'audio')));
  console.log('files storage/cover:', await count(path.join(storage, 'cover')));
  if(withAudio === 0 && posts.length > 0) console.log('\nВНИМАНИЕ: публикации есть, но ни у одной нет ключа аудио.');
