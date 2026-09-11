@@ -1,1 +1,13 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFFFF" android:pathData="M12,3a9,9 0,0 0,-9 9v7a2,2 0,0 0,2 2h3v-9H5a7,7 0,0 1,14 0h-3v9h3a2,2 0,0 0,2 -2v-7a9,9 0,0 0,-9 -9z"/></vector>
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Знак True Thrills для строки состояния: солнце за двумя вершинами — та же
+  композиция, что и на логотипе. Значок в строке состояния Android обязан быть
+  одноцветным силуэтом, система сама красит его в свой цвет, поэтому цветной
+  логотип сюда положить нельзя — он превратился бы в белое пятно.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+  <path android:fillColor="#FFFFFFFF" android:pathData="M8.4,8 A3.6,3.6 0 1,1 15.6,8 A3.6,3.6 0 1,1 8.4,8 Z"/>
+  <path android:fillColor="#FFFFFFFF" android:pathData="M1.5,20.5 L7.6,11.4 L11.6,17 L15.1,12.8 L22.5,20.5 Z"/>
+</vector>

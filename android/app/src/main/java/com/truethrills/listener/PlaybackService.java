@@ -13,6 +13,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.audio.AudioSink;
 import androidx.media3.exoplayer.audio.DefaultAudioSink;
+import androidx.media3.session.DefaultMediaNotificationProvider;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 
@@ -38,6 +39,11 @@ public class PlaybackService extends MediaSessionService {
     }
     @Override public void onCreate() {
         super.onCreate();
+        // Media3 по умолчанию рисует в уведомлении свои наушники. Ставим знак
+        // True Thrills — тот же, что и у пуш-уведомлений.
+        DefaultMediaNotificationProvider notifications = new DefaultMediaNotificationProvider.Builder(this).build();
+        notifications.setSmallIcon(R.drawable.ic_notification);
+        setMediaNotificationProvider(notifications);
         // Ответвление PCM для индикатора звука у слушателя: TeeAudioProcessor
         // отдаёт копию уже декодированного потока, ничего не меняя в нём.
         DefaultRenderersFactory renderers = new DefaultRenderersFactory(this) {
