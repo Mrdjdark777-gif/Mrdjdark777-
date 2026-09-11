@@ -3,36 +3,42 @@ package com.truethrills.listener;
 import androidx.media3.exoplayer.audio.TeeAudioProcessor;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Снимает уровень звука прямо с того потока, который сейчас играет: ExoPlayer
+ * Снимает громкость прямо с того потока, который сейчас играет: ExoPlayer
  * отдаёт сюда уже декодированный PCM через TeeAudioProcessor. Это наш
  * собственный конвейер воспроизведения, поэтому никаких разрешений не нужно —
  * в отличие от android.media.audiofx.Visualizer, который читает общий вывод
  * и требует RECORD_AUDIO у каждого слушателя.
  *
- * Сервис воспроизведения и мост живут в одном процессе, так что значения
- * лежат в статике: писатель — аудиопоток, читатель — мост по запросу из
- * WebView.
+ * Отдаём одно число — среднеквадратичную громкость с прошлого запроса. Сама
+ * волна собирается на стороне WebView из истории таких замеров, поэтому в
+ * приложении и в браузере она выглядит и движется одинаково.
+ *
+ * Сервис воспроизведения и мост живут в одном процессе, так что счётчики
+ * лежат в статике: пишет аудиопоток, читает мост по запросу из WebView.
  */
 @androidx.annotation.OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 final class LevelTap implements TeeAudioProcessor.AudioBufferSink {
-    static final int BARS = 28;
-    private static final float[] LEVELS = new float[BARS];
+    private static final Object LOCK = new Object();
+    private static double squares;
+    private static long counted;
     private static volatile int encoding = androidx.media3.common.C.ENCODING_INVALID;
 
+    /** Громкость с прошлого запроса; счётчики при этом обнуляются. */
     static JSONObject snapshot() throws Exception {
-        JSONArray out = new JSONArray();
-        synchronized (LEVELS) {
-            for (int i = 0; i < BARS; i++) out.put(Math.round(LEVELS[i] * 1000) / 1000f);
+        double level;
+        synchronized (LOCK) {
+            level = counted > 0 ? Math.sqrt(squares / counted) : 0;
+            squares = 0;
+            counted = 0;
         }
-        return new JSONObject().put("levels", out);
+        return new JSONObject().put("level", Math.round(level * 1000) / 1000.0);
     }
 
     static void silence() {
-        synchronized (LEVELS) { java.util.Arrays.fill(LEVELS, 0f); }
+        synchronized (LOCK) { squares = 0; counted = 0; }
     }
 
     @Override public void flush(int sampleRateHz, int channelCount, int pcmEncoding) {
@@ -54,20 +60,19 @@ final class LevelTap implements TeeAudioProcessor.AudioBufferSink {
         ByteBuffer view = buffer.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         int base = view.position(), samples = view.remaining() / width;
         if (samples <= 0) return;
-        int per = Math.max(1, samples / BARS);
-        synchronized (LEVELS) {
-            for (int i = 0; i < BARS; i++) {
-                int start = i * per, end = Math.min(samples, start + per);
-                float peak = 0f;
-                for (int j = start; j < end; j++) {
-                    int at = base + j * width;
-                    float v = isFloat ? Math.abs(view.getFloat(at)) : Math.abs(view.getShort(at) / 32768f);
-                    if (v > peak) peak = v;
-                }
-                // Мгновенный подъём и мягкий спад: полоска успевает отработать
-                // удар, но не дёргается на каждом буфере.
-                LEVELS[i] = peak > LEVELS[i] ? peak : LEVELS[i] * 0.76f + peak * 0.24f;
-            }
+        double sum = 0;
+        for (int i = 0; i < samples; i++) {
+            int at = base + i * width;
+            double v = isFloat ? view.getFloat(at) : view.getShort(at) / 32768.0;
+            sum += v * v;
+        }
+        synchronized (LOCK) {
+            // Если WebView долго не спрашивает (эфир свёрнут), копить незачем:
+            // старый звук всё равно не покажут, а окно замера должно оставаться
+            // коротким. Секунды с запасом хватает на любой интервал опроса.
+            if (counted > 96000) { squares = 0; counted = 0; }
+            squares += sum;
+            counted += samples;
         }
     }
 }

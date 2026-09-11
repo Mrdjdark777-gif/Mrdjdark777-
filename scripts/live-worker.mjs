@@ -16,8 +16,8 @@ async function processRecording(row){
  const dir=path.join(root,row.id),generation='g-'+randomUUID(),out=path.join(dir,generation);await mkdir(out,{recursive:true,mode:0o700});
  const archive=path.join(out,'archive.m4a');
  const args=['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-f','matroska','-i','pipe:0',
-  '-map','0:a:0','-vn','-c:a','aac','-b:a','128k','-ar','48000','-ac','2','-f','hls','-hls_time','3','-hls_list_size','0','-hls_flags','temp_file','-hls_segment_filename',path.join(out,'seg-%06d.ts'),path.join(out,'index.m3u8'),
-  '-map','0:a:0','-vn','-c:a','aac','-b:a','128k','-ar','48000','-ac','2','-movflags','+faststart',archive];
+  '-map','0:a:0','-vn','-c:a','aac','-b:a','192k','-ar','48000','-ac','2','-f','hls','-hls_time','3','-hls_list_size','0','-hls_flags','temp_file','-hls_segment_filename',path.join(out,'seg-%06d.ts'),path.join(out,'index.m3u8'),
+  '-map','0:a:0','-vn','-c:a','aac','-b:a','192k','-ar','48000','-ac','2','-movflags','+faststart',archive];
  const ff=spawn('ffmpeg',args,{stdio:['pipe','ignore','pipe']});children.add(ff);ff.once('close',()=>children.delete(ff));let errorText='',exited=false,code=null;
  ff.stderr.on('data',b=>{errorText=(errorText+b.toString()).slice(-3000);});
  ff.stdin.on('error',()=>{}); // The write callback and exit status carry the failure.
@@ -46,7 +46,7 @@ async function processRecording(row){
   db.transaction(()=>{
    db.prepare("INSERT INTO posts(id,kind,title,description,body,audio_key,duration,published,created_at) VALUES(?,'podcast',?,'','','',0,1,?) ON CONFLICT(id) DO NOTHING").run(row.id,row.title,row.created_at);
    db.prepare('UPDATE posts SET audio_key=?,duration=? WHERE id=?').run(key,Math.round(duration),row.id);
-   db.prepare("UPDATE live_recordings SET state='ready',post_id=?,playlist=?,error=NULL,updated_at=? WHERE id=?").run(row.id,generation+'/index.m3u8',Date.now(),row.id);
+   db.prepare("UPDATE live_recordings SET state='ready',post_id=?,playlist=NULL,error=NULL,updated_at=? WHERE id=?").run(row.id,Date.now(),row.id);
    db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);
    const event='post:'+row.id;
    if(db.prepare('INSERT OR IGNORE INTO push_events(id,created_at) VALUES(?,?)').run(event,Date.now()).changes){
@@ -54,6 +54,13 @@ async function processRecording(row){
     db.prepare(`INSERT INTO push_outbox(id,subscription_id,payload,origin,category,expires_at) SELECT ?||':'||id,id,?,?,2,? FROM push_subscriptions WHERE (preferences & 2)!=0`).run(event,payload,process.env.PUBLIC_SITE_URL||'https://truethrills.com',Date.now()+86400000);
    }
   })();
+  // Выпуск уже в хранилище, значит куски от студии и нарезка HLS больше не
+  // нужны: раньше они оставались навсегда и занимали втрое больше места, чем
+  // сам выпуск, да ещё и попадали в каждый бэкап. Чистим только после успеха —
+  // у неудачной записи из этих же кусков собирают повтор.
+  // Ошибка уборки не должна помечать готовый выпуск сломанным, поэтому она
+  // своя, отдельная от общего catch.
+  try{await rm(dir,{recursive:true,force:true});}catch(e){console.error(JSON.stringify({event:'cleanup-failed',id:row.id,error:String(e.message).slice(0,200)}));}
   console.log(JSON.stringify({event:'archive-ready',id:row.id,seconds:Math.round(duration),bytes:size}));
  }catch(error){
   ff.kill('SIGKILL');await exit;

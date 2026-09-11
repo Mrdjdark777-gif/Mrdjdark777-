@@ -27,6 +27,10 @@ type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;dona
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
+// Громкость речи по среднеквадратичному значению редко выходит за 0,3, поэтому
+// линейная шкала дала бы почти плоскую линию. Степень 0,55 поднимает тихие
+// места, не срезая громкие.
+const waveHeight=(level:number)=>Math.max(5,Math.min(100,Math.pow(Math.max(0,level),0.55)*125))+'%';
 export default function Studio(){
  const {t,tag}=useT();
  const noticeHandler=useRef<(url:string)=>Promise<void>>(async()=>{});
@@ -171,7 +175,7 @@ export default function Studio(){
  {!liveArtMissing&&!!liveCoverSrc&&<img className="live-cover" src={liveCoverSrc} alt="" onError={()=>{if(liveCoverSrc.includes('id=live:'))setLiveCoverSrc('/api/cover?id=channel');else setLiveArtMissing(true);}}/>}
  <h2>{liveStatus?.title??'True Thrills Live'}</h2>
  <div className="listener-playback-actions">{live.joined?<>{live.listening?<button className="primary-button" onClick={live.pause}><Pause size={20}/>{t('live.pause')}</button>:live.phase==='paused'||live.phase==='blocked'||live.phase==='error'?<button className="primary-button" onClick={()=>void live.resume()}><Play size={20}/>{live.phase==='blocked'?t('live.enableSound'):t('live.resume')}</button>:<button className="primary-button" disabled aria-busy="true"><Loader2 className="spin" size={20}/>{live.phase==='reconnecting'?t('live.reconnectingShort'):t('live.connecting')}</button>}<button className="quiet-button" onClick={live.leave}>{live.connecting||live.phase==='waiting'||live.phase==='reconnecting'?t('common.cancel'):t('live.leave')}</button></>:liveStatus?<button className="primary-button" onClick={openLive}><Headphones size={20}/>{live.phase==='error'?t('live.tryAgain'):t('live.listen')}</button>:null}</div>
- {live.listening&&<div className="live-wave" role="status" aria-label={t('live.playing')}>{live.levels.map((v,i)=><span key={i} aria-hidden="true" style={{height:Math.max(6,Math.min(100,v*135))+'%'}}/>)}</div>}
+ {live.listening&&<div className="live-wave" role="status" aria-label={t('live.playing')}>{live.levels.map((v,i)=><span key={i} aria-hidden="true" style={{height:waveHeight(v)}}/>)}</div>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  <div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/>{t('live.volume')}<span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>
 

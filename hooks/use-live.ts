@@ -9,26 +9,38 @@ export type ListenPhase='idle'|'connecting'|'waiting'|'playing'|'paused'|'reconn
 type Recording={id:string;title:string;state:string;ready:boolean;postId:string|null;listeners?:number};
 type NativeState={id:string;playing:boolean;loading:boolean;ended:boolean;liveSupported?:boolean;livePeer?:string;liveToken?:string;playbackError?:string};
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
+// Полос в индикаторе и шаг замера: 28 x 60 мс - около 1,7 секунды звука на
+// экране. Этого хватает, чтобы увидеть фразу целиком, а не отдельный слог.
+const BARS=28,METER_MS=60;
 export function useLive(){
  const [hosting,setHosting]=useState(''),[connecting,setConnecting]=useState(false),[listeners,setListeners]=useState(0),[status,setStatus]=useState(''),[listening,setListening]=useState(false),[joined,setJoined]=useState(false),[phase,setPhase]=useState<ListenPhase>('idle');
- const [levels,setLevels]=useState<number[]>(()=>Array(28).fill(0));
+ const [levels,setLevels]=useState<number[]>(()=>Array(BARS).fill(0));
  const [hostStatus,setHostStatus]=useState(''),[hostSeconds,setHostSeconds]=useState(0),[volume,setVolume]=useState(100),[activeId,setActiveId]=useState('');
  const host=useRef(''),starting=useRef(false),recorder=useRef<MediaRecorder|null>(null),queue=useRef(Promise.resolve()),queued=useRef(0),uploadError=useRef<Error|null>(null),stopTask=useRef<Promise<void>|null>(null);
  const audio=useRef<HTMLAudioElement|null>(null),hls=useRef<Hls|null>(null),native=useRef(false),joinedId=useRef(''),generation=useRef(0),peer=useRef<{id:string;token:string}|null>(null);
  const hostTimer=useRef<ReturnType<typeof setInterval>|null>(null),listenTimer=useRef<ReturnType<typeof setInterval>|null>(null),volumeRef=useRef(100);
- // Индикатор звука. В приложении эфир играет нативно, поэтому уровни берём из
- // плеера через мост; в браузере считаем их сами из <audio> через Web Audio.
- const meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterCtx=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null);
+ // Индикатор звука. Каждый тик — один замер громкости, который уезжает в
+ // историю: полоски ползут справа налево и повторяют ритм речи. Раньше тут был
+ // мгновенный срез формы волны, и на глаз он читался как случайная рябь.
+ // В приложении эфир играет нативно, поэтому громкость берём из плеера через
+ // мост; в браузере считаем её сами из <audio> через Web Audio. История одна и
+ // та же, так что движение в приложении и в браузере выглядит одинаково.
+ const meterTimer=useRef<ReturnType<typeof setInterval>|null>(null),meterCtx=useRef<AudioContext|null>(null),analyser=useRef<AnalyserNode|null>(null),history=useRef<number[]>(Array(BARS).fill(0));
+ function pushLevel(value:number){
+  const level=Number.isFinite(value)?Math.max(0,Math.min(1,value)):0;
+  history.current=[...history.current.slice(1),level];
+  setLevels(history.current);
+ }
  // Контекст создаётся один раз и живёт до размонтирования: закрыть его, пока
  // <audio> подключён к графу, значит оставить слушателя без звука совсем.
- function stopMeter(){if(meterTimer.current)clearInterval(meterTimer.current);meterTimer.current=null;analyser.current?.disconnect();analyser.current=null;setLevels(Array(28).fill(0));}
+ function stopMeter(){if(meterTimer.current)clearInterval(meterTimer.current);meterTimer.current=null;analyser.current?.disconnect();analyser.current=null;history.current=Array(BARS).fill(0);setLevels(history.current);}
  function startMeter(el:HTMLAudioElement|null){
   stopMeter();
   if(el){
    try{
     const context=meterCtx.current??new AudioContext();meterCtx.current=context;
     void context.resume().catch(()=>{});
-    const node=context.createAnalyser();node.fftSize=1024;node.smoothingTimeConstant=0.6;
+    const node=context.createAnalyser();node.fftSize=1024;node.smoothingTimeConstant=0;
     context.createMediaElementSource(el).connect(node);node.connect(context.destination);
     analyser.current=node;
    }catch{
@@ -41,12 +53,12 @@ export function useLive(){
    const node=analyser.current;
    if(node){
     node.getByteTimeDomainData(data);
-    const per=Math.max(1,Math.floor(data.length/28));
-    setLevels(Array.from({length:28},(_,i)=>{let peak=0;for(let j=i*per;j<Math.min(data.length,(i+1)*per);j++){const v=Math.abs(data[j]-128)/128;if(v>peak)peak=v;}return peak;}));
+    let sum=0;for(let i=0;i<data.length;i++){const v=(data[i]-128)/128;sum+=v*v;}
+    pushLevel(Math.sqrt(sum/data.length));
     return;
    }
-   void nativeCall<{levels:number[]}>('player.levels').then(r=>{if(Array.isArray(r.levels))setLevels(r.levels);}).catch(()=>{});
-  },60);
+   void nativeCall<{level:number}>('player.levels').then(r=>pushLevel(Number(r.level))).catch(()=>{});
+  },METER_MS);
  }
  function endViewer(next:ListenPhase='idle',message='',stopNative=true){
   generation.current++;joinedId.current='';setActiveId('');if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();hls.current=null;
@@ -75,7 +87,7 @@ export function useLive(){
    if(!MediaRecorder.isTypeSupported('audio/webm;codecs=opus'))throw new Error('#err.liveRecorder');
    const r=await api<{id:string}>('live',{action:'start',title,transport:'hls',...(coverKey?{coverKey}:{})});
    host.current=r.id;uploadError.current=null;queue.current=Promise.resolve();queued.current=0;
-   const rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:128000});recorder.current=rec;let seq=0;
+   const rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:160000});recorder.current=rec;let seq=0;
    rec.ondataavailable=e=>{if(!e.data.size)return;const n=seq++;queued.current++;
     if(queued.current>45){uploadError.current=new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();void api('live',{action:'stop',id:r.id}).catch(()=>{});toast.error(t('liveArchive.partial'));}
     queue.current=queue.current.then(async()=>{try{
