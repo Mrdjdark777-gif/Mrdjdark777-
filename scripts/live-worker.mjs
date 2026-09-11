@@ -44,8 +44,12 @@ async function processRecording(row){
   const size=(await stat(final)).size;
   await atomic(final+'.meta.json',JSON.stringify({contentType:'audio/mp4',customMetadata:{owner:row.owner_id},size,etag:randomUUID()}));
   db.transaction(()=>{
+   // Обложка, выбранная при запуске эфира, становится обложкой выпуска.
+   // Раньше она жила только на странице эфира, и сохранённый подкаст оставался
+   // без картинки.
+   const cover=db.prepare('SELECT cover_key FROM broadcasts WHERE id=?').get(row.id)?.cover_key??null;
    db.prepare("INSERT INTO posts(id,kind,title,description,body,audio_key,duration,published,created_at) VALUES(?,'podcast',?,'','','',0,1,?) ON CONFLICT(id) DO NOTHING").run(row.id,row.title,row.created_at);
-   db.prepare('UPDATE posts SET audio_key=?,duration=? WHERE id=?').run(key,Math.round(duration),row.id);
+   db.prepare('UPDATE posts SET audio_key=?,duration=?,cover_key=? WHERE id=?').run(key,Math.round(duration),cover,row.id);
    db.prepare("UPDATE live_recordings SET state='ready',post_id=?,playlist=?,error=NULL,updated_at=? WHERE id=?").run(row.id,generation+'/index.m3u8',Date.now(),row.id);
    db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);
    const event='post:'+row.id;

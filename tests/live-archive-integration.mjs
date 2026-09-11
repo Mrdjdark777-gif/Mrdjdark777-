@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {execFileSync,spawn} from 'node:child_process';
-import {mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
+import {mkdir,mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-live-'));
 Object.assign(process.env,{NODE_ENV:'test',DATABASE_PATH:path.join(dir,'db.sqlite'),STORAGE_DIR:path.join(dir,'storage'),LIVE_DIR:path.join(dir,'live'),SESSION_SECRET:'test-secret-only',ADMIN_PASSWORD:'test-pass'});
@@ -18,9 +18,15 @@ try{
  assert.equal((await call(live,'POST',{action:'start',title:'No worker',transport:'hls'})).status,400);
  worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env:process.env});worker.stderr.on('data',b=>logs+=b);worker.stdout.on('data',b=>logs+=b);
  await until(async()=>{try{return JSON.parse(await readFile(path.join(process.env.LIVE_DIR,'worker.json'),'utf8')).at;}catch{return false;}});
- const start=async title=>{const response=await call(live,'POST',{action:'start',title,transport:'hls'});const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data.id;};
+ const start=async(title,coverKey)=>{const response=await call(live,'POST',{action:'start',title,transport:'hls',...(coverKey?{coverKey}:{})});const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data.id;};
+ // Обложка эфира кладётся в хранилище напрямую: маршрут загрузки в эту сборку
+ // не входит, а проверяем мы то, что выбранная обложка доезжает до выпуска.
+ const coverKey='cover/'+crypto.randomUUID(),coverBytes=Buffer.from('89504e470d0a1a0a','hex');
+ await mkdir(path.join(process.env.STORAGE_DIR,'cover'),{recursive:true});
+ await writeFile(path.join(process.env.STORAGE_DIR,coverKey),coverBytes);
+ await writeFile(path.join(process.env.STORAGE_DIR,coverKey+'.meta.json'),JSON.stringify({contentType:'image/png',customMetadata:{owner:auth.sessionUserId(sessionReq)},size:coverBytes.length,etag:'test-cover'}));
  const fixture=path.join(dir,'sample.webm');execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','14','-c:a','libopus','-b:a','128k','-f','webm',fixture]);const bytes=await readFile(fixture);
- const id=await start('Archived test'),size=24000;
+ const id=await start('Archived test',coverKey),size=24000;
  assert.equal((await call(stream,'POST',bytes.subarray(0,size),'?id='+id+'&seq=0',false)).status,403);
  let seq=0;
  for(let i=0;i<bytes.length;i+=size){const chunk=bytes.subarray(i,i+size),query='?id='+id+'&seq='+seq;
@@ -34,7 +40,8 @@ try{
  assert.equal((await call(stream,'GET',undefined,'?id='+id+'&file=../../.env',false)).status,404);
  await call(live,'POST',{action:'stop',id});
  const archive=await until(()=>{const r=db.prepare('SELECT * FROM live_recordings WHERE id=?').get(id);if(r.state==='failed')throw new Error(r.error+' '+logs);return r.state==='ready'?r:false;});
- const post=db.prepare('SELECT * FROM posts WHERE id=?').get(archive.post_id);assert.equal(post.published,1);assert.ok(post.duration>=13&&post.duration<=15);assert.equal(post.kind,'podcast');
+ const post=db.prepare('SELECT * FROM posts WHERE id=?').get(archive.post_id);assert.equal(post.published,1);
+ assert.equal(post.cover_key,coverKey,'обложка эфира должна стать обложкой выпуска');assert.ok(post.duration>=13&&post.duration<=15);assert.equal(post.kind,'podcast');
  const file=path.join(process.env.STORAGE_DIR,post.audio_key);assert.ok((await readFile(file)).length>0);assert.match(await (await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false)).text(),/#EXT-X-ENDLIST/);
  // Final POST response may be lost: retry remains safe even after publication.
  const lastStart=(seq-1)*size;assert.equal((await call(stream,'POST',bytes.subarray(lastStart),'?id='+id+'&seq='+(seq-1))).status,200);

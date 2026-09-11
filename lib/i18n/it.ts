@@ -184,7 +184,7 @@ export const it: Record<keyof typeof ru, string> = {
   'live.coverField': 'Copertina della diretta',
   'live.coverUpload': 'Carica copertina',
   'live.coverChange': 'Scegline un’altra',
-  'live.coverNote': 'Appare a chi ascolta nella pagina della diretta. Se non la carichi, viene usato il banner del canale.',
+  'live.coverNote': "Copertina verticale 9:16 — per esempio 1080×1920. Appare agli ascoltatori nella pagina della diretta e resta come copertina dell’episodio nei podcast. Se non ne carichi una, viene preso il banner del canale.",
   'live.titlePlaceholder': 'Di cosa parli oggi?',
   'live.titleRequired': 'Indica il titolo della diretta',
   'live.micOff': 'MICROFONO SPENTO',
