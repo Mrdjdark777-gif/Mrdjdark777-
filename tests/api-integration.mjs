@@ -27,6 +27,7 @@ await build({
   stdin: {
     contents: `
       export * as uiClient from '${root}/lib/client.ts';
+      export * as video from '${root}/lib/video.ts';
       export * as library from '${root}/app/api/library/route.ts';
       export * as audio from '${root}/app/api/audio/route.ts';
       export * as cover from '${root}/app/api/cover/route.ts';
@@ -48,7 +49,7 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, library, audio, cover, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
+const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
 const routes = { library, audio, cover, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
@@ -133,6 +134,17 @@ try {
   const listedVideo = (await request('library', undefined, false)).data.items.find(p => p.id === video.data.id);
   assert.equal(listedVideo.kind, 'video');
   assert.equal(listedVideo.videoUrl, 'https://youtu.be/dQw4w9WgXcQ');
+  {
+    // Вертикальные ролики должны попадать в вертикальную рамку: раньше Shorts
+    // открывались в кадре 16:9 и стояли в полях или обрезались.
+    const wide = videoLib.parseVideo('https://youtu.be/dQw4w9WgXcQ');
+    assert.equal(wide.tall, false, 'обычное видео — горизонтальная рамка');
+    assert.match(wide.embed, /iv_load_policy=3/, 'аннотации должны быть выключены');
+    assert.equal(videoLib.parseVideo('https://www.youtube.com/shorts/dQw4w9WgXcQ').tall, true, 'YouTube Shorts — вертикальная рамка');
+    assert.equal(videoLib.parseVideo('https://rutube.ru/shorts/abcdef0123456789/').tall, true, 'Rutube Shorts — вертикальная рамка');
+    assert.equal(videoLib.parseVideo('https://rutube.ru/video/abcdef0123456789/').tall, false, 'обычный Rutube — горизонтальная рамка');
+    assert.equal(videoLib.parseVideo('https://www.tiktok.com/@a/video/1234567890123').tall, true, 'TikTok — вертикальная рамка');
+  }
   assert.equal(listedVideo.audioKey, null);
 
   // Ссылки на площадки: только HTTPS и только известные площадки.
