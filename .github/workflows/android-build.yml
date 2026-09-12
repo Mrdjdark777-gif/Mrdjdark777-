@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/read-link-content-h18psv]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Decode release signing key and Firebase config
+        run: |
+          echo "${ANDROID_KEYSTORE_BASE64}" | base64 -d > "$RUNNER_TEMP/truethrills-release.jks"
+          echo "${GOOGLE_SERVICES_JSON_BASE64}" | base64 -d > "android/app/google-services.json"
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+
+      - name: Build signed APK
+        run: gradle -p android assembleRelease lintRelease
+        env:
+          RELEASE_KEYSTORE: ${{ runner.temp }}/truethrills-release.jks
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Rename APK with version
+        run: |
+          version=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android/app/build.gradle)
+          mkdir -p "$RUNNER_TEMP/out"
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/out/TrueThrills-Android-${version}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrueThrills-Android-apk
+          path: ${{ runner.temp }}/out/*.apk
+          retention-days: 30

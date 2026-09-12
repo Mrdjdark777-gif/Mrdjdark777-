@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `video_url` text;

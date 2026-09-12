@@ -1,0 +1,25 @@
+plugins { id 'com.android.application'; id 'com.google.gms.google-services' }
+android {
+ namespace 'com.truethrills.listener'
+ compileSdk 35
+ buildToolsVersion '35.0.0'
+ defaultConfig { applicationId 'com.truethrills.listener'; minSdk 26; targetSdk 35; versionCode 20; versionName '0.9.0' }
+ signingConfigs {
+  release {
+   storeFile file(System.getenv('RELEASE_KEYSTORE') ?: 'release.jks')
+   storePassword System.getenv('RELEASE_KEYSTORE_PASSWORD')
+   keyAlias 'truethrills'
+   keyPassword System.getenv('RELEASE_KEYSTORE_PASSWORD')
+  }
+ }
+ buildTypes { release { minifyEnabled false; signingConfig signingConfigs.release } }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+}
+dependencies {
+ implementation 'androidx.webkit:webkit:1.12.1'
+ implementation 'androidx.media3:media3-exoplayer:1.5.1'
+ implementation 'androidx.media3:media3-session:1.5.1'
+ implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
+ implementation platform('com.google.firebase:firebase-bom:33.7.0')
+ implementation 'com.google.firebase:firebase-messaging'
+}

@@ -1,0 +1,67 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+next-env.d.ts
+/dist/
+/.wrangler/
+/.sites-runtime/
+/outputs/
+/work/
+
+*.tsbuildinfo
+/desktop/out/
+/.test-tmp-*/
+/data/
+
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+*.jks
+*.keystore
+
+!.env.example
+
+# Секреты сервисов. Приватный ключ служебного аккаунта Firebase кладётся на
+# сервер рядом с приложением и не должен попасть в репозиторий даже случайно;
+# google-services.json приезжает в сборку Android из секретов GitHub Actions.
+firebase-service-account*.json
+/android/app/google-services.json
+
+__pycache__/
+
+/.test-live-*/
+/.update-staging/
