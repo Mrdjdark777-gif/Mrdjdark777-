@@ -18,6 +18,7 @@ import {NotificationSettings} from '@/components/studio/notification-settings';
 import {Slider} from '@/components/ui/slider';
 import {api,clock,errorText,haptic} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
+import {markSeen} from '@/lib/seen-posts';
 import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
 import {useT} from '@/components/i18n-provider';
@@ -102,7 +103,7 @@ export default function Studio(){
  function playPost(p:Post){live.leave();setPlaying(p);setTimeout(()=>{player.current?.play().catch(()=>toast.info(t('player.tapInPlayer')));},50);}
  // Видео и подкаст не должны звучать одновременно, поэтому открытие видео
  // останавливает аудиоплеер и выходит из эфира.
- function openPost(p:Post){if(p.kind==='podcast'){playPost(p);return;}if(p.kind==='video'){stopNativePlayer();player.current?.pause();setPlaying(null);live.leave();setWatching(p);return;}setReading(p);}
+ function openPost(p:Post){markSeen(p.id);if(p.kind==='podcast'){playPost(p);return;}if(p.kind==='video'){stopNativePlayer();player.current?.pause();setPlaying(null);live.leave();setWatching(p);return;}setReading(p);}
  useEffect(()=>{noticeHandler.current=async(raw:string)=>{const url=new URL(raw,location.origin);if(url.origin!==location.origin||url.pathname!=='/'||capture.recording||live.hosting)return;setAudience(true);setFilter('all');const v=url.searchParams.get('view');setView(LISTEN_VIEWS.includes(v??'')?v!:'home');
   if(url.searchParams.has('post')){const fresh=await load(),p=fresh?.items.find(p=>p.id===url.searchParams.get('post'));if(p)openPost(p);else toast.info(t('post.gone'));}
   if(url.searchParams.has('broadcast')){try{const r=await api<{live:Data['live']}>('live?status=1');setLiveNow(r.live);if(r.live?.id===url.searchParams.get('broadcast')){stopNativePlayer();player.current?.pause();setPlaying(null);void live.listen(r.live.id,r.live.title);}else toast.info(t('live.alreadyEnded'));}catch(e){toast.error(errorText(e));}}
@@ -124,7 +125,7 @@ export default function Studio(){
  <header className="top-header">
   <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
   <div className="top-header-actions">
-   {view==='home'&&!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={15}/><span>{t('header.support')}</span></a>}
+   {view==='home'&&!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><Settings size={22}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
@@ -135,7 +136,7 @@ export default function Studio(){
  {!data&&!error&&<div className="loading-state"><Loader2 className="spin"/>{t('common.loading')}</div>}
  {data?.needsSetup&&<section className="setup-card"><span className="eyebrow">{t('setup.eyebrow')}</span><h1 className="wrap-lines">{t('setup.title')}</h1><p>{t('setup.text')}</p>{data.signedIn?<button className="primary-button" onClick={()=>void setup()} disabled={saving}>{t('setup.cta')}<ArrowUpRight size={18}/></button>:<a className="primary-button" href="/login">{t('common.login')}</a>}<small>{t('setup.note')}</small></section>}
  {data&&!data.needsSetup&&<>
- <div className="page-heading"><div><p className="eyebrow">{author?t('heading.eyebrowAuthor'):t('heading.eyebrowListener')}</p><h1>{view==='home'?(author?t('heading.homeAuthor'):t('heading.homeListener')):view==='studio'?t('heading.studio'):view==='podcasts'?t('heading.podcasts'):view==='videos'?t('heading.videos'):view==='stories'?t('heading.stories'):view==='live'?t('heading.live'):t('heading.settings')}</h1><p className="heading-description">{view==='home'?(author?t('desc.homeAuthor'):t('desc.homeListener')):view==='studio'?t('desc.studio'):view==='podcasts'?(author?t('desc.podcastsAuthor'):t('desc.podcastsListener')):view==='videos'?(author?t('desc.videosAuthor'):t('desc.videosListener')):view==='stories'?(author?t('desc.storiesAuthor'):t('desc.storiesListener')):view==='live'?t('desc.live'):(author?t('desc.settingsAuthor'):t('desc.settingsListener'))}</p></div>{author&&view==='podcasts'&&<button className="primary-button" onClick={()=>fileInput.current?.click()}><Upload size={17}/>{t('studio.uploadEpisode')}</button>}{author&&view==='stories'&&<button className="primary-button" onClick={()=>openEditor('story')}><Plus size={18}/>{t('studio.newStory')}</button>}</div>
+ {!(view==='home'&&!author)&&<div className="page-heading"><div><h1>{view==='home'?t('heading.homeAuthor'):view==='studio'?t('heading.studio'):view==='podcasts'?t('heading.podcasts'):view==='videos'?t('heading.videos'):view==='stories'?t('heading.stories'):view==='live'?t('heading.live'):t('heading.settings')}</h1><p className="heading-description">{view==='home'?t('desc.homeAuthor'):view==='studio'?t('desc.studio'):view==='podcasts'?(author?t('desc.podcastsAuthor'):t('desc.podcastsListener')):view==='videos'?(author?t('desc.videosAuthor'):t('desc.videosListener')):view==='stories'?(author?t('desc.storiesAuthor'):t('desc.storiesListener')):view==='live'?t('desc.live'):(author?t('desc.settingsAuthor'):t('desc.settingsListener'))}</p></div>{author&&view==='podcasts'&&<button className="primary-button" onClick={()=>fileInput.current?.click()}><Upload size={17}/>{t('studio.uploadEpisode')}</button>}{author&&view==='stories'&&<button className="primary-button" onClick={()=>openEditor('story')}><Plus size={18}/>{t('studio.newStory')}</button>}</div>}
  {liveError&&<div className="live-refresh-warning" role="status">{t('live.refreshFailed')}<button onClick={()=>void refreshLive()}>{t('common.refresh')}</button></div>}
  {liveStatus&&view!=='live'&&<button type="button" className="onair-banner onair-notice" onClick={openLive}><span className="onair-symbol"><Radio size={25}/></span><span className="onair-copy"><span className="onair-label">{live.joined&&live.activeId===liveStatus.id&&live.listening?t('live.youAreListening'):t('live.authorOnAir')}</span><strong>{liveStatus.title}</strong></span><span className="primary-button">{author?t('live.open'):live.joined&&live.activeId===liveStatus.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}<ChevronRight size={17}/></span></button>}
  {author&&live.hosting&&view!=='live'&&<div className="host-running-note">{t('live.micOnNote')}<button onClick={()=>void stopLive()}>{t('live.stop')}</button></div>}
@@ -204,7 +205,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- <footer className="content-footer"><span>TRUE THRILLS</span><span>{t('footer.tagline')}</span></footer>
+ <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span></footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}><Headphones size={22}/><span>{t('nav.podcasts')}</span></button>

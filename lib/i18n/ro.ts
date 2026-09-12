@@ -165,13 +165,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "setup.note": "Deocamdată aplicația este disponibilă doar ție. Accesul pentru public se activează separat.",
 
-  "heading.eyebrowAuthor": "TRUE THRILLS / WORKSPACE",
-
-  "heading.eyebrowListener": "TRUE THRILLS / PENTRU ASCULTĂTOR",
-
   "heading.homeAuthor": "Ce facem azi?",
-
-  "heading.homeListener": "True Thrills",
 
   "heading.studio": "Totul începe cu vocea.",
 
@@ -187,11 +181,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "desc.homeAuthor": "Înregistrare, video, poveste sau live — începe cu ce contează.",
 
-  "desc.homeListener": "Video, podcasturi și povești — într-un singur loc.",
-
   "desc.studio": "Înregistrează. Povestește. Fă-te auzit.",
-
-  "footer.tagline": "Povestea ta. Vocea ta.",
 
   "desc.podcastsAuthor": "Episoadele tale — de la ciornă la publicare.",
 
@@ -373,7 +363,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.pilotTitle": "Transmisiune de probă",
 
-  "live.pilotText": "Începe cu un grup mic, până la 8 ascultători. Sunetul trece prin server cu o mică întârziere.",
+  "live.pilotText": "Emisiunea poate fi ascultată de până la 50 de persoane în același timp. Sunetul trece prin server cu o mică întârziere.",
 
   "live.pilotNoRecord": "Emisiunea se salvează pe server și apare automat la podcasturi după procesare.",
 
@@ -421,7 +411,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "studio.prepareLive": "Pregătește emisiunea",
 
-  "studio.pilotFootnote": "Pilot: până la 8 ascultători",
+  "studio.pilotFootnote": "Până la 50 de ascultători în același timp",
 
   "studio.quickStoryTitle": "Ai ceva de povestit?",
 
@@ -947,7 +937,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "err.liveGone": "Emisiunea s-a încheiat deja",
 
-  "err.liveFull": "Emisiunea de probă este plină: până la 8 ascultători",
+  "err.liveFull": "Emisiune plină: până la 50 de ascultători în același timp",
 
   "err.badOffer": "Conectare incorectă",
 

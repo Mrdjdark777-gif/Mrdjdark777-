@@ -165,13 +165,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "setup.note": "Зараз застосунок доступний тільки тобі. Доступ для аудиторії під'єднується окремо.",
 
-  "heading.eyebrowAuthor": "TRUE THRILLS / WORKSPACE",
-
-  "heading.eyebrowListener": "TRUE THRILLS / СЛУХАЧЕВІ",
-
   "heading.homeAuthor": "Що робимо сьогодні?",
-
-  "heading.homeListener": "True Thrills",
 
   "heading.studio": "Усе починається з голосу.",
 
@@ -187,11 +181,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "desc.homeAuthor": "Запис, відео, історія чи ефір — почни з головного.",
 
-  "desc.homeListener": "Відео, подкасти та історії — в одному місці.",
-
   "desc.studio": "Запиши. Розкажи. Дай почути.",
-
-  "footer.tagline": "Твоя історія. Твій голос.",
 
   "desc.podcastsAuthor": "Твої випуски — від чернетки до публікації.",
 
@@ -373,7 +363,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.pilotTitle": "Тестова трансляція",
 
-  "live.pilotText": "Почни з невеликої групи до 8 слухачів. Звук іде через сервер із невеликою затримкою.",
+  "live.pilotText": "Ефір одночасно чують до 50 слухачів. Звук іде через сервер із невеликою затримкою.",
 
   "live.pilotNoRecord": "Ефір зберігається на сервері й автоматично з'являється в подкастах після обробки.",
 
@@ -421,7 +411,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "studio.prepareLive": "Підготувати ефір",
 
-  "studio.pilotFootnote": "Пілот: до 8 слухачів",
+  "studio.pilotFootnote": "До 50 слухачів одночасно",
 
   "studio.quickStoryTitle": "Є що розповісти?",
 
@@ -947,7 +937,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "err.liveGone": "Ефір уже завершено",
 
-  "err.liveFull": "Тестовий ефір заповнено: до 8 слухачів",
+  "err.liveFull": "Ефір заповнено: до 50 слухачів одночасно",
 
   "err.badOffer": "Некоректне підключення",
 
