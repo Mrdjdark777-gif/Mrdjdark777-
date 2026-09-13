@@ -4,14 +4,14 @@
 # and runs it as a systemd service behind an nginx reverse proxy on port 80.
 #
 # Usage (as root, e.g. via sudo):
-#   curl -fsSL https://raw.githubusercontent.com/Mrdjdark777-gif/Mrdjdark777-/claude/read-link-content-h18psv/scripts/vps-setup.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Mrdjdark777-gif/Mrdjdark777-/truethrills-app/scripts/vps-setup.sh | sudo bash
 #
 # Safe to re-run: it pulls the latest code and restarts the service without
 # touching an existing .env or database.
 set -euo pipefail
 
 REPO_URL="https://github.com/Mrdjdark777-gif/Mrdjdark777-.git"
-BRANCH="claude/read-link-content-h18psv"
+BRANCH="truethrills-app"
 APP_DIR="/opt/truethrills"
 NODE_MAJOR=22
 

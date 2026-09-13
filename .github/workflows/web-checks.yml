@@ -2,9 +2,9 @@ name: Web checks
 on:
   workflow_dispatch: {}
   push:
-    branches: [claude/read-link-content-h18psv]
+    branches: [truethrills-app]
   pull_request:
-    branches: [claude/read-link-content-h18psv]
+    branches: [truethrills-app]
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: true

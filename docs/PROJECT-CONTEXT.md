@@ -3,7 +3,7 @@
 Обновлено 13 сентября 2026. Владелец Дима. Приоритет имеют RELEASE-0.9-RU.md и OPERATIONS-0.9-RU.md.
 
 - Репозиторий: https://github.com/Mrdjdark777-gif/Mrdjdark777-
-- Единственная рабочая ветка: claude/read-link-content-h18psv — с неё собираются APK/EXE и обновляется сервер. В репозитории есть ещё две ветки: main (один пустой «Initial commit») и claude/create-application-1ltl3a (76 коммитов другого, не связанного с True Thrills проекта). Ни одна из них не содержит кода приложения; ветка codex/stabilize-0.8 (PR №3) давно влита и удалена.
+- Единственная рабочая ветка: truethrills-app — с неё собираются APK/EXE и обновляется сервер. В репозитории есть ещё две ветки: main (один пустой «Initial commit») и blender-helper-bot (Telegram-бот Димы, отдельный проект в том же репозитории). Ни одна из них не содержит кода приложения; ветка codex/stabilize-0.8 (PR №3) давно влита и удалена.
 - Только добровольные донаты. Весь контент бесплатный; прежнее предложение делать платный доступ отменено владельцем. Не возвращать его в план. Блок доната обязателен на главной и во время эфира; настоящий URL задаёт владелец.
 - Домен truethrills.com, собственный Oracle VPS. По документации: ubuntu@129.152.8.230, /opt/truethrills. Фактическая выкладка в этой работе не проверялась.
 - Windows C++/WebView2; Android Java/WebView + FCM + Media3; Next/SQLite/local storage. Android 0.9.0 versionCode 20 (собственная иконка уведомления, спектр в кольце эфира, вертикальные обложки).
@@ -15,7 +15,7 @@
 
 ## Статусы
 
-Исходники и автоматические тесты — проверять по Actions на claude/read-link-content-h18psv: Build Android APK, Build Windows EXE и Web checks (lint, build и все семь тестовых наборов из tests/). Перед каждым push прогонять локально то же самое; browser-integration в песочнице без Google Chrome падает на шаге эфира из-за отсутствия AAC — это не сигнал о коде. Сборка пишет одно предупреждение Turbopack «Encountered unexpected file in NFT list» с трассой через app/api/live-stream/route.ts: трассировщик не может статически оценить путь к файлам эфира (id и имя файла приходят из запроса). На результат не влияет — HLS-раздача покрыта live-archive-integration; пометки turbopackIgnore и вынос склейки пути в функцию его не гасят, проверено. Реальный VPS/Windows/Android в этой среде недоступны. Нельзя объявлять установленным или прошедшим блокировку то, что лишь собрано в CI.
+Исходники и автоматические тесты — проверять по Actions на truethrills-app: Build Android APK, Build Windows EXE и Web checks (lint, build и все семь тестовых наборов из tests/). Перед каждым push прогонять локально то же самое; browser-integration в песочнице без Google Chrome падает на шаге эфира из-за отсутствия AAC — это не сигнал о коде. Сборка пишет одно предупреждение Turbopack «Encountered unexpected file in NFT list» с трассой через app/api/live-stream/route.ts: трассировщик не может статически оценить путь к файлам эфира (id и имя файла приходят из запроса). На результат не влияет — HLS-раздача покрыта live-archive-integration; пометки turbopackIgnore и вынос склейки пути в функцию его не гасят, проверено. Реальный VPS/Windows/Android в этой среде недоступны. Нельзя объявлять установленным или прошедшим блокировку то, что лишь собрано в CI.
 
 ## Дальше
 

@@ -4,7 +4,7 @@ param(
  [ValidateSet('Update','Status','Backup')][string]$Action='Status',
  [string]$Server='ubuntu@129.152.8.230',
  [string]$KeyPath='',
- [string]$Branch='claude/read-link-content-h18psv',
+ [string]$Branch='truethrills-app',
  [string]$ExpectedCommit='',
  [string]$BackupDirectory="$env:USERPROFILE\Documents\TrueThrills-Backups"
 )
