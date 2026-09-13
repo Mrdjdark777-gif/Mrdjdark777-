@@ -209,7 +209,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">created by Dark Creative Studio</span>}</footer>
+ <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}><Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
