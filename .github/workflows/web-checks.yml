@@ -38,6 +38,7 @@ jobs:
       - run: node tests/api-integration.mjs
       - run: node tests/backup-integration.mjs
       - run: node tests/prune-orphans.mjs
+      - run: node tests/live-resilience.mjs
       # Решения об уведомлениях в приложении Android вынесены в чистый класс
       # без Android: тест компилирует его настоящим javac и гоняет на JVM,
       # поэтому SDK и эмулятор не нужны.

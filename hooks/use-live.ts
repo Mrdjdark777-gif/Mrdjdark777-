@@ -6,6 +6,7 @@ import {api,errorText} from '@/lib/client';
 import {hasNativeClient,nativeCall} from '@/lib/native-client';
 import {t} from '@/lib/i18n/runtime';
 import {BANDS,FFT_SIZE,spectrum} from '@/lib/spectrum';
+import {dropAfterPollError,shouldPoll} from '@/lib/live-resilience';
 export type ListenPhase='idle'|'connecting'|'waiting'|'playing'|'paused'|'reconnecting'|'blocked'|'ended'|'error';
 type Recording={id:string;title:string;state:string;ready:boolean;postId:string|null;listeners?:number};
 type NativeState={id:string;playing:boolean;loading:boolean;ended:boolean;liveSupported?:boolean;livePeer?:string;liveToken?:string;playbackError?:string};
@@ -20,6 +21,7 @@ export function useLive(){
  const host=useRef(''),starting=useRef(false),recorder=useRef<MediaRecorder|null>(null),queue=useRef(Promise.resolve()),queued=useRef(0),uploadError=useRef<Error|null>(null),stopTask=useRef<Promise<void>|null>(null);
  const audio=useRef<HTMLAudioElement|null>(null),hls=useRef<Hls|null>(null),native=useRef(false),joinedId=useRef(''),generation=useRef(0),peer=useRef<{id:string;token:string}|null>(null);
  const hostTimer=useRef<ReturnType<typeof setInterval>|null>(null),listenTimer=useRef<ReturnType<typeof setInterval>|null>(null),volumeRef=useRef(100);
+ const wake=useRef<(()=>void)|null>(null);
  // Круговой индикатор: 32 полосы спектра. В приложении эфир играет нативно,
  // поэтому полосы считает плеер и отдаёт через мост; в браузере считаем сами из
  // <audio>. Алгоритм общий — lib/spectrum.ts и LevelTap.java, — иначе круг в
@@ -65,7 +67,7 @@ export function useLive(){
   },METER_MS);
  }
  function endViewer(next:ListenPhase='idle',message='',stopNative=true){
-  generation.current++;joinedId.current='';setActiveId('');if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();hls.current=null;
+  generation.current++;joinedId.current='';setActiveId('');wake.current=null;if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();hls.current=null;
   if(peer.current)void api('live',{action:'leave',peer:peer.current.id,token:peer.current.token}).catch(()=>{});peer.current=null;
   if(audio.current){audio.current.onplaying=null;audio.current.onpause=null;audio.current.onended=null;audio.current.onwaiting=null;audio.current.onerror=null;audio.current.pause();audio.current.removeAttribute('src');audio.current.load();}
   if(native.current&&stopNative)void nativeCall('player.stop').catch(()=>{});native.current=false;
@@ -144,7 +146,11 @@ export function useLive(){
     }
     if('mediaSession'in navigator){navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills'});navigator.mediaSession.setActionHandler('play',()=>void resume());navigator.mediaSession.setActionHandler('pause',pause);}
    };
-   const poll=async()=>{if(polling||gen!==generation.current)return;polling=true;try{
+   const away=()=>typeof document!=='undefined'&&document.visibilityState==='hidden';
+   const poll=async()=>{if(polling||gen!==generation.current)return;
+    // В фоне опрос не нужен: ответа никто не увидит, а неудачи копятся.
+    if(!shouldPoll(away()))return;
+    polling=true;try{
     const d=await api<Recording>('live-stream?id='+id);if(gen!==generation.current)return;
     if(d.state==='failed'){endViewer('error',t('liveArchive.partial'));return;}
     if(d.ready)await attach();if(gen!==generation.current)return;
@@ -155,12 +161,26 @@ export function useLive(){
      setStatus(s.playing?t('liveHook.listening'):s.loading?t('liveArchive.buffering'):s.ended?t('liveArchive.ended'):s.playbackError?t('liveHook.playFailed'):t('liveHook.paused'));
     }
     errors=0;
-   }catch(e){if(gen!==generation.current)return;if(++errors>=5)endViewer('error',errorText(e));}finally{polling=false;}};
+   }catch(e){if(gen!==generation.current)return;
+    errors++;
+    // Неудачный опрос — это про сеть страницы, а не про звук. Нативный плеер
+    // переподключается сам, поэтому его не трогаем и лишь показываем, что
+    // связь со статусом потеряна.
+    if(dropAfterPollError({errors,nativeAttached:native.current&&attached,hidden:away()}))endViewer('error',errorText(e));
+    else if(!native.current&&errors>=2)setStatus(t('liveArchive.retry'));
+   }finally{polling=false;}};
+   // Вернулись на экран — опрашиваем сразу и с чистого счётчика: то, что
+   // накопилось, пока приложение было свёрнуто, к текущему состоянию
+   // отношения не имеет.
+   wake.current=()=>{errors=0;void poll();};
    listenTimer.current=setInterval(()=>void poll(),2000);await poll();
   }catch(e){if(gen===generation.current)endViewer('error',errorText(e));}
  }
  useEffect(()=>{volumeRef.current=volume;if(audio.current)audio.current.volume=volume/100;if(native.current)void nativeCall('player.volume',{value:volume/100}).catch(()=>{});},[volume]);
- // eslint-disable-next-line react-hooks/exhaustive-deps -- generation — счётчик поколений, а не DOM-узел: при размонтировании нужно именно текущее значение.
- useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;stopMeter();void meterCtx.current?.close().catch(()=>{});meterCtx.current=null;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
+
+ useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);
+  const visible=()=>{if(document.visibilityState==='visible')wake.current?.();};document.addEventListener('visibilitychange',visible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- generation — счётчик поколений, а не DOM-узел: при размонтировании нужно именно текущее значение.
+  return()=>{document.removeEventListener('visibilitychange',visible);generation.current++;stopMeter();void meterCtx.current?.close().catch(()=>{});meterCtx.current=null;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
  return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,levels,start,stop,listen,leave,resume,pause,unmute:resume};
 }
