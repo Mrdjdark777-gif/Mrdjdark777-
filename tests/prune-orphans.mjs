@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, mkdir, rm, writeFile, utimes} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
@@ -20,7 +20,9 @@ try {
  recording('kept-by-post', 'ready', 'keep-post');
  broadcast('kept-by-post', 0);
  // Эфир идёт прямо сейчас — тоже неприкосновенен, хотя выпуска ещё нет.
- recording('on-air', 'receiving', null);
+ // Эфир идёт (broadcasts.active=1), но запись уже доведена до готовности:
+ // так проверяется, что живой эфир не считается мёртвым сам по себе.
+ recording('on-air', 'ready', null);
  broadcast('on-air', 1);
  // Запись, у которой ещё лежат файлы на диске: её убирает prune-live, не мы.
  recording('has-files', 'ready', null);
@@ -51,13 +53,26 @@ try {
  await file('cover/orphan.jpg', 2048);  // ничей
  await file('cover/dead.jpg', 1536);    // обложка удаляемого эфира
 
+ // Старым файлам сдвигаем время изменения назад: порог по возрасту защищает
+ // ровно тот промежуток, когда файл уже загружен, а публикация ещё не сохранена.
+ const long = Date.now() - 72 * 3600 * 1000;
+ for (const key of ['audio/keep.m4a', 'cover/keep.jpg', 'cover/art.png', 'audio/orphan.m4a', 'cover/orphan.jpg', 'cover/dead.jpg']) {
+  await utimes(path.join(env.STORAGE_DIR, key), new Date(long), new Date(long));
+ }
+ // А этот загружен только что — его нельзя трогать ни при каких обстоятельствах.
+ await file('audio/in-flight.m4a', 3072);
+
  const prune = (...args) => execFileSync(process.execPath, ['scripts/prune-orphans.mjs', ...args], {cwd: root, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
  const report = prune();
  assert.match(report, /без выпуска и файлов 3/, 'находит все три мёртвых эфира, включая тот, у которого нет записи');
  assert.match(report, /ничьих 3/, 'обложка удаляемого эфира тоже считается ничьей');
  assert.ok(existsSync(path.join(env.STORAGE_DIR, 'audio/orphan.m4a')), 'отчёт ничего не удаляет');
 
+ assert.ok(existsSync(path.join(env.STORAGE_DIR, 'audio/in-flight.m4a')), 'свежая загрузка не должна попадать в отчёт');
+ assert.match(report, /Свежих файлов пропущено: 1/, 'отчёт называет пропущенные свежие файлы');
+
  prune('--delete');
+ assert.ok(existsSync(path.join(env.STORAGE_DIR, 'audio/in-flight.m4a')), 'свежая загрузка переживает уборку: публикация может сохраняться прямо сейчас');
  const after = new Database(env.DATABASE_PATH, {readonly: true});
  const ids = after.prepare('SELECT id FROM live_recordings ORDER BY id').all().map(r => r.id);
  assert.deepEqual(ids, ['has-files', 'kept-by-post', 'on-air'], 'остаются живой выпуск, идущий эфир и запись с файлами');
@@ -71,5 +86,18 @@ try {
   assert.ok(!existsSync(path.join(env.STORAGE_DIR, key + '.meta.json')), 'метаданные удаляются вместе с файлом');
  }
  assert.match(prune(), /Удалять нечего/, 'повторный запуск не находит работы');
- console.log('PASS: prune-orphans keeps live episodes, running broadcasts and files in use; removes dead recordings and unreferenced storage');
+
+ // Пока эфир принимается, воркер вот-вот положит запись в хранилище: в это
+ // время файлы не трогаем вообще, даже старые.
+ {
+  const live = new Database(env.DATABASE_PATH);
+  live.prepare("UPDATE live_recordings SET state='receiving' WHERE id='on-air'").run();
+  live.close();
+  await file('audio/stale-during-air.m4a', 2048);
+  await utimes(path.join(env.STORAGE_DIR, 'audio/stale-during-air.m4a'), new Date(long), new Date(long));
+  const busy = prune('--delete');
+  assert.match(busy, /идёт эфир или обработка/, 'во время эфира уборка файлов не проводится');
+  assert.ok(existsSync(path.join(env.STORAGE_DIR, 'audio/stale-during-air.m4a')), 'во время эфира не удаляется даже старый ничей файл');
+ }
+ console.log('PASS: prune-orphans keeps live episodes, running broadcasts and files in use; removes dead recordings and unreferenced storage, spares fresh uploads and anything mid-broadcast');
 } finally { await rm(dir, {recursive: true, force: true}); }

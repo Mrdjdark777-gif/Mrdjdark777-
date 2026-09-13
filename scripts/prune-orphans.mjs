@@ -16,7 +16,17 @@ import Database from 'better-sqlite3';
 import {readdir, stat, rm, access} from 'node:fs/promises';
 import path from 'node:path';
 
-const apply = process.argv.includes('--delete');
+const argv = process.argv.slice(2);
+const apply = argv.includes('--delete');
+// Файл попадает в хранилище раньше, чем на него появляется ссылка: студия
+// сначала загружает аудио и обложку, и только потом сохраняет публикацию; так
+// же ведёт себя воркер, когда дописывает запись эфира. В этом промежутке файл
+// выглядит ничьим. Поэтому свежие файлы не трогаем вовсе — счёт идёт на
+// минуты, а порог по умолчанию сутки.
+const ageArg = argv.indexOf('--min-age-hours');
+const minAgeHours = ageArg === -1 ? 24 : Number(argv[ageArg + 1]);
+if (!Number.isFinite(minAgeHours) || minAgeHours < 0) throw new Error('--min-age-hours expects a number of hours, zero or more.');
+const minAgeMs = minAgeHours * 3600 * 1000;
 const dbPath = path.resolve(process.env.DATABASE_PATH || 'data/truethrills.db');
 const storage = path.resolve(process.env.STORAGE_DIR || 'data/storage');
 const live = path.resolve(process.env.LIVE_DIR || 'data/live');
@@ -60,19 +70,29 @@ try {
  const art = db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();
  if (art?.value) used.add(art.value);
 
+ // Пока эфир принимается или обрабатывается, воркер вот-вот положит в
+ // хранилище готовую запись. Файлы в это время не трогаем совсем.
+ const busy = db.prepare("SELECT COUNT(*) AS n FROM live_recordings WHERE state IN ('receiving','closing','processing')").get().n;
  const orphans = [];
- for (const folder of ['audio', 'cover']) {
+ let young = 0;
+ if (!busy) for (const folder of ['audio', 'cover']) {
   let names;
   try { names = await readdir(path.join(storage, folder)); } catch { continue; }
   for (const name of names) {
    if (name.endsWith('.meta.json')) continue;
    const key = folder + '/' + name;
    if (used.has(key)) continue;
-   orphans.push({key, size: (await stat(path.join(storage, folder, name))).size});
+   const info = await stat(path.join(storage, folder, name));
+   if (Date.now() - info.mtimeMs < minAgeMs) { young++; continue; }
+   orphans.push({key, size: info.size});
   }
  }
  const freed = orphans.reduce((sum, o) => sum + o.size, 0);
- console.log(`\nФайлы в хранилище: используются ${used.size}, ничьих ${orphans.length} на ${mb(freed)}.`);
+ if (busy) console.log(`\nФайлы в хранилище: идёт эфир или обработка записи — не трогаем ни одного файла.`);
+ else {
+  console.log(`\nФайлы в хранилище: используются ${used.size}, ничьих ${orphans.length} на ${mb(freed)}.`);
+  if (young) console.log(`  Свежих файлов пропущено: ${young} (моложе ${minAgeHours} ч — возможно, публикация ещё сохраняется).`);
+ }
  for (const o of orphans) console.log(`  - ${o.key} ${mb(o.size)}`);
 
  if (!apply) {
@@ -86,10 +106,24 @@ try {
    }
   });
   removeRow(dead.map(r => r.id));
+  // Ссылки перечитываются перед самым удалением: пока шёл отчёт, публикация
+  // могла сохраниться, и файл уже не ничей.
+  const linked = new Set();
+  for (const row of db.prepare('SELECT audio_key, cover_key FROM posts').all()) {
+   if (row.audio_key) linked.add(row.audio_key);
+   if (row.cover_key) linked.add(row.cover_key);
+  }
+  for (const row of db.prepare('SELECT cover_key FROM broadcasts').all()) if (row.cover_key) linked.add(row.cover_key);
+  const fresh = db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();
+  if (fresh?.value) linked.add(fresh.value);
+  let removed = 0, spared = 0, freedNow = 0;
   for (const o of orphans) {
+   if (linked.has(o.key)) { spared++; continue; }
    await rm(path.join(storage, o.key), {force: true});
    await rm(path.join(storage, o.key + '.meta.json'), {force: true});
+   removed++; freedNow += o.size;
   }
-  console.log(`\nУдалено эфиров: ${dead.length}, файлов: ${orphans.length}, освобождено ${mb(freed)}.`);
+  console.log(`\nУдалено эфиров: ${dead.length}, файлов: ${removed}, освобождено ${mb(freedNow)}.`);
+  if (spared) console.log(`На ${spared} файл(ов) ссылка появилась, пока шла уборка — оставлены.`);
  }
 } finally { db.close(); }
