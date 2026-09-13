@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, relative } from 'node:path';
@@ -12,7 +13,13 @@ import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 
 const ROOT = normalize(process.env.STORAGE_DIR ?? './data/storage');
 
-type Meta = { contentType: string; customMetadata: Record<string, string>; size: number; etag: string };
+/**
+ * `sha256` — контрольная сумма содержимого, посчитанная на лету при записи.
+ * Без неё проверка бэкапа могла сверить только размер, а повреждённый файл
+ * того же размера проходил молча. Она же служит ETag: прежний случайный UUID
+ * менялся при каждой перезаписи и ничего не говорил о содержимом.
+ */
+type Meta = { contentType: string; customMetadata: Record<string, string>; size: number; etag: string; sha256: string };
 
 function dataPath(key: string) {
   const target = normalize(join(/*turbopackIgnore: true*/ ROOT, key));
@@ -86,8 +93,10 @@ class LocalBucket {
     await mkdir(dirname(path), { recursive: true });
     const node = Readable.fromWeb(body as NodeWebReadableStream<Uint8Array>);
     let size = 0;
+    const digest = createHash('sha256');
     node.on('data', (chunk: Buffer) => {
       size += chunk.length;
+      digest.update(chunk);
     });
     const { createWriteStream } = await import('node:fs');
     await new Promise<void>((resolvePromise, reject) => {
@@ -97,11 +106,13 @@ class LocalBucket {
       out.on('error', reject);
       node.on('error', reject);
     });
+    const sha256 = digest.digest('hex');
     const meta: Meta = {
       contentType: opts.httpMetadata?.contentType ?? 'application/octet-stream',
       customMetadata: opts.customMetadata ?? {},
       size,
-      etag: crypto.randomUUID(),
+      etag: sha256,
+      sha256,
     };
     await writeFile(metaPath(key), JSON.stringify(meta));
     return { key, size };

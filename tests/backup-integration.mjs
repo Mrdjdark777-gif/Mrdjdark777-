@@ -1,12 +1,57 @@
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,mkdir,rm,cp,readdir} from 'node:fs/promises';
+import {mkdtemp,writeFile,mkdir,rm,cp,readdir,rename} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-backup-')),dbPath=path.join(dir,'truethrills.db');
 try{
- const db=new Database(dbPath);db.exec('CREATE TABLE posts(id TEXT PRIMARY KEY,audio_key TEXT)');db.prepare('INSERT INTO posts VALUES(?,?)').run('episode','audio/abc-123');db.close();
- await mkdir(path.join(dir,'storage/audio'),{recursive:true});await writeFile(path.join(dir,'storage/audio/abc-123'),'test');await writeFile(path.join(dir,'storage/audio/abc-123.meta.json'),JSON.stringify({size:4,contentType:'audio/mpeg'}));
+ const sum=text=>createHash('sha256').update(text).digest('hex');
+ const db=new Database(dbPath);
+ db.exec('CREATE TABLE posts(id TEXT PRIMARY KEY,audio_key TEXT,cover_key TEXT)');
+ db.exec('CREATE TABLE broadcasts(id TEXT PRIMARY KEY,cover_key TEXT)');
+ db.exec('CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT)');
+ db.prepare('INSERT INTO posts VALUES(?,?,?)').run('episode','audio/abc-123','cover/c0de-0001');
+ db.prepare('INSERT INTO broadcasts VALUES(?,?)').run('show','cover/c0de-0002');
+ db.prepare('INSERT INTO settings VALUES(?,?)').run('channelArt','cover/c0de-0003');
+ db.close();
+ await mkdir(path.join(dir,'storage/audio'),{recursive:true});await mkdir(path.join(dir,'storage/cover'),{recursive:true});
+ const put=async(key,text,type)=>{await writeFile(path.join(dir,'storage',key),text);await writeFile(path.join(dir,'storage',key+'.meta.json'),JSON.stringify({size:Buffer.byteLength(text),contentType:type,etag:sum(text),sha256:sum(text)}));};
+ await put('audio/abc-123','test','audio/mpeg');
+ await put('cover/c0de-0001','picture-one','image/png');
+ await put('cover/c0de-0002','picture-two','image/png');
+ await put('cover/c0de-0003','picture-three','image/png');
+ execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
+
+ // Обложки теряются так же тихо, как звук, а замечают это уже на
+ // восстановленном сервере с пустыми карточками. Каждая ссылка проверяется.
+ for(const [key,who] of [['cover/c0de-0001','выпуска'],['cover/c0de-0002','эфира'],['cover/c0de-0003','канала']]){
+  const kept=path.join(dir,'storage',key),aside=kept+'.aside';
+  await rename(kept,aside);
+  assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Missing cover/,'пропавшая обложка '+who+' должна ронять проверку');
+  await rename(aside,kept);
+ }
+ // Файл того же размера, но с другим содержимым: размер сходится, сумма — нет.
+ // Раньше такая копия проходила проверку молча.
+ await writeFile(path.join(dir,'storage/audio/abc-123'),'tost');
+ assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Checksum mismatch/,'подменённый файл того же размера должен ронять проверку');
+ await writeFile(path.join(dir,'storage/audio/abc-123'),'test');
+ // Файлы, загруженные до контрольных сумм, проверяются по размеру и
+ // называются в отчёте отдельно — «нечего сверять» не должно читаться как
+ // «сверено».
+ await writeFile(path.join(dir,'storage/cover/c0de-0001.meta.json'),JSON.stringify({size:11,contentType:'image/png'}));
+ const legacy=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
+ assert.match(legacy,/1 predate checksums/,'файл без контрольной суммы должен быть назван в отчёте');
+ // Досчёт сумм для файлов, загруженных до этой правки: сперва отчёт, запись
+ // только с --apply.
+ const backfill=(...args)=>execFileSync(process.execPath,['scripts/checksum-storage.mjs',...args],{cwd:root,encoding:'utf8',env:{...process.env,STORAGE_DIR:path.join(dir,'storage')}});
+ assert.match(backfill(),/К дописыванию: 1/,'сухой прогон должен только сообщать');
+ assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/1 predate checksums/,'сухой прогон ничего не записывает');
+ assert.match(backfill('--apply'),/Дописано: 1/);
+ const after=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
+ assert.ok(!/predate checksums/.test(after),'после досчёта файлов без суммы остаться не должно');
+ assert.match(after,/4 files matched their checksum/);
+ await put('cover/c0de-0001','picture-one','image/png');
  execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
  // Restore into a separate directory, then verify that the copied DB and audio agree.
  const restored=dir+'-restored';try{await cp(dir,restored,{recursive:true});execFileSync(process.execPath,['scripts/verify-backup.mjs',restored],{cwd:root,stdio:'pipe'});}finally{await rm(restored,{recursive:true,force:true});}
@@ -40,5 +85,5 @@ try{
   assert.equal((await readdir(vault)).length,3,'когда копий меньше запаса, удалять нечего');
   assert.throws(()=>prune('--keep','0'),/whole number/,'бессмысленный запас должен отвергаться');
  }finally{await rm(vault,{recursive:true,force:true});}
- console.log('PASS: backup integrity, separate restore, missing audio, size mismatch, lost-episode detection and rotation');
+ console.log('PASS: backup integrity, separate restore, missing audio and covers, size mismatch, damaged-but-same-size files, checksum-less legacy files and their backfill, lost-episode detection and rotation');
 }finally{await rm(dir,{recursive:true,force:true});}

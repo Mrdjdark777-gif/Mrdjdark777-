@@ -2,9 +2,10 @@
 // Dedicated systemd process; never ties a broadcast or archive to a Next request.
 import Database from 'better-sqlite3';
 import {spawn,execFileSync} from 'node:child_process';
+import {createReadStream} from 'node:fs';
 import {mkdir,readFile,writeFile,rename,stat,rm} from 'node:fs/promises';
 import path from 'node:path';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 const root=path.resolve(process.env.LIVE_DIR||'data/live'),storage=path.resolve(process.env.STORAGE_DIR||'data/storage');
 await mkdir(root,{recursive:true,mode:0o700});await mkdir(path.join(storage,'audio'),{recursive:true});
 execFileSync('ffmpeg',['-version'],{stdio:'ignore'});execFileSync('ffprobe',['-version'],{stdio:'ignore'});
@@ -12,6 +13,10 @@ const db=new Database(process.env.DATABASE_PATH||'data/truethrills.db');db.pragm
 const active=new Map(),children=new Set();let quitting=false;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function atomic(file,data){const tmp=file+'.tmp';await writeFile(tmp,data,{mode:0o600});await rename(tmp,file);}
+// Та же контрольная сумма, что пишет lib/storage.ts при обычной загрузке:
+// запись эфира попадает в хранилище мимо него, и без этого проверка бэкапа
+// могла бы сверить у неё только размер.
+async function sha256(file){const hash=createHash('sha256');for await(const chunk of createReadStream(file))hash.update(chunk);return hash.digest('hex');}
 async function processRecording(row){
  const dir=path.join(root,row.id),generation='g-'+randomUUID(),out=path.join(dir,generation);await mkdir(out,{recursive:true,mode:0o700});
  const archive=path.join(out,'archive.m4a');
@@ -42,7 +47,8 @@ async function processRecording(row){
   if(!Number.isFinite(duration)||duration<=0)throw new Error('Invalid archive duration');
   const key='audio/live-'+row.id,final=path.join(storage,key);await rename(archive,final);
   const size=(await stat(final)).size;
-  await atomic(final+'.meta.json',JSON.stringify({contentType:'audio/mp4',customMetadata:{owner:row.owner_id},size,etag:randomUUID()}));
+  const digest=await sha256(final);
+  await atomic(final+'.meta.json',JSON.stringify({contentType:'audio/mp4',customMetadata:{owner:row.owner_id},size,etag:digest,sha256:digest}));
   db.transaction(()=>{
    // Обложка, выбранная при запуске эфира, становится обложкой выпуска.
    // Раньше она жила только на странице эфира, и сохранённый подкаст оставался
