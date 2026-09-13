@@ -63,7 +63,12 @@ final class PlayerBridge {
                                 .setMimeType(MimeTypes.APPLICATION_M3U8).setMediaMetadata(metadata).build());
                             p.setPlaybackSpeed(1); saved.edit().remove("sleepUntil").putString("livePeer",peer).putString("liveToken",token).apply(); p.prepare();
                         } else if (p.getPlaybackState()==Player.STATE_IDLE) { p.prepare(); p.seekToDefaultPosition(); }
-                        p.play(); break;
+                        // Экран может пересоздаться (поворот, возврат в приложение), и тогда
+                        // страница заново зовёт player.live для уже играющего эфира. Раньше
+                        // здесь безусловно стоял p.play(), и поставленный на паузу эфир
+                        // начинал играть сам — в кармане, среди ночи, без единого нажатия.
+                        if (args.optBoolean("autoplay", true)) p.play();
+                        break;
                     }
                     case "volume": p.setVolume((float)Math.max(0,Math.min(1,args.optDouble("value",1)))); break;
                     case "play": if (p.getPlaybackState() == Player.STATE_IDLE) p.prepare(); if (p.isCurrentMediaItemLive()) p.seekToDefaultPosition(); else if (p.getPlaybackState() == Player.STATE_ENDED) p.seekTo(0); p.play(); break;

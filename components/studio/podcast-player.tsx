@@ -9,14 +9,14 @@ import {NativePodcastPlayer} from './native-podcast-player';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
 import {useT} from '@/components/i18n-provider';
 
-function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,onClose}:{src:string;title:string;duration?:number;cover?:string;audioRef:RefObject<HTMLAudioElement|null>;onClose:()=>void}){
+function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,autoplay=true,onClose}:{src:string;title:string;duration?:number;cover?:string;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;onClose:()=>void}){
  const postId=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const restored=useRef(false),lastSaved=useRef(0);
  const [rate,setRate]=useState(1),[sleep,setSleep]=useState(0),[isRepairing,setIsRepairing]=useState(false);
  useEffect(()=>{if(!sleep)return;const timer=setTimeout(()=>{local.current?.pause();setSleep(0);},sleep*60000);return()=>clearTimeout(timer);},[sleep]);
  const {t}=useT();
  const [duration,setDuration]=useState(initialDuration),[position,setPosition]=useState(0),[playing,setPlaying]=useState(false),[loading,setLoading]=useState(true),[seekable,setSeekable]=useState(false),[message,setMessage]=useState('');
- const local=useRef<HTMLAudioElement|null>(null),repairing=useRef(false),attempted=useRef(false),controller=useRef<AbortController|null>(null),objectUrl=useRef(''),wanted=useRef(true),scrubbing=useRef(false),alive=useRef(true);
+ const local=useRef<HTMLAudioElement|null>(null),repairing=useRef(false),attempted=useRef(false),controller=useRef<AbortController|null>(null),objectUrl=useRef(''),wanted=useRef(autoplay),scrubbing=useRef(false),alive=useRef(true);
  const session=()=>{
   const el=local.current;if(!el||!('mediaSession'in navigator))return;
   const art=cover?new URL(cover,location.origin).toString():location.origin+'/icon-512.png?v=0.4.1';
@@ -46,7 +46,7 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,o
   finally{repairing.current=false;if(alive.current)setIsRepairing(false);}
  }
  // eslint-disable-next-line react-hooks/exhaustive-deps -- Перезагружает элемент только при смене источника; остальное — стабильные ссылки и стартовые значения.
- useEffect(()=>{alive.current=true;const el=local.current;if(el){el.src=src;el.load();void play();}return()=>{alive.current=false;controller.current?.abort();if(objectUrl.current)URL.revokeObjectURL(objectUrl.current);if(el)saveProgress(postId,el.currentTime,Number.isFinite(el.duration)?el.duration:initialDuration);el?.pause();if('mediaSession'in navigator){for(const action of ['play','pause','seekbackward','seekforward','seekto'] as const)navigator.mediaSession.setActionHandler(action,null);navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none';}if(audioRef.current===el)audioRef.current=null;};},[src]);
+ useEffect(()=>{alive.current=true;const el=local.current;if(el){el.src=src;el.load();if(autoplay)void play();}return()=>{alive.current=false;controller.current?.abort();if(objectUrl.current)URL.revokeObjectURL(objectUrl.current);if(el)saveProgress(postId,el.currentTime,Number.isFinite(el.duration)?el.duration:initialDuration);el?.pause();if('mediaSession'in navigator){for(const action of ['play','pause','seekbackward','seekforward','seekto'] as const)navigator.mediaSession.setActionHandler(action,null);navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none';}if(audioRef.current===el)audioRef.current=null;};},[src]);
  function metadata(){const el=local.current;if(!el||el.readyState===0)return;if(Number.isFinite(el.duration)&&el.duration>0){if(!restored.current){restored.current=true;const progress=readProgress().find(p=>p.id===postId);if(progress&&progress.position<el.duration-2)el.currentTime=progress.position;}setDuration(el.duration);setSeekable(true);setLoading(false);mediaPosition();}else if(!attempted.current)void repair();}
  return <section className="podcast-player" aria-label={t('player.aria',{title})}>
   <img className="podcast-player-logo" src="/brand/logo.png?v=0.4.1" width="52" height="52" alt=""/>
@@ -68,4 +68,8 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,o
  </section>;
 }
 
+/**
+ * autoplay=false — восстановление: приложение открыли заново, а выпуск стоял
+ * на паузе. Показать плеер в этом состоянии нужно, а начать играть — нет.
+ */
 export function PodcastPlayer(props:Parameters<typeof WebPodcastPlayer>[0]){return hasNativeClient()?<NativePodcastPlayer {...props}/>:<WebPodcastPlayer {...props}/>;}

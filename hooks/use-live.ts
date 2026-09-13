@@ -116,7 +116,12 @@ export function useLive(){
  }
  async function resume(){try{if(native.current)await nativeCall('player.play');else{if(hls.current&&audio.current&&hls.current.liveSyncPosition)audio.current.currentTime=hls.current.liveSyncPosition;await audio.current?.play();}}catch{setPhase('blocked');setStatus(t('liveHook.tapToEnable'));}}
  function pause(){if(native.current)void nativeCall('player.pause');else audio.current?.pause();}
- async function listen(id:string,title=t('liveHook.title')){
+ /**
+  * autoplay=false — это восстановление состояния, а не запуск: экран
+  * пересоздался и заново подключается к тому, что уже играет или стоит на
+  * паузе. Поставленный на паузу эфир при этом обязан остаться на паузе.
+  */
+ async function listen(id:string,title=t('liveHook.title'),autoplay=true){
   if(joinedId.current===id)return;endViewer();joinedId.current=id;setActiveId(id);const gen=generation.current;setConnecting(true);setJoined(true);setPhase('connecting');setStatus(t('liveArchive.buffering'));
   try{
    const rec=await api<Recording>('live-stream?id='+id);if(gen!==generation.current)return;
@@ -127,14 +132,17 @@ export function useLive(){
    native.current=!!state?.liveSupported;let attached=false,polling=false,errors=0;
    const attach=async()=>{
     if(attached||gen!==generation.current)return;attached=true;
-    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
+    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,autoplay,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
     const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;el.crossOrigin='anonymous';startMeter(el);
     el.onplaying=()=>{if(gen!==generation.current)return;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));};
     el.onpause=()=>{if(gen!==generation.current)return;setListening(false);setPhase('paused');setStatus(t('liveHook.paused'));};
     el.onwaiting=()=>{if(gen!==generation.current)return;setListening(false);setPhase('reconnecting');setStatus(t('liveArchive.buffering'));};
     el.onended=()=>{if(gen===generation.current)endViewer('ended',t('liveArchive.ended'));};
     const url='/api/live-stream?id='+id+'&file=index.m3u8&peer='+p.id+'&token='+p.token;
-    const play=()=>void el.play().catch(()=>{if(gen===generation.current){setConnecting(false);setPhase('blocked');setStatus(t('liveHook.tapToEnable'));}});
+    const play=()=>{
+     if(!autoplay){if(gen===generation.current){setConnecting(false);setPhase('paused');setStatus(t('liveHook.paused'));}return;}
+     void el.play().catch(()=>{if(gen===generation.current){setConnecting(false);setPhase('blocked');setStatus(t('liveHook.tapToEnable'));}});
+    };
     if(el.canPlayType('application/vnd.apple.mpegurl')){el.src=url;play();}
     else {const {default:Hls}=await import('hls.js');if(gen!==generation.current)return;
      if(!Hls.isSupported())throw new Error('#err.playback');
