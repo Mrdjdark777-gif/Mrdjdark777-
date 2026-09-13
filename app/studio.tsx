@@ -121,7 +121,7 @@ export default function Studio(){
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="46" height="46" alt=""/><span>True Thrills</span></button>
   <div className="top-header-actions">
-   {view==='home'&&!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
+   {!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><Settings size={22}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
