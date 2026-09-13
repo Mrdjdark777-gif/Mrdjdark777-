@@ -509,7 +509,7 @@ export const it: Record<keyof typeof ru, string> = {
   'err.liveTitle': 'Indica il titolo della diretta',
   'err.liveBusy': 'C’è già un’altra diretta in corso. Prima terminala.',
   'err.liveGone': 'La diretta è già terminata',
-  'err.liveFull': 'Diretta al completo: fino a 50 ascoltatori alla volta',
+  'err.liveFull': 'Diretta al completo, riprova tra poco',
   'err.badOffer': 'Collegamento non valido',
   'err.badAnswer': 'Risposta non valida',
   'err.sessionGone': 'Sessione non trovata',

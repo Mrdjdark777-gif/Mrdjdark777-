@@ -37,6 +37,8 @@ await build({
       export * as auth from '${root}/lib/auth.ts';
       export * as notifications from '${root}/app/api/notifications/route.ts';
       export * as push from '${root}/lib/push.ts';
+      export * as liveRecording from '${root}/lib/live-recording.ts';
+      export * as dicts from '${root}/lib/i18n/index.ts';
       export {getDb} from '${root}/db/index.ts';
     `,
     resolveDir: root,
@@ -49,7 +51,8 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, getDb } = await import(outfile);
+const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, dicts, getDb } = await import(outfile);
+const liveLimit = liveRecording.liveListenerLimit;
 const routes = { library, audio, cover, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
@@ -271,6 +274,20 @@ try {
   getDb().$client.prepare('UPDATE peers SET heartbeat=? WHERE id=?').run(Date.now()-70000,join.data.id);
   await request('live',{action:'heartbeat',id:liveRes.data.id,connected:[join.data.id]});
   assert.equal((await request('live',undefined,false,{'x-peer-token':join.data.token},'?peer='+join.data.id)).data.active,true);
+  // Предел слушателей задаётся настройкой, а не вшит в код. Это предел на
+  // вход через интерфейс: сам HLS отдаётся всем, кто знает ссылку, и строка
+  // ошибки поэтому не называет число, чтобы не обещать потолок, которого нет.
+  process.env.LIVE_LISTENER_LIMIT='2';
+  const seat=()=>request('live',{action:'join',id:liveRes.data.id,offer:JSON.stringify({type:'offer',sdp:'test'})},false);
+  assert.equal((await seat()).status,200,'второе место свободно');
+  const full=await seat();
+  assert.equal(full.status,400);assert.equal(full.data.error,'#err.liveFull');
+  process.env.LIVE_LISTENER_LIMIT='3';
+  assert.equal((await seat()).status,200,'поднятая настройка должна пускать ещё одного без правки кода');
+  for(const bad of ['0','-2','нет']){process.env.LIVE_LISTENER_LIMIT=bad;assert.throws(()=>liveLimit(),/LIVE_LISTENER_LIMIT/,bad);}
+  delete process.env.LIVE_LISTENER_LIMIT;
+  for(const locale of ['ru','it','uk','ro'])assert.ok(!/\d/.test(dicts.translate(locale,'err.liveFull')),'строка «эфир заполнен» не должна называть число: настройка его меняет');
+
   await request('live', { action: 'stop', id: liveRes.data.id });
   assert.equal((await request('library')).data.live, null);
   assert.equal((await request('live', undefined, false, {}, '?status=1')).data.live, null);
@@ -415,7 +432,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

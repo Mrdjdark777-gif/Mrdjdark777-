@@ -898,7 +898,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "err.liveGone": "Emisiunea s-a încheiat deja",
 
-  "err.liveFull": "Emisiune plină: până la 50 de ascultători în același timp",
+  "err.liveFull": "Emisiune plină, încercați puțin mai târziu",
 
   "err.badOffer": "Conectare incorectă",
 

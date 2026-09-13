@@ -898,7 +898,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "err.liveGone": "Ефір уже завершено",
 
-  "err.liveFull": "Ефір заповнено: до 50 слухачів одночасно",
+  "err.liveFull": "Ефір заповнено, спробуйте трохи пізніше",
 
   "err.badOffer": "Некоректне підключення",
 
