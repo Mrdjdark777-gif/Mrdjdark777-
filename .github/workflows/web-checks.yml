@@ -38,6 +38,14 @@ jobs:
       - run: node tests/api-integration.mjs
       - run: node tests/backup-integration.mjs
       - run: node tests/prune-orphans.mjs
+      # Решения об уведомлениях в приложении Android вынесены в чистый класс
+      # без Android: тест компилирует его настоящим javac и гоняет на JVM,
+      # поэтому SDK и эмулятор не нужны.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: node tests/android-push-logic.mjs
       - run: node tests/live-archive-integration.mjs
       - name: Install browser test tools
         run: |

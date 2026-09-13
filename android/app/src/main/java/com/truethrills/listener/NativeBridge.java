@@ -62,7 +62,7 @@ final class NativeBridge {
                         int preferences = args.optInt("preferences", 7);
                         if (preferences < 0 || preferences > 7) throw new Exception("#err.badPreferences");
                         String token = Tasks.await(FirebaseMessaging.getInstance().getToken(), 15, TimeUnit.SECONDS);
-                        PushClient.subscribe(activity, token, preferences, "it".equals(args.optString("locale")) ? "it" : "ru"); break;
+                        PushClient.subscribe(activity, token, preferences, PushPolicy.locale(args.optString("locale"))); break;
                     case "push.disable": PushClient.unsubscribe(activity); break;
                     case "push.test":
                         if (!PushService.allowed(activity)) throw new Exception("#err.notificationsBlocked");
@@ -84,30 +84,42 @@ final class NativeBridge {
         if (action != null) { if (PushService.allowed(activity)) action.run(); else reply.accept(error("#err.notificationsBlocked")); }
     }
     void resume() {
-        if (!closed) network.execute(() -> { try { String token = Tasks.await(FirebaseMessaging.getInstance().getToken(), 15, TimeUnit.SECONDS); PushClient.resubscribeQuietly(activity, token); } catch (Exception ignored) {} });
+        if (closed) return;
+        network.execute(() -> { try { String token = Tasks.await(FirebaseMessaging.getInstance().getToken(), 15, TimeUnit.SECONDS); PushClient.resubscribeQuietly(activity, token); } catch (Exception ignored) {} });
+        // Неудавшаяся при установке автоподписка — временная: пробуем снова.
+        autoEnableIfNeeded();
     }
     /**
-     * Вызывается один раз — сразу после того, как выдано системное разрешение
-     * на уведомления (или оно уже было выдано раньше) — чтобы «Разрешить» в
+     * Вызывается сразу после того, как выдано системное разрешение на
+     * уведомления (или оно уже было выдано раньше) — чтобы «Разрешить» в
      * диалоге и правда включало их, без похода слушателя в настройки
-     * приложения. Флаг переживает push.disable, поэтому если слушатель потом
-     * сам выключит уведомления, следующий запуск приложения не включит их
-     * обратно без его ведома.
+     * приложения.
+     *
+     * Отметка ставится только после удачной подписки. Первый запуск часто
+     * бывает без сети, и прежняя отметка «до попытки» тогда закрывала
+     * автоподписку навсегда: разрешение выдано, а уведомлений нет. Теперь
+     * неудача — временная, следующий запуск попробует снова.
+     *
+     * Выключил слушатель уведомления сам (push.disable оставляет muted) —
+     * ничего не включаем, это его решение.
      */
     void autoEnableIfNeeded() {
         SharedPreferences prefs = PushClient.prefs(activity);
-        if (prefs.getBoolean("auto-enable-tried", false)) return;
-        prefs.edit().putBoolean("auto-enable-tried", true).apply();
-        if (!PushService.allowed(activity)) return;
+        if (!PushPolicy.shouldAutoEnable(PushService.allowed(activity), prefs.getBoolean("auto-enable-done", false),
+                prefs.contains("id"), prefs.getBoolean("muted", false))) return;
+        if (closed) return;
         network.execute(() -> {
             try {
                 String token = Tasks.await(FirebaseMessaging.getInstance().getToken(), 15, TimeUnit.SECONDS);
-                PushClient.subscribe(activity, token, 7, "it".equals(java.util.Locale.getDefault().getLanguage()) ? "it" : "ru");
+                PushClient.subscribe(activity, token, 7, PushPolicy.locale(java.util.Locale.getDefault().toLanguageTag()));
+                prefs.edit().putBoolean("auto-enable-done", true).apply();
             } catch (Exception ignored) {
-                // Тихая попытка: если сети ещё нет, слушатель включит уведомления вручную позже.
+                // Сети ещё нет или сервер недоступен: отметка не поставлена,
+                // попытка повторится при следующем открытии приложения.
             }
         });
     }
+
     /**
      * Тап по нижней навигации отзывается коротким щелчком. EFFECT_CLICK — это
      * калиброванная производителем волна, а не просто «вибрируй N мс»: на

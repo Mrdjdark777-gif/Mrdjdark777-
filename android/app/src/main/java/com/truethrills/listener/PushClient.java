@@ -50,9 +50,19 @@ final class PushClient {
         if (p.contains("id")) post(new JSONObject().put("action", "unsubscribe").put("id", p.getString("id", "")), p.getString("manageToken", ""));
         p.edit().remove("id").remove("manageToken").remove("fcmToken").apply();
     }
+    /**
+     * Токен FCM меняется сам по себе, а язык телефона — по воле владельца
+     * телефона. И то и другое надо донести до сервера, иначе уведомление
+     * уйдёт на мёртвый токен или придёт не на том языке. Устройства,
+     * зарегистрированные сборкой, которая знала только «it или ru», переезжают
+     * на свой язык здесь же, без участия слушателя.
+     */
     static synchronized void resubscribeQuietly(Context context, String token) {
         SharedPreferences p = prefs(context);
-        if (!p.contains("id") || p.getBoolean("muted", false) || token.equals(p.getString("fcmToken", ""))) return;
-        try { subscribe(context, token, p.getInt("preferences", 7), p.getString("locale", "ru")); } catch (Exception ignored) { /* Retried when the app resumes. */ }
+        if (!p.contains("id") || p.getBoolean("muted", false)) return;
+        String locale = PushPolicy.locale(java.util.Locale.getDefault().toLanguageTag());
+        boolean sameToken = token.equals(p.getString("fcmToken", ""));
+        if (sameToken && !PushPolicy.shouldRefreshLocale(p.getString("locale", ""), java.util.Locale.getDefault().toLanguageTag())) return;
+        try { subscribe(context, token, p.getInt("preferences", 7), locale); } catch (Exception ignored) { /* Retried when the app resumes. */ }
     }
 }
