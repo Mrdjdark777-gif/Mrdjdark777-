@@ -32,21 +32,6 @@ const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 // Цвета сняты пипеткой с логотипа и лежат так же, как на нём самом: закат
 // наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
 // верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
-const RING_STOPS:[number,[number,number,number]][]=[
- [0,[0xFE,0x34,0x02]],[0.24,[0xFE,0x6F,0x03]],[0.48,[0xFD,0xB5,0x01]],
- [0.66,[0xFE,0xC6,0x03]],[0.84,[0x34,0xC6,0xAE]],[1,[0x6F,0xE7,0xDE]]];
-function ringColor(position:number){
- let a=RING_STOPS[0],b=RING_STOPS[RING_STOPS.length-1];
- for(let i=0;i<RING_STOPS.length-1;i++)if(position>=RING_STOPS[i][0]&&position<=RING_STOPS[i+1][0]){a=RING_STOPS[i];b=RING_STOPS[i+1];break;}
- const span=b[0]-a[0],k=span?(position-a[0])/span:0;
- return '#'+a[1].map((v,i)=>Math.round(v+(b[1][i]-v)*k).toString(16).padStart(2,'0')).join('');
-}
-// 32 полосы спектра разворачиваются в 64 луча зеркально — так круг симметричен
-// относительно вертикали. При rotate(0) луч смотрит вниз, поэтому смещение
-// 2,81° ставит бас внизу, середину по бокам, а верхние частоты наверху.
-// 64 столбика горизонтального спектра: центр — басы (бирюза), края — высокие
-// (закат), тот же градиент, что у логотипа.
-const SPECTRUM_COLORS=Array.from({length:64},(_,i)=>{const band=i<32?31-i:i-32;return ringColor(1-band/31);});
 export default function Studio(){
  const {t,tag}=useT();
  const noticeHandler=useRef<(url:string)=>Promise<void>>(async()=>{});
@@ -201,7 +186,7 @@ export default function Studio(){
  <div className={'live-disc '+(live.listening?'is-live':'')} role="status" aria-label={t('live.playing')}>
   <img className="live-disc-art" src={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:'/brand/logo.png?v=0.4.1'} alt="" width="200" height="200"/>
  </div>
- <LiveSpectrum levels={live.levels} colors={SPECTRUM_COLORS} active={live.listening}/>
+ <LiveSpectrum levels={live.levels} active={live.listening}/>
  {elapsed&&<div className="live-elapsed"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></div>}
  <div className="listener-playback-actions">{live.joined?<>
   <button className="round-control" aria-label={live.volume===0?t('live.unmute'):t('live.mute')} onClick={()=>live.setVolume(live.volume===0?100:0)}>{live.volume===0?<VolumeX size={22}/>:<Volume2 size={22}/>}</button>

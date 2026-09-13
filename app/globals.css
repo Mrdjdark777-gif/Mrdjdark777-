@@ -406,6 +406,6 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 @keyframes disc-breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
 /* Спектр в строку: 64 столбика, которые прыгают на месте в такт звуку. */
 .live-spectrum{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:56px}
-.live-spectrum>span{flex:1;min-width:0;border-radius:2px;transition:height .07s linear}
+.live-spectrum>span{flex:1;min-width:0;border-radius:2px;background:linear-gradient(#8FEFE8,#54D9C6);transition:height .07s linear}
 @media(prefers-reduced-motion:reduce){.live-disc.is-live::before{animation:none}}
 @media(max-width:767px){.live-spectrum{height:48px}.live-disc{--disc-size:min(206px,54vw)}}
