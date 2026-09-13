@@ -33,8 +33,8 @@ function androidCall(method:'enable'|'update'|'disable'|'test',preferences?:numb
 export function useNotifications(){
  const [supported,setSupported]=useState(false),[busy,setBusy]=useState(false),[enabled,setEnabled]=useState(false),[preferences,setPreferences]=useState(7),[message,setMessage]=useState('');
  const syncedLocale=useRef('');
- const [permitted,setPermitted]=useState(true),[subscribed,setSubscribed]=useState(false),[lastReceivedAt,setLastReceivedAt]=useState(0);
- const refreshNative=useCallback(async()=>{const state=await nativeCall<{enabled:boolean;permitted:boolean;subscribed:boolean;preferences:number;lastReceivedAt:number;locale:string}>('push.state');setEnabled(state.enabled);setPermitted(state.permitted);setSubscribed(state.subscribed);setPreferences(state.preferences);setLastReceivedAt(state.lastReceivedAt);const locale=runtimeLocale();if(state.enabled&&state.locale!==locale&&syncedLocale.current!==locale){syncedLocale.current=locale;await nativeCall('push.update',{preferences:state.preferences,locale});}},[]);
+ const [permitted,setPermitted]=useState(true),[subscribed,setSubscribed]=useState(false);
+ const refreshNative=useCallback(async()=>{const state=await nativeCall<{enabled:boolean;permitted:boolean;subscribed:boolean;preferences:number;locale:string}>('push.state');setEnabled(state.enabled);setPermitted(state.permitted);setSubscribed(state.subscribed);setPreferences(state.preferences);const locale=runtimeLocale();if(state.enabled&&state.locale!==locale&&syncedLocale.current!==locale){syncedLocale.current=locale;await nativeCall('push.update',{preferences:state.preferences,locale});}},[]);
  useEffect(()=>{
   if(hasNativeClient()){
    let active=true;const refresh=()=>{if(active)void refreshNative().then(()=>{if(active)setSupported(true);}).catch(()=>{});};
@@ -66,5 +66,5 @@ export function useNotifications(){
   if(window.AndroidPush){await androidCall('test');setMessage(t('notif.accepted'));return;}
   await api('notifications',{action:'test',id:saved()?.id},{headers:headers()});setMessage(t('notif.acceptedFull'));}catch(e){setMessage(errorText(e));}finally{setBusy(false);}}
  async function openSettings(){try{await nativeCall('push.settings');}catch(e){setMessage(errorText(e));}}
- return{permitted,subscribed,lastReceivedAt,openSettings,supported,busy,enabled,preferences,message,enable,disable,update,test};
+ return{permitted,subscribed,openSettings,supported,busy,enabled,preferences,message,enable,disable,update,test};
 }

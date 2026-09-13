@@ -99,8 +99,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "notif.openSettings": "Налаштування телефона",
 
-  "notif.lastReceived": "Останнє сповіщення прийнято телефоном",
-
   "player.rate": "Швидкість",
 
   "player.sleep": "Таймер сну",

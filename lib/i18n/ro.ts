@@ -99,8 +99,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "notif.openSettings": "Setările telefonului",
 
-  "notif.lastReceived": "Ultima notificare primită de telefon",
-
   "player.rate": "Viteză",
 
   "player.sleep": "Cronometru de adormire",

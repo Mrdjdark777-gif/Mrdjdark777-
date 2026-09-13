@@ -84,7 +84,6 @@ export const it: Record<keyof typeof ru, string> = {
 "err.playback": "Riproduzione non riuscita. Controlla la connessione e premi Riproduci.",
 "notif.blocked": "Il telefono blocca le notifiche di True Thrills.",
 "notif.openSettings": "Impostazioni del telefono",
-"notif.lastReceived": "Ultima notifica ricevuta dal telefono",
 "player.rate": "Velocità",
 "player.sleep": "Timer di spegnimento",
 "player.sleepOff": "Disattivato",

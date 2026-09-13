@@ -83,7 +83,6 @@ export const ru = {
 "err.playback": "Не удалось воспроизвести подкаст. Проверь соединение и нажми воспроизведение.",
 "notif.blocked": "Телефон блокирует уведомления True Thrills.",
 "notif.openSettings": "Настройки телефона",
-"notif.lastReceived": "Последнее уведомление принято телефоном",
 "player.rate": "Скорость",
 "player.sleep": "Таймер сна",
 "player.sleepOff": "Выключен",
