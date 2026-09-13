@@ -65,6 +65,10 @@ export default function Studio(){
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Источник картинки зависит от того, какой эфир сейчас в сети.
  useEffect(()=>{if(live.hosting&&!capture.ready){void live.stop().catch(()=>{});toast.error(t('live.micLost'));}},[capture.ready,live.hosting]);
  const load=useCallback(async()=>{try{const d=await api<Data>('library');setData(d);setError('');return d as Data;}catch(e){setError(errorText(e));return null;}},[]);
+ // Заставка держится минимум 900 мс, чтобы не мигать на быстрой сети, и
+ // гаснет после первого ответа сервера — успешного или с ошибкой.
+ const [splash,setSplash]=useState<'on'|'out'|'off'>('on'),bootAt=useRef(0);
+ useEffect(()=>{if(!bootAt.current)bootAt.current=Date.now();if(splash!=='on'||(!data&&!error))return;const timer=setTimeout(()=>{setSplash('out');setTimeout(()=>setSplash('off'),420);},Math.max(0,900-(Date.now()-bootAt.current)));return()=>clearTimeout(timer);},[data,error,splash]);
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial server synchronization updates loading/error state.
  useEffect(()=>{load().then(d=>{if(d){setDonationDraft(Object.fromEntries((d.donations??[]).map(x=>[x.kind,x.url])));setLinkDraft(Object.fromEntries((d.links??[]).map(l=>[l.kind,l.url])));const q=new URLSearchParams(location.search);setAndroidClient(q.get('client')==='android');if(q.get('mode')==='listen'){setAudience(true);setView(LISTEN_VIEWS.includes(q.get('view')??'')?q.get('view')!:'home');}else if(d.isOwner&&LISTEN_VIEWS.includes(q.get('view')||''))setView(q.get('view')!);else if(!d.isOwner&&!d.needsSetup)setView('home');if(q.has('post')||q.has('broadcast'))void noticeHandler.current(location.href);else if(hasNativeClient())void nativeCall<{id:string;active:boolean;playing:boolean;position:number;duration:number}>('player.state').then(state=>{if(state.active&&state.id.startsWith('live:')){setView('live');void live.listen(state.id.slice(5));return;}const post=d.items.find(p=>p.id===state.id&&p.kind==='podcast');if(post){saveProgress(post.id,state.position/1000,state.duration/1000);if(state.active&&state.playing)setPlaying(post);}}).catch(()=>{});}});const timer=setInterval(()=>void load(),15000);const resume=()=>{if(document.visibilityState==='visible')void load();};document.addEventListener('visibilitychange',resume);window.addEventListener('focus',resume);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume);};},[load]);
  useEffect(()=>{if(!('serviceWorker'in navigator))return;navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).catch(()=>{});const handler=(e:MessageEvent)=>{if(e.data?.type==='tt-notification'&&typeof e.data.url==='string')void noticeHandler.current(e.data.url);};navigator.serviceWorker.addEventListener('message',handler);return()=>navigator.serviceWorker.removeEventListener('message',handler);},[]);
@@ -121,9 +125,10 @@ export default function Studio(){
  return <>
  <Toaster theme="dark" richColors position="top-center"/>
  <div className="app-shell">
+ {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
-  <div className="top-header-brand"><img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/><span>True Thrills</span></div>
+  <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="46" height="46" alt=""/><span>True Thrills</span></button>
   <div className="top-header-actions">
    {view==='home'&&!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><Settings size={22}/></button>}
