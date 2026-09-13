@@ -210,7 +210,13 @@ try {
   const publicLive = await request('live', undefined, false, {}, '?status=1');
   assert.equal(publicLive.data.live.id, liveRes.data.id);
   assert.equal(publicLive.data.live.title, 'Test broadcast');
-  assert.deepEqual(Object.keys(publicLive.data.live).sort(), ['id', 'title']);
+  // Слушателю отдаём ещё и момент выхода в эфир: по нему на экране считается,
+  // сколько эфир уже идёт. Владельца эфира и прочие поля наружу не отдаём.
+  // Время берётся из записи эфира, а этот эфир запущен без неё — значит null,
+  // и экран слушателя просто не покажет счётчик. Настоящее время проверяет
+  // live-archive-integration на эфире с работающим воркером.
+  assert.deepEqual(Object.keys(publicLive.data.live).sort(), ['id', 'startedAt', 'title']);
+  assert.equal(publicLive.data.live.startedAt, null, 'без записи эфира времени начала нет');
   const cacheResponse = await dispatch('live', { search: '?status=1' });
   assert.equal(cacheResponse.headers.get('cache-control'), 'no-store');
   assert.equal((await request('live', { action: 'start', title: 'Duplicate' })).status, 400);

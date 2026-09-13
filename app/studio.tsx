@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Mic,Radio,BookOpen,Headphones,Settings,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
+import {Mic,Radio,BookOpen,Headphones,Settings,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,VolumeX,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -11,6 +11,7 @@ import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress} from '@/lib/listening-progress';
 import {ListenerHighlights} from '@/components/studio/listener-highlights';
+import {LiveHistory} from '@/components/studio/live-history';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-console';
@@ -24,7 +25,7 @@ import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type
 import {useT} from '@/components/i18n-provider';
 
 type Post={id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number};
-type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string}|null};
+type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;startedAt:number|null}|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
@@ -57,6 +58,11 @@ export default function Studio(){
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
  const [liveNow,setLiveNow]=useState<Data['live']>(null),[liveError,setLiveError]=useState(false);
  const liveStatus=liveNow;
+ // Сколько уже идёт эфир. Время берётся с сервера (момент выхода в эфир), а
+ // тикает локально раз в секунду — только пока открыта вкладка эфира.
+ const [now,setNow]=useState(0);
+ useEffect(()=>{if(view!=='live'||!liveStatus?.startedAt)return;const update=()=>setNow(Date.now());const first=setTimeout(update,0),timer=setInterval(update,1000);return()=>{clearTimeout(first);clearInterval(timer);};},[view,liveStatus?.startedAt]);
+ const elapsed=liveStatus?.startedAt&&now?clock(Math.max(0,Math.floor((now-liveStatus.startedAt)/1000))):'';
  const liveRequest=useRef(false);
  const refreshLive=useCallback(async()=>{if(liveRequest.current)return;liveRequest.current=true;try{const r=await api<{live:Data['live']}>('live?status=1');setLiveNow(r.live);setLiveError(false);}catch{setLiveError(true);}finally{liveRequest.current=false;}},[]);
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribe to server live state and fetch its initial snapshot.
@@ -140,7 +146,7 @@ export default function Studio(){
  {!data&&!error&&<div className="loading-state"><Loader2 className="spin"/>{t('common.loading')}</div>}
  {data?.needsSetup&&<section className="setup-card"><span className="eyebrow">{t('setup.eyebrow')}</span><h1 className="wrap-lines">{t('setup.title')}</h1><p>{t('setup.text')}</p>{data.signedIn?<button className="primary-button" onClick={()=>void setup()} disabled={saving}>{t('setup.cta')}<ArrowUpRight size={18}/></button>:<a className="primary-button" href="/login">{t('common.login')}</a>}<small>{t('setup.note')}</small></section>}
  {data&&!data.needsSetup&&<>
- {!(view==='home'&&!author)&&<div className="page-heading"><div><h1>{view==='home'?t('heading.homeAuthor'):view==='studio'?t('heading.studio'):view==='podcasts'?t('heading.podcasts'):view==='videos'?t('heading.videos'):view==='stories'?t('heading.stories'):view==='live'?t('heading.live'):t('heading.settings')}</h1><p className="heading-description">{view==='home'?t('desc.homeAuthor'):view==='studio'?t('desc.studio'):view==='podcasts'?(author?t('desc.podcastsAuthor'):t('desc.podcastsListener')):view==='videos'?(author?t('desc.videosAuthor'):t('desc.videosListener')):view==='stories'?(author?t('desc.storiesAuthor'):t('desc.storiesListener')):view==='live'?t('desc.live'):(author?t('desc.settingsAuthor'):t('desc.settingsListener'))}</p></div>{author&&view==='podcasts'&&<button className="primary-button" onClick={()=>fileInput.current?.click()}><Upload size={17}/>{t('studio.uploadEpisode')}</button>}{author&&view==='stories'&&<button className="primary-button" onClick={()=>openEditor('story')}><Plus size={18}/>{t('studio.newStory')}</button>}</div>}
+ {!((view==='home'||view==='live')&&!author)&&<div className="page-heading"><div><h1>{view==='home'?t('heading.homeAuthor'):view==='studio'?t('heading.studio'):view==='podcasts'?t('heading.podcasts'):view==='videos'?t('heading.videos'):view==='stories'?t('heading.stories'):view==='live'?t('heading.live'):t('heading.settings')}</h1><p className="heading-description">{view==='home'?t('desc.homeAuthor'):view==='studio'?t('desc.studio'):view==='podcasts'?(author?t('desc.podcastsAuthor'):t('desc.podcastsListener')):view==='videos'?(author?t('desc.videosAuthor'):t('desc.videosListener')):view==='stories'?(author?t('desc.storiesAuthor'):t('desc.storiesListener')):view==='live'?t('desc.live'):(author?t('desc.settingsAuthor'):t('desc.settingsListener'))}</p></div>{author&&view==='podcasts'&&<button className="primary-button" onClick={()=>fileInput.current?.click()}><Upload size={17}/>{t('studio.uploadEpisode')}</button>}{author&&view==='stories'&&<button className="primary-button" onClick={()=>openEditor('story')}><Plus size={18}/>{t('studio.newStory')}</button>}</div>}
  {liveError&&<div className="live-refresh-warning" role="status">{t('live.refreshFailed')}<button onClick={()=>void refreshLive()}>{t('common.refresh')}</button></div>}
  {liveStatus&&view!=='live'&&<button type="button" className="onair-banner onair-notice" onClick={openLive}><span className="onair-symbol"><Radio size={25}/></span><span className="onair-copy"><span className="onair-label">{live.joined&&live.activeId===liveStatus.id&&live.listening?t('live.youAreListening'):t('live.authorOnAir')}</span><strong>{liveStatus.title}</strong></span><span className="primary-button">{author?t('live.open'):live.joined&&live.activeId===liveStatus.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}<ChevronRight size={17}/></span></button>}
  {author&&live.hosting&&view!=='live'&&<div className="host-running-note">{t('live.micOnNote')}<button onClick={()=>void stopLive()}>{t('live.stop')}</button></div>}
@@ -188,13 +194,22 @@ export default function Studio(){
  {live.hosting?<><div className="broadcast-summary"><Headphones size={20}/><strong>{live.listeners}</strong><span>{live.listeners?t('live.listenersConnected'):t('live.waitingFirst')}</span></div><div className="listener-link-actions"><a className="secondary-button" href="/?mode=listen&view=live" target="_blank" rel="noopener noreferrer"><Eye size={17}/>{t('live.openListener')}</a><button className="quiet-button" onClick={()=>void copyListenerLink()}>{t('live.copyLink')}</button></div><button className="primary-button stop-live-button" disabled={live.connecting} onClick={()=>void stopLive()}><Square size={17}/>{live.connecting?t('liveArchive.saving'):t('live.stop')}</button></>:<div className="preflight-actions"><button className="secondary-button" disabled={capture.busy||live.connecting||capture.recording} onClick={()=>capture.ready?capture.release():void capture.connect()}><Volume2 size={17}/>{capture.busy?t('live.connectingShort'):capture.ready?t('live.stopCheck'):t('live.checkMic')}</button><button className="primary-button" disabled={live.connecting||capture.recording||capture.busy||capture.discovering} onClick={()=>void startLive()}>{live.connecting?<Loader2 className="spin" size={18}/>:<Radio size={18}/>}{t('live.start')}</button></div>}
  {liveStatus&&!live.hosting&&<button className="quiet-button" onClick={()=>void run(async()=>{await api('live',{action:'stop',id:liveStatus!.id});await refreshLive();},t('live.stopped'))}>{t('live.stopFromOtherWindow')}</button>}
  </>:<>
- <div className={'session-status '+(live.phase==='playing'?'is-onair':'')} role="status"><Headphones size={25}/><div><strong>{live.phase==='playing'?t('live.listeningNow'):live.phase==='paused'?t('live.paused'):live.phase==='reconnecting'?t('live.reconnecting'):live.phase==='connecting'||live.phase==='waiting'?t('live.connectingState'):live.phase==='blocked'?t('live.needSound'):live.phase==='error'?t('live.connectFailed'):live.phase==='ended'?t('live.ended'):liveStatus?t('live.authorOnAirPlain'):t('live.noneNow')}</strong><span>{live.status||(liveStatus?t('live.tapToConnect'):t('live.willAppearHere'))}</span></div></div>
- <h2>{liveStatus?.title??'True Thrills Live'}</h2>
- <div className="listener-playback-actions">{live.joined?<>{live.listening?<button className="primary-button" onClick={live.pause}><Pause size={20}/>{t('live.pause')}</button>:live.phase==='paused'||live.phase==='blocked'||live.phase==='error'?<button className="primary-button" onClick={()=>void live.resume()}><Play size={20}/>{live.phase==='blocked'?t('live.enableSound'):t('live.resume')}</button>:<button className="primary-button" disabled aria-busy="true"><Loader2 className="spin" size={20}/>{live.phase==='reconnecting'?t('live.reconnectingShort'):t('live.connecting')}</button>}<button className="quiet-button" onClick={live.leave}>{live.connecting||live.phase==='waiting'||live.phase==='reconnecting'?t('common.cancel'):t('live.leave')}</button></>:liveStatus?<button className="primary-button" onClick={openLive}><Headphones size={20}/>{live.phase==='error'?t('live.tryAgain'):t('live.listen')}</button>:null}</div>
- {live.listening&&<div className="live-ring" role="status" aria-label={t('live.playing')}>
+ <div className={'session-status '+(live.phase==='playing'?'is-onair':'')} role="status"><span className="stage-dot" aria-hidden="true"/><strong>{live.phase==='playing'?t('live.listeningNow'):live.phase==='paused'?t('live.paused'):live.phase==='reconnecting'?t('live.reconnecting'):live.phase==='connecting'||live.phase==='waiting'?t('live.connectingState'):live.phase==='blocked'?t('live.needSound'):live.phase==='error'?t('live.connectFailed'):live.phase==='ended'?t('live.ended'):liveStatus?t('live.authorOnAirPlain'):t('live.noneNow')}</strong></div>
+ <h2 className="live-stage-title">{liveStatus?.title??'True Thrills Live'}</h2>
+ <p className="live-stage-note">{live.status||(liveStatus?t('live.tapToConnect'):t('live.willAppearHere'))}</p>
+ <div className={'live-ring '+(live.listening?'is-live':'')} role="status" aria-label={t('live.playing')}>
   <img className="live-ring-logo" src="/brand/logo.png?v=0.4.1" alt="" width="120" height="120"/>
-  {RING.map(({band,angle,color},i)=><span key={i} aria-hidden="true" style={{transform:`rotate(${angle}deg) translateY(var(--ring-r))`,height:(2+(live.levels[band]??0)*20).toFixed(2)+'%',background:color}}/>)}
- </div>}
+  {RING.map(({band,angle,color},i)=><span key={i} aria-hidden="true" style={{transform:`rotate(${angle}deg) translateY(var(--ring-r))`,height:(2+(live.listening?live.levels[band]??0:0)*20).toFixed(2)+'%',background:color}}/>)}
+ </div>
+ <LiveHistory levels={live.levels} active={live.listening}/>
+ {elapsed&&<div className="live-elapsed"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></div>}
+ <div className="listener-playback-actions">{live.joined?<>
+  <button className="round-control" aria-label={live.volume===0?t('live.unmute'):t('live.mute')} onClick={()=>live.setVolume(live.volume===0?100:0)}>{live.volume===0?<VolumeX size={22}/>:<Volume2 size={22}/>}</button>
+  {live.listening?<button className="primary-button live-play" aria-label={t('live.pause')} onClick={live.pause}><Pause size={30} fill="currentColor"/></button>
+   :live.phase==='paused'||live.phase==='blocked'||live.phase==='error'?<button className="primary-button live-play" aria-label={live.phase==='blocked'?t('live.enableSound'):t('live.resume')} onClick={()=>void live.resume()}><Play size={30} fill="currentColor"/></button>
+   :<button className="primary-button live-play" disabled aria-busy="true" aria-label={t('live.connecting')}><Loader2 className="spin" size={28}/></button>}
+  <button className="round-control" aria-label={live.connecting||live.phase==='waiting'||live.phase==='reconnecting'?t('common.cancel'):t('live.leave')} onClick={live.leave}><LogOut size={22}/></button>
+ </>:liveStatus?<button className="primary-button live-play" aria-label={live.phase==='error'?t('live.tryAgain'):t('live.listen')} onClick={openLive}><Play size={30} fill="currentColor"/></button>:null}</div>
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  <div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/>{t('live.volume')}<span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>
 

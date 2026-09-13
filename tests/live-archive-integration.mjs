@@ -26,7 +26,13 @@ try{
  await writeFile(path.join(process.env.STORAGE_DIR,coverKey),coverBytes);
  await writeFile(path.join(process.env.STORAGE_DIR,coverKey+'.meta.json'),JSON.stringify({contentType:'image/png',customMetadata:{owner:auth.sessionUserId(sessionReq)},size:coverBytes.length,etag:'test-cover'}));
  const fixture=path.join(dir,'sample.webm');execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','14','-c:a','libopus','-b:a','128k','-f','webm',fixture]);const bytes=await readFile(fixture);
+ const startedBefore=Date.now();
  const id=await start('Archived test',coverKey),size=24000;
+ // Экран слушателя показывает, сколько эфир уже идёт. Время берётся отсюда, и
+ // это настоящий момент выхода в эфир, а не время открытия страницы.
+ {const status=await (await call(live,'GET',undefined,'?status=1',false)).json();
+  assert.equal(status.live.id,id);
+  assert.ok(status.live.startedAt>=startedBefore&&status.live.startedAt<=Date.now(),'время начала эфира должно попадать в момент запуска');}
  assert.equal((await call(stream,'POST',bytes.subarray(0,size),'?id='+id+'&seq=0',false)).status,403);
  let seq=0;
  for(let i=0;i<bytes.length;i+=size){const chunk=bytes.subarray(i,i+size),query='?id='+id+'&seq='+seq;

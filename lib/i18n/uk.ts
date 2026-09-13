@@ -343,6 +343,12 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.volume": "Гучність",
 
+
+  "live.onAirFor": "в ефірі",
+
+  "live.mute": "Вимкнути звук",
+
+  "live.unmute": "Увімкнути звук",
   "live.volumeAria": "Гучність ефіру",
 
   "live.infoAuthor": "Контроль ефіру",

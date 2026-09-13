@@ -343,6 +343,12 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.volume": "Volum",
 
+
+  "live.onAirFor": "în direct",
+
+  "live.mute": "Oprește sunetul",
+
+  "live.unmute": "Pornește sunetul",
   "live.volumeAria": "Volumul emisiunii",
 
   "live.infoAuthor": "Controlul emisiunii",
