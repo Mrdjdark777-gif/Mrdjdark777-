@@ -11,7 +11,7 @@ import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress} from '@/lib/listening-progress';
 import {ListenerHighlights} from '@/components/studio/listener-highlights';
-import {LiveHistory} from '@/components/studio/live-history';
+import {LiveSpectrum} from '@/components/studio/live-spectrum';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-console';
@@ -25,7 +25,7 @@ import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type
 import {useT} from '@/components/i18n-provider';
 
 type Post={id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number};
-type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;startedAt:number|null}|null};
+type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;startedAt:number|null;cover:boolean}|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
@@ -44,8 +44,9 @@ function ringColor(position:number){
 // 32 полосы спектра разворачиваются в 64 луча зеркально — так круг симметричен
 // относительно вертикали. При rotate(0) луч смотрит вниз, поэтому смещение
 // 2,81° ставит бас внизу, середину по бокам, а верхние частоты наверху.
-const RING=Array.from({length:64},(_,i)=>{const band=i<32?i:63-i;
- return{band,angle:i*5.625+2.8125,color:ringColor(1-band/31)};});
+// 64 столбика горизонтального спектра: центр — басы (бирюза), края — высокие
+// (закат), тот же градиент, что у логотипа.
+const SPECTRUM_COLORS=Array.from({length:64},(_,i)=>{const band=i<32?31-i:i-32;return ringColor(1-band/31);});
 export default function Studio(){
  const {t,tag}=useT();
  const noticeHandler=useRef<(url:string)=>Promise<void>>(async()=>{});
@@ -197,11 +198,10 @@ export default function Studio(){
  <div className={'session-status '+(live.phase==='playing'?'is-onair':'')} role="status"><span className="stage-dot" aria-hidden="true"/><strong>{live.phase==='playing'?t('live.listeningNow'):live.phase==='paused'?t('live.paused'):live.phase==='reconnecting'?t('live.reconnecting'):live.phase==='connecting'||live.phase==='waiting'?t('live.connectingState'):live.phase==='blocked'?t('live.needSound'):live.phase==='error'?t('live.connectFailed'):live.phase==='ended'?t('live.ended'):liveStatus?t('live.authorOnAirPlain'):t('live.noneNow')}</strong></div>
  <h2 className="live-stage-title">{liveStatus?.title??'True Thrills Live'}</h2>
  <p className="live-stage-note">{live.status||(liveStatus?t('live.tapToConnect'):t('live.willAppearHere'))}</p>
- <div className={'live-ring '+(live.listening?'is-live':'')} role="status" aria-label={t('live.playing')}>
-  <img className="live-ring-logo" src="/brand/logo.png?v=0.4.1" alt="" width="120" height="120"/>
-  {RING.map(({band,angle,color},i)=><span key={i} aria-hidden="true" style={{transform:`rotate(${angle}deg) translateY(var(--ring-r))`,height:(2+(live.listening?live.levels[band]??0:0)*20).toFixed(2)+'%',background:color}}/>)}
+ <div className={'live-disc '+(live.listening?'is-live':'')} role="status" aria-label={t('live.playing')}>
+  <img className="live-disc-art" src={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:'/brand/logo.png?v=0.4.1'} alt="" width="200" height="200"/>
  </div>
- <LiveHistory levels={live.levels} active={live.listening}/>
+ <LiveSpectrum levels={live.levels} colors={SPECTRUM_COLORS} active={live.listening}/>
  {elapsed&&<div className="live-elapsed"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></div>}
  <div className="listener-playback-actions">{live.joined?<>
   <button className="round-control" aria-label={live.volume===0?t('live.unmute'):t('live.mute')} onClick={()=>live.setVolume(live.volume===0?100:0)}>{live.volume===0?<VolumeX size={22}/>:<Volume2 size={22}/>}</button>

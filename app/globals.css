@@ -104,14 +104,9 @@ body {
 .record-device-area{padding:20px 25px;background:#1c1d21;border-bottom:1px solid #303137}.device-discovery{display:flex;align-items:flex-start;gap:8px;flex-direction:column;margin-top:10px}.device-discovery small{font-size:12px;line-height:1.6;color:#a9aeba}.device-discovery .quiet-button{font-size:13px;padding:5px 0}.device-discovery .secondary-button{font-size:13px;white-space:normal}.audio-controls-panel{width:100%;display:flex;flex-direction:column;gap:20px;padding:7px 0 4px}.gain-control>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.gain-control label{font-size:14px}.gain-control strong{font-family:ui-monospace,monospace;font-size:14px;color:#6FE7DE}.gain-control [data-slot=slider]{padding:5px 0}.mic-toggles{display:flex;flex-wrap:wrap;gap:18px}.mic-toggles label{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer}.mic-toggles svg{color:#aaa}.signal-console{width:100%;padding:18px 0}.signal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;letter-spacing:.05em;color:#a8afbc}.signal-head strong{font-size:13px;font-family:ui-monospace,monospace;letter-spacing:0}.signal-head .clipping,.clip-notice{color:#ff9883}.clip-notice{font-size:13px;margin-top:13px;line-height:1.6}.signal-console .waveform{height:94px;margin-top:12px}.wave-inactive span{background:#696369}.live-console{gap:24px;padding:27px!important;background:#1b1c20}.live-console>.mic-setup{width:100%}.live-console>.field{width:100%}.session-status{width:100%;display:flex;align-items:center;gap:13px;padding:17px;border:1px solid #4b4849;background:#242429;border-radius:9px}.session-status>svg{flex-shrink:0;color:#beb8b2}.session-status div{min-width:0;display:flex;flex-direction:column;gap:5px}.session-status strong{font-size:19px;font-weight:600}.session-status span{font-size:13px;line-height:1.6;color:#b5b0b3}.session-status.is-onair{border-color:#93513d;background:#37241f}.session-status.is-onair>svg{color:#ff9a7c}.session-status .live-timer{margin-left:auto;font-family:ui-monospace,monospace;font-size:21px;color:#ffc2aa;white-space:nowrap}.broadcast-summary{width:100%;display:flex;align-items:center;gap:10px;padding:16px;background:#1c1e21;border-radius:7px;font-size:14px}.broadcast-summary>strong{font-size:24px}.broadcast-summary>span{color:#b5bbc8}.broadcast-summary>svg{color:#6FE7DE}.preflight-actions,.listener-playback-actions{display:flex;align-items:center;justify-content:center;gap:13px;width:100%;flex-wrap:wrap}.stop-live-button{width:100%}.listener-volume{width:100%;padding:10px 0}.listener-volume>label{display:flex;align-items:center;gap:9px;margin-bottom:17px;font-size:15px}.listener-volume>label>span{margin-left:auto;color:#6FE7DE}.receiving-status{align-self:flex-start;color:#ffc18d;font-size:14px}
 /* Настоящая звуковая волна: высоты полосок приходят из плеера, поэтому здесь
    нет анимации — движение задаёт сам звук. transition сглаживает шаг опроса. */
-.live-ring{position:relative;align-self:center;flex-shrink:0;--ring-size:min(300px,74vw);--ring-r:calc(var(--ring-size)*.25);width:var(--ring-size);height:var(--ring-size)}
 /* Мягкое свечение общим фоном, а не тенью на каждом из 64 лучей: 64 тени
    заметно грузят телефон, а выглядит это одинаково. */
-.live-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle closest-side,rgba(255,196,60,.07),rgba(111,231,222,.09) 55%,transparent 78%)}
-.live-ring::after{content:'';position:absolute;left:50%;top:50%;width:calc(var(--ring-r)*2);height:calc(var(--ring-r)*2);transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(111,231,222,.26)}
-.live-ring-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44%;height:44%;object-fit:contain;z-index:1}
-.live-ring>span{position:absolute;left:50%;top:50%;width:3px;margin-left:-1.5px;transform-origin:50% 0;border-radius:2px;transition:height .07s linear}
-@media(prefers-reduced-motion:reduce){.live-ring>span{transition:none}}.live-console .listener-link-actions{width:100%}.live-main-panel .signal-console .clip-notice{text-align:left}.settings-grid:has(>section:only-child){grid-template-columns:minmax(0,750px)}@media(max-width:767px){.record-device-area{padding:20px 17px}.live-console{padding:21px 17px!important}.session-status{padding:15px 12px;gap:10px;flex-wrap:wrap}.session-status strong{font-size:18px}.session-status .live-timer{font-size:20px}.preflight-actions>button,.listener-playback-actions>button{flex:1;min-width:140px}.mic-toggles{gap:20px}.mic-toggles label{font-size:14px}.signal-head{font-size:12px}.signal-head strong{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.live-spectrum>span{transition:none}}.live-console .listener-link-actions{width:100%}.live-main-panel .signal-console .clip-notice{text-align:left}.settings-grid:has(>section:only-child){grid-template-columns:minmax(0,750px)}@media(max-width:767px){.record-device-area{padding:20px 17px}.live-console{padding:21px 17px!important}.session-status{padding:15px 12px;gap:10px;flex-wrap:wrap}.session-status strong{font-size:18px}.session-status .live-timer{font-size:20px}.preflight-actions>button,.listener-playback-actions>button{flex:1;min-width:140px}.mic-toggles{gap:20px}.mic-toggles label{font-size:14px}.signal-head{font-size:12px}.signal-head strong{font-size:12px}}
 
 .onair-notice{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}.onair-notice:hover{border-color:#f39a7f}.onair-notice:focus-visible{outline:3px solid #ffb69c;outline-offset:4px}.onair-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}.onair-notice .primary-button{pointer-events:none}.listener-main .listener-playback-actions{flex-direction:column}.listener-main .listener-playback-actions>.primary-button{width:100%;min-height:54px;font-size:17px}.listener-main .listener-playback-actions>.quiet-button{min-height:44px;flex:none}.listener-main .session-status span{font-size:14px}.listener-main .live-info p{font-size:16px}.listener-main .live-console{gap:18px}@media(max-width:767px){.listener-main .listener-playback-actions>button{flex:none}.onair-notice .primary-button{min-height:50px}.listener-main .page-heading{margin-bottom:20px}}
 
@@ -376,10 +371,6 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  /* Длинное название не должно сдвигать плеер за край экрана. */
  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .live-stage-note{font-size:13px;color:#9297a1;text-align:center;line-height:1.5;margin:-14px 0 0}
-.live-ring.is-live::before{animation:ring-breathe 3.4s ease-in-out infinite}
-@keyframes ring-breathe{0%,100%{opacity:.75}50%{opacity:1}}
-.live-history{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:46px}
-.live-history>span{flex:1;min-width:0;border-radius:2px;background:linear-gradient(#6FE7DE,#54D9C6);transition:height .1s linear}
 .live-elapsed{display:flex;align-items:baseline;gap:9px;margin-top:-6px}
 .live-elapsed strong{font-family:ui-monospace,Consolas,monospace;font-size:23px;font-weight:400;letter-spacing:-.03em;color:#e8eaee;font-variant-numeric:tabular-nums}
 .live-elapsed span{font-size:12px;letter-spacing:.12em;color:#878c95}
@@ -394,11 +385,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  .live-console .listener-playback-actions>button{flex:none;min-width:0}
  .live-console .listener-playback-actions>.primary-button{width:74px;height:74px;min-height:0;font-size:0}
  .live-stage-title{font-size:24px}
- .live-history{height:40px}
  /* Плеер эфира должен помещаться в первый экран целиком: кольцо, полоса,
     время и кнопки. Блок поддержки ниже — за него можно и пролистнуть. */
  .listener-main .live-console{gap:12px;padding:18px 16px!important}
- .live-ring{--ring-size:min(215px,55vw)}
  .live-stage-note{margin-top:-8px}
  /* Громкость в одну строку: иконка, ползунок, проценты. Слово «Громкость»
     рядом с ползунком ничего не добавляет, а строку занимает. */
@@ -407,3 +396,16 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  .live-console .listener-volume>label>span{margin:0;font-size:13px}
  .live-console .listener-volume>:last-child{flex:1}
 }
+
+/* Диск эфира: круглая обложка эфира (или логотип, если обложки нет) с тонким
+   кольцом и мягким свечением, которое дышит, пока идёт звук. */
+.live-disc{position:relative;align-self:center;flex-shrink:0;--disc-size:min(260px,64vw);width:var(--disc-size);height:var(--disc-size);border-radius:50%;padding:6px;border:1px solid rgba(111,231,222,.35);background:radial-gradient(circle closest-side,rgba(255,196,60,.08),rgba(111,231,222,.08) 60%,transparent 78%)}
+.live-disc::before{content:'';position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle closest-side,rgba(111,231,222,.22),transparent 72%);opacity:.6}
+.live-disc.is-live::before{animation:disc-breathe 3.2s ease-in-out infinite}
+.live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#101113;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
+@keyframes disc-breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+/* Спектр в строку: 64 столбика, которые прыгают на месте в такт звуку. */
+.live-spectrum{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:56px}
+.live-spectrum>span{flex:1;min-width:0;border-radius:2px;transition:height .07s linear}
+@media(prefers-reduced-motion:reduce){.live-disc.is-live::before{animation:none}}
+@media(max-width:767px){.live-spectrum{height:48px}.live-disc{--disc-size:min(206px,54vw)}}

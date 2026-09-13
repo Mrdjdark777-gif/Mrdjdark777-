@@ -215,7 +215,8 @@ try {
   // Время берётся из записи эфира, а этот эфир запущен без неё — значит null,
   // и экран слушателя просто не покажет счётчик. Настоящее время проверяет
   // live-archive-integration на эфире с работающим воркером.
-  assert.deepEqual(Object.keys(publicLive.data.live).sort(), ['id', 'startedAt', 'title']);
+  assert.deepEqual(Object.keys(publicLive.data.live).sort(), ['cover', 'id', 'startedAt', 'title']);
+  assert.equal(publicLive.data.live.cover, false, 'эфир запущен без обложки');
   assert.equal(publicLive.data.live.startedAt, null, 'без записи эфира времени начала нет');
   const cacheResponse = await dispatch('live', { search: '?status=1' });
   assert.equal(cacheResponse.headers.get('cache-control'), 'no-store');
