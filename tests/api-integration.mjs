@@ -318,6 +318,62 @@ try {
    getDb().$client.prepare("UPDATE push_outbox SET available_at=0 WHERE state='pending'").run();responseStatus=410;await push.flushPush();assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(sub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
 
+  // Предел устройств и скорость рассылки — одно решение, а не два.
+  //
+  // Уведомление о начале эфира живёт 120 секунд: всё, что очередь не успела
+  // разослать, протухает молча. Прежние 20 заданий за тик по 5 одновременно
+  // давали около четырёх в секунду — тысяча устройств не успевала и
+  // наполовину. Здесь очередь заполняется тысячей заданий и должна уйти
+  // целиком за один вызов.
+  {
+   const db=getDb().$client;
+   db.prepare('DELETE FROM push_subscriptions').run();db.prepare('DELETE FROM push_outbox').run();db.prepare('DELETE FROM push_events').run();
+   // Один ключ на все записи: проверяется пропускная способность очереди, а
+   // не криптография — её разбирает соседний блок, по-настоящему расшифровывая
+   // доставленное сообщение.
+   const bulkKeys={p256dh:client.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')};
+   const insert=db.prepare("INSERT INTO push_subscriptions(id,manage_hash,subscription,kind,locale,preferences,created_at) VALUES(?,?,?,'webpush','ru',7,?)");
+   db.transaction(()=>{for(let i=0;i<1000;i++)insert.run('device-'+i,'hash-'+i,JSON.stringify({endpoint:'https://fcm.googleapis.com/fcm/send/bulk-'+i,keys:bulkKeys}),Date.now());})();
+   const originalFcm=globalThis.fetch;let delivered=0;
+   globalThis.fetch=async()=>{delivered++;return new Response(null,{status:200});};
+   try{
+    const before=Date.now();
+    db.prepare("INSERT INTO push_events(id,created_at) VALUES('bulk',?)").run(before);
+    const payload=JSON.stringify({titleKey:'push.liveTitle',body:'Эфир',url:'/',tag:'live:bulk'});
+    db.prepare("INSERT INTO push_outbox(id,subscription_id,payload,origin,category,expires_at) SELECT 'bulk:'||id,id,?,'https://truethrills.com',1,? FROM push_subscriptions").run(payload,before+120000);
+    await push.flushPush();
+    assert.equal(delivered,1000,'вся тысяча должна уйти за один проход очереди, пока уведомление ещё живо');
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM push_outbox WHERE state='pending'").get().n,0);
+   }finally{globalThis.fetch=originalFcm;}
+
+   // Предел устройств задаётся настройкой, а не вшит в запрос.
+   db.prepare('DELETE FROM push_subscriptions').run();db.prepare('DELETE FROM push_outbox').run();db.prepare('DELETE FROM push_events').run();
+   assert.equal(push.deviceLimit(),1000,'по умолчанию тысяча');
+   process.env.PUSH_DEVICE_LIMIT='2';assert.equal(push.deviceLimit(),2);
+   const device=async(n)=>{const c=createECDH('prime256v1');c.generateKeys();
+    return request('notifications',{action:'subscribe',subscription:{endpoint:'https://fcm.googleapis.com/fcm/send/limit-'+n,keys:{p256dh:c.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')}},preferences:7},false);};
+   assert.equal((await device(1)).status,200);
+   assert.equal((await device(2)).status,200);
+   const overflow=await device(3);assert.equal(overflow.status,400);assert.equal(overflow.data.error,'#err.deviceLimit');
+   process.env.PUSH_DEVICE_LIMIT='3';
+   assert.equal((await device(3)).status,200,'поднятая настройка должна пускать новое устройство без правки кода');
+   for(const bad of ['0','-1','нет','1.5']){process.env.PUSH_DEVICE_LIMIT=bad;assert.throws(()=>push.deviceLimit(),/PUSH_DEVICE_LIMIT/,bad);}
+   delete process.env.PUSH_DEVICE_LIMIT;
+
+   // Частая регистрация с одного адреса — это не слушатель. Свой телефон
+   // человек перерегистрирует редко, десяти попыток в час хватает с запасом.
+   db.prepare('DELETE FROM push_subscriptions').run();db.prepare('DELETE FROM rate_limits').run();
+   const fromIp=async(n)=>{const c=createECDH('prime256v1');c.generateKeys();
+    return request('notifications',{action:'subscribe',subscription:{endpoint:'https://fcm.googleapis.com/fcm/send/flood-'+n,keys:{p256dh:c.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')}},preferences:7},false,{'x-real-ip':'198.51.100.7'});};
+   for(let i=0;i<10;i++)assert.equal((await fromIp(i)).status,200,'попытка '+i);
+   const flooded=await fromIp(10);
+   assert.equal(flooded.status,429);assert.equal(flooded.data.error,'#err.subscribeLimited');assert.ok(Number(flooded.headers.get('retry-after'))>0);
+   // Другой адрес не должен страдать из-за соседа.
+   const c=createECDH('prime256v1');c.generateKeys();
+   assert.equal((await request('notifications',{action:'subscribe',subscription:{endpoint:'https://fcm.googleapis.com/fcm/send/other',keys:{p256dh:c.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')}},preferences:7},false,{'x-real-ip':'203.0.113.9'})).status,200);
+   db.prepare('DELETE FROM rate_limits').run();db.prepare('DELETE FROM push_subscriptions').run();
+  }
+
   const {generateKeyPairSync,createVerify}=await import('node:crypto');
   const {writeFile}=await import('node:fs/promises');
   const {publicKey:fcmPub,privateKey:fcmPriv}=generateKeyPairSync('rsa',{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}});
@@ -359,7 +415,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

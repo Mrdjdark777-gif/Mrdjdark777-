@@ -1,4 +1,4 @@
-import {consumeLoginAttempt,resetLoginAttempts} from '@/lib/login-limit';
+import {consumeLoginAttempt,resetLoginAttempts} from '@/lib/rate-limit';
 import { clearSessionCookie, createSessionCookie, verifyPassword } from '@/lib/auth';
 import { failure, originCheck, result } from '@/lib/server';
 

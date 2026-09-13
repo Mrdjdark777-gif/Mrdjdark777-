@@ -1,6 +1,7 @@
 import {getDb} from '@/db';
 import {failure,originCheck,result} from '@/lib/server';
-import {newDeviceToken,pushKeys,renderNotice,sendFcmNotice,sendNotice,siteOrigin,tokenHash,validateFcmToken,validateSubscription} from '@/lib/push';
+import {deviceLimit,newDeviceToken,pushKeys,renderNotice,sendFcmNotice,sendNotice,siteOrigin,tokenHash,validateFcmToken,validateSubscription} from '@/lib/push';
+import {consumeSubscribeAttempt} from '@/lib/rate-limit';
 import {DEFAULT_LOCALE,isLocale,localeFromHeader} from '@/lib/i18n';
 export const runtime='nodejs';
 const db=()=>getDb().$client;
@@ -13,6 +14,10 @@ export async function GET(req:Request){try{
 export async function POST(req:Request){try{
  originCheck(req);const d=await req.json() as Record<string,unknown>;
  if(d.action==='subscribe'){
+  // Своё устройство человек перерегистрирует редко; частые попытки с одного
+  // адреса — это не слушатель, а попытка забить предел устройств.
+  const wait=consumeSubscribeAttempt(req);
+  if(wait)return result({error:'#err.subscribeLimited'},429,{'Retry-After':String(wait)});
   const kind=d.kind==='fcm'?'fcm':'webpush';
   let id:string,subJson:string;
   if(kind==='fcm'){const fcmToken=validateFcmToken(d.token);id=tokenHash(fcmToken);subJson=JSON.stringify({token:fcmToken});}
@@ -30,8 +35,8 @@ export async function POST(req:Request){try{
     if(!removed.changes)throw new Error('#err.subscriptionOther');
    }
    const row=db().prepare(`INSERT INTO push_subscriptions(id,manage_hash,subscription,kind,locale,preferences,created_at)
-   SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM push_subscriptions WHERE id=?) OR (SELECT COUNT(*) FROM push_subscriptions)<100
-   ON CONFLICT(id) DO UPDATE SET preferences=excluded.preferences,subscription=excluded.subscription,locale=excluded.locale WHERE push_subscriptions.manage_hash=excluded.manage_hash RETURNING id`).get(id,manageHash,subJson,kind,locale,preferences,Date.now(),id);
+   SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM push_subscriptions WHERE id=?) OR (SELECT COUNT(*) FROM push_subscriptions)<?
+   ON CONFLICT(id) DO UPDATE SET preferences=excluded.preferences,subscription=excluded.subscription,locale=excluded.locale WHERE push_subscriptions.manage_hash=excluded.manage_hash RETURNING id`).get(id,manageHash,subJson,kind,locale,preferences,Date.now(),id,deviceLimit());
   if(!row)throw new Error('#err.deviceLimit');return row;})();
   if(!saved)throw new Error('#err.deviceLimit');return result({id,token,preferences});
  }

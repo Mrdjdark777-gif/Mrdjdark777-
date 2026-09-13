@@ -912,7 +912,8 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "err.badPreferences": "Некоректні налаштування",
 
-  "err.deviceLimit": "Ліміт пілота — 100 пристроїв зі сповіщеннями.",
+  "err.deviceLimit": "Досягнуто межі пристроїв зі сповіщеннями.",
+  "err.subscribeLimited": "Забагато спроб підписки. Спробуйте пізніше.",
 
   "err.subscriptionMissing": "Підписку не знайдено",
 

@@ -63,6 +63,20 @@ export async function pushKeys(){
   sql().prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('push-vapid',?)").run(JSON.stringify({publicKey,privateKey}));row=sql().prepare("SELECT value FROM settings WHERE key='push-vapid'").get() as {value:string};}
  return JSON.parse(row.value) as {publicKey:string;privateKey:string};
 }
+/**
+ * Сколько устройств могут получать уведомления. Число не про место в базе —
+ * строка занимает байты, — а про то, сколько человек успеет узнать о начале
+ * эфира: у этого уведомления срок годности 120 секунд, и всё, что очередь не
+ * успела разослать, тихо протухает. Поэтому предел и скорость рассылки ниже
+ * меняются вместе.
+ */
+export function deviceLimit(){
+ const raw=process.env.PUSH_DEVICE_LIMIT;
+ if(raw===undefined)return 1000;
+ const value=Number(raw);
+ if(!Number.isInteger(value)||value<1)throw new Error('PUSH_DEVICE_LIMIT должен быть целым числом больше нуля.');
+ return value;
+}
 export function enqueueNotice(event:string,category:number,notice:Notice,origin:string,ttl:number){
  sql().transaction(()=>{
   const created=sql().prepare('INSERT OR IGNORE INTO push_events(id,created_at) VALUES (?,?)').run(event,Date.now());if(!created.changes)return;
@@ -75,9 +89,18 @@ export async function sendNotice(subscription:PushSubscription,notice:RenderedNo
  const options=await buildPushPayload({data:JSON.stringify(notice),options:{ttl,urgency:notice.tag.startsWith('live:')?'high':'normal'}},validateSubscription(subscription),{...await pushKeys(),subject:origin});
  return fetch(subscription.endpoint,{...options,redirect:'manual',signal:AbortSignal.timeout(5000)});
 }
-export async function flushPush(){
- const now=Date.now(),jobs=sql().prepare("SELECT * FROM push_outbox WHERE state='pending' AND available_at<=? AND expires_at>? AND attempts<5 ORDER BY expires_at LIMIT 20").all(now,now) as {id:string;subscription_id:string;payload:string;origin:string;category:number;expires_at:number;attempts:number}[];
- for(let i=0;i<jobs.length;i+=5)await Promise.all(jobs.slice(i,i+5).map(async job=>{
+/**
+ * За раз берём столько заданий и шлём столько одновременно, чтобы тысяча
+ * устройств укладывалась в срок годности уведомления об эфире. Прежние 20 за
+ * тик по 5 штук давали около четырёх уведомлений в секунду: сотня расходилась
+ * за полминуты, а тысяча не успевала и наполовину — больше половины людей
+ * просто не узнавали, что эфир начался. Это по одному HTTPS-запросу на
+ * устройство, FCM и Mozilla такое держат.
+ */
+const PUSH_BATCH=200,PUSH_CONCURRENCY=25;
+export async function flushPush(depth=0):Promise<void>{
+ const now=Date.now(),jobs=sql().prepare("SELECT * FROM push_outbox WHERE state='pending' AND available_at<=? AND expires_at>? AND attempts<5 ORDER BY expires_at LIMIT ?").all(now,now,PUSH_BATCH) as {id:string;subscription_id:string;payload:string;origin:string;category:number;expires_at:number;attempts:number}[];
+ for(let i=0;i<jobs.length;i+=PUSH_CONCURRENCY)await Promise.all(jobs.slice(i,i+PUSH_CONCURRENCY).map(async job=>{
   const claim=sql().prepare("UPDATE push_outbox SET available_at=?,attempts=attempts+1 WHERE id=? AND state='pending' AND available_at<=?").run(Date.now()+30000,job.id,now);if(!claim.changes)return;
   const sub=sql().prepare('SELECT subscription,kind,locale,preferences FROM push_subscriptions WHERE id=?').get(job.subscription_id) as {subscription:string;kind:string;locale:string;preferences:number}|undefined;let state='pending';
   if(!sub||!(sub.preferences&job.category))state='cancelled';else try{
@@ -90,6 +113,10 @@ export async function flushPush(){
   if(state==='pending'&&job.attempts>=4)state='failed';sql().prepare('UPDATE push_outbox SET state=?,available_at=? WHERE id=?').run(state,Date.now()+15000*2**job.attempts,job.id);
  }));
  sql().prepare('DELETE FROM push_outbox WHERE expires_at<?').run(Date.now()-86400000);
+ // Очередь была полной — значит, есть ещё. Ждать следующего тика через пять
+ // секунд незачем: уведомление об эфире живёт две минуты. Глубина ограничена,
+ // чтобы один вызов не крутился бесконечно.
+ if(jobs.length>=PUSH_BATCH&&depth<9)return flushPush(depth+1);
 }
 const workerKey=Symbol.for('true-thrills.push-worker');
 export function startPushWorker(){

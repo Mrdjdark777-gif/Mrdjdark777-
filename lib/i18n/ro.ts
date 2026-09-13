@@ -912,7 +912,8 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "err.badPreferences": "Setări incorecte",
 
-  "err.deviceLimit": "Limita pilotului — 100 de dispozitive cu notificări.",
+  "err.deviceLimit": "S-a atins limita de dispozitive cu notificări.",
+  "err.subscribeLimited": "Prea multe încercări de abonare. Încercați mai târziu.",
 
   "err.subscriptionMissing": "Abonamentul nu a fost găsit",
 
