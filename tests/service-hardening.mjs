@@ -27,7 +27,8 @@ function unit(text, name) {
 // Приложение принимает запросы из интернета, воркер запускает ffmpeg над
 // присланными кусками звука, мониторинг ходит наружу. Ошибка в любом из них
 // не должна давать доступ ко всей машине.
-for (const [text, name] of [[setup, 'truethrills.service'], [ops, 'truethrills-live.service'], [ops, 'truethrills-monitor.service']]) {
+for (const name of ['truethrills.service', 'truethrills-live.service', 'truethrills-monitor.service']) {
+ const text = ops;
  const body = unit(text, name);
  assert.match(body, /^User=truethrills$/m, name + ' запускается от root');
  assert.match(body, /^Group=truethrills$/m, name + ' без группы');
@@ -42,14 +43,18 @@ const backup = unit(ops, 'truethrills-backup.service');
 assert.ok(!/^User=/m.test(backup), 'бэкапу нужен systemctl, он остаётся административной операцией от root');
 assert.match(ops, /Остаётся от root осознанно/, 'исключение для бэкапа должно быть объяснено в скрипте, а не выглядеть забытым');
 
-// Пользователь создаётся без оболочки и владеет только своим.
-for (const [text, where] of [[setup, 'vps-setup.sh'], [ops, 'install-operations.sh']]) {
- assert.match(text, /useradd --system .*--shell \/usr\/sbin\/nologin/, where + ': пользователь сервиса должен создаваться системным и без оболочки');
- assert.match(text, /chown -R truethrills:truethrills/, where + ': каталог приложения должен принадлежать пользователю сервиса');
- assert.match(text, /safe\.directory/, where + ': git от root в чужом каталоге откажется работать и обновление встанет');
-}
-assert.match(read('scripts/update-safe.sh'), /safe\.directory/, 'update-safe.sh: то же самое, иначе первое же обновление после смены владельца упадёт');
+// Все юниты пишет один скрипт — тот, через который проходит каждое
+// обновление. Иначе правка доезжает до новых серверов, а работающий остаётся
+// со старым юнитом и по-прежнему работает от root.
+assert.ok(!/cat > \/etc\/systemd\/system\//.test(setup), 'vps-setup.sh снова пишет юниты сам: до работающего сервера эта правка не доедет');
+assert.match(setup, /bash "\$\{APP_DIR\}\/scripts\/install-operations\.sh"/, 'vps-setup.sh должен ставить сервисы через install-operations.sh');
+assert.match(read('scripts/update-safe.sh'), /bash scripts\/install-operations\.sh/, 'обновление должно переписывать юниты, а не только код');
 
+// Пользователь создаётся без оболочки и владеет только своим.
+assert.match(ops, /useradd --system .*--shell \/usr\/sbin\/nologin/, 'пользователь сервиса должен создаваться системным и без оболочки');
+assert.match(ops, /chown -R truethrills:truethrills \/opt\/truethrills/, 'каталог приложения должен принадлежать пользователю сервиса');
+for (const where of ['scripts/install-operations.sh', 'scripts/vps-setup.sh', 'scripts/update-safe.sh'])
+ assert.match(read(where), /safe\.directory/, where + ': git от root в чужом каталоге откажется работать и обновление встанет');
 // Блокировка воркера переезжает из общедоступного /run/lock в свой каталог,
 // который systemd создаёт от имени сервиса.
 const live = unit(ops, 'truethrills-live.service');

@@ -22,6 +22,33 @@ chown -R truethrills:truethrills /opt/truethrills
 chmod 600 /opt/truethrills/.env 2>/dev/null || true
 # Иначе git от root ругается на «dubious ownership» при следующем обновлении.
 git config --global --add safe.directory /opt/truethrills 2>/dev/null || true
+# Юниты пишутся здесь, а не в vps-setup.sh, потому что через этот скрипт
+# проходит каждое обновление (его вызывает update-safe.sh). Иначе правка юнита
+# доезжала бы только до новых серверов, а работающий остался бы со старым — и
+# приложение так и работало бы от root.
+cat > /etc/systemd/system/truethrills.service <<UNIT
+[Unit]
+Description=True Thrills
+After=network.target
+
+[Service]
+Type=simple
+User=truethrills
+Group=truethrills
+WorkingDirectory=/opt/truethrills
+EnvironmentFile=/opt/truethrills/.env
+ExecStart=$(command -v node) /opt/truethrills/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+UNIT
 cat > /etc/systemd/system/truethrills-live.service <<'UNIT'
 [Unit]
 Description=True Thrills live delivery and recording
@@ -89,4 +116,5 @@ OnUnitActiveSec=5min
 WantedBy=timers.target
 UNIT
 systemctl daemon-reload
+systemctl enable truethrills.service
 systemctl enable --now truethrills-live.service truethrills-backup.timer truethrills-monitor.timer

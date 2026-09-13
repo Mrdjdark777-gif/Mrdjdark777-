@@ -23,7 +23,7 @@ fi
 echo "== 1/7: системные пакеты =="
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg git nginx build-essential python3 ufw openssl
+apt-get install -y ca-certificates curl gnupg git nginx build-essential python3 ufw openssl ffmpeg
 
 echo "== 2/7: Node.js ${NODE_MAJOR}.x =="
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | sed 's/^v//;s/\..*//')" -lt "$NODE_MAJOR" ]; then
@@ -84,41 +84,16 @@ npm ci --include=dev
 npm run db:migrate
 npm run build
 
+echo "== 6/7: systemd-сервисы =="
 # Приложение принимает запросы из интернета — оно не должно быть root. Свой
 # системный пользователь без оболочки владеет каталогом приложения и данными,
 # и больше ничем. Административные операции (бэкап со стопом сервисов,
 # обновление) остаются отдельно и остаются от root.
-id -u truethrills >/dev/null 2>&1 || useradd --system --home-dir "${APP_DIR}" --shell /usr/sbin/nologin truethrills
-chown -R truethrills:truethrills "${APP_DIR}"
-[ -f "${APP_DIR}/.env" ] && chmod 600 "${APP_DIR}/.env"
-git config --global --add safe.directory "${APP_DIR}" 2>/dev/null || true
-
-echo "== 6/7: systemd-сервис =="
-cat > /etc/systemd/system/truethrills.service <<EOF
-[Unit]
-Description=True Thrills
-After=network.target
-
-[Service]
-Type=simple
-User=truethrills
-Group=truethrills
-WorkingDirectory=${APP_DIR}
-EnvironmentFile=${APP_DIR}/.env
-ExecStart=$(command -v node) ${APP_DIR}/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
-Restart=always
-RestartSec=5
-UMask=0077
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=full
-ProtectHome=true
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-systemctl enable truethrills
+#
+# Сами юниты пишет install-operations.sh — он же выполняется при каждом
+# обновлении, поэтому правка юнита доезжает и до работающего сервера, а не
+# только до нового.
+bash "${APP_DIR}/scripts/install-operations.sh"
 systemctl restart truethrills
 
 echo "== 7/7: nginx + firewall =="
