@@ -180,6 +180,40 @@ try {
   assert.equal(r.headers.get('content-range'), 'bytes 1-3/6');
   assert.equal(await r.text(), 'bcd');
 
+  // Перемотка: плеер просит с середины и до конца, не зная точной длины.
+  // Прежде конец диапазона не прижимался к размеру файла, и Content-Length
+  // обещал байты, которых нет, — перемотка вставала на последних секундах.
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=2-999999' } });
+  assert.equal(r.status, 206);
+  assert.equal(r.headers.get('content-range'), 'bytes 2-5/6');
+  assert.equal(r.headers.get('content-length'), '4');
+  assert.equal(await r.text(), 'cdef');
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=3-' } });
+  assert.equal(r.status, 206);
+  assert.equal(r.headers.get('content-range'), 'bytes 3-5/6');
+  assert.equal(await r.text(), 'def');
+  // Хвост файла: так Safari перематывает, и так читается индекс M4A.
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=-2' } });
+  assert.equal(r.status, 206, 'Суффиксный диапазон раньше молча отдавал файл целиком');
+  assert.equal(r.headers.get('content-range'), 'bytes 4-5/6');
+  assert.equal(await r.text(), 'ef');
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=-99' } });
+  assert.equal(r.status, 206);
+  assert.equal(r.headers.get('content-range'), 'bytes 0-5/6');
+  // Начало за концом файла — 416 с настоящим размером, а не молчаливые 200.
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=6-7' } });
+  assert.equal(r.status, 416);
+  assert.equal(r.headers.get('content-range'), 'bytes */6');
+  r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: 'bytes=99-' } });
+  assert.equal(r.status, 416);
+  // Мусор в заголовке — отдаём файл целиком, как требует RFC.
+  for (const bad of ['bytes=abc-1', 'items=0-1', 'bytes=-', 'bytes=4-2']) {
+    r = await dispatch('audio', { search: '?id=' + p.data.id, headers: { Range: bad } });
+    if (bad === 'bytes=4-2') { assert.equal(r.status, 416, bad); continue; }
+    assert.equal(r.status, 200, 'Непонятный Range не должен ломать выдачу: ' + bad);
+    assert.equal(await r.text(), 'abcdef');
+  }
+
   // Обложки: загрузка своего изображения вместо ссылки, и фон эфира (channelArt).
   assert.equal((await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'text/plain', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' })).status, 400);
   let cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' });
@@ -325,7 +359,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, peer token isolation, deletion.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

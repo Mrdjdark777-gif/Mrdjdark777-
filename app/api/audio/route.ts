@@ -19,6 +19,9 @@ export async function GET(req: Request){try{
   if(!p?.audioKey||(!p.published&&!await owner(req)))return new Response('#err.notFound',{status:404});
   const obj=await bucket().get(p.audioKey,{range:req.headers});if(!obj)return new Response('#err.notFound',{status:404});
   const h=new Headers({'Accept-Ranges':'bytes','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});obj.writeHttpMetadata(h);h.set('ETag',obj.httpEtag);
+  // Диапазон за пределами файла — 416 с настоящим размером, чтобы плеер
+  // пересчитал перемотку, а не ждал байтов, которых нет.
+  if(obj.unsatisfiable){h.set('Content-Range',`bytes */${obj.size}`);return new Response(null,{status:416,headers:h});}
   const range=obj.range;if(range&&'offset' in range&&'length' in range){const start=range.offset??0,length=range.length??obj.size;h.set('Content-Range',`bytes ${start}-${start+length-1}/${obj.size}`);h.set('Content-Length',String(length));return new Response(obj.body,{status:206,headers:h});}
   h.set('Content-Length',String(obj.size));return new Response(obj.body,{headers:h});
 }catch(e){return failure(e);}}
