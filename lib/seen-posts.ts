@@ -26,3 +26,28 @@ export function markSeen(id: string) {
     window.dispatchEvent(new Event('tt-seen'));
   } catch { /* приватный режим или запрет на хранилище — не повод ломать открытие */ }
 }
+
+/**
+ * Карточки, которые слушатель сам убрал с главной долгим нажатием. Хранится
+ * не просто id, а отметка времени того состояния, которое он скрыл: если он
+ * потом снова послушает этот выпуск, прогресс обновится, станет новее отметки
+ * и карточка вернётся. Скрытие убирает то, что надоело сейчас, а не глушит
+ * выпуск навсегда.
+ */
+const hiddenKey = 'tt-hidden-v1';
+export type Hidden = {id: string; at: number};
+
+export function readHidden(): Hidden[] {
+  try {
+    const data = JSON.parse(localStorage.getItem(hiddenKey) || '[]');
+    return Array.isArray(data) ? data.filter(h => typeof h?.id === 'string' && Number.isFinite(h.at)).slice(0, LIMIT) : [];
+  } catch { return []; }
+}
+
+export function hideHighlight(id: string, at: number) {
+  if (!id || !Number.isFinite(at)) return;
+  try {
+    localStorage.setItem(hiddenKey, JSON.stringify([{id, at}, ...readHidden().filter(h => h.id !== id)].slice(0, LIMIT)));
+    window.dispatchEvent(new Event('tt-hidden'));
+  } catch { /* приватный режим или запрет на хранилище — не повод ломать экран */ }
+}

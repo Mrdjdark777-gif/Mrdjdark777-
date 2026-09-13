@@ -91,6 +91,7 @@ export const it: Record<keyof typeof ru, string> = {
 "player.minutes": "min",
 "home.continue": "Continua ad ascoltare",
 "home.latest": "Ultima pubblicazione",
+"home.hideCard": "Togli dalla home",
 "reader.size": "Dimensione del testo",
 
   'common.retry': 'Riprova',

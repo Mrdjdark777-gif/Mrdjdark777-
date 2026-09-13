@@ -113,6 +113,8 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "home.latest": "Остання публікація",
 
+
+  "home.hideCard": "Прибрати з головної",
   "reader.size": "Розмір тексту",
 
   "common.retry": "Повторити",

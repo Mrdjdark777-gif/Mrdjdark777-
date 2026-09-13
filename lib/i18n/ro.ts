@@ -113,6 +113,8 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "home.latest": "Ultima publicare",
 
+
+  "home.hideCard": "Scoate de pe pagina principală",
   "reader.size": "Mărimea textului",
 
   "common.retry": "Încearcă din nou",

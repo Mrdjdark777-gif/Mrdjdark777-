@@ -294,7 +294,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  pointer-events:none;
 }
 
-.player-extras{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;font-size:13px}.player-extras label{display:flex;align-items:center;gap:6px}.player-extras select,.reader-options select{background:#1e272a;color:#fff;border:1px solid #536363;border-radius:8px;padding:8px}.podcast-timeline input[type=range]{width:100%;accent-color:#6fe7de;min-height:28px}body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 280px)}.listener-highlights{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin-bottom:24px}.listener-highlights button{display:grid;gap:10px;padding:22px;text-align:left;border:1px solid var(--glass-border);border-radius:18px;background:#172628;color:#fff}.listener-highlights span{color:#6fe7de;font-size:13px}.listener-highlights strong{font-size:20px}.reader-options{display:flex;align-items:center;gap:12px}.reader-scroll{max-height:55dvh;overflow:auto;line-height:1.8;overflow-wrap:anywhere}.post-cover-image{width:100%;height:100%;object-fit:cover;display:block}
+.player-extras{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;font-size:13px}.player-extras label{display:flex;align-items:center;gap:6px}.player-extras select,.reader-options select{background:#1e272a;color:#fff;border:1px solid #536363;border-radius:8px;padding:8px}.podcast-timeline input[type=range]{width:100%;accent-color:#6fe7de;min-height:28px}body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 280px)}.listener-highlights{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px;margin-bottom:24px}.listener-highlights button{display:grid;gap:10px;padding:22px;text-align:left;border:1px solid var(--glass-border);border-radius:18px;background:#172628;color:#fff;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.listener-highlights span{color:#6fe7de;font-size:13px}.listener-highlights strong{font-size:20px}.reader-options{display:flex;align-items:center;gap:12px}.reader-scroll{max-height:55dvh;overflow:auto;line-height:1.8;overflow-wrap:anywhere}.post-cover-image{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Reading needs a solid surface; content behind the dialog must not compete with the story. */
 .reading-dialog[data-slot="dialog-content"]{background:#111719;border-color:#344344;box-shadow:0 24px 80px #0009}
@@ -322,3 +322,28 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 @keyframes splash-fade{from{opacity:0}to{opacity:1}}
 @keyframes splash-slide{from{transform:translateX(-100%)}to{transform:translateX(350%)}}
 @media(prefers-reduced-motion:reduce){.splash img,.splash-bar,.splash-bar span{animation:none}}
+
+/* Меню карточки главной: выезжает снизу по долгому нажатию. Затемнение ловит
+   тап мимо меню — так его закрывают на телефоне, не целясь в «Отмена». */
+.card-menu-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(4,8,8,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:card-menu-fade .18s ease both}
+.card-menu{width:min(460px,100%);display:grid;gap:6px;padding:18px 16px calc(20px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;background:#171b1c;border:1px solid var(--glass-border);border-bottom:none;animation:card-menu-rise .22s cubic-bezier(.2,.8,.3,1) both}
+.card-menu>strong{font-size:15px;line-height:1.4;padding:4px 10px 12px;color:#cfd2d8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-menu-action{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px;border-radius:12px;font-size:16px;color:#fff;background:none;border:none;text-align:left}
+.card-menu-action:active{background:#22282a}
+.card-menu .quiet-button{min-height:48px;font-size:15px}
+@keyframes card-menu-fade{from{opacity:0}to{opacity:1}}
+@keyframes card-menu-rise{from{transform:translateY(18px)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.card-menu-backdrop,.card-menu{animation:none}}
+
+/* Главная на телефоне должна умещаться целиком вместе с подписью внизу: в
+   приложении системные отступы (статус-бар сверху, жест-бар снизу) съедают
+   ещё несколько десятков пикселей, которых в браузере нет. Поэтому на узких
+   экранах карточки и плитки набраны плотнее. */
+@media(max-width:767px){
+ .listener-highlights{margin-bottom:14px}
+ .listener-highlights button{padding:18px}
+ .home-actions{margin:0 0 10px}
+ .support-card{margin:0 0 10px}
+ .home-social{margin-bottom:10px}
+ .content-footer{padding-top:8px;margin-top:6px}
+}

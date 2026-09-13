@@ -90,6 +90,7 @@ export const ru = {
 "player.minutes": "мин",
 "home.continue": "Продолжить слушать",
 "home.latest": "Последняя публикация",
+"home.hideCard": "Убрать с главной",
 "reader.size": "Размер текста",
 
   'common.retry': 'Повторить',
