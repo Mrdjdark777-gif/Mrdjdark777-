@@ -35,6 +35,14 @@ try{
  await page.goto(base+'/?mode=listen');await page.locator('.donation-card').waitFor();assert.ok((await page.locator('.donation-card').innerText()).trim().length>0,'карточка поддержки должна показывать текст');assert.equal(await page.locator('.donation-card .social-chip').count(),0);
  await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});await page.reload();await page.locator('.donation-card .social-chip').first().waitFor();
  assert.deepEqual(await page.locator('.donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills']);
+ // Сердечко в шапке ведёт на одну ссылку, и она зависит от языка телефона:
+ // PayPal в России не работает, Boosty за её пределами почти не знают.
+ assert.equal(await page.locator('.support-button').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
+ {const italian=await browser.newContext({locale:'it-IT',viewport:{width:390,height:844}});
+  const eq=cookie.indexOf('=');await italian.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
+  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen');await page2.locator('.support-button').waitFor();
+  assert.equal(await page2.locator('.support-button').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
+  await italian.close();}
  await page.screenshot({path:'outputs/ui/donation-home.png',fullPage:true});
  // Real browser MediaRecorder -> HTTP upload -> FFmpeg HLS -> browser playback.
  const ownerContext=await browser.newContext({permissions:['microphone'],viewport:{width:1280,height:900}});

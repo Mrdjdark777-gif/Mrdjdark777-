@@ -33,7 +33,7 @@ const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 // наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
 // верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
 export default function Studio(){
- const {t,tag}=useT();
+ const {t,tag,locale}=useT();
  const noticeHandler=useRef<(url:string)=>Promise<void>>(async()=>{});
  const [coverUrl,setCoverUrl]=useState('');
  const [discardText,setDiscardText]=useState(false);
@@ -111,6 +111,11 @@ export default function Studio(){
  const listed=visible.filter(p=>p.kind===listKind);
  const socialRow=data?.links?.length?<div className="social-row">{data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;return <a key={l.kind+l.url} className="social-chip" href={l.url} target="_blank" rel="noopener noreferrer"><Icon size={16}/>{t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
  const donationRow=data?.donations?.length?<div className="social-row support-links">{data.donations.map(dn=>{const Icon=DONATION_ICON[dn.kind];return <a key={dn.kind} className="social-chip" href={dn.url} target="_blank" rel="noopener noreferrer"><Icon size={16}/>{t(DONATIONS.find(x=>x.kind===dn.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
+ // PayPal в России не работает, Boosty за её пределами почти никто не знает.
+ // Сердечко в шапке ведёт только на одну ссылку, поэтому выбираем её по языку
+ // телефона: итальянский — PayPal, остальные — Boosty. Если нужной платформы у
+ // автора нет, берём ту, что настроена. В блоке поддержки видны обе.
+ const heartLink=data?.donations?.find(d=>d.kind===(locale==='it'?'paypal':'boosty'))??data?.donations?.[0];
  const supportCard=data?.donations?.length?<div className="support-card donation-card has-links"><div className="support-card-top"><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('donate.action')}</strong><span>{t('donate.free')}</span></span></div>{donationRow}</div>:<div className="support-card donation-card"><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('donate.action')}</strong><span>{author?t('donate.setup'):t('donate.unavailable')}</span></span>{author&&<button className="secondary-button" onClick={()=>goto('settings')}>{t('donate.configure')}</button>}</div>;
 
  return <>
@@ -121,7 +126,7 @@ export default function Studio(){
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="46" height="46" alt=""/><span>True Thrills</span></button>
   <div className="top-header-actions">
-   {!!data?.donations?.length&&<a className="support-button" href={data.donations[0].url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
+   {!!heartLink&&<a className="support-button" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><Settings size={22}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
