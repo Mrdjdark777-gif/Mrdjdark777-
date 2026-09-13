@@ -6,11 +6,11 @@ import {useT} from '@/components/i18n-provider';
 import {clock,haptic} from '@/lib/client';
 import {EyeOff} from 'lucide-react';
 type Item={id:string;kind:string;published:number;createdAt:number;title:string};
-// Карточка главной вместе с отметкой того состояния, которое скрывает долгое
-// нажатие: для «продолжить слушать» это момент последнего прослушивания, для
-// «последней публикации» — время самой публикации.
+// Карточка главной вместе с меткой того состояния, которое скрывает долгое
+// нажатие: для «продолжить слушать» это место остановки в секундах, для
+// «последней публикации» — время выхода выпуска.
 type Card={id:string;at:number;title:string};
-const HOLD_MS=500;
+const HOLD_MS=500,DRIFT_S=5;
 export function ListenerHighlights<T extends Item>({items,onOpen}:{items:T[];onOpen:(post:T)=>void}){
  const {t}=useT(),[progress,setProgress]=useState<Progress[]>([]),[seen,setSeen]=useState<string[]>([]),[hidden,setHidden]=useState<Hidden[]>([]),[menu,setMenu]=useState<Card|null>(null);
  const hold=useRef<ReturnType<typeof setTimeout>|null>(null),held=useRef(false);
@@ -23,7 +23,9 @@ export function ListenerHighlights<T extends Item>({items,onOpen}:{items:T[];onO
   return()=>{clearTimeout(timer);for(const event of ['tt-progress','tt-seen','tt-hidden'])window.removeEventListener(event,update);};
  },[]);
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
- const isHidden=(card:Card)=>hidden.some(h=>h.id===card.id&&h.at>=card.at);
+ // Допуск в несколько секунд: фоновый плеер и веб-плеер сообщают место
+ // остановки с небольшой разницей, и карточка не должна всплывать из-за неё.
+ const isHidden=(card:Card)=>hidden.some(h=>h.id===card.id&&Math.abs(h.at-card.at)<=DRIFT_S);
  // Долгое нажатие открывает меню, обычное — сам выпуск. Флаг held гасит клик,
  // который браузер всё равно пришлёт после отпускания пальца.
  const press=(card:Card,post:T)=>({
@@ -37,7 +39,7 @@ export function ListenerHighlights<T extends Item>({items,onOpen}:{items:T[];onO
  const visible=items.filter(p=>p.published===1),saved=progress.find(p=>p.position>0&&visible.some(item=>item.id===p.id&&item.kind==='podcast')),resume=visible.find(p=>p.id===saved?.id),newest=[...visible].sort((a,b)=>b.createdAt-a.createdAt)[0],
   // Открытая публикация перестаёт быть новостью и уходит с главной.
   latest=newest&&!seen.includes(newest.id)?newest:undefined,
-  resumeCard=resume&&saved?{id:resume.id,at:saved.updatedAt,title:resume.title}:undefined,
+  resumeCard=resume&&saved?{id:resume.id,at:Math.round(saved.position),title:resume.title}:undefined,
   latestCard=latest?{id:latest.id,at:latest.createdAt,title:latest.title}:undefined,
   showResume=resumeCard&&!isHidden(resumeCard),showLatest=latestCard&&latestCard.id!==resume?.id&&!isHidden(latestCard);
  return <>{(showResume||showLatest)&&<div className="listener-highlights">
