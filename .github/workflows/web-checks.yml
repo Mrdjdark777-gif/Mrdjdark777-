@@ -37,6 +37,7 @@ jobs:
       - run: node tests/studio-audio.mjs
       - run: node tests/api-integration.mjs
       - run: node tests/backup-integration.mjs
+      - run: node tests/prune-orphans.mjs
       - run: node tests/live-archive-integration.mjs
       - name: Install browser test tools
         run: |

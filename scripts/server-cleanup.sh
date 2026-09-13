@@ -7,8 +7,9 @@
 #
 # Что делает с --apply: удаляет остатки прерванных обновлений и тестов,
 # каталоги эфиров, чьи выпуски уже лежат в хранилище (prune-live.mjs), кэш npm,
-# журналы systemd старше 30 дней, осиротевшие пакеты apt и резервные копии
-# старше последних пяти (prune-backups.mjs). Пять последних остаются всегда, и
+# журналы systemd старше 30 дней, осиротевшие пакеты apt, резервные копии
+# старше последних пяти (prune-backups.mjs) и хвосты от проб — мёртвые записи
+# эфиров и файлы, на которые никто не ссылается (prune-orphans.mjs). Пять последних остаются всегда, и
 # ротация рассчитывает на то, что копия есть ещё и вне сервера — забирай её
 # через scripts/export-backup.sh.
 set -euo pipefail
@@ -49,6 +50,9 @@ journalctl --disk-usage 2>/dev/null || true
 say 'Пакеты apt'
 # grep без совпадений возвращает 1, а с pipefail это уронило бы весь отчёт.
 if [ "$apply" = 1 ]; then apt-get -y autoremove >/dev/null 2>&1 && apt-get clean && echo 'осиротевшие пакеты удалены, кэш очищен'; else { apt-get -s autoremove 2>/dev/null | grep -cE '^(Remv|Удал)' || true; } | sed 's/$/ пакетов можно удалить/'; fi
+
+say 'Хвосты от проб и удалённых выпусков'
+if [ "$apply" = 1 ]; then node --env-file=.env scripts/prune-orphans.mjs --delete; else node --env-file=.env scripts/prune-orphans.mjs; fi
 
 say 'Состояние данных'
 node --env-file=.env scripts/data-status.mjs

@@ -9,11 +9,11 @@ Node 22, Next.js, SQLite/Drizzle, local audio storage. Android uses Media3 for p
 ```bash
 npm ci
 npm run lint
-npm test            # build + audio-file, device-discovery, studio-audio, api, backup
+npm test            # build + the six node suites
 npm run test:live   # real FFmpeg HLS pipeline
 npm run test:browser
 ```
 
-CI (`.github/workflows/web-checks.yml`) runs the same seven suites. `tests/audio-file.mjs` and the live test require ffmpeg/ffprobe; the browser test requires `playwright@1.56.1` with Google Chrome (`npx playwright install chrome`) — the open-source Chromium build lacks the AAC decoder the live step needs. Server-side tools live in `scripts/`: `update-safe.sh` (backup, fetch, build, rollback on failure), `server-cleanup.sh` (dry-run by default), `data-status.mjs`, `prune-live.mjs`, `prune-backups.mjs` (keeps the last five verified copies; assumes an off-server copy exists), `verify-backup.mjs`; `build-icons.py` regenerates the launcher/PWA icons from `public/brand/true-thrills-original.png`. Android release builds require the existing private keystore and Firebase config; do not commit either. All server/device acceptance must be recorded separately from automated tests.
+CI (`.github/workflows/web-checks.yml`) runs the same eight suites. `tests/audio-file.mjs` and the live test require ffmpeg/ffprobe; the browser test requires `playwright@1.56.1` with Google Chrome (`npx playwright install chrome`) — the open-source Chromium build lacks the AAC decoder the live step needs. Server-side tools live in `scripts/`: `update-safe.sh` (backup, fetch, build, rollback on failure), `server-cleanup.sh` (dry-run by default), `data-status.mjs`, `prune-live.mjs`, `prune-orphans.mjs`, `prune-backups.mjs` (keeps the last five verified copies; assumes an off-server copy exists), `verify-backup.mjs`; `build-icons.py` regenerates the launcher/PWA icons from `public/brand/true-thrills-original.png`. Android release builds require the existing private keystore and Firebase config; do not commit either. All server/device acceptance must be recorded separately from automated tests.
 
 Release history through 0.8.0 (listener simplification, player/branding, video/support/platforms, interface languages, push auto-enable) moved out of this file — see git history and `docs/` for the 0.9 write-up. Android versionName 0.9.0, versionCode 20.
