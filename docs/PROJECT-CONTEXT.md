@@ -1,5 +1,7 @@
 # True Thrills — актуальная точка продолжения
 
+Полное описание проекта одним документом: PROJECT-BRIEF-RU.md.
+
 Обновлено 13 сентября 2026. Владелец Дима. Приоритет имеют RELEASE-0.9-RU.md и OPERATIONS-0.9-RU.md.
 
 - Репозиторий: https://github.com/Mrdjdark777-gif/Mrdjdark777-
