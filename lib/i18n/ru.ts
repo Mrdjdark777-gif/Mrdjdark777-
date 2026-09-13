@@ -89,6 +89,7 @@ export const ru = {
 "player.minutes": "мин",
 "home.continue": "Продолжить слушать",
 "home.latest": "Последняя публикация",
+"home.seeAll": "все",
 "home.hideCard": "Убрать с главной",
 "reader.size": "Размер текста",
 
@@ -143,10 +144,6 @@ export const ru = {
   'home.writeStory': 'Написать\nисторию',
   'home.startLive': 'Начать\nэфир',
   'home.shareChannel': 'Поделиться\nканалом',
-  'home.watchVideos': 'Смотреть\nвидео',
-  'home.listenPodcasts': 'Слушать\nподкасты',
-  'home.readStories': 'Читать\nистории',
-  'home.liveNow': 'Прямой\nэфир',
   'home.socialCaption': 'Автор на других площадках',
   'support.setupTitle': 'Кнопка поддержки не подключена',
   'support.setupText': 'Добавь платёжную ссылку — она появится у слушателей в шапке и на главном экране.',

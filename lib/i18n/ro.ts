@@ -112,6 +112,8 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.latest": "Ultima publicare",
 
 
+
+  "home.seeAll": "toate",
   "home.hideCard": "Scoate de pe pagina principală",
   "reader.size": "Mărimea textului",
 
@@ -208,14 +210,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.startLive": "Pornește\nemisiunea",
 
   "home.shareChannel": "Distribuie\ncanalul",
-
-  "home.watchVideos": "Vezi\nvideo",
-
-  "home.listenPodcasts": "Ascultă\npodcasturi",
-
-  "home.readStories": "Citește\npovești",
-
-  "home.liveNow": "Emisiune\nlive",
 
   "home.socialCaption": "Autorul pe alte platforme",
 

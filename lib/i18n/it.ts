@@ -90,6 +90,7 @@ export const it: Record<keyof typeof ru, string> = {
 "player.minutes": "min",
 "home.continue": "Continua ad ascoltare",
 "home.latest": "Ultima pubblicazione",
+"home.seeAll": "tutti",
 "home.hideCard": "Togli dalla home",
 "reader.size": "Dimensione del testo",
 
@@ -144,10 +145,6 @@ export const it: Record<keyof typeof ru, string> = {
   'home.writeStory': 'Scrivi\nun racconto',
   'home.startLive': 'Avvia\nla diretta',
   'home.shareChannel': 'Condividi\nil canale',
-  'home.watchVideos': 'Guarda\ni video',
-  'home.listenPodcasts': 'Ascolta\ni podcast',
-  'home.readStories': 'Leggi\ni racconti',
-  'home.liveNow': 'Diretta\nin corso',
   'home.socialCaption': 'L’autore sulle altre piattaforme',
   'support.setupTitle': 'Pulsante di sostegno non collegato',
   'support.setupText': 'Aggiungi il link di pagamento — comparirà per chi ascolta nell’intestazione e nella home.',

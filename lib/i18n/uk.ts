@@ -112,6 +112,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.latest": "Остання публікація",
 
 
+
+  "home.seeAll": "усі",
   "home.hideCard": "Прибрати з головної",
   "reader.size": "Розмір тексту",
 
@@ -208,14 +210,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.startLive": "Почати\nефір",
 
   "home.shareChannel": "Поділитися\nканалом",
-
-  "home.watchVideos": "Дивитися\nвідео",
-
-  "home.listenPodcasts": "Слухати\nподкасти",
-
-  "home.readStories": "Читати\nісторії",
-
-  "home.liveNow": "Прямий\nефір",
 
   "home.socialCaption": "Автор на інших майданчиках",
 
