@@ -24,13 +24,6 @@ import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
 import {useT} from '@/components/i18n-provider';
 
-// Разделы главной идут в том же порядке, что и вкладки внизу, чтобы человек
-// искал их там же, где привык.
-const SHELVES=[
- {kind:'podcast',labelKey:'nav.podcasts',view:'podcasts',icon:Headphones},
- {kind:'video',labelKey:'nav.videos',view:'videos',icon:Video},
- {kind:'story',labelKey:'nav.stories',view:'stories',icon:BookOpen},
-] as const;
 type Post={id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number};
 type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;startedAt:number|null;cover:boolean}|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
@@ -158,21 +151,12 @@ export default function Studio(){
  {view==='home'&&author&&(supportCard??<button className="support-card support-setup" onClick={()=>goto('settings')}><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('support.setupTitle')}</strong><span>{t('support.setupText')}</span></span><ChevronRight size={19}/></button>)}
  {view==='home'&&!author&&<>
  <ListenerHighlights items={data.items} onOpen={openPost}/>
- {SHELVES.map(({kind,labelKey,view:target,icon:Icon})=>{
-  const shelf=data.items.filter(p=>p.published===1&&p.kind===kind).sort((a,b)=>b.createdAt-a.createdAt).slice(0,4);
-  if(!shelf.length)return null;
-  return <section className="shelf" key={kind}>
-   <div className="shelf-head"><b>{t(labelKey)}</b><button className="shelf-all" onClick={()=>goto(target)}>{t('home.seeAll')}<ChevronRight size={15}/></button></div>
-   <div className={'shelf-grid'+(shelf.length===1?' shelf-solo':'')}>{shelf.map(p=>{
-    const art=p.coverKey?'/api/cover?id='+p.id:p.coverUrl;
-    return <button className="shelf-card" key={p.id} onClick={()=>openPost(p)}>
-     <span className="shelf-cover">{art?<img src={art} alt="" loading="lazy" referrerPolicy="no-referrer"/>:<Icon size={26}/>}</span>
-     <strong>{p.title}</strong>
-     <small>{p.kind==='podcast'&&p.duration?clock(p.duration):new Date(p.createdAt).toLocaleDateString(tag)}</small>
-    </button>;
-   })}</div>
-  </section>;
- })}
+ <div className="home-actions">
+ <button className="home-tile" onClick={()=>goto('videos')}><Video size={22}/><span>{t('home.watchVideos')}</span></button>
+ <button className="home-tile" onClick={()=>goto('podcasts')}><Headphones size={22}/><span>{t('home.listenPodcasts')}</span></button>
+ <button className="home-tile" onClick={()=>goto('stories')}><BookOpen size={22}/><span>{t('home.readStories')}</span></button>
+ <button className="home-tile home-tile-live" onClick={openLive}><Radio size={22}/><span>{t('home.liveNow')}</span></button>
+ </div>
  {supportCard}
  {socialRow&&<div className="home-social"><span className="social-caption">{t('home.socialCaption')}</span>{socialRow}</div>}
  </>}
