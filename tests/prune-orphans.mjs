@@ -26,11 +26,15 @@ try {
  recording('has-files', 'ready', null);
  broadcast('has-files', 0);
  await mkdir(path.join(env.LIVE_DIR, 'has-files'), {recursive: true});
- // Мёртвые: выпуск удалён, каталога нет, эфир завершён.
+ // Мёртвые: выпуск удалён, каталога нет, эфир завершён. У dead-1 есть обложка,
+ // и после удаления самого эфира она тоже становится ничьей — оба должны уйти
+ // за один проход, а не за два.
  recording('dead-1', 'ready', null);
- broadcast('dead-1', 0);
+ db.prepare('INSERT INTO broadcasts (id,owner_id,title,active,heartbeat,cover_key) VALUES (?,?,?,0,?,?)').run('dead-1', 'owner', 'Эфир dead-1', now, 'cover/dead.jpg');
  recording('dead-2', 'failed', 'gone-post');
  broadcast('dead-2', 0);
+ // Проба, от которой осталась только строка эфира без записи.
+ broadcast('dead-3', 0);
  db.prepare("INSERT INTO settings (key,value) VALUES ('channelArt','cover/art.png')").run();
  db.close();
 
@@ -45,23 +49,24 @@ try {
  await file('cover/art.png', 512);      // оформление канала
  await file('audio/orphan.m4a', 4096);  // ничей
  await file('cover/orphan.jpg', 2048);  // ничей
+ await file('cover/dead.jpg', 1536);    // обложка удаляемого эфира
 
  const prune = (...args) => execFileSync(process.execPath, ['scripts/prune-orphans.mjs', ...args], {cwd: root, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
  const report = prune();
- assert.match(report, /без выпуска и файлов 2/, 'находит ровно две мёртвые записи');
- assert.match(report, /ничьих 2/, 'находит ровно два ничьих файла');
+ assert.match(report, /без выпуска и файлов 3/, 'находит все три мёртвых эфира, включая тот, у которого нет записи');
+ assert.match(report, /ничьих 3/, 'обложка удаляемого эфира тоже считается ничьей');
  assert.ok(existsSync(path.join(env.STORAGE_DIR, 'audio/orphan.m4a')), 'отчёт ничего не удаляет');
 
  prune('--delete');
  const after = new Database(env.DATABASE_PATH, {readonly: true});
  const ids = after.prepare('SELECT id FROM live_recordings ORDER BY id').all().map(r => r.id);
  assert.deepEqual(ids, ['has-files', 'kept-by-post', 'on-air'], 'остаются живой выпуск, идущий эфир и запись с файлами');
- assert.equal(after.prepare('SELECT COUNT(*) AS n FROM broadcasts').get().n, 3, 'эфиры удаляются вместе со своими записями');
+ assert.deepEqual(after.prepare('SELECT id FROM broadcasts ORDER BY id').all().map(r => r.id), ['has-files', 'kept-by-post', 'on-air'], 'эфиры удаляются вместе со своими записями, включая строку без записи');
  after.close();
  for (const key of ['audio/keep.m4a', 'cover/keep.jpg', 'cover/art.png']) {
   assert.ok(existsSync(path.join(env.STORAGE_DIR, key)), key + ' используется и должен остаться');
  }
- for (const key of ['audio/orphan.m4a', 'cover/orphan.jpg']) {
+ for (const key of ['audio/orphan.m4a', 'cover/orphan.jpg', 'cover/dead.jpg']) {
   assert.ok(!existsSync(path.join(env.STORAGE_DIR, key)), key + ' ничей и должен быть удалён');
   assert.ok(!existsSync(path.join(env.STORAGE_DIR, key + '.meta.json')), 'метаданные удаляются вместе с файлом');
  }

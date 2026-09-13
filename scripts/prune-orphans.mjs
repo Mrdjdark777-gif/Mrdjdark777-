@@ -24,30 +24,39 @@ const db = new Database(dbPath, {readonly: !apply, fileMustExist: true});
 const mb = n => (n / 1024 ** 2).toFixed(1) + ' МБ';
 
 try {
- // --- 1. Мёртвые записи эфиров ---------------------------------------------
- const recordings = db.prepare(`
-   SELECT r.id, r.title, r.state, r.post_id AS postId, b.active AS active
-   FROM live_recordings r LEFT JOIN broadcasts b ON b.id = r.id
+ // --- 1. Мёртвые эфиры и их записи ------------------------------------------
+ // Каждый эфир — это строка broadcasts и, если его писали, строка
+ // live_recordings с тем же id. Пробный эфир может остаться и без записи,
+ // поэтому идём от broadcasts и подтягиваем запись к нему.
+ const airs = db.prepare(`
+   SELECT b.id, b.title, b.active, r.state, r.post_id AS postId
+   FROM broadcasts b LEFT JOIN live_recordings r ON r.id = b.id
+   UNION
+   SELECT r.id, r.title, 0 AS active, r.state, r.post_id AS postId
+   FROM live_recordings r WHERE r.id NOT IN (SELECT id FROM broadcasts)
  `).all();
  const posts = new Set(db.prepare('SELECT id FROM posts').all().map(p => p.id));
  const dead = [];
- for (const row of recordings) {
+ for (const row of airs) {
   if (row.active) continue;                       // эфир идёт прямо сейчас
   if (row.state === 'receiving' || row.state === 'closing' || row.state === 'processing') continue;
   if (row.postId && posts.has(row.postId)) continue; // выпуск на месте
   try { await access(path.join(live, row.id)); continue; } catch { /* каталога нет */ }
   dead.push(row);
  }
- console.log(`Записи эфиров: всего ${recordings.length}, без выпуска и файлов ${dead.length}.`);
- for (const row of dead) console.log(`  - «${row.title}» ${row.state} ${row.id}`);
+ const doomed = new Set(dead.map(r => r.id));
+ console.log(`Эфиры и их записи: всего ${airs.length}, без выпуска и файлов ${dead.length}.`);
+ for (const row of dead) console.log(`  - «${row.title}» ${row.state ?? 'без записи'} ${row.id}`);
 
  // --- 2. Файлы, на которые никто не ссылается -------------------------------
+ // Обложка эфира, который удаляется здесь же, тоже становится ничьей — иначе
+ // пришлось бы гонять скрипт дважды.
  const used = new Set();
  for (const p of db.prepare('SELECT audio_key, cover_key FROM posts').all()) {
   if (p.audio_key) used.add(p.audio_key);
   if (p.cover_key) used.add(p.cover_key);
  }
- for (const b of db.prepare('SELECT cover_key FROM broadcasts').all()) if (b.cover_key) used.add(b.cover_key);
+ for (const b of db.prepare('SELECT id, cover_key FROM broadcasts').all()) if (b.cover_key && !doomed.has(b.id)) used.add(b.cover_key);
  const art = db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();
  if (art?.value) used.add(art.value);
 
@@ -81,6 +90,6 @@ try {
    await rm(path.join(storage, o.key), {force: true});
    await rm(path.join(storage, o.key + '.meta.json'), {force: true});
   }
-  console.log(`\nУдалено записей эфиров: ${dead.length}, файлов: ${orphans.length}, освобождено ${mb(freed)}.`);
+  console.log(`\nУдалено эфиров: ${dead.length}, файлов: ${orphans.length}, освобождено ${mb(freed)}.`);
  }
 } finally { db.close(); }
