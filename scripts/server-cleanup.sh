@@ -43,7 +43,8 @@ journalctl --disk-usage 2>/dev/null || true
 [ "$apply" = 1 ] && journalctl --vacuum-time=30d >/dev/null 2>&1 && echo 'оставлены последние 30 дней'
 
 say 'Пакеты apt'
-if [ "$apply" = 1 ]; then apt-get -y autoremove >/dev/null 2>&1 && apt-get clean && echo 'осиротевшие пакеты удалены, кэш очищен'; else apt-get -s autoremove 2>/dev/null | grep -E '^(Remv|Удал)' | wc -l | sed 's/$/ пакетов можно удалить/'; fi
+# grep без совпадений возвращает 1, а с pipefail это уронило бы весь отчёт.
+if [ "$apply" = 1 ]; then apt-get -y autoremove >/dev/null 2>&1 && apt-get clean && echo 'осиротевшие пакеты удалены, кэш очищен'; else { apt-get -s autoremove 2>/dev/null | grep -cE '^(Remv|Удал)' || true; } | sed 's/$/ пакетов можно удалить/'; fi
 
 say 'Состояние данных'
 node --env-file=.env scripts/data-status.mjs
