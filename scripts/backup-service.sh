@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Run as root on the VPS; no deletion/retention until an off-server copy exists.
+# Run as root on the VPS. Keeps the last five verified copies and deletes older
+# ones, but only after a new copy has been written and verified. This retention
+# assumes the owner also keeps a copy off the server (scripts/export-backup.sh);
+# without one, the five copies here are the only ones that exist.
 set -euo pipefail
 cd /opt/truethrills
 exec 9>/run/lock/truethrills-maintenance.lock
@@ -17,3 +20,6 @@ systemctl stop truethrills
 if [ "$worker_active" = 1 ]; then systemctl stop truethrills-live; fi
 umask 077
 node --env-file=.env scripts/backup-data.mjs /var/backups/truethrills
+# Ротация идёт только после успешной свежей копии: если строка выше упала,
+# скрипт остановится здесь и ничего не удалит.
+node scripts/prune-backups.mjs --keep 5 --delete

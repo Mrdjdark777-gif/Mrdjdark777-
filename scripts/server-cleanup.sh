@@ -7,9 +7,10 @@
 #
 # Что делает с --apply: удаляет остатки прерванных обновлений и тестов,
 # каталоги эфиров, чьи выпуски уже лежат в хранилище (prune-live.mjs), кэш npm,
-# журналы systemd старше 30 дней и осиротевшие пакеты apt. Резервные копии в
-# /var/backups/truethrills не трогает: их ротацию нельзя включать, пока нет
-# копии вне сервера (см. backup-service.sh) — только показывает их размер.
+# журналы systemd старше 30 дней, осиротевшие пакеты apt и резервные копии
+# старше последних пяти (prune-backups.mjs). Пять последних остаются всегда, и
+# ротация рассчитывает на то, что копия есть ещё и вне сервера — забирай её
+# через scripts/export-backup.sh.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo 'Run with sudo.' >&2; exit 1; }
 cd /opt/truethrills
@@ -26,6 +27,9 @@ df -h / | tail -1
 say 'Что сколько занимает'
 for d in data/storage data/live /var/backups/truethrills .next .sites-runtime/npm-cache node_modules; do printf '%8s  %s\n' "$(size "$d")" "$d"; done
 ls -1t /var/backups/truethrills 2>/dev/null | head -3 | sed 's/^/   свежие копии: /' || true
+
+say 'Резервные копии сверх последних пяти'
+if [ "$apply" = 1 ]; then node scripts/prune-backups.mjs --keep 5 --delete; else node scripts/prune-backups.mjs --keep 5; fi
 
 say 'Остатки обновлений и тестов'
 stale=$(ls -d .update-staging .test-tmp-* .test-live-* 2>/dev/null || true)
