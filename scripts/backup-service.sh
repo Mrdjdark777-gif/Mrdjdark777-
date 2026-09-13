@@ -23,3 +23,7 @@ node --env-file=.env scripts/backup-data.mjs /var/backups/truethrills
 # Ротация идёт только после успешной свежей копии: если строка выше упала,
 # скрипт остановится здесь и ничего не удалит.
 node scripts/prune-backups.mjs --keep 5 --delete
+# Копию снимает root, а проверяет её наличие мониторинг — он работает от
+# пользователя сервиса. Без этого каталог снимка (0700 от root) для него
+# закрыт, и он доложит о пропавших бэкапах, которых на самом деле нет.
+chown -R truethrills:truethrills /var/backups/truethrills 2>/dev/null || true

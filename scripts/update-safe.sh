@@ -3,6 +3,9 @@ set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo 'Run with sudo.' >&2; exit 1; }
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd /opt/truethrills
+# Каталогом владеет системный пользователь сервиса, а git здесь работает от
+# root: без этого он откажется («dubious ownership») и обновление встанет.
+git config --global --add safe.directory /opt/truethrills 2>/dev/null || true
 branch=${1:-truethrills-app}
 expected=${2:-}
 [[ "$branch" =~ ^[A-Za-z0-9._/-]+$ ]] && [[ "$branch" != -* ]] || exit 2
