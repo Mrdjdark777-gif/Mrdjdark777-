@@ -155,8 +155,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "header.logout": "Вийти",
 
-  "header.loginAuthor": "Увійти як автор",
-
   "setup.eyebrow": "TRUE THRILLS / ПЕРШИЙ ЗАПУСК",
 
   "setup.title": "Твоя студія готова\nдо першого запису.",
@@ -339,8 +337,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.tryAgain": "Спробувати ще раз",
 
-  "live.check": "Перевірити ефір",
-
   "live.volumeOff": "Гучність вимкнено",
 
   "live.playing": "Ефір триває",
@@ -351,17 +347,11 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.infoAuthor": "Контроль ефіру",
 
-  "live.infoListener": "Прослуховування",
-
   "live.authorTip1": "Перевір хвилю до початку ефіру. Список мікрофонів доступний без запису.",
 
   "live.authorTip2": "Підсилення та вимкнення мікрофона працюють під час ефіру.",
 
   "live.authorTip3": "Після завершення дочекайся передавання останніх секунд. Потім ПК можна вимкнути.",
-
-  "live.listenerTip1": "Ефір іде через сервер. В Android 0.9 звук відтворює окрема служба.",
-
-  "live.listenerTip2": "Гучність можна змінити тут або кнопками телефона.",
 
   "live.pilotTitle": "Тестова трансляція",
 
@@ -631,10 +621,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "settings.linksNote": "Приймаються лише адреси HTTPS. Посилання відкриваються у зовнішньому застосунку майданчика.",
 
-  "settings.authorTitle": "Автор",
-
-  "settings.authorText": "Підтримай True Thrills або зазирни на інші майданчики автора.",
-
   "settings.channelLinkCopied": "Посилання на канал скопійовано",
 
   "settings.channelLinkFailed": "Не вдалося скопіювати посилання.",
@@ -689,8 +675,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "notif.startFailed": "Сповіщення не запустилися. Онови застосунок.",
 
-  "notif.androidEnableFailed": "Не вдалося увімкнути сповіщення. Перевір з'єднання.",
-
   "push.newPodcast": "Новий подкаст True Thrills",
 
   "push.newVideo": "Нове відео True Thrills",
@@ -702,8 +686,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "push.testTitle": "Перевірка сповіщень",
 
   "push.testBody": "Нові ефіри та публікації надходитимуть сюди.",
-
-  "push.fallbackTitle": "Нова публікація",
 
   "player.album": "Подкасти",
 
@@ -837,39 +819,15 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "liveHook.starting": "Запускаємо ефір…",
 
-  "liveHook.started": "Ефір запущено",
-
   "liveHook.startFailed": "Не вдалося запустити ефір",
 
-  "liveHook.lost": "Зв'язок втрачено. Перевір інтернет і запусти ефір заново.",
-
-  "liveHook.stoppedLost": "Ефір зупинено: втрачено зв'язок",
-
-  "liveHook.finished": "Ефір завершено",
-
-  "liveHook.connectingToAuthor": "Під'єднуємося до автора…",
-
-  "liveHook.connected": "З'єднання встановлено. Очікуємо звук…",
-
   "liveHook.listening": "Ви слухаєте прямий ефір",
-
-  "liveHook.soundReady": "Звук готовий. Натисни «Увімкнути звук».",
 
   "liveHook.tapToEnable": "Натисни «Увімкнути звук», щоб дозволити відтворення.",
 
   "liveHook.playFailed": "Не вдалося відтворити звук. Під'єднайся ще раз.",
 
-  "liveHook.noSound": "Не вдалося отримати звук. Спробуй під'єднатися ще раз.",
-
   "liveHook.paused": "Прослуховування на паузі",
-
-  "liveHook.authorEnded": "Автор завершив ефір",
-
-  "liveHook.reconnecting": "Зв'язок перервався. Перепід'єднуємося…",
-
-  "liveHook.reconnectingServer": "Відновлюємо зв'язок із сервером…",
-
-  "liveHook.failed": "З'єднання не встановилося. Спробуй іншу мережу та під'єднайся знову.",
 
   "liveHook.title": "Прямий ефір",
 
@@ -918,8 +876,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "err.audioMissing": "Додай аудіозапис",
 
   "err.audioNotFound": "Аудіофайл не знайдено",
-
-  "err.badLocale": "Невідома мова",
 
   "err.uploadSize": "Вкажи розмір файлу: від 1 байта до 80 МБ",
 

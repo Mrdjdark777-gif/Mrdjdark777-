@@ -45,6 +45,7 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,o
   }catch(e){if(!abort.signal.aborted&&alive.current){setMessage(errorText(e));setLoading(false);}}
   finally{repairing.current=false;if(alive.current)setIsRepairing(false);}
  }
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- Перезагружает элемент только при смене источника; остальное — стабильные ссылки и стартовые значения.
  useEffect(()=>{alive.current=true;const el=local.current;if(el){el.src=src;el.load();void play();}return()=>{alive.current=false;controller.current?.abort();if(objectUrl.current)URL.revokeObjectURL(objectUrl.current);if(el)saveProgress(postId,el.currentTime,Number.isFinite(el.duration)?el.duration:initialDuration);el?.pause();if('mediaSession'in navigator){for(const action of ['play','pause','seekbackward','seekforward','seekto'] as const)navigator.mediaSession.setActionHandler(action,null);navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none';}if(audioRef.current===el)audioRef.current=null;};},[src]);
  function metadata(){const el=local.current;if(!el||el.readyState===0)return;if(Number.isFinite(el.duration)&&el.duration>0){if(!restored.current){restored.current=true;const progress=readProgress().find(p=>p.id===postId);if(progress&&progress.position<el.duration-2)el.currentTime=progress.position;}setDuration(el.duration);setSeekable(true);setLoading(false);mediaPosition();}else if(!attempted.current)void repair();}
  return <section className="podcast-player" aria-label={t('player.aria',{title})}>

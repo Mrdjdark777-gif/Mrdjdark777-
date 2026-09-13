@@ -155,8 +155,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "header.logout": "Ieși",
 
-  "header.loginAuthor": "Intră ca autor",
-
   "setup.eyebrow": "TRUE THRILLS / PRIMA PORNIRE",
 
   "setup.title": "Studioul tău e gata\npentru prima înregistrare.",
@@ -339,8 +337,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.tryAgain": "Mai încearcă o dată",
 
-  "live.check": "Verifică emisiunea",
-
   "live.volumeOff": "Volumul este oprit",
 
   "live.playing": "Emisiunea e în desfășurare",
@@ -351,17 +347,11 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.infoAuthor": "Controlul emisiunii",
 
-  "live.infoListener": "Ascultare",
-
   "live.authorTip1": "Verifică unda înainte de emisiune. Lista microfoanelor e disponibilă fără înregistrare.",
 
   "live.authorTip2": "Amplificarea și oprirea microfonului funcționează în timpul emisiunii.",
 
   "live.authorTip3": "După încheiere așteaptă trimiterea ultimelor secunde. Apoi poți opri PC-ul.",
-
-  "live.listenerTip1": "Emisiunea trece prin server. În Android 0.9 sunetul e redat de un serviciu separat.",
-
-  "live.listenerTip2": "Volumul se schimbă de aici sau din butoanele telefonului.",
 
   "live.pilotTitle": "Transmisiune de probă",
 
@@ -631,10 +621,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "settings.linksNote": "Se acceptă doar adrese HTTPS. Linkurile se deschid în aplicația externă a platformei.",
 
-  "settings.authorTitle": "Autor",
-
-  "settings.authorText": "Susține True Thrills sau intră pe celelalte platforme ale autorului.",
-
   "settings.channelLinkCopied": "Linkul canalului a fost copiat",
 
   "settings.channelLinkFailed": "Linkul nu a putut fi copiat.",
@@ -689,8 +675,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "notif.startFailed": "Notificările nu au pornit. Actualizează aplicația.",
 
-  "notif.androidEnableFailed": "Notificările nu au putut fi pornite. Verifică conexiunea.",
-
   "push.newPodcast": "Podcast nou True Thrills",
 
   "push.newVideo": "Video nou True Thrills",
@@ -702,8 +686,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "push.testTitle": "Verificarea notificărilor",
 
   "push.testBody": "Emisiunile și publicările noi vor ajunge aici.",
-
-  "push.fallbackTitle": "Publicare nouă",
 
   "player.album": "Podcasturi",
 
@@ -837,39 +819,15 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "liveHook.starting": "Pornim emisiunea…",
 
-  "liveHook.started": "Emisiunea a pornit",
-
   "liveHook.startFailed": "Emisiunea nu a putut fi pornită",
 
-  "liveHook.lost": "Legătura s-a pierdut. Verifică internetul și pornește emisiunea din nou.",
-
-  "liveHook.stoppedLost": "Emisiune oprită: legătura s-a pierdut",
-
-  "liveHook.finished": "Emisiune încheiată",
-
-  "liveHook.connectingToAuthor": "Ne conectăm la autor…",
-
-  "liveHook.connected": "Conexiune stabilită. Așteptăm sunetul…",
-
   "liveHook.listening": "Asculți emisiunea în direct",
-
-  "liveHook.soundReady": "Sunetul e gata. Apasă «Pornește sunetul».",
 
   "liveHook.tapToEnable": "Apasă «Pornește sunetul» ca să permiți redarea.",
 
   "liveHook.playFailed": "Sunetul nu a putut fi redat. Conectează-te din nou.",
 
-  "liveHook.noSound": "Nu am reușit să primim sunetul. Încearcă să te conectezi din nou.",
-
   "liveHook.paused": "Ascultarea e în pauză",
-
-  "liveHook.authorEnded": "Autorul a încheiat emisiunea",
-
-  "liveHook.reconnecting": "Legătura s-a întrerupt. Ne reconectăm…",
-
-  "liveHook.reconnectingServer": "Restabilim legătura cu serverul…",
-
-  "liveHook.failed": "Conexiunea nu s-a stabilit. Încearcă altă rețea și conectează-te din nou.",
 
   "liveHook.title": "Emisiune live",
 
@@ -918,8 +876,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "err.audioMissing": "Adaugă o înregistrare audio",
 
   "err.audioNotFound": "Fișierul audio nu a fost găsit",
-
-  "err.badLocale": "Limbă necunoscută",
 
   "err.uploadSize": "Indică mărimea fișierului: de la 1 octet până la 80 MB",
 

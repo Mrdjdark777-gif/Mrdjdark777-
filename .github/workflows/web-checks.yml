@@ -30,6 +30,9 @@ jobs:
           if ($errors.Count) { $errors | Format-List; exit 1 }
       - run: npm run lint
       - run: npm run build
+      - run: node tests/audio-file.mjs
+      - run: node tests/device-discovery.mjs
+      - run: node tests/studio-audio.mjs
       - run: node tests/api-integration.mjs
       - run: node tests/backup-integration.mjs
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg

@@ -160,6 +160,7 @@ export function useLive(){
   }catch(e){if(gen===generation.current)endViewer('error',errorText(e));}
  }
  useEffect(()=>{volumeRef.current=volume;if(audio.current)audio.current.volume=volume/100;if(native.current)void nativeCall('player.volume',{value:volume/100}).catch(()=>{});},[volume]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- generation — счётчик поколений, а не DOM-узел: при размонтировании нужно именно текущее значение.
  useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(host.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',before);return()=>{generation.current++;stopMeter();void meterCtx.current?.close().catch(()=>{});meterCtx.current=null;window.removeEventListener('beforeunload',before);if(hostTimer.current)clearInterval(hostTimer.current);if(listenTimer.current)clearInterval(listenTimer.current);hls.current?.destroy();audio.current?.pause();if(recorder.current?.state==='recording')recorder.current.stop();};},[]);
  return{hosting,connecting,listeners,status,listening,joined,activeId,phase,hostStatus,hostSeconds,volume,setVolume,levels,start,stop,listen,leave,resume,pause,unmute:resume};
 }
