@@ -341,3 +341,23 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  .home-social{margin-bottom:10px}
  .content-footer{padding-top:8px;margin-top:6px}
 }
+
+/* Подпись студии живёт только на экране настроек, поэтому футер переносится
+   на вторую строку: на телефоне она не встала бы рядом с «All rights
+   reserved», а ужимать обе строки в одну — нечитаемо. */
+.content-footer{flex-wrap:wrap}
+.footer-studio{flex-basis:100%;margin-top:7px;color:#6b7079;letter-spacing:.06em}
+
+/* Экран настроек на телефоне: карточка уведомлений набрана плотнее, чтобы
+   заголовок, переключатели, кнопка и пояснение помещались целиком, не уезжая
+   под нижнюю панель. */
+@media(max-width:767px){
+ .settings-panel{padding:18px 18px 16px}
+ .page-heading{margin-bottom:12px}
+ .section-icon{margin-bottom:10px}
+ .settings-panel h2{font-size:19px;margin-bottom:10px;line-height:1.25}
+ .settings-panel p{font-size:14px;line-height:1.6;margin-bottom:14px}
+ .notification-options{gap:12px;margin:16px 0}
+ .notification-options label{font-size:15px}
+ .settings-panel small{font-size:12px;line-height:1.5;margin-top:10px}
+}

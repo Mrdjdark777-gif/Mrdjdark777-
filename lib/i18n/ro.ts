@@ -657,8 +657,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "notif.unsupported": "Pentru notificări deschide adresa securizată True Thrills (HTTPS) în Chrome pe Android.",
 
-  "notif.note": "Notificările ajung chiar dacă aplicația nu e deschisă. Pentru ecranul de blocare permite-le din setările Android. Economisirea bateriei și oprirea forțată a aplicației (sau a Chrome, dacă intri din browser) pot împiedica livrarea.",
-
+  "notif.note": "Notificările ajung și fără aplicația deschisă. Dacă nu ajung, verifică permisiunile și economisirea bateriei din setările Android.",
   "notif.enabled": "Notificările sunt pornite pe acest dispozitiv. Verifică livrarea.",
 
   "notif.disabled": "Notificările sunt oprite.",

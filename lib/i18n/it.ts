@@ -380,7 +380,7 @@ export const it: Record<keyof typeof ru, string> = {
   'notif.disable': 'Disattiva le notifiche',
   'notif.test': 'Prova la consegna',
   'notif.unsupported': 'Per le notifiche apri l’indirizzo sicuro di True Thrills (HTTPS) in Chrome su Android.',
-  'notif.note': 'Le notifiche arrivano anche senza l’app aperta. Per la schermata di blocco autorizzale nelle impostazioni di Android. Il risparmio energetico e l’arresto forzato dell’app (o di Chrome, se usi il browser) possono impedirne la consegna.',
+  'notif.note': 'Le notifiche arrivano anche senza l’app aperta. Se non arrivano, controlla permessi e risparmio energetico nelle impostazioni di Android.',
   'notif.enabled': 'Notifiche attive su questo dispositivo. Prova la consegna.',
   'notif.disabled': 'Notifiche disattivate.',
   'notif.reEnable': 'Riattiva le notifiche.',
