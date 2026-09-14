@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { LOCALE_TAGS, translate } from "@/lib/i18n";
 import { currentLocale } from "@/lib/i18n/server";
 import { LocaleProvider } from "@/components/i18n-provider";
-import { Inter } from "next/font/google";
+import { Lora, Manrope } from "next/font/google";
 import "./globals.css";
 
 // viewport-fit=cover makes the browser report real safe-area insets, which the
@@ -14,14 +14,25 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Один шрифт на весь интерфейс и на все языки. Подмножества latin-ext и
-// cyrillic обязательны: без них итальянские акценты или русский текст
-// подставились бы системным шрифтом, и приложение выглядело бы по-разному
-// на разных телефонах. Inter — переменный, поэтому все насыщенности от
-// обычной до чёрной приходят одним файлом.
-const uiFont = Inter({
+// Два шрифта, оба с кириллицей и latin-ext: без этих подмножеств румынские
+// ș/ț или русский текст подставились бы системным шрифтом, и приложение
+// выглядело бы по-разному на разных телефонах.
+//
+// Manrope — весь интерфейс: кнопки, подписи, списки. Переменный, поэтому все
+// насыщенности приходят одним файлом.
+const uiFont = Manrope({
   subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-display",
+  display: "swap",
+});
+
+// Lora — только крупные названия выпусков на кинематографических обложках; в
+// интерфейсе не используется. ТЗ предлагало на выбор Prata или Lora: у Prata
+// нет подмножества latin-ext, то есть румынские ș и ț подставились бы другим
+// шрифтом прямо посреди заголовка. Проверка четырёх языков и решила выбор.
+const sceneFont = Lora({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  variable: "--font-scene",
   display: "swap",
 });
 
@@ -48,7 +59,7 @@ export default async function RootLayout({
 }>) {
   const locale = await currentLocale();
   return (
-    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable}`}>
+    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable} ${sceneFont.variable}`}>
       <body className="antialiased">
         <div aria-hidden className="app-aurora">
           <span className="tt-blob-1" />
