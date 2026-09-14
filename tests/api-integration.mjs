@@ -232,6 +232,23 @@ try {
   await request('library', { action: 'delete', id: withCover.data.id });
   assert.equal((await dispatch('cover', { search: '?id=' + withCover.data.id })).status, 404);
 
+  // Архив эфира и сам эфир держат одну обложку: воркер переносит её на выпуск
+  // при публикации. Удаление выпуска стирало файл и оставляло строку эфира
+  // указывать в пустоту — на этом 14 сентября встало обновление сервера,
+  // потому что проверка бэкапа требует каждый файл, названный в базе.
+  {
+   const db = getDb().$client;
+   const shared = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '5' }, body: new Blob(['live!']).stream(), duplex: 'half' });
+   assert.equal(shared.status, 200);
+   const sharedKey = (await shared.json()).key;
+   const archive = await request('library', { kind: 'podcast', title: 'Архив эфира', audioKey: key, coverKey: sharedKey, published: true });
+   assert.equal(archive.status, 200);
+   db.prepare("INSERT INTO broadcasts(id,title,owner_id,heartbeat,active,cover_key) VALUES(?,?,?,?,0,?)").run(archive.data.id, 'Архив эфира', 'owner', Date.now() - 7200000, sharedKey);
+   await request('library', { action: 'delete', id: archive.data.id });
+   assert.equal(db.prepare('SELECT cover_key FROM broadcasts WHERE id=?').get(archive.data.id).cover_key, null, 'после удаления выпуска эфир не должен ссылаться на стёртый файл');
+   db.prepare('DELETE FROM broadcasts WHERE id=?').run(archive.data.id);
+  }
+
   assert.equal((await dispatch('cover', { search: '?id=channel' })).status, 404);
   cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': '6' }, body: new Blob(['channl']).stream(), duplex: 'half' });
   const { key: artKey } = await cr.json();
@@ -432,7 +449,7 @@ try {
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion that leaves no dangling broadcast cover.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

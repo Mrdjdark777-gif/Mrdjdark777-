@@ -39,7 +39,15 @@ export async function POST(req: Request){try{
   }
   if(d.action==='delete'){
     const p=await db.select().from(posts).where(eq(posts.id,String(d.id))).get();
-    if(p){await db.delete(posts).where(eq(posts.id,p.id));if(p.audioKey)await bucket().delete(p.audioKey);if(p.coverKey)await bucket().delete(p.coverKey);}return result({ok:true});
+    if(p){
+      await db.delete(posts).where(eq(posts.id,p.id));
+      if(p.audioKey)await bucket().delete(p.audioKey);
+      // Обложка выпуска-архива и обложка эфира — один и тот же файл: воркер
+      // переносит её на выпуск при публикации. Снять ссылку нужно до удаления
+      // файла, иначе в базе остаётся указатель в пустоту — на нём спотыкалась
+      // проверка бэкапа, а уборка молча уносила и сам эфир.
+      if(p.coverKey){await db.update(broadcasts).set({coverKey:null}).where(eq(broadcasts.coverKey,p.coverKey));await bucket().delete(p.coverKey);}
+    }return result({ok:true});
   }
   if(d.action==='visibility'){const p=await db.update(posts).set({published:d.published?1:0}).where(eq(posts.id,String(d.id))).returning().get();if(p?.published)notifyPost(p,req);return result({ok:true});}
   const title=String(d.title??'').trim(),kind=String(d.kind??'');

@@ -24,7 +24,9 @@ let expectedAudio;
 try{expectedAudio=db.prepare('SELECT COUNT(*) AS n FROM posts WHERE audio_key IS NOT NULL').get().n;await db.backup(path.join(output,'truethrills.db'));await cp(storagePath,path.join(output,'storage'),{recursive:true,errorOnExist:true,force:false});}finally{db.close();}
 try{await cp(livePath,path.join(output,'live'),{recursive:true,errorOnExist:true,force:false});}catch(e){if(e.code!=='ENOENT')throw e;}
 await writeFile(path.join(output,'RESTORE.txt'),'SQLite online backup + audio storage. Stop publications/deletions while backing up for a consistent content set. Restore while the service is stopped. Secrets from .env are included in server.env. The DB contains private push subscription keys. Keep this archive private.\n',{mode:0o600});
-execFileSync(process.execPath,[fileURLToPath(new URL('./verify-backup.mjs',import.meta.url)),output,String(expectedAudio)],{stdio:'inherit'});
+// Живое хранилище передаётся третьим аргументом: с ним проверка отличает файл,
+// потерянный при копировании, от ссылки, под которой файла давно нет.
+execFileSync(process.execPath,[fileURLToPath(new URL('./verify-backup.mjs',import.meta.url)),output,String(expectedAudio),canonicalStorage],{stdio:'inherit'});
 await copyFile('.env',path.join(output,'server.env'));await chmod(path.join(output,'server.env'),0o600);
 if(process.env.FIREBASE_SERVICE_ACCOUNT_FILE){await copyFile(process.env.FIREBASE_SERVICE_ACCOUNT_FILE,path.join(output,'firebase-service-account.json'));await chmod(path.join(output,'firebase-service-account.json'),0o600);}
 await writeFile(path.join(output,'RESTORE-PATHS.json'),JSON.stringify({databasePath,storagePath,livePath,firebasePath:process.env.FIREBASE_SERVICE_ACCOUNT_FILE||null}),{mode:0o600});

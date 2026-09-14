@@ -25,12 +25,47 @@ try{
 
  // Обложки теряются так же тихо, как звук, а замечают это уже на
  // восстановленном сервере с пустыми карточками. Каждая ссылка проверяется.
- for(const [key,who] of [['cover/c0de-0001','выпуска'],['cover/c0de-0002','эфира'],['cover/c0de-0003','канала']]){
+ // Обложка выпуска — содержимое: её пропажа отвергает копию.
+ for(const [key,who] of [['cover/c0de-0001','выпуска']]){
   const kept=path.join(dir,'storage',key),aside=kept+'.aside';
   await rename(kept,aside);
   assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Missing cover/,'пропавшая обложка '+who+' должна ронять проверку');
   await rename(aside,kept);
  }
+ // Обложка эфира и оформление канала без живого хранилища считаются висячими
+ // ссылками: различить «потеряно при копировании» и «в базе указатель в
+ // пустоту» тут нечем, и отказ в бэкапе был бы худшим из двух ответов.
+ for(const [key,who] of [['cover/c0de-0002','эфира'],['cover/c0de-0003','канала']]){
+  const kept=path.join(dir,'storage',key),aside=kept+'.aside';
+  await rename(kept,aside);
+  assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/,'обложка '+who+' должна попасть в отчёт, а не отменять копию');
+  await rename(aside,kept);
+ }
+ // Ссылка на обложку, под которой файла нет ни в копии, ни в живом хранилище.
+ // Это висячий указатель в самой базе — копия верная, и отказывать в ней
+ // нельзя: бэкап нужнее всего именно тогда, когда с данными что-то не так.
+ // Ровно на этом 14 сентября встало обновление боевого сервера.
+ const liveStorage=path.join(dir,'live-storage');
+ await mkdir(path.join(liveStorage,'audio'),{recursive:true});await mkdir(path.join(liveStorage,'cover'),{recursive:true});
+ const mirror=async()=>{await rm(liveStorage,{recursive:true,force:true});await cp(path.join(dir,'storage'),liveStorage,{recursive:true});};
+ await mirror();
+ const cover2=path.join(dir,'storage/cover/c0de-0002');
+ await rm(cover2);await rm(cover2+'.meta.json');await rm(path.join(liveStorage,'cover/c0de-0002'));await rm(path.join(liveStorage,'cover/c0de-0002.meta.json'));
+ const withLive=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir,'',liveStorage],{cwd:root,encoding:'utf8'});
+ assert.match(withLive,/Ссылки без файлов/,'висячая ссылка должна быть названа в отчёте');
+ assert.match(withLive,/cover\/c0de-0002/);
+ // Тот же файл, но он есть в живом хранилище — значит, потерян при копировании.
+ await put('cover/c0de-0002','picture-two','image/png');await mirror();
+ await rm(path.join(dir,'storage/cover/c0de-0002'));await rm(path.join(dir,'storage/cover/c0de-0002.meta.json'));
+ assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir,'',liveStorage],{cwd:root,stdio:'pipe'}),/Missing cover/,'файл, который есть в живом хранилище и пропал в копии, должен ронять проверку');
+ await put('cover/c0de-0002','picture-two','image/png');
+ // Без живого хранилища различить нечем: звук выпуска по-прежнему обязателен,
+ // а ссылка эфира считается висячей.
+ await rm(cover2);await rm(cover2+'.meta.json');
+ assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/);
+ await put('cover/c0de-0002','picture-two','image/png');
+ await rm(liveStorage,{recursive:true,force:true});
+
  // Файл того же размера, но с другим содержимым: размер сходится, сумма — нет.
  // Раньше такая копия проходила проверку молча.
  await writeFile(path.join(dir,'storage/audio/abc-123'),'tost');
@@ -85,5 +120,5 @@ try{
   assert.equal((await readdir(vault)).length,3,'когда копий меньше запаса, удалять нечего');
   assert.throws(()=>prune('--keep','0'),/whole number/,'бессмысленный запас должен отвергаться');
  }finally{await rm(vault,{recursive:true,force:true});}
- console.log('PASS: backup integrity, separate restore, missing audio and covers, size mismatch, damaged-but-same-size files, checksum-less legacy files and their backfill, lost-episode detection and rotation');
+ console.log('PASS: backup integrity, separate restore, missing audio and covers, dangling references that must not block a backup, size mismatch, damaged-but-same-size files, checksum-less legacy files and their backfill, lost-episode detection and rotation');
 }finally{await rm(dir,{recursive:true,force:true});}
