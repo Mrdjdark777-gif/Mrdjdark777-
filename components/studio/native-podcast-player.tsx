@@ -4,9 +4,10 @@ import {nativeCall} from '@/lib/native-client';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
 import {errorText} from '@/lib/client';
 import {PlayerChrome} from './player-chrome';
+import {presentation} from '@/lib/player-presentation';
 import {useT} from '@/components/i18n-provider';
 export type NativePlayerState={id:string;active:boolean;playing:boolean;loading:boolean;position:number;duration:number;rate:number;sleepUntil:number;playbackError?:string};
-export function NativePodcastPlayer({src,title,duration=0,cover,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
+export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,supportUrl,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
  const {t}=useT(),id=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const [now,setNow]=useState(0);
  const [state,setState]=useState<NativePlayerState>({id,active:false,playing:false,loading:true,position:0,duration:duration*1000,rate:1,sleepUntil:0}),[message,setMessage]=useState('');
@@ -21,7 +22,8 @@ export function NativePodcastPlayer({src,title,duration=0,cover,autoplay=true,ex
  },[id,title,cover,autoplay]);
  const remaining=state.sleepUntil>0?Math.max(1,Math.ceil((state.sleepUntil-now)/60000)):0;
  return <PlayerChrome expanded={expanded} onExpand={onExpand}
-  view={{title,cover,position:state.position/1000,duration:state.duration/1000,playing:state.playing,loading:state.loading,seekable:state.duration>0,rate:state.rate,sleep:remaining,
+  view={{title,cover,note,supportUrl,presentation:presentation({archived,cover}),kindLabel:archived?t('post.liveArchive'):t('post.podcast'),
+   position:state.position/1000,duration:state.duration/1000,playing:state.playing,loading:state.loading,seekable:state.duration>0,rate:state.rate,sleep:remaining,
    sleepValue:state.sleepUntil>0?'active':'0',message:message||(state.playbackError?errorText(new Error(state.playbackError)):''),
    sleepOptions:[{value:'0',label:t('player.sleepOff')},...(state.sleepUntil>0?[{value:'active',label:remaining+' '+t('player.minutes')}]:[]),...[15,30,60].map(m=>({value:m,label:m+' '+t('player.minutes')}))]}}
   act={{toggle:()=>void command(state.playing?'pause':'play'),seekBy:s=>void command('seek',{position:Math.max(0,Math.min(state.duration,state.position+s*1000))}),

@@ -715,6 +715,8 @@ export const ro: Record<keyof typeof ru, string> = {
   "player.aria": "Player: {title}",
 
   "player.close": "Închide playerul",
+  "player.menu": "Meniul episodului",
+  "player.sleepShort": "Cronometru",
 
   "player.back15": "Înapoi 15 secunde",
 

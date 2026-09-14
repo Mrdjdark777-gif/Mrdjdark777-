@@ -103,7 +103,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "player.sleep": "Таймер сну",
 
-  "player.sleepOff": "Вимкнено",
+  "player.sleepOff": "Вимк.",
 
   "player.minutes": "хв",
 
@@ -715,6 +715,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "player.aria": "Плеєр: {title}",
 
   "player.close": "Закрити плеєр",
+  "player.menu": "Меню випуску",
+  "player.sleepShort": "Таймер",
 
   "player.back15": "Назад на 15 секунд",
 

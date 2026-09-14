@@ -485,23 +485,67 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 /* Плеер выпуска: лист между шапкой и навигацией или мини-панель над ней. */
 .podcast-player{grid-template-columns:none;background:none;border:none;box-shadow:none;padding:0}
 .podcast-player audio{display:none}
-.podcast-player.is-open{position:fixed;z-index:40;left:14px;right:14px;top:calc(clamp(84px,100dvh - 700px,200px) + env(safe-area-inset-top));bottom:calc(var(--bottom-nav-h) + 18px + env(safe-area-inset-bottom))!important;display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 20px 22px;border-radius:26px;background:linear-gradient(180deg,#132927,#111617 62%)!important;border:1px solid rgba(111,231,222,.25)!important;box-shadow:0 30px 70px -30px rgba(0,0,0,.95);overflow:auto;-webkit-backdrop-filter:none;backdrop-filter:none}
-.player-sheet-top{width:100%;display:flex;justify-content:space-between;align-items:center}
-.player-collapse,.podcast-player .player-close{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#c8cfd3;background:rgba(255,255,255,.05);grid-column:auto;grid-row:auto}
-.is-open .podcast-player-logo{width:min(170px,42vw);height:min(170px,42vw);border-radius:22px;object-fit:cover;box-shadow:0 20px 40px -18px rgba(0,0,0,.95);margin-top:2px;grid-column:auto}
-.is-open .podcast-player-title{align-items:center;text-align:center;gap:6px;grid-column:auto;width:100%}
-.is-open .podcast-player-title strong{font-size:22px;font-weight:800;white-space:normal;letter-spacing:-.02em;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.podcast-clock{font-size:13px;color:#9fb1ae;font-variant-numeric:tabular-nums}
+.podcast-player.is-open{position:fixed;inset:0!important;z-index:60;display:flex;flex-direction:column;
+ gap:0;padding:0;border:none!important;border-radius:0;box-shadow:none;overflow:auto;overscroll-behavior:contain;
+ background:var(--background)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Экран плеера показывает свою кнопку свернуть, а не шапку и нижнюю панель. */
+body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) .bottom-nav{display:none}
+
+/* Фотография сверху, затухающая в угольный низ. Без обложки — фирменный знак. */
+.player-stage{position:absolute;top:0;left:0;right:0;height:min(58dvh,520px);z-index:0;
+ display:grid;place-items:center;background:linear-gradient(180deg,#18202a,#101113)}
+.player-stage-photo{width:100%;height:100%;object-fit:cover;display:block}
+.player-stage-mark{width:118px;height:118px;object-fit:contain;opacity:.5}
+.player-stage-shade{position:absolute;inset:0;
+ background:linear-gradient(180deg,rgba(16,17,19,.58) 0,rgba(16,17,19,.18) 14%,rgba(16,17,19,.04) 36%,rgba(16,17,19,.7) 74%,#101113 100%)}
+
+.player-sheet-top{position:relative;z-index:2;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;
+ gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 0}
+.player-kind{text-align:center;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#cdd3d5}
+.player-collapse,.player-more{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+ color:#eef1f2;background:none;border:none;grid-column:auto;grid-row:auto;filter:drop-shadow(0 1px 6px rgba(0,0,0,.8))}
+
+.player-body{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;
+ gap:14px;padding:0 var(--tt-gutter) calc(22px + env(safe-area-inset-bottom));justify-content:flex-end;text-align:center}
+.player-caption{display:flex;flex-direction:column;gap:5px}
+.player-brand{font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#f0efed}
+.player-tagline{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#a4a5aa;
+ font-variant-numeric:tabular-nums}
+.player-title{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(26px,7.4vw,36px);line-height:1.1;
+ letter-spacing:-.01em;margin:0;color:#f4f3f1;text-wrap:balance;text-shadow:0 2px 18px rgba(0,0,0,.55);max-width:min(100%,18ch);
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.player-note{margin:-6px 0 0;font-size:13px;line-height:1.45;color:#b9bec0;max-width:34ch;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 .is-open .podcast-timeline{width:100%;padding:0;grid-column:auto;grid-row:auto}
-.is-open .podcast-timeline .podcast-times{font-size:12px;color:#9fb1ae;margin-top:4px}
-.is-open .podcast-transport{gap:28px;margin-top:2px;grid-column:auto;grid-row:auto}
-.is-open .podcast-transport>button{color:#dfe7e5}
-.podcast-transport>.podcast-toggle,.is-mini .podcast-toggle{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border-radius:50%;box-shadow:0 12px 30px -12px rgba(111,231,222,.8)}
-.is-open .podcast-transport>.podcast-toggle{width:64px;height:64px}
-.is-open .player-extras{flex-direction:column;align-items:center;gap:12px;font-size:15px;color:#c0c6ca;grid-column:auto}
-.is-open .player-extras label{gap:12px}
-.is-open .player-extras select{padding:10px 14px;border-radius:12px;font-size:15px;background:var(--surface-2);border-color:var(--line-strong)}
-.is-open .podcast-player-message{grid-column:auto;text-align:center}
+.is-open .podcast-timeline .podcast-times{font-size:12px;color:#a4a5aa;margin-top:6px}
+.podcast-clock{font-size:13px;color:#9fb1ae;font-variant-numeric:tabular-nums}
+.is-open .podcast-transport{gap:34px;grid-column:auto;grid-row:auto}
+.is-open .podcast-transport>button{position:relative;width:54px;height:54px;color:#e4e8e9;justify-content:center}
+.is-open .podcast-transport>button>svg{width:40px;height:40px;stroke-width:1.4}
+.is-open .podcast-transport>button>span{position:absolute;inset:0;display:grid;place-items:center;
+ margin-top:2px;font-size:11.5px;font-weight:700;line-height:1}
+.podcast-transport>.podcast-toggle,.is-mini .podcast-toggle{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border-radius:50%;box-shadow:0 14px 32px -18px rgba(111,231,222,.75)}
+.is-open .podcast-transport>.podcast-toggle{width:72px;height:72px}
+
+/* Скорость и таймер: выбранное значение сверху, подпись под ним, как на листе. */
+.is-open .player-extras{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(100%,300px);
+ justify-items:center;grid-column:auto}
+.player-extra{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center}
+.player-extra select{-webkit-appearance:none;appearance:none;text-align:center;text-align-last:center;
+ background:none;border:none;color:#f4f3f1;font-size:16px;font-weight:600;padding:2px 4px;border-radius:8px}
+.player-extra select option{background:var(--surface);color:#f4f3f1}
+.player-extra>span{font-size:12px;color:#a4a5aa}
+.player-extra-icon{color:#e4e8e9;display:grid;place-items:center}
+.is-open .podcast-player-message{grid-column:auto;text-align:center;color:#ffc18d}
+
+.player-menu{position:absolute;z-index:3;top:calc(58px + env(safe-area-inset-top));right:14px;min-width:210px;
+ display:flex;flex-direction:column;padding:6px;border-radius:16px;background:var(--surface);
+ border:1px solid var(--line);box-shadow:0 24px 50px -24px rgba(0,0,0,.95)}
+.player-menu>*{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:11px;
+ background:none;border:none;color:#f4f3f1;font-size:15px;text-align:left;text-decoration:none}
+.player-menu>*:hover{background:rgba(255,255,255,.06)}
+
 .podcast-player.is-mini{position:fixed;z-index:40;left:14px;right:14px;bottom:calc(var(--bottom-nav-h) + 16px + env(safe-area-inset-bottom))!important;display:grid;grid-template-columns:minmax(0,1fr) 48px 40px;align-items:center;gap:10px;padding:8px 8px 8px 8px;border-radius:18px;background:rgba(19,29,29,.97)!important;border:1px solid rgba(111,231,222,.25)!important;box-shadow:0 18px 40px -20px rgba(0,0,0,.9)}
 .mini-open{display:flex;align-items:center;gap:12px;min-width:0;text-align:left;padding:0;background:none;border:none;color:inherit}
 .is-mini .podcast-player-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}
@@ -512,7 +556,10 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .player-expand{width:40px;height:40px;display:grid;place-items:center;color:#c8cfd3}
 body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 26px + env(safe-area-inset-bottom))!important}
 body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 96px + env(safe-area-inset-bottom))!important}
-@media(min-width:640px){.podcast-player.is-open,.podcast-player.is-mini{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px))}}
+@media(min-width:640px){.podcast-player.is-mini{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px))}
+/* Плеер на широком экране остаётся во всю высоту, но текст и кнопки не растягиваются. */
+.podcast-player.is-open .player-body>*{width:min(100%,460px)}
+.podcast-player.is-open .player-stage{height:min(52dvh,560px)}}
 /* Читалка: на телефоне — лист на весь экран между шапкой и навигацией. */
 .reading-dialog[data-slot=dialog-content]{border-radius:26px;background:#111719;border-color:rgba(255,255,255,.1)}
 .reading-dialog [data-slot=dialog-description]{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
