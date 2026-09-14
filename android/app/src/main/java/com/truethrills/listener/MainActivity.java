@@ -156,9 +156,23 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * Системная кнопка «Назад». Раньше WebView знал только про историю
+     * страницы, поэтому из развёрнутого плеера Back выбрасывал из приложения.
+     * Теперь сначала спрашиваем саму страницу: она закрывает меню, потом
+     * сворачивает плеер, потом листы и раздел. Ответ приходит асинхронно, и
+     * дальше идём только если странице закрывать нечего.
+     */
     @Override
     public void onBackPressed() {
         if (fullscreenView != null) { chrome.onHideCustomView(); return; }
+        webView.evaluateJavascript(
+            "(function(){try{return !!(window.trueThrills&&window.trueThrills.back&&window.trueThrills.back());}catch(e){return false;}})()",
+            value -> { if (!"true".equals(value)) systemBack(); });
+    }
+
+    /** Прежнее поведение: история страницы, затем сама система. */
+    private void systemBack() {
         if (webView.canGoBack()) webView.goBack();
         else super.onBackPressed();
     }

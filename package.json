@@ -1,6 +1,6 @@
 {
   "name": "true-thrills",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "test": "npm run build && node tests/audio-file.mjs && node tests/device-discovery.mjs && node tests/studio-audio.mjs && node tests/api-integration.mjs && node tests/backup-integration.mjs && node tests/prune-orphans.mjs && node tests/player-presentation.mjs && node tests/waveform.mjs && node tests/next-episode.mjs && node tests/live-stage.mjs",
+    "test": "npm run build && node tests/audio-file.mjs && node tests/device-discovery.mjs && node tests/studio-audio.mjs && node tests/api-integration.mjs && node tests/backup-integration.mjs && node tests/prune-orphans.mjs && node tests/player-presentation.mjs && node tests/waveform.mjs && node tests/next-episode.mjs && node tests/live-stage.mjs && node tests/back-stack.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

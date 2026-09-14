@@ -16,6 +16,7 @@ import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
+import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
 import {LiveStageView} from '@/components/studio/live-stage-view';
 import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-console';
@@ -53,6 +54,24 @@ export default function Studio(){
  const [now,setNow]=useState(0);
  useEffect(()=>{if(view!=='live'||!liveStatus?.startedAt)return;const update=()=>setNow(Date.now());const first=setTimeout(update,0),timer=setInterval(update,1000);return()=>{clearTimeout(first);clearInterval(timer);};},[view,liveStatus?.startedAt]);
  const elapsed=liveStatus?.startedAt&&now?clock(Math.max(0,Math.floor((now-liveStatus.startedAt)/1000))):'';
+ // Системная кнопка «Назад» на Android. Порядок задан спецификацией: меню,
+ // полный плеер, листы поверх экрана, возврат на главную — и только потом
+ // нажатие уходит системе и приложение закрывается. Меню и плеер регистрируют
+ // себя сами, здесь остаются листы и навигация.
+ useEffect(()=>{
+  if(!reading&&!watching)return;
+  return pushBackLayer(BACK_OVERLAY,()=>{setReading(null);setWatching(null);return true;});
+ },[reading,watching]);
+ useEffect(()=>{
+  if(view==='home')return;
+  return pushBackLayer(BACK_NAV,()=>{setView('home');return true;});
+ },[view]);
+ // Мост для WebView: Android спрашивает у страницы, есть ли что закрыть.
+ useEffect(()=>{
+  const host=window as Window&{trueThrills?:{back:()=>boolean}};
+  host.trueThrills={...host.trueThrills,back:runBack};
+  return()=>{delete host.trueThrills;};
+ },[]);
  const liveRequest=useRef(false);
  const refreshLive=useCallback(async()=>{if(liveRequest.current)return;liveRequest.current=true;try{const r=await api<{live:Data['live']}>('live?status=1');setLiveNow(r.live);setLiveError(false);}catch{setLiveError(true);}finally{liveRequest.current=false;}},[]);
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Subscribe to server live state and fetch its initial snapshot.

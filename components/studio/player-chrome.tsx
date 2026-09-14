@@ -1,10 +1,11 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight} from 'lucide-react';
 import {Waveform} from './waveform';
 import {Slider} from '@/components/ui/slider';
 import {clock} from '@/lib/client';
 import type {Presentation} from '@/lib/player-presentation';
+import {pushBackLayer,BACK_MENU,BACK_PLAYER} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 
 /**
@@ -41,6 +42,11 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  const [menu,setMenu]=useState(false);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
  const type=view.presentation==='type',archive=view.presentation==='archive';
+ // Системный Back закрывает сначала меню, потом сворачивает плеер. Слои
+ // снимаются вместе с тем, что их открыло, поэтому порядок не расходится
+ // с тем, что человек видит.
+ useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(false);return true;}):undefined,[menu]);
+ useEffect(()=>expanded?pushBackLayer(BACK_PLAYER,()=>{onExpand(false);return true;}):undefined,[expanded,onExpand]);
  // Один и тот же прогресс для кольца и полосы. Без длительности кольцо
  // остаётся нейтральным: ложный процент хуже, чем его отсутствие.
  const known=view.duration>0&&Number.isFinite(view.duration);

@@ -109,6 +109,23 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+archived.id);await settle(page);await page.locator('.podcast-player.is-archive').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>{const a=document.querySelector('.podcast-player audio');if(a){a.currentTime=a.duration*0.38;a.pause();}});await page.waitForTimeout(400);await shot(page,'player-archive');
+ // Системный Back на Android идёт через этот же мост: проверяем связку
+ // целиком, а не только реестр слоёв. Меню, затем плеер, затем раздел.
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);
+ await page.locator('.podcast-player.is-open').waitFor();
+ await page.locator('.player-more').click();await page.locator('.player-menu').waitFor();
+ assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back закрывает меню плеера');
+ await page.waitForTimeout(150);
+ assert.equal(await page.locator('.player-menu').count(),0,'меню закрылось, плеер остался развёрнутым');
+ assert.equal(await page.locator('.podcast-player.is-open').count(),1);
+ assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back сворачивает плеер');
+ await page.waitForTimeout(250);
+ assert.equal(await page.locator('.podcast-player.is-mini').count(),1,'плеер свернулся, а не закрылся');
+ assert.equal(await page.evaluate(()=>!!document.querySelector('.podcast-player audio')),true,'звук не пересоздан');
+ assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back уводит из раздела на главную');
+ await page.waitForTimeout(250);
+ assert.equal(await page.evaluate(()=>window.trueThrills.back()),false,'на главной Back отдаётся системе');
+
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
@@ -152,5 +169,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; студия без переполнения');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; студия без переполнения');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
