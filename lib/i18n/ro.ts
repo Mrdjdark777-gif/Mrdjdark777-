@@ -60,6 +60,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "donate.free": "Totul e gratuit și va rămâne gratuit.",
 
   "donate.action": "Susține True Thrills",
+  "donate.supportLive": "Susține transmisiunea",
 
   "donate.boosty": "Boosty",
 
@@ -368,6 +369,12 @@ export const ro: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "în direct",
+  "live.weAreOnAir": "Suntem în direct",
+  "live.noBroadcast": "Nicio transmisiune acum",
+  "live.endedTitle": "Transmisiune încheiată",
+  "live.stopListening": "Oprește",
+  "live.archiveTitle": "Arhiva transmisiunilor",
+  "live.archiveNote": "Episoade trecute și înregistrări speciale",
 
   "live.mute": "Oprește sunetul",
 

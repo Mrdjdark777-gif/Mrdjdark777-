@@ -56,6 +56,12 @@ try{
  // Второй выпуск специально без обложки иновее первого: по нему видно
  // типографический S04, и у него есть «Далее» — следующий в разделе.
  const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
+ // Запись эфира: тот же настоящий файл под ключом, который даёт воркер эфира.
+ // По нему видно S06 — круглую обложку с кольцом прогресса.
+ const {copyFile}=await import('node:fs/promises');
+ const archiveKey='audio/live-'+crypto.randomUUID();
+ for(const suffix of ['','.meta.json'])await copyFile(path.join(env.STORAGE_DIR,key+suffix),path.join(env.STORAGE_DIR,archiveKey+suffix));
+ const archived=await post({kind:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
  // Форма звука на снимке настоящая: её считает тот же воркер, что и на VPS.
  // Ждём его недолго — если ffmpeg в окружении нет, снимок покажет спокойное
  // состояние ожидания, и это тоже правда, а не заглушка.
@@ -97,6 +103,10 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);await page.locator('.podcast-player.is-type').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(400);await shot(page,'player-type');
+ // Запись эфира: круглая обложка с кольцом прогресса.
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+archived.id);await settle(page);await page.locator('.podcast-player.is-archive').waitFor();
+ await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
+ await page.evaluate(()=>{const a=document.querySelector('.podcast-player audio');if(a){a.currentTime=a.duration*0.38;a.pause();}});await page.waitForTimeout(400);await shot(page,'player-archive');
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
@@ -106,9 +116,13 @@ try{
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
  // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
- const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Вечерний эфир · True Thrills'})});const startText=await start.text();assert.equal(start.status,200,startText);
+ const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Истории после заката',coverKey:await demoCover('tile-mountains.jpg')})});const startText=await start.text();assert.equal(start.status,200,startText);
  await page.goto(base+'/?mode=listen');await settle(page);await page.waitForFunction(()=>!!document.querySelector('.bottom-nav-dot'),null,{timeout:8000}).catch(()=>{});await shot(page,'home-live');
- await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live');
+ // Экран эфира снимается только когда эфир действительно виден клиенту:
+ // состояние приходит опросом, и раньше снимок заставал ещё пустой экран.
+ await page.goto(base+'/?mode=listen&view=live');await settle(page);
+ await page.waitForFunction(()=>!!document.querySelector('.live-orb-dot'),null,{timeout:10000}).catch(()=>{});
+ await page.waitForTimeout(300);await shot(page,'live');
  const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
  await phone.close();
  // Переполнение и высота первого экрана — в чистом контексте: без «прочитанных»

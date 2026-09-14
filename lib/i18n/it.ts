@@ -60,6 +60,7 @@ export const it: Record<keyof typeof ru, string> = {
   "donate.free": "Tutto è gratuito e resterà gratuito.",
 
   "donate.action": "Sostieni True Thrills",
+  "donate.supportLive": "Sostieni la diretta",
 
   "donate.boosty": "Boosty",
 
@@ -237,6 +238,12 @@ export const it: Record<keyof typeof ru, string> = {
   'live.playing': 'Diretta in corso',
   'live.volume': 'Volume',
   'live.onAirFor': 'in diretta',
+  'live.weAreOnAir': 'Siamo in diretta',
+  'live.noBroadcast': 'Nessuna diretta ora',
+  'live.endedTitle': 'Diretta conclusa',
+  'live.stopListening': 'Ferma',
+  'live.archiveTitle': 'Archivio dirette',
+  'live.archiveNote': 'Puntate passate e registrazioni speciali',
   'live.mute': 'Disattiva l’audio',
   'live.unmute': 'Riattiva l’audio',
   'live.volumeAria': 'Volume della diretta',

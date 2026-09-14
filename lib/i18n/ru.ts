@@ -59,6 +59,7 @@ export const ru = {
   "donate.free": "Всё бесплатно и останется бесплатным.",
 
   "donate.action": "Поддержать True Thrills",
+  "donate.supportLive": "Поддержать эфир",
 
   "donate.boosty": "Boosty",
 
@@ -236,6 +237,12 @@ export const ru = {
   'live.playing': 'Эфир идёт',
   'live.volume': 'Громкость',
   'live.onAirFor': 'в эфире',
+  'live.weAreOnAir': 'Мы в эфире',
+  'live.noBroadcast': 'Сейчас эфира нет',
+  'live.endedTitle': 'Эфир завершён',
+  'live.stopListening': 'Остановить',
+  'live.archiveTitle': 'Архив эфиров',
+  'live.archiveNote': 'Прошлые выпуски и специальные записи',
   'live.mute': 'Выключить звук',
   'live.unmute': 'Включить звук',
   'live.volumeAria': 'Громкость эфира',

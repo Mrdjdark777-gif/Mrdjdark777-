@@ -60,6 +60,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "donate.free": "Усе безкоштовно і залишиться безкоштовним.",
 
   "donate.action": "Підтримати True Thrills",
+  "donate.supportLive": "Підтримати ефір",
 
   "donate.boosty": "Boosty",
 
@@ -368,6 +369,12 @@ export const uk: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "в ефірі",
+  "live.weAreOnAir": "Ми в ефірі",
+  "live.noBroadcast": "Зараз ефіру немає",
+  "live.endedTitle": "Ефір завершено",
+  "live.stopListening": "Зупинити",
+  "live.archiveTitle": "Архів ефірів",
+  "live.archiveNote": "Минулі випуски та спеціальні записи",
 
   "live.mute": "Вимкнути звук",
 

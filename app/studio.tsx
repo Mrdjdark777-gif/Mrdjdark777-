@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Home,Search,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,VolumeX,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
+import {Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Home,Search,Download,ArrowUpRight,Plus,Upload,Square,Pause,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Monitor,Trash2,Eye,EyeOff,Pencil,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -17,6 +17,7 @@ import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
 import {VoiceHeader} from '@/components/studio/voice-header';
+import {LiveStageView} from '@/components/studio/live-stage-view';
 import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-console';
 import {NotificationSettings} from '@/components/studio/notification-settings';
 import {Slider} from '@/components/ui/slider';
@@ -206,26 +207,17 @@ export default function Studio(){
  {live.hosting?<><div className="broadcast-summary"><Headphones size={20}/><strong>{live.listeners}</strong><span>{live.listeners?t('live.listenersConnected'):t('live.waitingFirst')}</span></div><div className="listener-link-actions"><a className="secondary-button" href="/?mode=listen&view=live" target="_blank" rel="noopener noreferrer"><Eye size={17}/>{t('live.openListener')}</a><button className="quiet-button" onClick={()=>void copyListenerLink()}>{t('live.copyLink')}</button></div><button className="primary-button stop-live-button" disabled={live.connecting} onClick={()=>void stopLive()}><Square size={17}/>{live.connecting?t('liveArchive.saving'):t('live.stop')}</button></>:<div className="preflight-actions"><button className="secondary-button" disabled={capture.busy||live.connecting||capture.recording} onClick={()=>capture.ready?capture.release():void capture.connect()}><Volume2 size={17}/>{capture.busy?t('live.connectingShort'):capture.ready?t('live.stopCheck'):t('live.checkMic')}</button><button className="primary-button" disabled={live.connecting||capture.recording||capture.busy||capture.discovering} onClick={()=>void startLive()}>{live.connecting?<Loader2 className="spin" size={18}/>:<Radio size={18}/>}{t('live.start')}</button></div>}
  {liveStatus&&!live.hosting&&<button className="quiet-button" onClick={()=>void run(async()=>{await api('live',{action:'stop',id:liveStatus!.id});await refreshLive();},t('live.stopped'))}>{t('live.stopFromOtherWindow')}</button>}
  </>:<>
- <div className={'session-status '+(live.phase==='playing'?'is-onair':'')} role="status"><span className="stage-dot" aria-hidden="true"/><strong>{live.phase==='playing'?t('live.listeningNow'):live.phase==='paused'?t('live.paused'):live.phase==='reconnecting'?t('live.reconnecting'):live.phase==='connecting'||live.phase==='waiting'?t('live.connectingState'):live.phase==='blocked'?t('live.needSound'):live.phase==='error'?t('live.connectFailed'):live.phase==='ended'?t('live.ended'):liveStatus?t('live.authorOnAirPlain'):t('live.noneNow')}</strong></div>
- <h2 className="live-stage-title">{liveStatus?.title??'True Thrills Live'}</h2>
- <p className="live-stage-note">{live.status||(liveStatus?t('live.tapToConnect'):t('live.willAppearHere'))}</p>
- <div className={'live-disc '+(live.listening?'is-live':'')} role="status" aria-label={t('live.playing')}>
-  <img className="live-disc-art" src={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:'/brand/logo.png?v=0.4.1'} alt="" width="200" height="200"/>
- </div>
- <LiveSpectrum levels={live.levels} active={live.listening}/>
- {elapsed&&<div className="live-elapsed"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></div>}
- <div className="listener-playback-actions">{live.joined?<>
-  <button className="round-control" aria-label={live.volume===0?t('live.unmute'):t('live.mute')} onClick={()=>live.setVolume(live.volume===0?100:0)}>{live.volume===0?<VolumeX size={22}/>:<Volume2 size={22}/>}</button>
-  {live.listening?<button className="primary-button live-play" aria-label={t('live.pause')} onClick={live.pause}><Pause size={30} fill="currentColor"/></button>
-   :live.phase==='paused'||live.phase==='blocked'||live.phase==='error'?<button className="primary-button live-play" aria-label={live.phase==='blocked'?t('live.enableSound'):t('live.resume')} onClick={()=>void live.resume()}><Play size={30} fill="currentColor"/></button>
-   :<button className="primary-button live-play" disabled aria-busy="true" aria-label={t('live.connecting')}><Loader2 className="spin" size={28}/></button>}
-  <button className="round-control" aria-label={live.connecting||live.phase==='waiting'||live.phase==='reconnecting'?t('common.cancel'):t('live.leave')} onClick={live.leave}><LogOut size={22}/></button>
- </>:liveStatus?<button className="primary-button live-play" aria-label={live.phase==='error'?t('live.tryAgain'):t('live.listen')} onClick={openLive}><Play size={30} fill="currentColor"/></button>:null}</div>
+ <LiveStageView title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
+  cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
+  elapsed={elapsed} status={live.status} onListen={openLive} onPause={live.pause} onArchive={()=>{goto('podcasts');setArchiveOnly(true);}}
+  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:null}/>
+ {live.listening&&<LiveSpectrum levels={live.levels} active={live.listening}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
- <div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>
+ {live.joined&&<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>}
+ {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}
 
  </>}
- {supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:live.phase==='error'&&<aside className="live-info"><p>{t('live.otherNetwork')}</p></aside>}</div>}
+ {author&&supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:live.phase==='error'&&<aside className="live-info"><p>{t('live.otherNetwork')}</p></aside>}</div>}
  {view==='settings'&&<div className="settings-grid">
  <NotificationSettings author={author}/>
  {!author&&socialRow&&<section className="settings-panel"><h2 className="panel-title">{t('home.socialCaption')}</h2>{socialRow}</section>}

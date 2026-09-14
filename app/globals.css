@@ -607,7 +607,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
    зоны касания и не сами действия. */
 @media(max-height:700px){.listener-main .support-card{padding:10px 12px}
 .listener-main .support-copy>span{display:none}
-.listener-main[data-view=home] .content-footer{display:none}
+.listener-main[data-view=home] .content-footer,.listener-main[data-view=live] .content-footer{display:none}
 .listener-main[data-view=home] .home-social{padding:10px 12px;margin-bottom:10px}
 .listener-main[data-view=home] .home-social .social-caption{display:none}
 .listener-main .page-heading{margin:2px 0 8px}
@@ -840,3 +840,78 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .player-next-copy span{font-size:12px;color:#a4a5aa;font-variant-numeric:tabular-nums}
 .player-next>svg,.player-next-row>svg{color:var(--muted);flex:none}
 @media(prefers-reduced-motion:reduce){.waveform-strip>span{transition:none}}
+
+/* ============================================================================
+   S05 — экран эфира. Кольца вокруг круга — декоративный мотив, а не спектр:
+   они ничего не измеряют и пульсируют только при настоящем воспроизведении.
+   Донат остаётся виден во всех состояниях, включая offline и ended.
+   ========================================================================== */
+.live-stage{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+.live-rings{position:relative;display:grid;place-items:center;
+ width:min(74vw,290px);height:min(74vw,290px);margin:6px 0 2px}
+.live-ring{position:absolute;border-radius:50%;border:1px solid rgba(111,231,222,.22)}
+.live-ring:nth-child(1){inset:0}
+.live-ring:nth-child(2){inset:7%;border-color:rgba(111,231,222,.15)}
+.live-ring:nth-child(3){inset:14%;border-color:rgba(111,231,222,.1)}
+.live-rings.is-pulsing .live-ring{animation:live-breathe 2.4s ease-in-out infinite}
+.live-rings.is-pulsing .live-ring:nth-child(2){animation-delay:.3s}
+.live-rings.is-pulsing .live-ring:nth-child(3){animation-delay:.6s}
+@keyframes live-breathe{0%,100%{opacity:.5}50%{opacity:1}}
+.live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
+ display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#101113);
+ border:1px solid rgba(255,255,255,.07)}
+.live-orb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.live-orb-shade{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(16,17,19,.25),rgba(16,17,19,.82))}
+.live-orb-copy{position:relative;display:flex;align-items:center;gap:9px;padding:0 16px;text-align:center}
+.live-orb-copy strong{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(21px,6vw,27px);
+ line-height:1.12;color:#f4f3f1;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+.live-orb-dot{width:11px;height:11px;flex:none;border-radius:50%;background:var(--tt-live);
+ box-shadow:0 0 12px rgba(255,106,85,.8)}
+.live-stage-name{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(22px,6.4vw,30px);
+ line-height:1.14;margin:0;text-align:center;color:#f4f3f1;text-wrap:balance}
+.live-stage-sub{margin:-8px 0 0;font-size:14px;line-height:1.45;color:#a4a5aa;text-align:center;max-width:32ch}
+.live-stage-clock{display:flex;align-items:baseline;gap:8px;margin:-4px 0 0}
+.live-stage-clock strong{font-size:20px;font-variant-numeric:tabular-nums;color:#e8eaee}
+.live-stage-clock span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c8285}
+.live-cta{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;
+ min-height:var(--tt-cta);border:none;border-radius:999px;font-size:16px;font-weight:700;
+ background:var(--teal);color:#08201E;box-shadow:0 14px 34px -18px rgba(111,231,222,.85)}
+.live-cta:disabled{opacity:.72}
+.live-archive-card{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;
+ border-radius:16px;border:1px solid var(--line);background:var(--surface);color:#f4f3f1;text-align:left}
+.live-archive-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;
+ background:var(--teal-dark,#123330);color:var(--teal)}
+.live-archive-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.live-archive-copy strong{font-size:15px;font-weight:600}
+.live-archive-copy span{font-size:12px;line-height:1.35;color:#a4a5aa}
+.live-archive-card>svg{color:var(--muted);flex:none}
+.live-stage+.live-spectrum{margin-top:14px}
+.live-leave{align-self:center;display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.live-stage-support-missing{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){.live-rings.is-pulsing .live-ring{animation:none;opacity:.8}}
+
+/* ============================================================================
+   S06 — запись эфира. Круглая обложка с кольцом прогресса; кольцо и полоса
+   показывают одно и то же значение, потому что берут его из одного места.
+   ========================================================================== */
+.podcast-player.is-archive .player-body{justify-content:flex-end;gap:14px}
+/* Панель со «свернуть» и меню остаётся наверху: круг стоит в потоке под ней. */
+.podcast-player.is-archive .player-sheet-top{order:-1}
+.player-orb{position:relative;align-self:center;display:grid;place-items:center;
+ width:min(58vw,240px);height:min(58vw,240px);margin:12px 0 4px;z-index:1}
+.player-orb>img{width:82%;height:82%;border-radius:50%;object-fit:cover}
+.player-orb-mark{padding:18%;object-fit:contain;background:linear-gradient(180deg,#1b242b,#101113)}
+.player-orb-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.player-orb-ring circle{fill:none;stroke-width:3;stroke-linecap:round}
+.player-orb-track{stroke:rgba(255,255,255,.1)}
+.player-orb-progress{stroke:var(--teal)}
+.podcast-player.is-archive .player-title{font-size:clamp(24px,6.6vw,32px)}
+.player-support{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;padding:12px 16px;
+ border-radius:999px;border:1px solid var(--line-strong,#3a3b40);background:none;color:#f4f3f1;text-decoration:none}
+.player-support-label{flex:1;font-size:15px;font-weight:600;text-align:left}
+.player-support>svg:first-child{color:var(--teal);flex:none}
+.player-support>svg:last-child{color:var(--muted);flex:none}
+
+/* Экран эфира у слушателя — сцена, а не панель: без рамки и фона консоли. */
+.listener-main[data-view=live] .live-console{padding:0!important;gap:18px;background:none;border:none;box-shadow:none}
+.listener-main[data-view=live] .live-layout{gap:18px}

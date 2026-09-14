@@ -20,8 +20,10 @@ import {useT} from '@/components/i18n-provider';
  *
  * Представление приходит готовым (см. lib/player-presentation): здесь только
  * разметка. S02 — фотография и serif по центру; S04 — крупный узкий заголовок
- * по левому краю, форма звука и «Далее». S06 достраивается следующим шагом и
- * пока показывается корпусом S04.
+ * по левому краю, форма звука и «Далее»; S06 — круглая обложка записи эфира с
+ * кольцом прогресса. Кольцо и полоса показывают один и тот же
+ * progress = position / duration и при неизвестной длительности остаются
+ * нейтральными, а не изображают ложный процент.
  */
 export type PlayerView={
  title:string;cover?:string;position:number;duration:number;playing:boolean;loading:boolean;seekable:boolean;
@@ -33,11 +35,16 @@ export type PlayerActions={
  toggle:()=>void;seekBy:(seconds:number)=>void;seekTo:(seconds:number)=>void;scrub?:(seconds:number)=>void;
  setRate:(rate:number)=>void;setSleep:(value:string)=>void;close:()=>void;openNext?:(id:string)=>void;
 };
+const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
  const {t}=useT();
  const [menu,setMenu]=useState(false);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
- const type=view.presentation==='type';
+ const type=view.presentation==='type',archive=view.presentation==='archive';
+ // Один и тот же прогресс для кольца и полосы. Без длительности кольцо
+ // остаётся нейтральным: ложный процент хуже, чем его отсутствие.
+ const known=view.duration>0&&Number.isFinite(view.duration);
+ const progress=known?Math.max(0,Math.min(1,view.position/view.duration)):0;
  const toggle=<button className="podcast-toggle" aria-label={view.playing?t('player.pause'):t('player.play')} disabled={view.loading&&!view.playing&&!view.seekable} onClick={act.toggle}>{view.loading?<Loader2 className="spin" size={22}/>:view.playing?<Pause size={23} fill="currentColor"/>:<Play size={23} fill="currentColor"/>}</button>;
  const art=<img className="podcast-player-logo" src={view.cover??'/brand/logo.png?v=0.4.1'} alt="" onError={e=>{e.currentTarget.src='/brand/logo.png?v=0.4.1';}}/>;
  if(!expanded)return <section className="podcast-player is-mini" aria-label={t('player.aria',{title:view.title})}>
@@ -48,10 +55,17 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  </section>;
  return <section className={'podcast-player is-open is-'+view.presentation} aria-label={t('player.aria',{title:view.title})}>
   {children}
-  <div className="player-stage" aria-hidden="true">
+  {archive?<div className="player-orb" aria-hidden="true">
+   <svg className="player-orb-ring" viewBox="0 0 100 100">
+    <circle className="player-orb-track" cx="50" cy="50" r="46"/>
+    {known&&<circle className="player-orb-progress" cx="50" cy="50" r="46"
+     strokeDasharray={RING} strokeDashoffset={RING*(1-progress)}/>}
+   </svg>
+   {view.cover?<img src={view.cover} alt="" onError={e=>e.currentTarget.remove()}/>:<img className="player-orb-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}
+  </div>:<div className="player-stage" aria-hidden="true">
    {view.cover?<img className="player-stage-photo" src={view.cover} alt="" onError={e=>{e.currentTarget.parentElement?.classList.add('player-stage-plain');e.currentTarget.remove();}}/>:<img className="player-stage-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}
    <span className="player-stage-shade"/>
-  </div>
+  </div>}
 
   <div className="player-sheet-top">
    <button type="button" className="player-collapse tt-pressable" aria-label={t('player.collapse')} onClick={()=>onExpand(false)}><ChevronDown size={22}/></button>
@@ -66,10 +80,11 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
     {view.note&&<p className="player-note">{view.note}</p>}
     <Waveform key={view.postId} postId={view.postId} progress={view.duration>0?view.position/view.duration:0}/>
    </>:<>
-    <div className="player-caption">
+    {/* У записи эфира метка уже стоит в верхней панели: второй раз её не повторяем. */}
+    {!archive&&<div className="player-caption">
      <span className="player-brand">True Thrills</span>
      <span className="player-tagline">{view.kindLabel}{view.duration>0?' · '+clock(view.duration):''}</span>
-    </div>
+    </div>}
     <h2 className="player-title">{view.title}</h2>
     {view.note&&<p className="player-note">{view.note}</p>}
    </>}
@@ -81,6 +96,9 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
     <label className="player-extra"><span className="player-extra-icon"><Timer size={19}/></span><select value={view.sleepValue} onChange={e=>act.setSleep(e.target.value)}>{view.sleepOptions.map(o=><option key={String(o.value)} value={o.value}>{o.label}</option>)}</select><span>{t('player.sleepShort')}</span></label>
    </div>
    {view.message&&<p className="podcast-player-message" role="status">{view.message}</p>}
+   {archive&&view.supportUrl&&<a className="player-support tt-pressable" href={view.supportUrl} target="_blank" rel="noopener noreferrer">
+    <Heart size={18}/><span className="player-support-label">{t('header.support')}</span><ChevronRight size={17}/>
+   </a>}
    {type&&view.next&&act.openNext&&<button type="button" className="player-next tt-pressable" onClick={()=>act.openNext!(view.next!.id)}>
     <span className="player-next-label">{t('player.next')}</span>
     <span className="player-next-row">
