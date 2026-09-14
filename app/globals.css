@@ -750,3 +750,55 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .is-listener .bottom-nav-item{border-radius:12px;background:none}
 .is-listener .bottom-nav-item[data-active=true]{background:none;color:var(--teal)}
 @media(min-width:640px){.is-listener .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,100%);border-inline:1px solid var(--line)}}
+
+/* ============================================================================
+   S03 — редакционная шапка раздела подкастов. Узкий гротеск здесь намеренно
+   отличается от serif на главной: на листе это разные голоса, а не одна
+   типографика на всё приложение. Настоящий каталог идёт сразу под ней.
+   ========================================================================== */
+.voice-head{display:flex;flex-direction:column;gap:18px;margin-bottom:18px}
+.voice-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
+.voice-title{font-family:var(--tt-condensed);font-weight:900;text-transform:uppercase;
+ font-size:clamp(42px,15vw,68px);line-height:.92;letter-spacing:-.005em;margin:0;color:#f4f3f1;text-wrap:balance}
+.voice-stop{display:inline-block;width:.16em;height:.16em;margin-left:.06em;border-radius:50%;
+ background:var(--teal);vertical-align:baseline}
+.voice-kicker{margin:6px 0 0;max-width:11ch;text-align:right;font-size:10px;font-weight:700;line-height:1.5;
+ letter-spacing:.14em;text-transform:uppercase;color:#a4a5aa}
+
+/* Карточка нового выпуска: mint, чёрный узкий заголовок, круглая play. */
+.voice-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+ width:100%;padding:16px 78px 16px 18px;border:none;border-radius:16px;background:var(--teal);
+ color:#08201E;text-align:left}
+.voice-card-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;opacity:.82}
+.voice-card-title{font-family:var(--tt-condensed);font-weight:800;text-transform:uppercase;
+ font-size:clamp(23px,7vw,30px);line-height:1;letter-spacing:.005em;
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.voice-card-meta{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.86}
+.voice-card-play{position:absolute;right:16px;top:50%;translate:0 -50%;width:52px;height:52px;border-radius:50%;
+ display:grid;place-items:center;background:#08201E;color:var(--teal)}
+
+/* Три пронумерованных столбца, разделённые тонкими линиями, как на листе. */
+.voice-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.voice-column{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;
+ padding:12px 10px 14px;background:none;border:none;border-left:1px solid var(--line);color:#f4f3f1;text-align:left}
+.voice-column:first-child{border-left:none;padding-left:0}
+.voice-column-number{font-family:var(--tt-condensed);font-weight:800;font-size:19px;color:var(--teal);line-height:1}
+.voice-column>strong{font-size:15px;font-weight:700}
+.voice-column-note{font-size:11px;line-height:1.35;color:#a4a5aa;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.voice-column-icon{margin-top:4px;color:#cdd3d5}
+
+/* Фильтр записей эфира: каталог остаётся доступным целиком. */
+.catalog-scope{display:flex;gap:6px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.catalog-scope button{min-height:38px;padding:0 14px;border:none;border-radius:999px;background:none;
+ color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
+.catalog-scope button[data-active=true]{background:var(--teal);color:#08201E}
+@media(max-width:379px){.voice-column{padding:12px 6px 14px}.voice-column-note{display:none}}
+
+/* Инструменты каталога под редакционной частью занимают одну компактную строку. */
+.listener-main .catalog-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 14px}
+.listener-main .catalog-search{flex:1 1 180px;min-width:0;min-height:44px}
+.listener-main .catalog-sort{flex:0 0 auto;min-height:44px}
+.listener-main .catalog-scope{flex:1 1 100%}
+.listener-main .voice-head+.support-strip{margin-top:-2px}
