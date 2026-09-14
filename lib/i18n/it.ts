@@ -108,6 +108,7 @@ export const it: Record<keyof typeof ru, string> = {
   'nav.home': 'Home',
   'nav.stories': 'Racconti',
   'nav.live': 'Live',
+  'donate.stripNote': 'Aiutiamo le storie a restare indipendenti',
   'home.channelIntro': 'Storie di persone, natura selvaggia e di ciò che conta davvero.',
   'home.emptyTitle': 'Qui apparirà il primo episodio',
   'home.emptyNote': "L'autore non ha ancora pubblicato nulla.",

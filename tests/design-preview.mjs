@@ -75,8 +75,8 @@ try{
  // плитки и поддержка, — а площадки могут оказаться чуть ниже.
  for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
-  const bottom=await page.locator('.support-card').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
-  check(bottom<=640,`на 360×640 карточка поддержки уходит за первый экран: ${bottom}>640`);
+  const bottom=await page.locator('.support-strip').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
+  check(bottom<=640,`на 360×640 строка поддержки уходит за первый экран: ${bottom}>640`);
   const m=await metrics(page);
   check(m.scrollH<=m.innerH+140,`на 360×640 главная прокручивается больше чем на один блок: ${m.scrollH}>${m.innerH}`);
   await shot(page,'home-360');}
@@ -89,5 +89,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит карточка поддержки; студия без переполнения');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; студия без переполнения');
 }finally{await browser?.close();server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

@@ -588,7 +588,9 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Главная целиком уходит под края экрана: фотография начинается от самого
    верха, поэтому у неё свои поля, а не общие поля основной области. */
 .listener-main:has(.immersion){padding-left:0!important;padding-right:0!important;padding-top:0!important}
-.immersion{display:flex;flex-direction:column;gap:10px;padding:0 var(--tt-gutter)}
+.immersion{display:flex;flex-direction:column;gap:10px;padding:0 var(--tt-gutter);
+ min-height:calc(100dvh - var(--bottom-nav-h) - 26px - env(safe-area-inset-bottom))}
+.immersion>.scene{flex:1 1 auto}
 .listener-main:has(.immersion) .content-footer{margin-inline:var(--tt-gutter);padding-top:12px;margin-top:4px}
 .immersion>.scene{margin:0 calc(var(--tt-gutter) * -1)}
 
@@ -648,3 +650,54 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .section-tile{min-height:86px}
 .section-tile-copy span{display:none}
 .scene-intro{display:none}}
+
+
+/* ============================================================================
+   Оболочка листа: шапка лежит поверх фотографии, панель снизу плоская, донат —
+   тонкая строка в рамке. Раньше здесь оставалась прежняя оболочка, и новый
+   экран читался как старый.
+   ========================================================================== */
+/* Шапка бренда: маленький логотип и wordmark вразрядку, как на листе. */
+.is-listener .top-header-brand{gap:10px;font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;min-width:0}
+.is-listener .wordmark{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:379px){.is-listener .top-header-brand{font-size:14px;letter-spacing:.1em}}
+.is-listener .top-header-brand img{width:34px;height:34px;border-radius:50%}
+.is-listener .top-header-actions .quiet-button{width:40px;height:40px;background:none;border:none;color:#e8ebec}
+.is-listener .support-button{width:40px;height:40px;background:none;border:none;color:#e8ebec;box-shadow:none}
+.is-listener .support-button svg{fill:none}
+
+/* Главная: фотография начинается от самого верха, шапка ложится на неё. */
+.is-immersive .top-header{position:absolute;top:0;left:0;right:0;z-index:20;background:none;
+ padding-top:calc(10px + env(safe-area-inset-top))}
+.is-immersive .top-header-brand,.is-immersive .top-header-actions .quiet-button,.is-immersive .support-button{
+ color:#f4f3f1;text-shadow:0 1px 12px rgba(0,0,0,.6)}
+.is-immersive .status-bar-veil{display:none}
+.is-immersive .listener-main{padding-top:0!important}
+/* Кадр уходит под шапку, поэтому отступ сверху освобождает ей место. */
+.immersion>.scene{padding-top:calc(104px + env(safe-area-inset-top))}
+.scene-intro{top:calc(62px + env(safe-area-inset-top))}
+.scene-menu{top:calc(58px + env(safe-area-inset-top))}
+.scene-fallback{padding-top:calc(236px + env(safe-area-inset-top))!important}
+.scene-fallback .scene-mark{bottom:calc(100% - 220px - env(safe-area-inset-top))}
+@media(max-height:700px){.immersion>.scene{padding-top:calc(92px + env(safe-area-inset-top))}
+.scene-fallback{padding-top:calc(150px + env(safe-area-inset-top))!important}
+.scene-fallback .scene-mark{bottom:calc(100% - 140px - env(safe-area-inset-top))}}
+
+/* Донат на главной — тонкая строка в рамке, а не карточка с кнопками. */
+.support-strip{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;
+ border:1px solid var(--line-strong);background:none;color:#f4f3f1}
+.support-strip>svg:first-child{color:var(--teal);fill:currentColor;flex:none}
+.support-strip-label{font-size:15px;font-weight:700;flex:none}
+.support-strip-note{flex:1;min-width:0;font-size:9.5px;line-height:1.35;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:359px){.support-strip-note{display:none}}
+.support-strip>svg:last-child{color:var(--muted);flex:none}
+
+/* Нижняя панель как на листе: плоская, на фоне страницы, без «таблетки». */
+.is-listener .bottom-nav{left:0;right:0;bottom:0;width:auto;max-width:none;transform:none;border-radius:0;
+ border:none;border-top:1px solid var(--line);background:var(--background);box-shadow:none;
+ -webkit-backdrop-filter:none;backdrop-filter:none;
+ padding:6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left))}
+.is-listener .bottom-nav-item{border-radius:12px;background:none}
+.is-listener .bottom-nav-item[data-active=true]{background:none;color:var(--teal)}
+@media(min-width:640px){.is-listener .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,100%);border-inline:1px solid var(--line)}}

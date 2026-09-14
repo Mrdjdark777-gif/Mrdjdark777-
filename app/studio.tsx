@@ -138,14 +138,15 @@ export default function Studio(){
 
  return <>
  <Toaster theme="dark" richColors position="top-center"/>
- <div className={'app-shell '+(author?'is-author':'is-listener')}>
+ <div className={'app-shell '+(author?'is-author':'is-listener')+(!author&&view==='home'?' is-immersive':'')}>
  {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
-  <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="46" height="46" alt=""/><span>True Thrills</span></button>
+  <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img src="/brand/logo.png?v=0.4.1" width="34" height="34" alt=""/><span className="wordmark">True Thrills</span></button>
   <div className="top-header-actions">
+   {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('catalog.search')} title={t('catalog.search')} onClick={()=>{haptic();goto('podcasts');setTimeout(()=>document.querySelector<HTMLInputElement>('.catalog-search input')?.focus(),120);}}><Search size={20}/></button>}
    {!!heartLink&&<a className="support-button" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
-   {data&&!data.needsSetup&&<button className="quiet-button" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><SlidersHorizontal size={20}/></button>}
+   {data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><SlidersHorizontal size={20}/></button>}
    {data?.isOwner&&!androidClient&&<button className="quiet-button" aria-label={audience?t('header.toStudio'):t('header.asListener')} title={audience?t('header.toStudio'):t('header.asListener')} disabled={capture.recording} onClick={()=>{if(live.hosting){window.open('/?mode=listen&view=live','_blank','noopener,noreferrer');return;}capture.release();setAudience(!audience);setView(audience?'home':liveStatus?'live':'podcasts');setFilter('all');void refreshLive();}}>{audience?<Monitor size={18}/>:<Eye size={18}/>}</button>}
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
   </div>
@@ -167,7 +168,7 @@ export default function Studio(){
  <button className="home-tile" onClick={()=>void copyChannelLink()}><Share2 size={22}/><span>{t('home.shareChannel')}</span></button>
  </div>}
  {view==='home'&&author&&(supportCard??<button className="support-card support-setup" onClick={()=>goto('settings')}><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('support.setupTitle')}</strong><span>{t('support.setupText')}</span></span><ChevronRight size={19}/></button>)}
- {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={supportCard}
+ {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:null}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   sections={[{kind:'podcast',label:t('nav.podcasts'),note:t('home.sectionPodcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),note:t('home.sectionVideos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),note:t('home.sectionStories'),go:()=>goto('stories')}]}/>}
  {view==='studio'&&author&&<>
@@ -226,7 +227,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
+ {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><Home size={22}/><span>{t('nav.home')}</span></button>

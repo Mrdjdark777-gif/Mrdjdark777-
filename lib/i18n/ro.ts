@@ -142,6 +142,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "nav.stories": "Povești",
 
   "nav.live": "Live",
+  "donate.stripNote": "Ajutăm poveștile să rămână independente",
   "home.channelIntro": "Povești despre oameni, natură sălbatică și despre ce contează cu adevărat.",
   "home.emptyTitle": "Aici va apărea primul episod",
   "home.emptyNote": "Autorul nu a publicat încă nimic.",

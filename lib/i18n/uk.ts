@@ -142,6 +142,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "nav.stories": "Історії",
 
   "nav.live": "Ефір",
+  "donate.stripNote": "Допомагаємо історіям залишатися незалежними",
   "home.channelIntro": "Історії про людей, дику природу і про те, що справді важливо.",
   "home.emptyTitle": "Тут з'явиться перший випуск",
   "home.emptyNote": "Автор ще не опублікував матеріали.",
