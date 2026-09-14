@@ -429,6 +429,8 @@ export const it: Record<keyof typeof ru, string> = {
   'player.close': 'Chiudi il player',
   'player.menu': 'Menu dell\'episodio',
   'player.sleepShort': 'Timer',
+  'player.waveformPending': 'Forma d\'onda in preparazione',
+  'player.next': 'Successivo',
   'player.back15': 'Indietro di 15 secondi',
   'player.forward15': 'Avanti di 15 secondi',
   'player.play': 'Ascolta',

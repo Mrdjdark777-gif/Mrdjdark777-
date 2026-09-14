@@ -90,6 +90,57 @@ async function cleanupFinished(){
   }catch(e){console.error(JSON.stringify({event:'cleanup-failed',id,error:String(e.message).slice(0,200)}));}
  }
 }
+// Форма звука для плеера. Тяжёлый decode нельзя делать ни в запросе, ни на
+// телефоне, поэтому пики считает этот же воркер — по одному файлу за проход,
+// в свободное от эфира время, и складывает в кэш по контрольной сумме файла.
+// Старые выпуски заполняются тем же проходом, отдельной миграции не нужно.
+const PEAK_COUNT=96,PEAK_MAX_BYTES=400*1024*1024,PEAK_TIMEOUT_MS=120000,PEAK_RETRY_MS=3600000,PEAK_ALPHABET='0123456789abcdefghijklmnopqrstuvwxyz';
+function peaksFromPcm(pcm,count){
+ const silent=PEAK_ALPHABET[0].repeat(count);
+ if(pcm.length===0)return silent;
+ const bars=new Array(count).fill(0);
+ for(let i=0;i<pcm.length;i++){const bar=Math.min(count-1,Math.floor(i*count/pcm.length));const value=Math.abs(pcm[i]);if(value>bars[bar])bars[bar]=value;}
+ const loudest=Math.max(...bars);
+ if(loudest<=0)return silent;
+ return bars.map(v=>PEAK_ALPHABET[Math.max(0,Math.min(35,Math.round(Math.sqrt(v/loudest)*35)))]).join('');
+}
+async function measurePeaks(){
+ // Берём выпуск, у которого пиков ещё нет или файл с тех пор заменили.
+ const row=db.prepare(`SELECT p.audio_key AS key FROM posts p
+   LEFT JOIN audio_peaks a ON a.audio_key=p.audio_key
+   WHERE p.audio_key IS NOT NULL AND p.audio_key<>''
+     AND (a.audio_key IS NULL OR (a.peaks='' AND a.updated_at < ?))
+   LIMIT 1`).get(Date.now()-PEAK_RETRY_MS);
+ if(!row)return false;
+ const key=row.key,file=path.join(storage,key);
+ const mark=(state,peaks,digest,error)=>db.prepare('INSERT INTO audio_peaks(audio_key,sha256,peaks,state,updated_at,error) VALUES(?,?,?,?,?,?) ON CONFLICT(audio_key) DO UPDATE SET sha256=excluded.sha256,peaks=excluded.peaks,state=excluded.state,updated_at=excluded.updated_at,error=excluded.error').run(key,digest??'',peaks??'',state,Date.now(),error??null);
+ try{
+  const info=await stat(file);
+  if(info.size>PEAK_MAX_BYTES)throw new Error('Audio too large for analysis');
+  const digest=await sha256(file);
+  const existing=db.prepare('SELECT sha256,peaks FROM audio_peaks WHERE audio_key=?').get(key);
+  if(existing&&existing.peaks&&existing.sha256===digest)return true;
+  const pcm=await new Promise((resolve,reject)=>{
+   const ff=spawn('ffmpeg',['-hide_banner','-v','error','-nostdin','-i',file,'-map','0:a:0','-vn','-f','s16le','-acodec','pcm_s16le','-ac','1','-ar','4000','pipe:1'],{stdio:['ignore','pipe','pipe']});
+   children.add(ff);ff.once('close',()=>children.delete(ff));
+   const chunks=[];let bytes=0,message='';
+   const timer=setTimeout(()=>{message=message||'Analysis timed out';ff.kill('SIGKILL');},PEAK_TIMEOUT_MS);timer.unref();
+   ff.stdout.on('data',b=>{bytes+=b.length;if(bytes<=64*1024*1024)chunks.push(b);});
+   ff.stderr.on('data',b=>{message=(message+b.toString()).slice(-500);});
+   ff.on('error',e=>{clearTimeout(timer);reject(e);});
+   ff.on('close',code=>{clearTimeout(timer);if(code!==0)reject(new Error(message||'Analysis failed with code '+code));else resolve(Buffer.concat(chunks));});
+  });
+  const samples=new Int16Array(pcm.buffer,pcm.byteOffset,Math.floor(pcm.length/2));
+  const peaks=peaksFromPcm(samples,PEAK_COUNT);
+  mark('ready',peaks,digest,null);
+  console.log(JSON.stringify({event:'peaks-ready',key,bars:PEAK_COUNT}));
+ }catch(error){
+  mark('error','','',String(error.message).slice(0,300));
+  console.error(JSON.stringify({event:'peaks-failed',key,error:String(error.message).slice(0,200)}));
+ }
+ return true;
+}
+
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{quitting=true;for(const child of children){child.stdin.destroy();child.kill('SIGTERM');const timer=setTimeout(()=>child.kill('SIGKILL'),3000);timer.unref();}});
 while(!quitting){
  await atomic(path.join(root,'worker.json'),JSON.stringify({at:Date.now()}));
@@ -97,6 +148,8 @@ while(!quitting){
   if(!active.has(row.id)){const task=processRecording(row).finally(()=>active.delete(row.id));active.set(row.id,task);}
  }
  await cleanupFinished();
+ // Пики считаются только когда эфир не занимает процесс: звук важнее картинки.
+ if(active.size===0)await measurePeaks();
  await delay(1000);
 }
 await rm(path.join(root,'worker.json'),{force:true});await Promise.allSettled([...active.values()]);db.close();

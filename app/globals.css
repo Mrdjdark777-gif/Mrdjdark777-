@@ -802,3 +802,41 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .listener-main .catalog-sort{flex:0 0 auto;min-height:44px}
 .listener-main .catalog-scope{flex:1 1 100%}
 .listener-main .voice-head+.support-strip{margin-top:-2px}
+
+/* ============================================================================
+   S04 — типографический плеер. Узкий крупный заголовок по левому краю, форма
+   звука над полосой перемотки и «Далее» внизу. Выбирается для выпуска без
+   обложки; фотография и serif остаются у S02.
+   ========================================================================== */
+.podcast-player.is-type .player-stage{display:none}
+.podcast-player.is-type .player-body{justify-content:space-between;align-items:stretch;text-align:left;gap:16px;
+ padding-top:6px}
+.podcast-player.is-type .player-tagline{font-size:11px;letter-spacing:.22em;color:#a4a5aa}
+.podcast-player.is-type .player-title{font-family:var(--tt-condensed);font-weight:900;text-transform:uppercase;
+ font-size:clamp(40px,13.5vw,62px);line-height:.93;letter-spacing:0;max-width:none;text-shadow:none;
+ -webkit-line-clamp:3;margin-top:-4px}
+.podcast-player.is-type .player-note{margin:-8px 0 0;max-width:38ch;font-size:15px;color:#cdd3d5}
+.podcast-player.is-type .podcast-transport{align-self:center}
+.podcast-player.is-type .player-extras{width:100%}
+
+/* Форма звука: ровная линия, пока воркер не посчитал пики. Никаких случайных
+   палочек — они читались бы как настоящие. */
+.waveform-strip{display:flex;align-items:flex-end;gap:2px;width:100%;height:64px}
+.waveform-strip:not(.is-flat)>span{flex:1;min-width:0;border-radius:2px;background:#3b4246}
+.waveform-strip:not(.is-flat)>span.is-played{background:var(--teal)}
+.waveform-strip.is-flat{flex-direction:column;align-items:flex-start;justify-content:center;gap:9px}
+.waveform-line{width:100%;height:2px;border-radius:2px;background:#2b3134}
+.waveform-note{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7c8285}
+
+/* «Далее» — реальный следующий выпуск раздела; на последнем блока нет. */
+.player-next{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;margin-top:4px;
+ padding-top:14px;border:none;border-top:1px solid var(--line);background:none;color:#f4f3f1;text-align:left}
+.player-next-label{font-size:13px;font-weight:700;color:#f4f3f1}
+.player-next-row{display:flex;align-items:center;gap:12px;min-width:0}
+.player-next-row img,.player-next-mark{width:52px;height:46px;flex:none;border-radius:8px;object-fit:cover;
+ background:linear-gradient(135deg,#1d262b,#141a1c)}
+.player-next-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.player-next-copy strong{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-next-copy span{font-size:12px;color:#a4a5aa;font-variant-numeric:tabular-nums}
+.player-next>svg,.player-next-row>svg{color:var(--muted);flex:none}
+@media(prefers-reduced-motion:reduce){.waveform-strip>span{transition:none}}

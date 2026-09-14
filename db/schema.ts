@@ -20,6 +20,18 @@ export const pushSubscriptions=sqliteTable('push_subscriptions',{id:text('id').p
 export const pushEvents=sqliteTable('push_events',{id:text('id').primaryKey(),createdAt:integer('created_at').notNull()});
 export const pushOutbox=sqliteTable('push_outbox',{id:text('id').primaryKey(),subscriptionId:text('subscription_id').notNull(),payload:text('payload').notNull(),origin:text('origin').notNull(),category:integer('category').notNull(),expiresAt:integer('expires_at').notNull(),attempts:integer('attempts').notNull().default(0),availableAt:integer('available_at').notNull().default(0),state:text('state').notNull().default('pending')},t=>[index('push_pending_idx').on(t.state,t.availableAt)]);
 
+/**
+ * Форма звука считается воркером вне запроса и кэшируется по ключу файла и его
+ * контрольной сумме: перезалитый выпуск получает новые пики, а не старую
+ * картинку. Черновые пики защищены так же, как исходный звук, — строка живёт
+ * ровно столько, сколько сам файл.
+ */
+export const audioPeaks=sqliteTable('audio_peaks',{
+ audioKey:text('audio_key').primaryKey(),sha256:text('sha256').notNull().default(''),
+ peaks:text('peaks').notNull().default(''),state:text('state').notNull().default('pending'),
+ updatedAt:integer('updated_at').notNull(),error:text('error'),
+});
+
 export const rateLimits=sqliteTable('rate_limits',{id:text('id').primaryKey(),attempts:integer('attempts').notNull(),expiresAt:integer('expires_at').notNull()});
 
 export const liveRecordings=sqliteTable('live_recordings',{

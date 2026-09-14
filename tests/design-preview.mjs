@@ -20,7 +20,7 @@ execFileSync(process.execPath,['node_modules/drizzle-kit/bin.cjs','migrate'],{en
 await mkdir('outputs/ui',{recursive:true});
 const port=3132,base='http://127.0.0.1:'+port;
 const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{env,stdio:['ignore','ignore','inherit']});
-let browser;const problems=[];
+let browser,peaksWorker;const problems=[];
 const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);else problems.push(message);};
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
@@ -29,9 +29,17 @@ try{
  await post({action:'setup'});
  await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});
  await post({action:'links',links:[{kind:'youtube',url:'https://youtube.com/@truethrills'},{kind:'telegram',url:'https://t.me/truethrills'}]});
- // 90 секунд тишины: плееру нужна настоящая длительность, а не заглушка.
- const seconds=90,wav=Buffer.alloc(44+44100*2*seconds);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
- const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();
+ // 90 секунд звука с плавающей громкостью: плееру нужна настоящая
+ // длительность, а форме звука — настоящий сигнал. На тишине волна была бы
+ // ровной линией и ничего не показывала бы при сравнении с листом.
+ const seconds=90,rate=44100,wav=Buffer.alloc(44+rate*2*seconds);
+ wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
+ for(let i=0;i<rate*seconds;i++){
+  const t=i/rate,envelope=.18+.82*Math.abs(Math.sin(t*0.7))*(.55+.45*Math.abs(Math.sin(t*0.17)));
+  wav.writeInt16LE(Math.round(Math.sin(2*Math.PI*180*t)*envelope*24000),44+i*2);
+ }
+ const audioUpload=async()=>{const r=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(r.status,200);return (await r.json()).key;};
+ const key=await audioUpload(),plainKey=await audioUpload();
  // Демонстрационные обложки вырезаны из листа владельца и живут только здесь:
  // в приложение они не попадают, в production обложки приходят из публикаций.
  // Без них кадр показывает фирменный тёмный фон, и сравнить композицию с
@@ -45,6 +53,26 @@ try{
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
  const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
+ // Второй выпуск специально без обложки иновее первого: по нему видно
+ // типографический S04, и у него есть «Далее» — следующий в разделе.
+ const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
+ // Форма звука на снимке настоящая: её считает тот же воркер, что и на VPS.
+ // Ждём его недолго — если ffmpeg в окружении нет, снимок покажет спокойное
+ // состояние ожидания, и это тоже правда, а не заглушка.
+ try{
+  const Database=(await import('better-sqlite3')).default;
+  peaksWorker=spawn(process.execPath,[path.join(root,'scripts/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});
+  const peaksDb=new Database(env.DATABASE_PATH,{readonly:true});
+  const deadline=Date.now()+60000;
+  while(Date.now()<deadline){
+   const done=peaksDb.prepare("SELECT COUNT(*) AS n FROM audio_peaks WHERE state='ready' AND peaks<>''").get().n;
+   if(done>=2)break;
+   await new Promise(r=>setTimeout(r,400));
+  }
+  peaksDb.close();
+ }catch(e){console.warn('Форма звука не посчитана: '+e.message);}
+ finally{peaksWorker?.kill('SIGTERM');peaksWorker=undefined;}
+
  // Тот же браузер, что у browser-integration: в CI установлен Chrome, локально можно указать исполняемый файл.
  browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
  const shot=async(page,name)=>page.screenshot({path:'outputs/ui/design-'+name+'.png',fullPage:false});
@@ -64,6 +92,11 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);await page.locator('.podcast-player').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(300);await shot(page,'player');
+ // Типографический плеер: выпуск без обложки. Форма звука здесь в спокойном
+ // состоянии — пики считает воркер эфира, которого в этой проверке нет.
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);await page.locator('.podcast-player.is-type').waitFor();
+ await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
+ await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(400);await shot(page,'player-type');
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
@@ -104,4 +137,4 @@ try{
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
  console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; студия без переполнения');
-}finally{await browser?.close();server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
+}finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

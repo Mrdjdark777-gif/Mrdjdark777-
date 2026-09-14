@@ -123,7 +123,11 @@ try {
    await rm(path.join(storage, o.key + '.meta.json'), {force: true});
    removed++; freedNow += o.size;
   }
+  // Кэш формы звука живёт ровно столько, сколько сам файл: строка без файла
+  // никому не нужна, но удалять её можно только здесь, после самой уборки.
+  const peaks = db.prepare(`DELETE FROM audio_peaks WHERE audio_key NOT IN (SELECT audio_key FROM posts WHERE audio_key IS NOT NULL)`).run().changes;
   console.log(`\nУдалено эфиров: ${dead.length}, файлов: ${removed}, освобождено ${mb(freedNow)}.`);
+  if (peaks) console.log(`Кэш формы звука без файла: удалено строк ${peaks}.`);
   if (spared) console.log(`На ${spared} файл(ов) ссылка появилась, пока шла уборка — оставлены.`);
  }
 } finally { db.close(); }

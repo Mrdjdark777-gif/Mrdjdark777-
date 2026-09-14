@@ -722,6 +722,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "player.close": "Закрити плеєр",
   "player.menu": "Меню випуску",
   "player.sleepShort": "Таймер",
+  "player.waveformPending": "Форма звуку готується",
+  "player.next": "Далі",
 
   "player.back15": "Назад на 15 секунд",
 

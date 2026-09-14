@@ -428,6 +428,8 @@ export const ru = {
   'player.close': 'Закрыть плеер',
   'player.menu': 'Меню выпуска',
   'player.sleepShort': 'Таймер',
+  'player.waveformPending': 'Форма звука готовится',
+  'player.next': 'Далее',
   'player.back15': 'Назад на 15 секунд',
   'player.forward15': 'Вперёд на 15 секунд',
   'player.play': 'Слушать',
