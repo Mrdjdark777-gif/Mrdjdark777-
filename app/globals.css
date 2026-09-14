@@ -1001,3 +1001,10 @@ body{background:var(--background)}
 .post-card{background:var(--surface);border-color:var(--line);border-radius:16px}
 /* Цифры и метки звука — по-прежнему техника: моноширинные и негромкие. */
 .record-time,.peak-row strong,.meter-labels,.mono-label,.gain-control strong{font-family:ui-monospace,Consolas,monospace}
+
+/* Донат виден на главной и во время эфира даже без настроенных площадок:
+   это правило проекта. Без ссылки строка не притворяется кнопкой и честно
+   говорит, что поддержку пока не подключили. */
+.support-strip.is-empty{cursor:default;opacity:.72}
+.support-strip.is-empty .support-strip-label{color:var(--muted)}
+.live-stage-hint{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted);text-align:center;max-width:34ch}

@@ -12,9 +12,9 @@ import {useT} from '@/components/i18n-provider';
  *
  * Донат виден во всех состояниях эфира, включая offline и ended.
  */
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,onListen,onPause,onArchive,support}:{
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support}:{
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;
- elapsed:string;status:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
+ elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
 }){
  const {t}=useT();
  const stage=liveStage({onAir,joined,phase});
@@ -56,6 +56,7 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
    <ChevronRight size={18}/>
   </button>
 
+  {hint&&<p className="live-stage-hint">{hint}</p>}
   {support??<span className="live-stage-support-missing"><Heart size={17}/>{t('donate.unavailable')}</span>}
  </section>;
 }

@@ -192,7 +192,7 @@ export default function Studio(){
  <button className="home-tile" onClick={()=>void copyChannelLink()}><Share2 size={22}/><span>{t('home.shareChannel')}</span></button>
  </div>}
  {view==='home'&&author&&(supportCard??<button className="support-card support-setup" onClick={()=>goto('settings')}><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('support.setupTitle')}</strong><span>{t('support.setupText')}</span></span><ChevronRight size={19}/></button>)}
- {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:null}
+ {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   sections={[{kind:'podcast',label:t('nav.podcasts'),note:t('home.sectionPodcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),note:t('home.sectionVideos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),note:t('home.sectionStories'),go:()=>goto('stories')}]}/>}
  {view==='studio'&&author&&<>
@@ -228,17 +228,22 @@ export default function Studio(){
  </>:<>
  <LiveStageView title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
   cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
-  elapsed={elapsed} status={live.status} onListen={openLive} onPause={live.pause} onArchive={()=>{goto('podcasts');setArchiveOnly(true);}}
-  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:null}/>
+  elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>{goto('podcasts');setArchiveOnly(true);}}
+  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.stripNote')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}/>
  {live.listening&&<LiveSpectrum levels={live.levels} active={live.listening}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  {live.joined&&<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>}
  {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}
 
  </>}
- {author&&supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:live.phase==='error'&&<aside className="live-info"><p>{t('live.otherNetwork')}</p></aside>}</div>}
+ {author&&supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
  {view==='settings'&&<div className="settings-grid">
  <NotificationSettings author={author}/>
+ {/* Строка поддержки на главной и в разделах ведёт на одну площадку — ту,
+     что уместна по языку телефона. Обе должны оставаться доступны, поэтому
+     здесь стоит карточка со всеми настроенными ссылками. Без неё вторая
+     площадка исчезала из приложения совсем. */}
+ {!author&&data.donations?.length&&<section className="settings-panel donation-card"><h2 className="panel-title">{t('donate.action')}</h2><p>{t('donate.free')}</p>{donationRow}</section>}
  {!author&&socialRow&&<section className="settings-panel"><h2 className="panel-title">{t('home.socialCaption')}</h2>{socialRow}</section>}
  {author?<>
  <section className="settings-panel wide-panel"><div className="section-icon"><Heart size={22}/></div><h2>{t('settings.supportTitle')}</h2><p>{t('settings.supportText')}</p><div className="links-grid">{DONATIONS.map(dp=><label className="field" key={dp.kind}>{t(dp.labelKey)}<input type="url" value={donationDraft[dp.kind]??''} placeholder="https://…" onChange={e=>setDonationDraft(prev=>({...prev,[dp.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'donations',links:DONATIONS.map(dp=>({kind:dp.kind,url:(donationDraft[dp.kind]??'').trim()})).filter(l=>l.url)}),t('settings.donationSaved'))}><Check size={17}/>{t('settings.saveDonation')}</button><small>{t('settings.donationNote')}</small></section>
