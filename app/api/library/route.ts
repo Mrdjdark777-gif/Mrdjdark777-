@@ -8,7 +8,7 @@ export async function GET(req: Request){try{
   const isOwner=await owner(req),db=getDb();
   const items=await db.select().from(posts).where(isOwner?undefined:eq(posts.published,1)).orderBy(desc(posts.createdAt));
   const live=await db.select({id:broadcasts.id,title:broadcasts.title,heartbeat:broadcasts.heartbeat,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(eq(broadcasts.active,1)).orderBy(desc(broadcasts.heartbeat)).get();
-  return result({items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,startedAt:live.startedAt,cover:!!live.coverKey}:null});
+  return result({items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
   originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb();
@@ -30,6 +30,20 @@ export async function POST(req: Request){try{
     const clean=parseDonations(JSON.stringify(d.links??[])),value=clean.length?JSON.stringify(clean):'';
     if(Array.isArray(d.links)&&d.links.length&&!clean.length)throw new Error('#err.donationsUrl');
     await db.insert(settings).values({key:'donations',value}).onConflictDoUpdate({target:settings.key,set:{value}});return result({ok:true});
+  }
+  // Кадр главной держит публикация, выбранная автором: иначе выложенные
+  // следом истории вытесняют видео, ради которого всё затевалось. Пустая
+  // строка снимает закрепление, чужой id не сохраняется.
+  if(d.action==='pin'){
+    const id=String(d.id??'');
+    let value='';
+    if(id){
+      const p=await db.select().from(posts).where(eq(posts.id,id)).get();
+      if(!p)throw new Error('#err.notFound');
+      if(!p.published)throw new Error('#err.pinDraft');
+      value=id;
+    }
+    await db.insert(settings).values({key:'heroPost',value}).onConflictDoUpdate({target:settings.key,set:{value}});return result({ok:true});
   }
   if(d.action==='links'){
     // parseLinks отбрасывает всё, что не HTTPS и не из известного списка площадок.

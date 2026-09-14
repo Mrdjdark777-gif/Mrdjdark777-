@@ -15,7 +15,7 @@ import {useT} from '@/components/i18n-provider';
  */
 const ICON={podcast:Headphones,video:Video,story:BookOpen} as const;
 export type VoiceEpisode={id:string;title:string;duration:number};
-export type VoiceColumn={kind:'podcast'|'video'|'story';label:string;note:string;go:()=>void};
+export type VoiceColumn={kind:'podcast'|'video'|'story';label:string;go:()=>void};
 
 export function VoiceHeader({latest,onOpen,columns,haptic=()=>{}}:{
  latest:VoiceEpisode|null;onOpen:(episode:VoiceEpisode)=>void;columns:VoiceColumn[];haptic?:()=>void;
@@ -35,12 +35,10 @@ export function VoiceHeader({latest,onOpen,columns,haptic=()=>{}}:{
   </button>}
 
   <div className="voice-columns">
-   {columns.map((column,index)=>{const Icon=ICON[column.kind];
+   {columns.map(column=>{const Icon=ICON[column.kind];
     return <button key={column.kind} type="button" className="voice-column tt-pressable" onClick={()=>{haptic();column.go();}}>
-     <span className="voice-column-number">{String(index+1).padStart(2,'0')}</span>
-     <strong>{column.label}</strong>
-     <span className="voice-column-note">{column.note}</span>
      <Icon size={22} className="voice-column-icon"/>
+     <strong>{column.label}</strong>
     </button>;})}
   </div>
  </header>;

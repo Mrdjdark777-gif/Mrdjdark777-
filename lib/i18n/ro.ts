@@ -150,6 +150,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.sectionPodcasts": "Voci din locuri îndepărtate",
   "home.sectionVideos": "Mai mult decât audio",
   "home.sectionStories": "Oameni și trasee",
+  "home.fresh": "nou",
   "nav.library": "Bibliotecă",
   "heading.homeListener": "Ce ascultăm?",
   "home.eyebrow": "True Thrills / Acasă",
@@ -532,6 +533,10 @@ export const ro: Record<keyof typeof ru, string> = {
   "post.publish": "Publică",
 
   "post.delete": "Șterge",
+  "post.pin": "Pune în prim-plan",
+  "post.unpin": "Scoate din prim-plan",
+  "post.pinned": "Este în prim-planul paginii",
+  "post.unpinned": "Scos din prim-plan",
 
   "post.defaultVideo": "Video True Thrills",
 
@@ -927,6 +932,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "err.badStorageKey": "Cheie de stocare nepermisă",
 
   "err.notFound": "Nu a fost găsit",
+  "err.pinDraft": "Poate fi fixat doar ce este publicat.",
 
   "err.liveTitle": "Scrie titlul emisiunii",
 

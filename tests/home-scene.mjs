@@ -8,7 +8,7 @@ import path from 'node:path';
 import {build} from 'esbuild';
 const root = path.resolve(import.meta.dirname, '..');
 const {outputFiles} = await build({entryPoints: [path.join(root, 'lib/home-scene.ts')], bundle: true, write: false, format: 'esm', platform: 'node'});
-const {homeScene} = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
+const {homeScene, freshSections} = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
 
 const post = (id, over = {}) => ({id, kind: 'podcast', title: 'Выпуск ' + id, description: '', duration: 600, published: 1, createdAt: Number(id), coverKey: null, coverUrl: null, ...over});
 const base = {posts: [post('3'), post('2'), post('1')], progress: [], seen: [], hidden: []};
@@ -50,4 +50,20 @@ assert.equal(homeScene({...base, seen: ['3', '2', '1'], hidden: ['3', '2', '1']}
 assert.equal(homeScene({...base, posts: [post('9', {published: 0})]}).hero, null);
 assert.equal(homeScene({...base, posts: []}).hero, null);
 
-console.log('PASS: в кадре самая свежая неоткрытая публикация, «Продолжить» — отдельный выпуск со своей позицией, дослушанное и убранное не показываются');
+// Кадром распоряжается автор: закреплённая публикация держится в нём, пока он
+// не сменит её сам — иначе выложенные следом истории вытесняют видео.
+const pinnedBase = {...base, pinned: '1'};
+assert.equal(homeScene(pinnedBase).hero.id, '1', 'закреплённая публикация стоит в кадре');
+assert.equal(homeScene({...base, pinned: 'нет такой'}).hero.id, '3', 'исчезнувшее закрепление возвращает обычное правило');
+assert.equal(homeScene({...base, pinned: '1', hidden: ['1']}).hero.id, '3', 'убранная с главной закреплённая не держит кадр');
+assert.equal(homeScene({...base, posts: [post('3'), post('2'), post('1', {published: 0})], pinned: '1'}).hero.id, '3', 'снятая с публикации не держит кадр');
+assert.equal(homeScene({...base, pinned: ''}).hero.id, '3', 'пустое закрепление — это его отсутствие');
+
+// Метки «новое» рассказывают про другие разделы, раз кадр занят одним.
+const mixed = [post('9', {kind: 'video'}), post('8', {kind: 'story'}), post('7')];
+assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: [], heroId: '9'})].sort(), ['podcast', 'story'], 'публикация в кадре меткой не считается');
+assert.deepEqual([...freshSections({posts: mixed, seen: ['8'], hidden: [], heroId: '9'})], ['podcast'], 'открытое перестаёт быть новым');
+assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: ['7', '8'], heroId: '9'})], [], 'убранное с главной меток не даёт');
+assert.deepEqual([...freshSections({posts: [post('6', {published: 0})], seen: [], hidden: []})], [], 'черновик не обещает нового');
+
+console.log('PASS: кадром распоряжается автор, иначе в нём самая свежая неоткрытая публикация; «Продолжить» — отдельный выпуск со своей позицией; метки «новое» рассказывают про другие разделы');

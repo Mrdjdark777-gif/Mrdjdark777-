@@ -150,6 +150,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.sectionPodcasts": "Голоси з далеких місць",
   "home.sectionVideos": "Більше, ніж аудіо",
   "home.sectionStories": "Люди та маршрути",
+  "home.fresh": "нове",
   "nav.library": "Бібліотека",
   "heading.homeListener": "Що вмикаємо?",
   "home.eyebrow": "True Thrills / Головна",
@@ -532,6 +533,10 @@ export const uk: Record<keyof typeof ru, string> = {
   "post.publish": "Опублікувати",
 
   "post.delete": "Видалити",
+  "post.pin": "Поставити в кадр головної",
+  "post.unpin": "Прибрати з кадру",
+  "post.pinned": "Стоїть у кадрі головної",
+  "post.unpinned": "Прибрано з кадру",
 
   "post.defaultVideo": "Відео True Thrills",
 
@@ -927,6 +932,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "err.badStorageKey": "Неприпустимий ключ сховища",
 
   "err.notFound": "Не знайдено",
+  "err.pinDraft": "Закріпити можна лише опубліковане.",
 
   "err.liveTitle": "Вкажи назву ефіру",
 

@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,MoreHorizontal,Play,Video} from 'lucide-react';
-import {homeScene,type ScenePost} from '@/lib/home-scene';
+import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video} from 'lucide-react';
+import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
 import {readProgress} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -23,9 +23,10 @@ const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>p.coverKey?'/api/cover?id='+p.id:p.coverUrl||'';
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,sections}:{
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,sections,pinned}:{
  posts:T[];live:Live|null;onOpen:(post:T)=>void;onOpenLive:()=>void;liveAction:string;
- support:React.ReactNode;sections:{kind:'podcast'|'video'|'story';label:string;note:string;go:()=>void}[];
+ support:React.ReactNode;pinned?:string|null;
+ sections:{kind:'podcast'|'video'|'story';label:string;go:()=>void}[];
 }){
  const {t}=useT();
  const [device,setDevice]=useState<{progress:ReturnType<typeof readProgress>;seen:string[];hidden:string[]}>({progress:[],seen:[],hidden:[]});
@@ -40,7 +41,8 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   return()=>{clearTimeout(timer);for(const event of ['tt-progress','tt-seen','tt-hidden'])window.removeEventListener(event,update);};
  },[]);
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
- const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden});
+ const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned});
+ const fresh=freshSections({posts,seen:device.seen,hidden:device.hidden,heroId:picked.hero?.id??null});
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со
  // всеми полями, поэтому находим её по id.
  const hero=picked.hero?posts.find(p=>p.id===picked.hero!.id)??null:null;
@@ -75,7 +77,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
      {heroMeta&&<span className="scene-meta">{heroMeta}</span>}
      <button type="button" className="scene-action" onClick={()=>{haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
     </div>
-    <button type="button" className="scene-menu tt-pressable" aria-label={t('home.cardMenu')} onClick={e=>{e.stopPropagation();haptic();setMenu({id:hero.id,title:hero.title});}} onPointerDown={e=>e.stopPropagation()}><MoreHorizontal size={22}/></button>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
 
@@ -94,7 +95,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     return <button key={s.kind} type="button" className={'section-tile'+(cover?'':' section-tile-plain')} onClick={()=>{haptic();s.go();}}>
      {cover?<img src={cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.parentElement?.classList.add('section-tile-plain');e.currentTarget.remove();}}/>:<Icon className="section-tile-icon" size={26}/>}
      <span className="section-tile-shade" aria-hidden="true"/>
-     <span className="section-tile-copy"><strong>{s.label}</strong><span>{s.note}</span></span>
+     <span className="section-tile-copy"><strong>{s.label}</strong>{fresh.has(s.kind)&&<span className="section-tile-new">{t('home.fresh')}</span>}</span>
     </button>;})}
   </div>
 
