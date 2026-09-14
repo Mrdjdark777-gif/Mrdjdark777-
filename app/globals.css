@@ -23,7 +23,7 @@
    идёт запасной системный стек на случай, если шрифт не успел загрузиться. */
 :root, .dark {
   --font-ui: var(--font-display), var(--font-display-fallback);
-  --background:#101113;--foreground:#f4f3f1;--card:#18191c;--card-foreground:#f4f3f1;
+  --background:#121619;--foreground:#f4f3f1;--card:#18191c;--card-foreground:#f4f3f1;
   --popover:#202124;--popover-foreground:#f4f3f1;--primary:#6FE7DE;--primary-foreground:#08201E;
   --secondary:#26272b;--secondary-foreground:#f4f3f1;--muted:#222327;--muted-foreground:#a4a5aa;
   --accent:#123330;--accent-foreground:#8FEFE8;--destructive:#E0564C;--border:#303136;--input:#36373c;--ring:#6FE7DE;
@@ -300,9 +300,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 
 /* Заставка при запуске: логотип «выпрыгивает», под ним бегущая полоса
    загрузки, и всё гаснет, как только приходит первый ответ сервера.
-   Фон тот же #101113, что и у окна Android-приложения, поэтому переход
+   Фон тот же #121619, что и у окна Android-приложения, поэтому переход
    от системной заставки к нашей выглядит одним движением. */
-.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#101113;transition:opacity .4s ease}
+.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#121619;transition:opacity .4s ease}
 .splash-out{opacity:0;pointer-events:none}
 .splash img{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #6FE7DE,0 18px 40px -12px rgba(111,231,222,.6);animation:splash-pop .55s cubic-bezier(.2,.9,.3,1.25) both}
 .splash-bar{width:120px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;animation:splash-fade .3s .35s both}
@@ -402,7 +402,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .live-disc{position:relative;align-self:center;flex-shrink:0;--disc-size:min(260px,64vw);width:var(--disc-size);height:var(--disc-size);border-radius:50%;padding:6px;border:1px solid rgba(111,231,222,.35);background:radial-gradient(circle closest-side,rgba(255,196,60,.08),rgba(111,231,222,.08) 60%,transparent 78%)}
 .live-disc::before{content:'';position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle closest-side,rgba(111,231,222,.22),transparent 72%);opacity:.6}
 .live-disc.is-live::before{animation:disc-breathe 3.2s ease-in-out infinite}
-.live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#101113;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
+.live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#121619;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
 @keyframes disc-breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
 /* Спектр в строку: 64 столбика, которые прыгают на месте в такт звуку. */
 .live-spectrum{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:56px}
@@ -493,11 +493,11 @@ body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) 
 
 /* Фотография сверху, затухающая в угольный низ. Без обложки — фирменный знак. */
 .player-stage{position:absolute;top:0;left:0;right:0;height:min(58dvh,520px);z-index:0;
- display:grid;place-items:center;background:linear-gradient(180deg,#18202a,#101113)}
+ display:grid;place-items:center;background:linear-gradient(180deg,#18202a,#121619)}
 .player-stage-photo{width:100%;height:100%;object-fit:cover;display:block}
 .player-stage-mark{width:118px;height:118px;object-fit:contain;opacity:.5}
 .player-stage-shade{position:absolute;inset:0;
- background:linear-gradient(180deg,rgba(16,17,19,.58) 0,rgba(16,17,19,.18) 14%,rgba(16,17,19,.04) 36%,rgba(16,17,19,.7) 74%,#101113 100%)}
+ background:linear-gradient(180deg,rgba(18,22,25,.58) 0,rgba(18,22,25,.18) 14%,rgba(18,22,25,.04) 36%,rgba(18,22,25,.7) 74%,#121619 100%)}
 
 .player-sheet-top{position:relative;z-index:2;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;
  gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 0}
@@ -535,7 +535,7 @@ body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) 
 .player-extra select{-webkit-appearance:none;appearance:none;text-align:center;text-align-last:center;
  background:none;border:none;color:#f4f3f1;font-size:16px;font-weight:600;padding:2px 4px;border-radius:8px}
 .player-extra select option{background:var(--surface);color:#f4f3f1}
-.player-extra>span{font-size:12px;color:#a4a5aa}
+.player-extra>span{font-size:12.5px;color:#b8bdc0}
 .player-extra-icon{color:#e4e8e9;display:grid;place-items:center}
 .is-open .podcast-player-message{grid-column:auto;text-align:center;color:#ffc18d}
 
@@ -624,7 +624,12 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 :root,.dark{--tt-gutter:20px;--tt-target:44px;--tt-cta:52px;--tt-transport:72px;
  --tt-editorial:var(--font-editorial),Georgia,"Times New Roman",serif;
  --tt-condensed:var(--font-condensed),var(--font-display),system-ui,sans-serif;
- --tt-live:#FF6A55}
+ --tt-live:#FF6A55;
+ /* Фон снят пипеткой с самого листа: #121619, а не #121619 из текста
+    спецификации. Он холоднее и чуть светлее, и именно поэтому фотографии на
+    листе сидят в экране, а не висят на мёртво-сером. */
+ --background:#121619}
+body{background:var(--background)}
 @media(max-height:700px){:root,.dark{--tt-gutter:16px;--tt-cta:48px}}
 /* Нажатие: подрастает сама иконка, разметка рядом не дёргается. */
 .tt-pressable{min-height:var(--tt-target);min-width:var(--tt-target)}
@@ -646,11 +651,11 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
  -webkit-user-select:none;user-select:none}
 .scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .scene-mark{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);width:132px;height:132px;object-fit:contain;opacity:.92;z-index:-2}
-.scene-fallback{min-height:0;padding-top:212px;background:radial-gradient(circle at 50% 32%,#16302e,#101113 66%)}
+.scene-fallback{min-height:0;padding-top:212px;background:radial-gradient(circle at 50% 32%,#16302e,#121619 66%)}
 .scene-fallback .scene-mark{top:auto;bottom:calc(100% - 196px);transform:translate(-50%,0);width:96px;height:96px}
 /* Светлый текст поверх фотографии защищает чёрный градиент — не цветной фильтр
    поверх всего кадра: обложка должна остаться собой. */
-.scene-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(16,17,19,.86) 0,rgba(16,17,19,.46) 15%,rgba(16,17,19,.12) 32%,rgba(16,17,19,.58) 64%,#101113 100%)}
+.scene-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,22,25,.86) 0,rgba(18,22,25,.46) 15%,rgba(18,22,25,.12) 32%,rgba(18,22,25,.58) 64%,#121619 100%)}
 .scene-intro{position:absolute;top:10px;left:var(--tt-gutter);right:58px;margin:0;
  font-size:13px;line-height:1.45;color:#dfe3e4;text-shadow:0 1px 10px rgba(0,0,0,.65);max-width:24ch}
 .scene-copy{display:flex;flex-direction:column;gap:8px;position:relative}
@@ -688,7 +693,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .section-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .section-tile-plain{background:linear-gradient(160deg,#17302e,#141719)}
 .section-tile-icon{position:absolute;top:14px;left:50%;transform:translateX(-50%);color:var(--teal);opacity:.85}
-.section-tile-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(16,17,19,.15),rgba(16,17,19,.88))}
+.section-tile-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,22,25,.15),rgba(18,22,25,.88))}
 .section-tile-copy{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0}
 .section-tile-copy strong{font-size:14px;font-weight:700;color:#f4f3f1}
 .section-tile-copy span{font-size:9.5px;line-height:1.3;color:#b9bec0;text-transform:uppercase;letter-spacing:.07em;
@@ -858,10 +863,10 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .live-rings.is-pulsing .live-ring:nth-child(3){animation-delay:.6s}
 @keyframes live-breathe{0%,100%{opacity:.5}50%{opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
- display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#101113);
+ display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
 .live-orb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.live-orb-shade{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(16,17,19,.25),rgba(16,17,19,.82))}
+.live-orb-shade{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(18,22,25,.25),rgba(18,22,25,.82))}
 .live-orb-copy{position:relative;display:flex;align-items:center;gap:9px;padding:0 16px;text-align:center}
 .live-orb-copy strong{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(21px,6vw,27px);
  line-height:1.12;color:#f4f3f1;text-shadow:0 2px 14px rgba(0,0,0,.7)}
@@ -897,17 +902,24 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Один плотный столбец, как в спецификации: круг, название, описание, полоса,
    время, транспорт, скорость и таймер, поддержка. Круг — часть этого столбца,
    а не отдельный этаж: иначе между ним и текстом повисает пустой экран. */
-.podcast-player.is-archive .player-body{justify-content:flex-start;gap:14px;padding-top:4px}
+.podcast-player.is-archive .player-body{justify-content:space-between;gap:12px;padding-top:6px}
 /* Поддержка прижата к низу, остальное идёт подряд сверху: столбец занимает
    экран целиком, без провала ни в середине, ни под кнопками. */
-.podcast-player.is-archive .player-support{margin-top:auto}
+/* Столбец расходится по высоте экрана: круг наверху, поддержка внизу. */
+.podcast-player.is-archive .player-support{margin-top:0}
 .player-orb{position:relative;align-self:center;display:grid;place-items:center;
  width:min(60vw,246px);height:min(60vw,246px);margin:0 0 2px;z-index:1}
-.player-orb>img{width:82%;height:82%;border-radius:50%;object-fit:cover}
-.player-orb-mark{padding:18%;object-fit:contain;background:linear-gradient(180deg,#1b242b,#101113)}
+.player-orb::before{content:'';position:absolute;width:88%;height:88%;border-radius:50%;
+ background:radial-gradient(circle,rgba(111,231,222,.07),transparent 72%);filter:blur(12px)}
+.player-orb>img{position:relative;width:79%;height:79%;border-radius:50%;object-fit:cover;
+ box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 40px -18px rgba(0,0,0,.9)}
+/* Обложка внутри круга приглушена: на листе фотография сидит в экране, а не
+   выпрыгивает из него. */
+.player-orb>img{filter:brightness(.82) saturate(.86)}
+.player-orb-mark{padding:18%;object-fit:contain;background:linear-gradient(180deg,#1b242b,#121619);filter:none}
 .player-orb-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.player-orb-ring circle{fill:none;stroke-width:3;stroke-linecap:round}
-.player-orb-track{stroke:rgba(255,255,255,.1)}
+.player-orb-ring circle{fill:none;stroke-width:2.6;stroke-linecap:round}
+.player-orb-track{stroke:rgba(255,255,255,.2)}
 .player-orb-progress{stroke:var(--teal)}
 .podcast-player.is-archive .player-title{font-size:clamp(26px,7.2vw,34px);-webkit-line-clamp:2}
 .podcast-player.is-archive .player-note{margin-top:-4px}
@@ -920,3 +932,12 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Экран эфира у слушателя — сцена, а не панель: без рамки и фона консоли. */
 .listener-main[data-view=live] .live-console{padding:0!important;gap:18px;background:none;border:none;box-shadow:none}
 .listener-main[data-view=live] .live-layout{gap:18px}
+
+/* Скорость и таймер: значение и подпись — обычный текст, выбор лежит поверх
+   прозрачным select. Так выключенный таймер показывает только часы и подпись,
+   а управление остаётся настоящим, с клавиатурой и озвучкой. */
+.player-extra{position:relative}
+.player-extra-value{font-size:17px;font-weight:600;color:#f4f3f1;line-height:1.2}
+.player-extra-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+ -webkit-appearance:none;appearance:none;border:none;background:none;padding:0;cursor:pointer}
+.player-extra:focus-within{border-radius:12px;outline:2px solid var(--teal);outline-offset:4px}

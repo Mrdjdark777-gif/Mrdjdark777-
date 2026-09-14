@@ -44,6 +44,8 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  // Один и тот же прогресс для кольца и полосы. Без длительности кольцо
  // остаётся нейтральным: ложный процент хуже, чем его отсутствие.
  const known=view.duration>0&&Number.isFinite(view.duration);
+ const sleepSet=String(view.sleepValue)!=='0';
+ const sleepLabel=view.sleepOptions.find(o=>String(o.value)===String(view.sleepValue))?.label??'';
  const progress=known?Math.max(0,Math.min(1,view.position/view.duration)):0;
  const toggle=<button className="podcast-toggle" aria-label={view.playing?t('player.pause'):t('player.play')} disabled={view.loading&&!view.playing&&!view.seekable} onClick={act.toggle}>{view.loading?<Loader2 className="spin" size={22}/>:view.playing?<Pause size={23} fill="currentColor"/>:<Play size={23} fill="currentColor"/>}</button>;
  const art=<img className="podcast-player-logo" src={view.cover??'/brand/logo.png?v=0.4.1'} alt="" onError={e=>{e.currentTarget.src='/brand/logo.png?v=0.4.1';}}/>;
@@ -93,8 +95,18 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
    <div className="podcast-timeline"><Slider aria-label={t('player.seekAria')} aria-valuetext={t('player.seekValue',{position:clock(view.position),duration:clock(view.duration)})} value={[Math.min(view.position,view.duration||0)]} min={0} max={view.duration||1} step={0.1} disabled={!view.seekable} onValueChange={v=>(act.scrub??act.seekTo)(v[0])} onValueCommit={v=>act.seekTo(v[0])}/><div className="podcast-times"><span>{clock(view.position)}</span><span>{total}</span></div></div>
    <div className="podcast-transport"><button onClick={()=>act.seekBy(-15)} disabled={!view.seekable} aria-label={t('player.back15')}><RotateCcw size={19}/><span>15</span></button>{toggle}<button onClick={()=>act.seekBy(15)} disabled={!view.seekable} aria-label={t('player.forward15')}><RotateCw size={19}/><span>15</span></button></div>
    <div className="player-extras">
-    <label className="player-extra"><select value={view.rate} onChange={e=>act.setRate(Number(e.target.value))}>{[.75,1,1.25,1.5,1.75,2].map(value=><option key={value} value={value}>{value}×</option>)}</select><span>{t('player.rate')}</span></label>
-    <label className="player-extra"><span className="player-extra-icon"><Timer size={19}/></span><select value={view.sleepValue} onChange={e=>act.setSleep(e.target.value)}>{view.sleepOptions.map(o=><option key={String(o.value)} value={o.value}>{o.label}</option>)}</select><span>{t('player.sleepShort')}</span></label>
+    <label className="player-extra">
+     <span className="player-extra-value">{view.rate}×</span><span>{t('player.rate')}</span>
+     <select className="player-extra-select" aria-label={t('player.rate')} value={view.rate} onChange={e=>act.setRate(Number(e.target.value))}>{[.75,1,1.25,1.5,1.75,2].map(value=><option key={value} value={value}>{value}×</option>)}</select>
+    </label>
+    {/* Выключенный таймер не пишет «Выкл.»: на листе под часами стоит только
+        подпись, а само значение появляется, когда таймер действительно заведён. */}
+    <label className="player-extra">
+     <span className="player-extra-icon"><Timer size={19}/></span>
+     {sleepSet&&<span className="player-extra-value">{sleepLabel}</span>}
+     <span>{t('player.sleepShort')}</span>
+     <select className="player-extra-select" aria-label={t('player.sleep')} value={view.sleepValue} onChange={e=>act.setSleep(e.target.value)}>{view.sleepOptions.map(o=><option key={String(o.value)} value={o.value}>{o.label}</option>)}</select>
+    </label>
    </div>
    {view.message&&<p className="podcast-player-message" role="status">{view.message}</p>}
    {archive&&view.supportUrl&&<a className="player-support tt-pressable" href={view.supportUrl} target="_blank" rel="noopener noreferrer">

@@ -52,7 +52,6 @@ try{
  };
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
- const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
  // Второй выпуск специально без обложки иновее первого: по нему видно
  // типографический S04, и у него есть «Далее» — следующий в разделе.
  const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
@@ -62,6 +61,7 @@ try{
  const archiveKey='audio/live-'+crypto.randomUUID();
  for(const suffix of ['','.meta.json'])await copyFile(path.join(env.STORAGE_DIR,key+suffix),path.join(env.STORAGE_DIR,archiveKey+suffix));
  const archived=await post({kind:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
+ const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
  // Форма звука на снимке настоящая: её считает тот же воркер, что и на VPS.
  // Ждём его недолго — если ffmpeg в окружении нет, снимок покажет спокойное
  // состояние ожидания, и это тоже правда, а не заглушка.
