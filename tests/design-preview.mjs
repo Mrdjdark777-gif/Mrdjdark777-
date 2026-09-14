@@ -35,7 +35,8 @@ try{
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true});
  await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true});
  const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true});
- browser=await chromium.launch({channel:process.env.TT_BROWSER_CHANNEL||undefined,executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+ // Тот же браузер, что у browser-integration: в CI установлен Chrome, локально можно указать исполняемый файл.
+ browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
  const shot=async(page,name)=>page.screenshot({path:'outputs/ui/design-'+name+'.png',fullPage:false});
  const settle=async(page)=>{await page.waitForFunction(()=>!document.querySelector('.splash'));await page.waitForTimeout(250);};
  const metrics=page=>page.evaluate(()=>({scrollW:document.documentElement.scrollWidth,innerW:innerWidth,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
