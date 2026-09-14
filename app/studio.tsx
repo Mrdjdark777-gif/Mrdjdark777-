@@ -10,7 +10,7 @@ import {useCapture} from '@/hooks/use-capture';
 import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress} from '@/lib/listening-progress';
-import {HomeHero} from '@/components/studio/home-hero';
+import {HomeSceneView} from '@/components/studio/home-scene-view';
 import {LiveSpectrum} from '@/components/studio/live-spectrum';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
@@ -167,17 +167,9 @@ export default function Studio(){
  <button className="home-tile" onClick={()=>void copyChannelLink()}><Share2 size={22}/><span>{t('home.shareChannel')}</span></button>
  </div>}
  {view==='home'&&author&&(supportCard??<button className="support-card support-setup" onClick={()=>goto('settings')}><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('support.setupTitle')}</strong><span>{t('support.setupText')}</span></span><ChevronRight size={19}/></button>)}
- {view==='home'&&!author&&<>
- <div className="page-heading home-heading"><div><span className="eyebrow">{t('home.eyebrow')}</span><h1>{t('heading.homeListener')}</h1></div><ArrowUpRight className="heading-mark" size={30}/></div>
- <HomeHero items={data.items} onOpen={openPost} live={liveStatus} onOpenLive={openLive} liveEyebrow={live.joined&&live.activeId===liveStatus?.id&&live.listening?t('live.youAreListening'):t('live.authorOnAir')} liveNote={t('live.tapToConnect')} liveLabel={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}/>
- <div className="home-actions">
- <button className="home-tile" onClick={()=>{haptic();goto('podcasts');}}><span className="tile-badge"><Headphones size={22}/></span><span className="tile-label">{t('nav.podcasts')}</span><span className="tile-count">{count('podcast')}</span><ArrowUpRight className="tile-arrow" size={16}/></button>
- <button className="home-tile" onClick={()=>{haptic();goto('videos');}}><span className="tile-badge"><Video size={22}/></span><span className="tile-label">{t('nav.videos')}</span><span className="tile-count">{count('video')}</span><ArrowUpRight className="tile-arrow" size={16}/></button>
- <button className="home-tile" onClick={()=>{haptic();goto('stories');}}><span className="tile-badge"><BookOpen size={22}/></span><span className="tile-label">{t('nav.stories')}</span><span className="tile-count">{count('story')}</span><ArrowUpRight className="tile-arrow" size={16}/></button>
- </div>
- {supportCard}
- {socialRow&&<section className="home-social"><span className="social-caption">{t('home.socialCaption')}</span>{socialRow}</section>}
- </>}
+ {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={supportCard}
+  liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
+  sections={[{kind:'podcast',label:t('nav.podcasts'),note:t('home.sectionPodcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),note:t('home.sectionVideos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),note:t('home.sectionStories'),go:()=>goto('stories')}]}/>}
  {view==='studio'&&author&&<>
  <div className="studio-grid"><section className="recorder-panel"><div className="panel-heading"><span><Mic size={17}/>{t('studio.panelTitle')}</span><span className={capture.recording?'record-status active':'record-status'}><span className="led"/>{capture.recording?(capture.paused?t('studio.paused'):t('studio.rec')):capture.ready?t('studio.ready'):t('studio.waiting')}</span></div>
  <div className="record-device-area">{inputChoice}</div><div className="recording-center"><div className="record-time">{clock(capture.seconds)}<span>.00</span></div><div className="waveform" aria-label={t('studio.levelAria')}>{capture.samples.map((s,i)=><span key={i} style={{height:Math.max(3,Math.min(94,s*180+3))+'%'}}/>)}</div><div className="meter-labels"><span>−60</span><span>−36</span><span>−18</span><span>−6</span><span>0 dBFS</span></div><div className="peak-row"><span className="signal-label">{capture.ready?t('studio.incomingSignal'):t('studio.noSignal')}</span><strong className={capture.clipping?'clipping':''}>{capture.ready?Math.round(capture.level)+' dBFS':'— dBFS'}</strong></div></div>
@@ -237,12 +229,11 @@ export default function Studio(){
  <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><Home size={22}/><span>{t('nav.home')}</span></button>
- {author&&<button className="bottom-nav-item" data-active={view==='studio'} aria-label={t('nav.studio')} onClick={()=>{haptic();goto('studio');}}><Mic size={22}/><span>{t('nav.studio')}</span></button>}
- <button className="bottom-nav-item" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}><Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
- <button className="bottom-nav-item" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
- <button className="bottom-nav-item" data-active={view==='live'} aria-label={t('heading.live')} onClick={()=>{haptic();goto('live');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Radio size={22}/><span>{t('nav.live')}</span></button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><Home size={22}/><span>{t('nav.home')}</span></button>
+ {author&&<button className="bottom-nav-item tt-pressable" data-active={view==='studio'} aria-label={t('nav.studio')} onClick={()=>{haptic();goto('studio');}}><Mic size={22}/><span>{t('nav.studio')}</span></button>}
+ <button className="bottom-nav-item tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>

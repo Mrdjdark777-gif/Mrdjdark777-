@@ -39,6 +39,7 @@ jobs:
       - run: node tests/backup-integration.mjs
       - run: node tests/prune-orphans.mjs
       - run: node tests/live-resilience.mjs
+      - run: node tests/home-scene.mjs
       - run: node tests/service-hardening.mjs
       - run: node tests/playback-restore.mjs
       # Решения об уведомлениях в приложении Android вынесены в чистый класс

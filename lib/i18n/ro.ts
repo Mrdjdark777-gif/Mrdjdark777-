@@ -142,6 +142,13 @@ export const ro: Record<keyof typeof ru, string> = {
   "nav.stories": "Povești",
 
   "nav.live": "Live",
+  "home.channelIntro": "Povești despre oameni, natură sălbatică și despre ce contează cu adevărat.",
+  "home.emptyTitle": "Aici va apărea primul episod",
+  "home.emptyNote": "Autorul nu a publicat încă nimic.",
+  "home.sectionPodcasts": "Voci din locuri îndepărtate",
+  "home.sectionVideos": "Mai mult decât audio",
+  "home.sectionStories": "Oameni și trasee",
+  "nav.library": "Bibliotecă",
   "heading.homeListener": "Ce ascultăm?",
   "home.eyebrow": "True Thrills / Acasă",
   "home.cardMenu": "Acțiuni pentru card",
