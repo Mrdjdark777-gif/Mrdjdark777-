@@ -53,6 +53,7 @@ assert.match(read('scripts/update-safe.sh'), /bash scripts\/install-operations\.
 // Пользователь создаётся без оболочки и владеет только своим.
 assert.match(ops, /useradd --system .*--shell \/usr\/sbin\/nologin/, 'пользователь сервиса должен создаваться системным и без оболочки');
 assert.match(ops, /chown -R truethrills:truethrills \/opt\/truethrills/, 'каталог приложения должен принадлежать пользователю сервиса');
+assert.match(ops, /chmod 700 \/opt\/truethrills\/data/, 'в каталоге данных лежит база с ключами push-подписок — он не должен быть открыт на чтение всем на машине');
 for (const where of ['scripts/install-operations.sh', 'scripts/vps-setup.sh', 'scripts/update-safe.sh'])
  assert.match(read(where), /safe\.directory/, where + ': git от root в чужом каталоге откажется работать и обновление встанет');
 // Блокировка воркера переезжает из общедоступного /run/lock в свой каталог,

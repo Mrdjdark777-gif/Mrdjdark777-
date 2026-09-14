@@ -20,6 +20,10 @@ install -d -m 700 -o truethrills -g truethrills /var/backups/truethrills
 # переписывает. Проще и надёжнее отдать ему весь каталог приложения.
 chown -R truethrills:truethrills /opt/truethrills
 chmod 600 /opt/truethrills/.env 2>/dev/null || true
+# База лежит здесь же, а в ней приватные ключи push-подписок: читать её
+# посторонним на машине незачем. Каталог создаётся приложением с правами по
+# умолчанию, поэтому закрываем его явно и на каждом обновлении.
+chmod 700 /opt/truethrills/data 2>/dev/null || true
 # Иначе git от root ругается на «dubious ownership» при следующем обновлении.
 git config --global --add safe.directory /opt/truethrills 2>/dev/null || true
 # Юниты пишутся здесь, а не в vps-setup.sh, потому что через этот скрипт

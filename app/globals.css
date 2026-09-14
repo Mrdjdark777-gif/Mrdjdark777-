@@ -431,14 +431,14 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 @media(min-width:768px){.is-author .support-button span{display:inline}}
 /* Основная область слушателя: ровные поля, место под плавающую навигацию. */
 .listener-main{padding:6px 18px calc(var(--bottom-nav-h) + 26px + env(safe-area-inset-bottom))!important;min-height:0!important}
-.listener-main .page-heading{margin:8px 0 16px;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:14px}
+.listener-main .page-heading{margin:6px 0 12px;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:14px}
 .listener-main .page-heading h1{width:max-content;max-width:100%;font-size:32px;font-weight:800;letter-spacing:-.035em;line-height:1.1;background:linear-gradient(90deg,#f4f3f1 55%,#8FEFE8);-webkit-background-clip:text;background-clip:text;color:transparent}
 .listener-main .heading-description{font-size:14px;color:#a3abaf;margin-top:8px}
 .listener-main .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
 .listener-main .home-heading h1{background:none;-webkit-background-clip:initial;background-clip:initial;color:#f4f3f1}
 .heading-mark{color:var(--teal);flex:none;margin-bottom:4px}
 /* Карточка-герой. */
-.hero-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:14px;align-items:end;padding:16px 16px 16px 18px;border-radius:24px;background:linear-gradient(135deg,#123330 0%,#151c1d 55%,#131617 100%);border:1px solid rgba(111,231,222,.22);box-shadow:0 22px 50px -30px rgba(0,0,0,.9);margin:0 0 12px;text-align:left;-webkit-user-select:none;user-select:none;cursor:pointer}
+.hero-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:14px;align-items:end;padding:14px 16px 14px 18px;border-radius:24px;background:linear-gradient(135deg,#123330 0%,#151c1d 55%,#131617 100%);border:1px solid rgba(111,231,222,.22);box-shadow:0 22px 50px -30px rgba(0,0,0,.9);margin:0 0 10px;text-align:left;-webkit-user-select:none;user-select:none;cursor:pointer}
 .hero-card.is-live{background:linear-gradient(135deg,#2b2321 0%,#171b1c 45%,#12302d 100%);border-color:rgba(255,140,110,.28);cursor:default}
 .hero-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
 .hero-eyebrow{display:flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -452,7 +452,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .hero-art img{width:100%;height:100%;object-fit:cover;display:block}
 .hero-menu{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#c8cfd3;background:rgba(0,0,0,.18)}
 /* Плитки разделов и строка эфира. */
-.listener-main .home-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 10px;max-width:none}
+.listener-main .home-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 8px;max-width:none}
 .home-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px 12px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;background-image:none;text-align:left;min-width:0}
 .listener-main .home-actions>button:last-child:nth-child(odd){grid-column:auto}
 .home-tile span:not(.tile-badge):not(.tile-count){font-size:14px;font-weight:700;color:#f4f3f1}
@@ -467,7 +467,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .live-row-copy strong{font-size:15px;font-weight:700}.live-row-copy span{font-size:13px;color:var(--muted)}
 .live-row>svg:last-child{color:var(--teal);flex:none}
 /* Поддержка: в сетке — иконка, заголовок с подписью, ниже две кнопки. */
-.listener-main .support-card{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px 12px;align-items:center;padding:12px 14px 12px;border-radius:20px;background:var(--surface);background-image:none;border:1px solid rgba(111,231,222,.18);margin:0 0 12px;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;min-height:0}
+.listener-main .support-card{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px 12px;align-items:center;padding:12px 14px 12px;border-radius:20px;background:var(--surface);background-image:none;border:1px solid rgba(111,231,222,.18);margin:0 0 10px;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;min-height:0}
 .listener-main .support-card-top{display:contents}
 .listener-main .support-card .support-icon{width:24px;height:24px;border-radius:0;background:none;color:var(--teal);display:grid;place-items:center}
 .listener-main .support-card .support-icon svg{fill:currentColor}
@@ -477,6 +477,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .listener-main .support-card .support-links{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 0}
 .listener-main .support-links .social-chip{justify-content:center;border-radius:999px;background:var(--surface-2);border-color:var(--line-strong);font-size:13px;padding:9px 12px;min-height:40px;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 .listener-main .support-links .social-chip svg{color:inherit}
+.listener-main .home-social{margin:0 0 10px;padding:11px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--line)}
 .social-caption{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#7f888c;margin-bottom:8px}
 .social-row{display:flex;flex-wrap:wrap;gap:8px}
 /* Плавающая нижняя навигация. */
@@ -595,7 +596,9 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .live-row{padding:9px 14px}
 .listener-main .support-card{padding:10px 12px}
 .listener-main .support-copy>span{display:none}
-.listener-main[data-view=home] .live-row,.listener-main[data-view=home] .content-footer{display:none}
+.listener-main[data-view=home] .content-footer{display:none}
+.listener-main[data-view=home] .home-social{padding:10px 12px;margin-bottom:10px}
+.listener-main[data-view=home] .home-social .social-caption{display:none}
 .tile-count{margin-top:-4px}
 .listener-main .page-heading{margin:2px 0 8px}
 .listener-main .page-heading h1{font-size:28px}}

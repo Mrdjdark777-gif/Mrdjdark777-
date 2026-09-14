@@ -175,8 +175,8 @@ export default function Studio(){
  <button className="home-tile" onClick={()=>{haptic();goto('videos');}}><span className="tile-badge"><Video size={22}/></span><span className="tile-label">{t('nav.videos')}</span><span className="tile-count">{count('video')}</span><ArrowUpRight className="tile-arrow" size={16}/></button>
  <button className="home-tile" onClick={()=>{haptic();goto('stories');}}><span className="tile-badge"><BookOpen size={22}/></span><span className="tile-label">{t('nav.stories')}</span><span className="tile-count">{count('story')}</span><ArrowUpRight className="tile-arrow" size={16}/></button>
  </div>
- {!liveStatus&&<button className="live-row" onClick={()=>{haptic();openLive();}}><span className="tile-badge"><Radio size={22}/></span><span className="live-row-copy"><strong>{t('nav.live')}</strong><span>{t('home.liveRowNone')}</span></span><ArrowUpRight size={20}/></button>}
  {supportCard}
+ {socialRow&&<section className="home-social"><span className="social-caption">{t('home.socialCaption')}</span>{socialRow}</section>}
  </>}
  {view==='studio'&&author&&<>
  <div className="studio-grid"><section className="recorder-panel"><div className="panel-heading"><span><Mic size={17}/>{t('studio.panelTitle')}</span><span className={capture.recording?'record-status active':'record-status'}><span className="led"/>{capture.recording?(capture.paused?t('studio.paused'):t('studio.rec')):capture.ready?t('studio.ready'):t('studio.waiting')}</span></div>

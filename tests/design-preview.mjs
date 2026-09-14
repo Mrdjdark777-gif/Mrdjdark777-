@@ -68,7 +68,18 @@ try{
  // публикаций, чтобы карточка-герой была на месте, как у нового слушателя.
  const fresh=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});const sizes=await fresh.newPage();sizes.on('pageerror',e=>errors.push(e.message));
  for(const width of [360,390,412,768,1366]){const page=sizes;await page.setViewportSize({width,height:844});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollW<=m.innerW,`главная переполняет ширину ${width}: ${m.scrollW}>${m.innerW}`);}
- for(const [width,height] of [[360,640],[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);if(width===360)await shot(page,'home-360');}
+ // На обычном телефоне главная умещается целиком. На самом маленьком экране
+ // требование мягче и честнее: владелец попросил вернуть на главную блок
+ // площадок, и прятать то, о чём он просил, хуже, чем дать пролистнуть один
+ // блок. Поэтому там проверяем, что до сгиба помещается главное — герой,
+ // плитки и поддержка, — а площадки могут оказаться чуть ниже.
+ for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);}
+ {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
+  const bottom=await page.locator('.support-card').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
+  check(bottom<=640,`на 360×640 карточка поддержки уходит за первый экран: ${bottom}>640`);
+  const m=await metrics(page);
+  check(m.scrollH<=m.innerH+140,`на 360×640 главная прокручивается больше чем на один блок: ${m.scrollH}>${m.innerH}`);
+  await shot(page,'home-360');}
  await fresh.close();
  // Студия автора на широком экране.
  const desk=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});await desk.addCookies([{name:cookie.split('=')[0],value:cookie.split('=').slice(1).join('='),url:base}]);
@@ -78,5 +89,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах и без прокрутки на трёх телефонах; студия без переполнения');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит карточка поддержки; студия без переполнения');
 }finally{await browser?.close();server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
