@@ -94,6 +94,8 @@ try{
  await page.reload();await settle(page);await shot(page,'home');
  // Каталог и поиск.
  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await shot(page,'catalog');
+ await page.goto(base+'/?mode=listen&view=videos');await settle(page);await shot(page,'videos');
+ await page.goto(base+'/?mode=listen&view=stories');await settle(page);await shot(page,'stories');
  // Плеер поверх каталога, на паузе, чтобы снимок был стабильным.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);await page.locator('.podcast-player').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
