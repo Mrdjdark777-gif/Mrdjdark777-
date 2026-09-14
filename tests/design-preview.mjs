@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+/**
+ * Экраны слушателя и студии на настоящей production-сборке: снимает их в
+ * outputs/ui/design-*.png и проверяет то, что владелец видит первым, —
+ * главная без горизонтального переполнения на пяти ширинах и без вертикальной
+ * прокрутки на трёх телефонах. Эфир здесь — статус в базе, а не поток: HLS и
+ * AAC проверяет browser-integration в настоящем Chrome.
+ *
+ * TT_DESIGN_SOFT=1 — только снимки и предупреждения, без падения: для правки
+ * вёрстки, когда нужно смотреть, а не проверять.
+ */
+import {chromium} from 'playwright';
+import {spawn,execFileSync} from 'node:child_process';
+import {mkdtemp,mkdir,rm} from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-design-')),soft=process.env.TT_DESIGN_SOFT==='1';
+const env={...process.env,DATABASE_PATH:path.join(dir,'db.sqlite'),STORAGE_DIR:path.join(dir,'storage'),LIVE_DIR:path.join(dir,'live'),SESSION_SECRET:'design-secret-not-production',ADMIN_PASSWORD:'design-password',FIREBASE_SERVICE_ACCOUNT_FILE:'',PUBLIC_SITE_URL:''};
+execFileSync(process.execPath,['node_modules/drizzle-kit/bin.cjs','migrate'],{env,stdio:'ignore'});
+await mkdir('outputs/ui',{recursive:true});
+const port=3132,base='http://127.0.0.1:'+port;
+const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{env,stdio:['ignore','ignore','inherit']});
+let browser;const problems=[];
+const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);else problems.push(message);};
+try{
+ for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
+ const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
+ const post=async(data)=>{const r=await fetch(base+'/api/library',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify(data)});const text=await r.text();assert.equal(r.status,200,text);return JSON.parse(text);};
+ await post({action:'setup'});
+ await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});
+ await post({action:'links',links:[{kind:'youtube',url:'https://youtube.com/@truethrills'},{kind:'telegram',url:'https://t.me/truethrills'}]});
+ // 90 секунд тишины: плееру нужна настоящая длительность, а не заглушка.
+ const seconds=90,wav=Buffer.alloc(44+44100*2*seconds);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
+ const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();
+ const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true});
+ await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true});
+ const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true});
+ browser=await chromium.launch({channel:process.env.TT_BROWSER_CHANNEL||undefined,executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+ const shot=async(page,name)=>page.screenshot({path:'outputs/ui/design-'+name+'.png',fullPage:false});
+ const settle=async(page)=>{await page.waitForFunction(()=>!document.querySelector('.splash'));await page.waitForTimeout(250);};
+ const metrics=page=>page.evaluate(()=>({scrollW:document.documentElement.scrollWidth,innerW:innerWidth,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
+ const phone=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+ const page=await phone.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ // Главная.
+ await page.goto(base+'/?mode=listen');await settle(page);await shot(page,'home');
+ // Каталог и поиск.
+ await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await shot(page,'catalog');
+ // Плеер поверх каталога, на паузе, чтобы снимок был стабильным.
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);await page.locator('.podcast-player').waitFor();
+ await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
+ await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(300);await shot(page,'player');
+ // Свёрнутый плеер на главной.
+ const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
+ await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
+ // История.
+ await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);await page.locator('.reader-scroll').waitFor();await page.waitForTimeout(300);await shot(page,'story');
+ // Эфир, когда его нет, и настройки.
+ await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
+ await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
+ // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
+ const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Вечерний эфир · True Thrills'})});const startText=await start.text();assert.equal(start.status,200,startText);
+ await page.goto(base+'/?mode=listen');await settle(page);await page.waitForFunction(()=>!!document.querySelector('.bottom-nav-dot'),null,{timeout:8000}).catch(()=>{});await shot(page,'home-live');
+ await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live');
+ const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
+ await phone.close();
+ // Переполнение и высота первого экрана — в чистом контексте: без «прочитанных»
+ // публикаций, чтобы карточка-герой была на месте, как у нового слушателя.
+ const fresh=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});const sizes=await fresh.newPage();sizes.on('pageerror',e=>errors.push(e.message));
+ for(const width of [360,390,412,768,1366]){const page=sizes;await page.setViewportSize({width,height:844});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollW<=m.innerW,`главная переполняет ширину ${width}: ${m.scrollW}>${m.innerW}`);}
+ for(const [width,height] of [[360,640],[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);if(width===360)await shot(page,'home-360');}
+ await fresh.close();
+ // Студия автора на широком экране.
+ const desk=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});await desk.addCookies([{name:cookie.split('=')[0],value:cookie.split('=').slice(1).join('='),url:base}]);
+ const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
+ await studio.locator('.bottom-nav-item').nth(1).click();await studio.waitForTimeout(400);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
+ const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);
+ await desk.close();
+ check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
+ if(problems.length)throw new Error('\n - '+problems.join('\n - '));
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; главная без переполнения на пяти ширинах и без прокрутки на трёх телефонах; студия без переполнения');
+}finally{await browser?.close();server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

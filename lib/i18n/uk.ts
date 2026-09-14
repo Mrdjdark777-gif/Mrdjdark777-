@@ -142,6 +142,18 @@ export const uk: Record<keyof typeof ru, string> = {
   "nav.stories": "Історії",
 
   "nav.live": "Ефір",
+  "heading.homeListener": "Що вмикаємо?",
+  "home.eyebrow": "True Thrills / Головна",
+  "home.cardMenu": "Дії з карткою",
+  "home.liveRowNone": "Зараз ефіру немає",
+  "catalog.search": "Пошук за назвою та описом",
+  "catalog.sortNew": "Спочатку нові",
+  "catalog.sortOld": "Спочатку старі",
+  "catalog.sortAria": "Порядок",
+  "catalog.nothingFound": "Нічого не знайдено",
+  "player.expand": "Розгорнути плеєр",
+  "player.collapse": "Згорнути плеєр",
+  "nav.studio": "Запис",
 
   "header.settings": "Налаштування",
 
@@ -407,7 +419,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "studio.prepareLive": "Підготувати ефір",
 
-  "studio.pilotFootnote": "До 50 слухачів одночасно",
+  "studio.pilotFootnote": "Слухачі підключаються із застосунку та із сайту",
 
   "studio.quickStoryTitle": "Є що розповісти?",
 

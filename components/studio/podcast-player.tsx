@@ -1,15 +1,16 @@
 'use client';
 import {useEffect,useRef,useState,type RefObject} from 'react';
-import {Play,Pause,RotateCcw,RotateCw,Loader2,X} from 'lucide-react';
-import {Slider} from '@/components/ui/slider';
-import {clock,errorText} from '@/lib/client';
+import {errorText} from '@/lib/client';
 import {prepareAudioFile} from '@/lib/prepare-audio';
 import {hasNativeClient} from '@/lib/native-client';
 import {NativePodcastPlayer} from './native-podcast-player';
+import {PlayerChrome} from './player-chrome';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
 import {useT} from '@/components/i18n-provider';
 
-function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,autoplay=true,onClose}:{src:string;title:string;duration?:number;cover?:string;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;onClose:()=>void}){
+type Props={src:string;title:string;duration?:number;cover?:string;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void};
+
+function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,autoplay=true,expanded=true,onExpand=()=>{},onClose}:Props){
  const postId=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const restored=useRef(false),lastSaved=useRef(0);
  const [rate,setRate]=useState(1),[sleep,setSleep]=useState(0),[isRepairing,setIsRepairing]=useState(false);
@@ -48,28 +49,27 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,audioRef,a
  // eslint-disable-next-line react-hooks/exhaustive-deps -- Перезагружает элемент только при смене источника; остальное — стабильные ссылки и стартовые значения.
  useEffect(()=>{alive.current=true;const el=local.current;if(el){el.src=src;el.load();if(autoplay)void play();}return()=>{alive.current=false;controller.current?.abort();if(objectUrl.current)URL.revokeObjectURL(objectUrl.current);if(el)saveProgress(postId,el.currentTime,Number.isFinite(el.duration)?el.duration:initialDuration);el?.pause();if('mediaSession'in navigator){for(const action of ['play','pause','seekbackward','seekforward','seekto'] as const)navigator.mediaSession.setActionHandler(action,null);navigator.mediaSession.metadata=null;navigator.mediaSession.playbackState='none';}if(audioRef.current===el)audioRef.current=null;};},[src]);
  function metadata(){const el=local.current;if(!el||el.readyState===0)return;if(Number.isFinite(el.duration)&&el.duration>0){if(!restored.current){restored.current=true;const progress=readProgress().find(p=>p.id===postId);if(progress&&progress.position<el.duration-2)el.currentTime=progress.position;}setDuration(el.duration);setSeekable(true);setLoading(false);mediaPosition();}else if(!attempted.current)void repair();}
- return <section className="podcast-player" aria-label={t('player.aria',{title})}>
-  <img className="podcast-player-logo" src="/brand/logo.png?v=0.4.1" width="52" height="52" alt=""/>
-  <div className="podcast-player-title"><strong>{title}</strong><span>True Thrills</span></div>
-  <button className="player-close" onClick={onClose} aria-label={t('player.close')}><X size={20}/></button>
-  <audio ref={el=>{local.current=el;audioRef.current=el;}} preload="metadata" onLoadedMetadata={metadata} onDurationChange={metadata}
+ // <audio> живёт вне корпуса и не пересоздаётся при сворачивании плеера:
+ // иначе звук прерывался бы на каждом нажатии стрелки.
+ const audio=<audio ref={el=>{local.current=el;audioRef.current=el;}} preload="metadata" onLoadedMetadata={metadata} onDurationChange={metadata}
    onPlaying={()=>{setPlaying(true);setLoading(false);session();if('mediaSession'in navigator)navigator.mediaSession.playbackState='playing';}}
    onPause={()=>{setPlaying(false);if('mediaSession'in navigator)navigator.mediaSession.playbackState='paused';}}
    onTimeUpdate={()=>{const el=local.current;if(el&&!scrubbing.current&&Number.isFinite(el.currentTime))setPosition(el.currentTime);if(el&&Date.now()-lastSaved.current>5000){lastSaved.current=Date.now();saveProgress(postId,el.currentTime,Number.isFinite(el.duration)?el.duration:initialDuration);}mediaPosition();}}
    onWaiting={()=>setLoading(true)} onCanPlay={()=>{if(!repairing.current)setLoading(false);}}
    onEnded={()=>{wanted.current=false;setPlaying(false);setPosition(local.current?.duration||0);}}
-   onError={()=>{setLoading(false);setMessage(t('player.unavailable'));}}/>
-  <div className="podcast-transport"><button onClick={()=>seek((local.current?.currentTime??0)-15)} disabled={!seekable} aria-label={t('player.back15')}><RotateCcw size={19}/><span>15</span></button>
-   <button className="podcast-toggle" aria-label={playing?t('player.pause'):t('player.play')} disabled={isRepairing} onClick={()=>{if(playing){wanted.current=false;local.current?.pause();}else{wanted.current=true;void play();}}}>{loading?<Loader2 className="spin" size={22}/>:playing?<Pause size={23}/>:<Play size={23}/>}</button>
-   <button onClick={()=>seek((local.current?.currentTime??0)+15)} disabled={!seekable} aria-label={t('player.forward15')}><RotateCw size={19}/><span>15</span></button></div>
-  <div className="podcast-timeline"><Slider aria-label={t('player.seekAria')} aria-valuetext={t('player.seekValue',{position:clock(position),duration:clock(duration)})} value={[Math.min(position,duration||0)]} min={0} max={duration||1} step={0.1} disabled={!seekable} onValueChange={v=>{scrubbing.current=true;setPosition(v[0]);}} onValueCommit={v=>{scrubbing.current=false;seek(v[0]);}}/><div className="podcast-times"><span>{clock(position)}</span><span>{duration>0?clock(duration):t('player.measuring')}</span></div></div>
-  <div className="player-extras"><label>{t('player.rate')} <select value={rate} onChange={e=>{const value=Number(e.target.value);setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();}}>{[.75,1,1.25,1.5,1.75,2].map(value=><option key={value} value={value}>{value}×</option>)}</select></label><label>{t('player.sleep')} <select value={sleep} onChange={e=>setSleep(Number(e.target.value))}><option value="0">{t('player.sleepOff')}</option>{[15,30,60].map(value=><option key={value} value={value}>{value} {t('player.minutes')}</option>)}</select></label></div>
-  {message&&<p className="podcast-player-message" role="status">{message}</p>}
- </section>;
+   onError={()=>{setLoading(false);setMessage(t('player.unavailable'));}}/>;
+ return <PlayerChrome expanded={expanded} onExpand={onExpand}
+  view={{title,cover,position,duration,playing,loading:loading||isRepairing,seekable:seekable&&!isRepairing,rate,sleep,sleepValue:sleep,message,
+   sleepOptions:[{value:0,label:t('player.sleepOff')},...[15,30,60].map(value=>({value,label:value+' '+t('player.minutes')}))]}}
+  act={{toggle:()=>{if(playing){wanted.current=false;local.current?.pause();}else{wanted.current=true;void play();}},
+   seekBy:s=>seek((local.current?.currentTime??0)+s),seekTo:s=>{scrubbing.current=false;seek(s);},scrub:s=>{scrubbing.current=true;setPosition(s);},
+   setRate:value=>{setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();},setSleep:value=>setSleep(Number(value)),close:onClose}}>
+  {audio}
+ </PlayerChrome>;
 }
 
 /**
  * autoplay=false — восстановление: приложение открыли заново, а выпуск стоял
  * на паузе. Показать плеер в этом состоянии нужно, а начать играть — нет.
  */
-export function PodcastPlayer(props:Parameters<typeof WebPodcastPlayer>[0]){return hasNativeClient()?<NativePodcastPlayer {...props}/>:<WebPodcastPlayer {...props}/>;}
+export function PodcastPlayer(props:Props){return hasNativeClient()?<NativePodcastPlayer {...props}/>:<WebPodcastPlayer {...props}/>;}

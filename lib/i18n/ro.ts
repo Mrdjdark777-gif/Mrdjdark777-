@@ -142,6 +142,18 @@ export const ro: Record<keyof typeof ru, string> = {
   "nav.stories": "Povești",
 
   "nav.live": "Live",
+  "heading.homeListener": "Ce ascultăm?",
+  "home.eyebrow": "True Thrills / Acasă",
+  "home.cardMenu": "Acțiuni pentru card",
+  "home.liveRowNone": "Nicio emisiune acum",
+  "catalog.search": "Caută după titlu și descriere",
+  "catalog.sortNew": "Întâi cele noi",
+  "catalog.sortOld": "Întâi cele vechi",
+  "catalog.sortAria": "Ordine",
+  "catalog.nothingFound": "Nimic găsit",
+  "player.expand": "Extinde playerul",
+  "player.collapse": "Restrânge playerul",
+  "nav.studio": "Înregistrare",
 
   "header.settings": "Setări",
 
@@ -407,7 +419,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "studio.prepareLive": "Pregătește emisiunea",
 
-  "studio.pilotFootnote": "Până la 50 de ascultători în același timp",
+  "studio.pilotFootnote": "Ascultătorii se conectează din aplicație și de pe site",
 
   "studio.quickStoryTitle": "Ai ceva de povestit?",
 
