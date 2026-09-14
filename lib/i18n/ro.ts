@@ -107,7 +107,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "player.minutes": "min",
 
-  "home.continue": "Continuă să asculți",
+  "home.continue": "Continuă",
 
   "home.latest": "Ultima publicare",
 

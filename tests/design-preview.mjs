@@ -32,9 +32,19 @@ try{
  // 90 секунд тишины: плееру нужна настоящая длительность, а не заглушка.
  const seconds=90,wav=Buffer.alloc(44+44100*2*seconds);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
  const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();
- const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true});
- await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true});
- const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true});
+ // Демонстрационные обложки вырезаны из листа владельца и живут только здесь:
+ // в приложение они не попадают, в production обложки приходят из публикаций.
+ // Без них кадр показывает фирменный тёмный фон, и сравнить композицию с
+ // референсом нельзя. Подробности — tests/fixtures/demo-covers/README.md.
+ const {readFile}=await import('node:fs/promises');
+ const demoCover=async(file)=>{
+  const bytes=await readFile(path.join(root,'tests/fixtures/demo-covers',file));
+  const r=await fetch(base+'/api/cover',{method:'POST',headers:{cookie,'content-type':'image/jpeg','x-upload-size':String(bytes.length)},body:bytes});
+  const text=await r.text();assert.equal(r.status,200,text);return JSON.parse(text).key;
+ };
+ const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
+ await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
+ const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
  // Тот же браузер, что у browser-integration: в CI установлен Chrome, локально можно указать исполняемый файл.
  browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
  const shot=async(page,name)=>page.screenshot({path:'outputs/ui/design-'+name+'.png',fullPage:false});
@@ -42,8 +52,12 @@ try{
  const metrics=page=>page.evaluate(()=>({scrollW:document.documentElement.scrollWidth,innerW:innerWidth,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
  const phone=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
  const page=await phone.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- // Главная.
- await page.goto(base+'/?mode=listen');await settle(page);await shot(page,'home');
+ // Главная. Прогресс кладём в хранилище устройства заранее, иначе строки
+ // «Продолжить» на снимке не будет — её показывают только при реальной
+ // сохранённой позиции.
+ await page.goto(base+'/?mode=listen');await settle(page);
+ await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:768,duration:2300,updatedAt:Date.now()}]));},podcast.id);
+ await page.reload();await settle(page);await shot(page,'home');
  // Каталог и поиск.
  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await shot(page,'catalog');
  // Плеер поверх каталога, на паузе, чтобы снимок был стабильным.

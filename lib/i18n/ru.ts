@@ -87,7 +87,7 @@ export const ru = {
 "player.sleep": "Таймер сна",
 "player.sleepOff": "Выключен",
 "player.minutes": "мин",
-"home.continue": "Продолжить слушать",
+"home.continue": "Продолжить",
 "home.latest": "Последняя публикация",
 "home.hideCard": "Убрать с главной",
 "reader.size": "Размер текста",

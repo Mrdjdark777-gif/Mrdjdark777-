@@ -80,8 +80,8 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   </section>
 
   {resume&&<button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
-   <Clock size={18}/><span className="resume-label">{t('home.continue')}</span>
-   <span className="resume-time">{clock(resume.position)}</span><ChevronRight size={18}/>
+   <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
+   <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span><ChevronRight size={18}/>
   </button>}
 
   {live&&<button type="button" className="live-strip tt-pressable" onClick={()=>{haptic();onOpenLive();}}>

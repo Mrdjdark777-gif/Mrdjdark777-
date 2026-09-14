@@ -88,7 +88,7 @@ export const it: Record<keyof typeof ru, string> = {
 "player.sleep": "Timer di spegnimento",
 "player.sleepOff": "Disattivato",
 "player.minutes": "min",
-"home.continue": "Continua ad ascoltare",
+"home.continue": "Continua",
 "home.latest": "Ultima pubblicazione",
 "home.hideCard": "Togli dalla home",
 "reader.size": "Dimensione del testo",
