@@ -55,14 +55,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  </section>;
  return <section className={'podcast-player is-open is-'+view.presentation} aria-label={t('player.aria',{title:view.title})}>
   {children}
-  {archive?<div className="player-orb" aria-hidden="true">
-   <svg className="player-orb-ring" viewBox="0 0 100 100">
-    <circle className="player-orb-track" cx="50" cy="50" r="46"/>
-    {known&&<circle className="player-orb-progress" cx="50" cy="50" r="46"
-     strokeDasharray={RING} strokeDashoffset={RING*(1-progress)}/>}
-   </svg>
-   {view.cover?<img src={view.cover} alt="" onError={e=>e.currentTarget.remove()}/>:<img className="player-orb-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}
-  </div>:<div className="player-stage" aria-hidden="true">
+  {!archive&&<div className="player-stage" aria-hidden="true">
    {view.cover?<img className="player-stage-photo" src={view.cover} alt="" onError={e=>{e.currentTarget.parentElement?.classList.add('player-stage-plain');e.currentTarget.remove();}}/>:<img className="player-stage-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}
    <span className="player-stage-shade"/>
   </div>}
@@ -74,6 +67,14 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   </div>
 
   <div className="player-body">
+   {archive&&<div className="player-orb" aria-hidden="true">
+    <svg className="player-orb-ring" viewBox="0 0 100 100">
+     <circle className="player-orb-track" cx="50" cy="50" r="46"/>
+     {known&&<circle className="player-orb-progress" cx="50" cy="50" r="46"
+      strokeDasharray={RING} strokeDashoffset={RING*(1-progress)}/>}
+    </svg>
+    {view.cover?<img src={view.cover} alt="" onError={e=>e.currentTarget.remove()}/>:<img className="player-orb-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}
+   </div>}
    {type?<>
     <span className="player-tagline">{view.kindLabel}</span>
     <h2 className="player-title">{view.title}</h2>
