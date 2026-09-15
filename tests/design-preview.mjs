@@ -247,6 +247,16 @@ try{
   assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
   assert.equal(rows.labels.includes('Запись'),false,'страницы записи в панели больше нет: подкасты пишутся в FL Studio');
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
+  // Главная стоит по центру панели и несёт знак канала: до неё чаще всего
+  // тянутся большим пальцем, и она должна быть заметно крупнее соседей.
+  const home=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+   const at=items.findIndex(el=>el.classList.contains('bottom-nav-home'));
+   const mark=document.querySelector('.bottom-nav-home .nav-brand-mark');
+   const other=items.find(el=>!el.classList.contains('bottom-nav-home'))?.querySelector('svg');
+   return {at,count:items.length,markW:mark?Math.round(mark.getBoundingClientRect().width):0,
+    otherW:other?Math.round(other.getBoundingClientRect().width):0};});
+  assert.equal(home.at,Math.floor(home.count/2),'главная стоит ровно посередине панели');
+  assert.ok(home.markW>=home.otherW+8,'знак главной заметно крупнее соседних значков');
   await nav.close();}
  // Окно EXE — 1280×880. Настроек немного, и владелец просил, чтобы ни одна
  // вкладка студии не требовала прокрутки на этом размере.

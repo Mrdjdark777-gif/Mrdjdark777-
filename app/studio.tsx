@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Home,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
+import {Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -251,9 +251,9 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><Home size={22}/><span>{t('nav.home')}</span></button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
  </nav>}

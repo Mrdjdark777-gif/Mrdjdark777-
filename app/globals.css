@@ -1241,3 +1241,16 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
 @media(min-width:1100px){.main-content:not(.listener-main) .live-layout{gap:10px}
  .main-content:not(.listener-main) .live-archives{margin-bottom:4px}}
 @media(min-width:1100px){.main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}}
+
+/* Главная — по центру панели и крупнее соседей: до неё чаще всего тянутся
+   большим пальцем, и она несёт знак канала, а не безликий домик. */
+.bottom-nav-home{position:relative}
+.bottom-nav-home .nav-brand-mark{width:34px;height:34px;border-radius:50%;object-fit:cover;
+ box-shadow:0 0 0 2px rgba(111,231,222,.22);transition:box-shadow 180ms,transform 180ms}
+.bottom-nav-home[data-active=true] .nav-brand-mark{box-shadow:0 0 0 2px var(--teal),0 6px 18px -6px rgba(111,231,222,.7);transform:scale(1.04)}
+.bottom-nav-home>span{font-weight:600}
+@media(prefers-reduced-motion:reduce){.bottom-nav-home .nav-brand-mark{transition:none}}
+/* Крупная центральная кнопка не должна ломать ряд: пункты тянутся на всю
+   высоту панели и выравниваются внутри себя. */
+.bottom-nav{align-items:stretch}
+.bottom-nav-item{justify-content:center}
