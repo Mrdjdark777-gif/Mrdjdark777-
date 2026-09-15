@@ -390,6 +390,8 @@ export const it: Record<keyof typeof ru, string> = {
   'settings.artTitle': 'Sfondo di notifiche e diretta',
   'settings.artText': 'L’immagine appare nella notifica di riproduzione in background (come copertina di un album) e come sfondo della diretta quando l’episodio non ha una copertina propria. Va bene il banner del tuo canale.',
   'settings.artUpload': 'Carica immagine',
+  'settings.artRemove': 'Rimuovi l\'immagine',
+  'settings.artRemoved': 'Immagine rimossa',
   'settings.saveArt': 'Salva',
   'settings.artSaved': 'Immagine salvata',
   'settings.artNote': 'Consigliata un’immagine larga (come il banner di un canale YouTube), fino a 12 MB.',

@@ -1024,3 +1024,26 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    до тех пор, пока на неё не придёт фокус с клавиатуры. */
 .scene-menu{opacity:0;pointer-events:none}
 .scene-menu:focus-visible{opacity:1;pointer-events:auto}
+
+/* ============================================================================
+   Студия на ПК — рабочее место одного человека, а не витрина. Содержимое
+   больше не жмётся в узкую колонку по центру: действия, библиотека и
+   настройки стоят рядами во всю ширину окна, чтобы всё было под рукой.
+   ========================================================================== */
+.main-content:not(.listener-main){max-width:1180px;padding-top:28px}
+.main-content:not(.listener-main) .page-heading{margin-bottom:22px}
+.home-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:26px}
+.home-tile{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:92px;padding:16px;
+ border-radius:14px;border:1px solid var(--line);background:var(--surface);color:#f4f3f1;text-align:left;font-size:14px;font-weight:600}
+.home-tile>svg{color:var(--teal)}
+.home-tile-live{border-color:rgba(255,106,85,.35);background:linear-gradient(140deg,rgba(60,28,24,.7),var(--surface) 70%)}
+.home-tile-live>svg{color:var(--tt-live)}
+.library-heading{margin:8px 0 12px}
+.library-tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+/* Настройки автора стоят тут же, отдельной вкладки у него нет. */
+.main-content:not(.listener-main) .settings-grid{margin-top:30px;gap:16px}
+.main-content:not(.listener-main) .settings-panel{padding:22px}
+.main-content:not(.listener-main) .settings-panel h2{font-size:19px;margin-bottom:8px}
+.main-content:not(.listener-main) .settings-panel p{font-size:13px;line-height:1.5;margin-bottom:16px}
+.main-content:not(.listener-main) .section-icon{margin-bottom:12px}
+@media(max-width:900px){.main-content:not(.listener-main) .settings-grid{grid-template-columns:minmax(0,1fr)}}

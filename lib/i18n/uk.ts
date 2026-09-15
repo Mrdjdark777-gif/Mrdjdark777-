@@ -645,6 +645,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "settings.artText": "Картинка показується у сповіщенні про фонове відтворення (як обкладинка альбому) і як фон трансляції, якщо у випуску немає власної обкладинки. Підійде банер твого каналу.",
 
   "settings.artUpload": "Завантажити зображення",
+  "settings.artRemove": "Видалити зображення",
+  "settings.artRemoved": "Зображення видалено",
 
   "settings.saveArt": "Зберегти",
 

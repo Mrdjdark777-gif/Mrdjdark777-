@@ -645,6 +645,8 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.artText": "Imaginea apare în notificarea de redare în fundal (ca o copertă de album) și ca fundal al transmisiunii, dacă episodul nu are copertă proprie. Merge bannerul canalului tău.",
 
   "settings.artUpload": "Încarcă o imagine",
+  "settings.artRemove": "Șterge imaginea",
+  "settings.artRemoved": "Imagine ștearsă",
 
   "settings.saveArt": "Salvează",
 
