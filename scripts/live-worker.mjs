@@ -18,6 +18,7 @@ async function atomic(file,data){const tmp=file+'.tmp';await writeFile(tmp,data,
 // могла бы сверить у неё только размер.
 async function sha256(file){const hash=createHash('sha256');for await(const chunk of createReadStream(file))hash.update(chunk);return hash.digest('hex');}
 async function processRecording(row){
+ console.log(JSON.stringify({event:'live-open',id:row.id,title:String(row.title).slice(0,80),state:row.state}));
  const dir=path.join(root,row.id),generation='g-'+randomUUID(),out=path.join(dir,generation);await mkdir(out,{recursive:true,mode:0o700});
  const archive=path.join(out,'archive.m4a');
  const args=['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-f','matroska','-i','pipe:0',
@@ -34,12 +35,22 @@ async function processRecording(row){
    if(exited)throw new Error('Encoder exited: '+code);
    if(!announced){try{const list=await readFile(path.join(out,'index.m3u8'),'utf8');if(list.includes('#EXTINF:')){db.prepare('UPDATE live_recordings SET playlist=? WHERE id=?').run(generation+'/index.m3u8',row.id);announced=true;}}catch{}}
    if(seq<current.next_sequence){const bytes=await readFile(path.join(dir,'chunks',String(seq).padStart(6,'0')+'.webm'));await new Promise((resolve,reject)=>ff.stdin.write(bytes,e=>e?reject(e):resolve()));seq++;continue;}
-   if(current.state==='receiving'&&(Date.now()-current.updated_at>90000||Date.now()-current.created_at>8*3600000)){
+   // Эфир закрывается сам, если студия 90 секунд ничего не прислала. Раньше
+   // это происходило молча: в журнале не оставалось ни строки, и понять,
+   // почему эфир «прервался сам», было нечем. Теперь причина записывается.
+   const silence=Date.now()-current.updated_at,age=Date.now()-current.created_at;
+   if(current.state==='receiving'&&(silence>90000||age>8*3600000)){
+    console.log(JSON.stringify({event:'live-idle-close',id:row.id,reason:silence>90000?'no-data-90s':'max-duration-8h',
+     silenceSeconds:Math.round(silence/1000),onAirSeconds:Math.round(age/1000),chunks:seq}));
     db.transaction(()=>{db.prepare("UPDATE live_recordings SET state='closing' WHERE id=? AND state='receiving'").run(row.id);db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);})();
-   }else if(current.state!=='receiving')break;
+   }else if(current.state!=='receiving'){
+    console.log(JSON.stringify({event:'live-stopped',id:row.id,state:current.state,chunks:seq,onAirSeconds:Math.round(age/1000)}));
+    break;
+   }
    await delay(250);
   }
   if(quitting){ff.stdin.destroy();ff.kill('SIGTERM');await exit;return;} // Retain chunks; restart rebuilds both outputs.
+  console.log(JSON.stringify({event:'live-processing',id:row.id,chunks:seq}));
   db.prepare("UPDATE live_recordings SET state='processing' WHERE id=?").run(row.id);
   ff.stdin.end();const timeout=setTimeout(()=>ff.kill('SIGKILL'),120000);const rc=await exit;clearTimeout(timeout);
   if(rc!==0||seq===0)throw new Error(errorText||'No audio received');
