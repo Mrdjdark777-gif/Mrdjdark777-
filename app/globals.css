@@ -769,8 +769,8 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    ========================================================================== */
 .voice-head{display:flex;flex-direction:column;gap:18px;margin-bottom:18px}
 .voice-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
-.voice-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
- font-size:clamp(42px,13vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;color:#f4f3f1;text-wrap:balance}
+.voice-title{font-family:var(--tt-editorial);font-weight:500;
+ font-size:clamp(30px,8.5vw,42px);line-height:1.06;letter-spacing:-.01em;margin:0;color:#f4f3f1;text-wrap:balance}
 .voice-stop{display:inline-block;width:.16em;height:.16em;margin-left:.06em;border-radius:50%;
  background:var(--teal);vertical-align:baseline}
 .voice-kicker{margin:6px 0 0;max-width:11ch;text-align:right;font-size:10px;font-weight:700;line-height:1.5;
@@ -781,8 +781,8 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  width:100%;padding:16px 78px 16px 18px;border:none;border-radius:16px;background:var(--teal);
  color:#08201E;text-align:left}
 .voice-card-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;opacity:.82}
-.voice-card-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
- font-size:clamp(26px,8vw,36px);line-height:1.02;letter-spacing:-.015em;
+.voice-card-title{font-family:var(--tt-editorial);font-weight:500;
+ font-size:clamp(22px,6.4vw,28px);line-height:1.1;letter-spacing:-.01em;
  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .voice-card-meta{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.86}
 .voice-card-play{position:absolute;right:16px;top:50%;translate:0 -50%;width:52px;height:52px;border-radius:50%;
@@ -795,7 +795,6 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  padding:14px 10px;background:none;border:none;border-left:1px solid var(--line);color:#f4f3f1;text-align:left}
 .voice-column:first-child{border-left:none;padding-left:0}
 .voice-column>strong{font-size:15px;font-weight:700}
-.voice-column-number{font-size:23px;line-height:1;color:var(--foreground);font-variant-numeric:tabular-nums}
 .voice-column-icon{color:var(--teal)}
 
 /* Фильтр записей эфира: каталог остаётся доступным целиком. */
@@ -821,7 +820,7 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .podcast-player.is-type .player-body{justify-content:space-between;align-items:stretch;text-align:left;gap:16px;
  padding-top:6px}
 .podcast-player.is-type .player-tagline{font-size:11px;letter-spacing:.22em;color:#a4a5aa}
-.podcast-player.is-type .player-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+.podcast-player.is-type .player-title{font-family:var(--tt-editorial);font-weight:500;
  font-size:clamp(30px,9vw,44px);line-height:1.06;letter-spacing:-.01em;max-width:none;text-shadow:none;
  -webkit-line-clamp:3;margin-top:-4px}
 .podcast-player.is-type .player-note{margin:-8px 0 0;max-width:38ch;font-size:15px;color:#cdd3d5}
@@ -1017,3 +1016,9 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  text-transform:none;white-space:nowrap}
 /* Строка поддержки без приписки: остаются знак, слово и стрелка. */
 .support-strip-label{flex:1}
+
+/* Точка входа в меню кадра: владелец просил убрать её с глаз, но совсем
+   удалять нельзя — с клавиатуры долгое нажатие недоступно. Кнопка невидима
+   до тех пор, пока на неё не придёт фокус с клавиатуры. */
+.scene-menu{opacity:0;pointer-events:none}
+.scene-menu:focus-visible{opacity:1;pointer-events:auto}

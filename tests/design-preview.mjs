@@ -104,8 +104,12 @@ try{
  await page.getByRole('dialog').waitFor({state:'hidden'});
  // Каталог и поиск.
  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await shot(page,'catalog');
- assert.equal(await page.locator('.voice-column-number').allTextContents().then(a=>a.join(',')),'01,02,03');
- assert.match(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).fontFamily),/Roboto/,'S03 must use condensed type');
+ // Узкий гротеск капсом и номера 01/02/03 владелец отверг, увидев их на живом
+ // сайте: заголовки разделов набираются той же гарнитурой, что названия
+ // выпусков. Проверка держит это решение, а не исходный лист.
+ assert.equal(await page.locator('.voice-column-number').count(),0,'нумерация разделов убрана');
+ assert.match(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).fontFamily),/Lora/,'заголовок раздела — редакционный serif');
+ assert.equal(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).textTransform),'none','заголовок раздела не набирается капсом');
  await page.goto(base+'/?mode=listen&view=videos');await settle(page);await shot(page,'videos');
  await page.goto(base+'/?mode=listen&view=stories');await settle(page);await shot(page,'stories');
  // Плеер поверх каталога, на паузе, чтобы снимок был стабильным.
@@ -181,14 +185,18 @@ try{
  await page.route('**/api/peaks?*',route=>{peakRequests++;return peakRequests===1?route.fulfill({json:{state:'pending',peaks:''}}):peakRequests===2?route.fulfill({status:503,body:'temporary'}):route.fulfill({json:{state:'ready',peaks:'z'.repeat(96)}});});
  await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);
  await page.locator('.waveform-strip:not(.is-flat)').waitFor({timeout:12000});assert.ok(peakRequests>=3,'peaks retry after temporary failure');
- assert.match(await page.locator('.player-title').evaluate(el=>getComputedStyle(el).fontFamily),/Roboto/,'S04 must use condensed type');
+ assert.match(await page.locator('.player-title').evaluate(el=>getComputedStyle(el).fontFamily),/Lora/,'типографический плеер — тот же редакционный serif');
  await page.unroute('**/api/peaks?*');
  // Broken image followed by a hero change must not remove DOM behind React.
  const library=await (await fetch(base+'/api/library')).json();library.items=library.items.filter(p=>p.id===podcast.id||p.id===plain.id);
  await page.route('**/api/library',route=>route.fulfill({json:library}));
  await page.route('**/api/cover?*',route=>route.fulfill({status:404,body:'missing'}));
  await page.goto(base+'/?mode=listen');await settle(page);await page.locator('.scene-mark').waitFor();
- await page.locator('.scene-menu').click();await page.locator('.card-menu-action').click();await page.getByRole('dialog').waitFor({state:'hidden'});
+ // Кнопка меню убрана с глаз по решению владельца, но осталась достижимой с
+ // клавиатуры: пальцем и мышью её нет, Tab и Enter открывают то же меню.
+ assert.equal(await page.locator('.scene-menu').evaluate(el=>getComputedStyle(el).pointerEvents),'none','кнопка меню не перехватывает нажатия по кадру');
+ await page.locator('.scene-menu').focus();await page.keyboard.press('Enter');
+ await page.locator('.card-menu-action').click();await page.getByRole('dialog').waitFor({state:'hidden'});
  await page.locator('.scene-title').filter({hasText:'Голос северного ветра'}).waitFor();
  assert.equal(await page.locator('.scene-mark').count(),1,'new fallback survives image failure and hero replacement');
  await page.unroute('**/api/library');await page.unroute('**/api/cover?*');
