@@ -62,7 +62,9 @@ try{
  assert.ok(measured.peaks.includes('z'),'самый громкий участок упирается в потолок шкалы');
  assert.ok(new Set(measured.peaks).size>4,'форма звука следует за громкостью, а не плоская');
  assert.match(measured.sha256,/^[0-9a-f]{64}$/,'кэш привязан к контрольной сумме файла');
- {const ready=await (await call(peaks,'GET',undefined,'?id='+post.id,false)).json();
+ {const response=await call(peaks,'GET',undefined,'?id='+post.id,false);
+  assert.equal(response.headers.get('cache-control'),'no-store','готовые пики должны повторно проверять доступ');
+  const ready=await response.json();
   assert.equal(ready.state,'ready');assert.equal(ready.peaks,measured.peaks);}
  // Чужого и несуществующего выпуска в API нет.
  assert.equal((await call(peaks,'GET',undefined,'?id=нет-такого',false)).status,404);
@@ -79,7 +81,9 @@ try{
  assert.equal((await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false)).status,404);
  // Снятая публикация прячет и форму звука: она рассказывает о содержании файла.
  assert.equal((await call(peaks,'GET',undefined,'?id='+post.id,false)).status,404);
- assert.equal((await call(peaks,'GET',undefined,'?id='+post.id)).status,200,'автору она по-прежнему доступна');
+ {const privatePeaks=await call(peaks,'GET',undefined,'?id='+post.id);
+  assert.equal(privatePeaks.status,200,'автору она по-прежнему доступна');
+  assert.equal(privatePeaks.headers.get('cache-control'),'no-store','ответ владельцу нельзя сохранять в shared cache');}
  // Full backup includes live recovery fragments and the externally referenced Firebase file.
  await writeFile(path.join(dir,'.env'),'PUBLIC_SITE_URL=https://true-thrills.test\n');
  const firebase=path.join(dir,'firebase.json');await writeFile(firebase,'{"test":true}');

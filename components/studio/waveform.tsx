@@ -20,22 +20,25 @@ export function Waveform({postId,progress}:{postId:string;progress:number}){
  useEffect(()=>{
   let alive=true;
   if(!postId)return;
+  const controller=new AbortController();
+  let timer:ReturnType<typeof setTimeout>|undefined,delay=2000;
   const load=async()=>{
    try{
-    const response=await fetch('/api/peaks?id='+encodeURIComponent(postId));
+    const response=await fetch('/api/peaks?id='+encodeURIComponent(postId),{cache:'no-store',signal:controller.signal});
+    if(response.status===404||response.status===403){if(alive)setFailed(true);return true;}
     if(!response.ok)throw new Error('peaks');
     const data=await response.json() as {state:string;peaks:string};
     if(!alive)return true;
-    if(data.state==='ready'&&data.peaks){setPeaks(decodePeaks(data.peaks));return true;}
+    if(data.state==='ready'&&data.peaks){setFailed(false);setPeaks(decodePeaks(data.peaks));return true;}
     if(data.state==='error'){setFailed(true);return true;}
     return false;
-   }catch{if(alive)setFailed(true);return true;}
+   }catch{if(alive)setFailed(true);return !alive;}
   };
-  // Воркер считает пики в свободное от эфира время: один повтор через минуту
-  // ловит свежий выпуск, дальше человек всё равно уйдёт с экрана.
-  let timer:ReturnType<typeof setTimeout>|undefined;
-  void load().then(done=>{if(!done&&alive)timer=setTimeout(()=>void load(),60000);});
-  return()=>{alive=false;if(timer)clearTimeout(timer);};
+  // Анализ может ждать окончания длинного эфира. Продолжаем редкий опрос,
+  // пока этот выпуск открыт; временная ошибка сети не отключает волну навсегда.
+  const poll=async()=>{const done=await load();if(!done&&alive){timer=setTimeout(()=>void poll(),delay);delay=Math.min(delay*2,30000);}};
+  void poll();
+  return()=>{alive=false;controller.abort();if(timer)clearTimeout(timer);};
  },[postId]);
 
  if(!peaks)return <div className={'waveform-strip is-flat'+(failed?' is-failed':'')} aria-hidden="true">

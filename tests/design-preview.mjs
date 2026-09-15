@@ -54,13 +54,15 @@ try{
  await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
  // Второй выпуск специально без обложки иновее первого: по нему видно
  // типографический S04, и у него есть «Далее» — следующий в разделе.
- const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
  // Запись эфира: тот же настоящий файл под ключом, который даёт воркер эфира.
  // По нему видно S06 — круглую обложку с кольцом прогресса.
  const {copyFile}=await import('node:fs/promises');
  const archiveKey='audio/live-'+crypto.randomUUID();
  for(const suffix of ['','.meta.json'])await copyFile(path.join(env.STORAGE_DIR,key+suffix),path.join(env.STORAGE_DIR,archiveKey+suffix));
  const archived=await post({kind:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
+ await new Promise(resolve=>setTimeout(resolve,5));
+ const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
+ await new Promise(resolve=>setTimeout(resolve,5));
  const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
  // Форма звука на снимке настоящая: её считает тот же воркер, что и на VPS.
  // Ждём его недолго — если ffmpeg в окружении нет, снимок покажет спокойное
@@ -85,15 +87,25 @@ try{
  const settle=async(page)=>{await page.waitForFunction(()=>!document.querySelector('.splash'));await page.waitForTimeout(250);};
  const metrics=page=>page.evaluate(()=>({scrollW:document.documentElement.scrollWidth,innerW:innerWidth,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
  const phone=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+ phone.setDefaultTimeout(15000);
  const page=await phone.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{window.__hapticCalls=0;Object.defineProperty(navigator,'vibrate',{configurable:true,value:()=>{window.__hapticCalls++;return true;}});});
  // Главная. Прогресс кладём в хранилище устройства заранее, иначе строки
  // «Продолжить» на снимке не будет — её показывают только при реальной
  // сохранённой позиции.
  await page.goto(base+'/?mode=listen');await settle(page);
  await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:768,duration:2300,updatedAt:Date.now()}]));},podcast.id);
  await page.reload();await settle(page);await shot(page,'home');
+ // A held Play opens only the contextual menu, never playback behind it.
+ await page.locator('.scene-action').dispatchEvent('pointerdown',{button:0});await page.waitForTimeout(600);
+ await page.getByRole('dialog').waitFor();await page.locator('.scene-action').dispatchEvent('click');
+ assert.equal(await page.locator('.podcast-player').count(),0,'long press must not play');
+ assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back closes home menu');
+ await page.getByRole('dialog').waitFor({state:'hidden'});
  // Каталог и поиск.
  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await shot(page,'catalog');
+ assert.equal(await page.locator('.voice-column-number').allTextContents().then(a=>a.join(',')),'01,02,03');
+ assert.match(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).fontFamily),/Roboto/,'S03 must use condensed type');
  await page.goto(base+'/?mode=listen&view=videos');await settle(page);await shot(page,'videos');
  await page.goto(base+'/?mode=listen&view=stories');await settle(page);await shot(page,'stories');
  // Плеер поверх каталога, на паузе, чтобы снимок был стабильным.
@@ -105,6 +117,9 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);await page.locator('.podcast-player.is-type').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(400);await shot(page,'player-type');
+ assert.equal(await page.locator('.player-next').count(),1,'S04 has a real next episode');
+ await page.locator('.player-next').click();await page.locator('.podcast-player.is-archive').waitFor();
+ assert.equal(await page.locator('.player-title').innerText(),'Истории после заката','Next loads the next published episode');
  // Запись эфира: круглая обложка с кольцом прогресса.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+archived.id);await settle(page);await page.locator('.podcast-player.is-archive').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
@@ -113,7 +128,15 @@ try{
  // целиком, а не только реестр слоёв. Меню, затем плеер, затем раздел.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);
  await page.locator('.podcast-player.is-open').waitFor();
+ const top=await page.locator('.player-sheet-top').boundingBox();assert.ok(top.width>=380,'player top bar must span the screen');
+ await page.waitForFunction(()=>document.querySelector('.podcast-player audio')?.currentTime>0);
+ await page.evaluate(()=>{window.__playingAudio=document.querySelector('.podcast-player audio');});
+ const tactileBefore=await page.evaluate(()=>window.__hapticCalls);
  await page.locator('.player-more').click();await page.locator('.player-menu').waitFor();
+ assert.equal(await page.evaluate(()=>window.__hapticCalls),tactileBefore+1,'one tap -> one haptic');
+ await page.keyboard.press('Escape');await page.locator('.player-menu').waitFor({state:'hidden'});
+ assert.equal(await page.locator('.player-more').evaluate(el=>el===document.activeElement),true,'Escape restores focus');
+ await page.locator('.player-more').click();
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back закрывает меню плеера');
  await page.waitForTimeout(150);
  assert.equal(await page.locator('.player-menu').count(),0,'меню закрылось, плеер остался развёрнутым');
@@ -121,10 +144,19 @@ try{
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back сворачивает плеер');
  await page.waitForTimeout(250);
  assert.equal(await page.locator('.podcast-player.is-mini').count(),1,'плеер свернулся, а не закрылся');
- assert.equal(await page.evaluate(()=>!!document.querySelector('.podcast-player audio')),true,'звук не пересоздан');
+ assert.equal(await page.evaluate(()=>window.__playingAudio===document.querySelector('.podcast-player audio')),true,'тот же audio после сворачивания');
+ assert.equal(await page.evaluate(()=>window.__playingAudio.paused),false,'звук продолжает играть');
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back уводит из раздела на главную');
  await page.waitForTimeout(250);
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),false,'на главной Back отдаётся системе');
+ for(const [width,height] of [[390,844],[360,640]]){
+  await page.setViewportSize({width,height});await page.waitForTimeout(150);
+  const m=await metrics(page);check(m.scrollH<=height+1,`главная с мини-плеером ${width}x${height}: ${m.scrollH}>${height}`);
+  const support=await page.locator('.support-strip').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
+  check(support.y+support.height<=mini.y,`мини-плеер закрывает донат ${width}x${height}`);
+  await shot(page,`mini-${width}`);
+ }
+ await page.setViewportSize({width:390,height:844});
 
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
@@ -143,6 +175,23 @@ try{
  await page.waitForFunction(()=>!!document.querySelector('.live-orb-dot'),null,{timeout:10000}).catch(()=>{});
  await page.waitForTimeout(300);await shot(page,'live');
  const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
+ // Pending, then transient network failure, then success must recover while
+ // the same screen remains open (not only after navigating away and back).
+ let peakRequests=0;
+ await page.route('**/api/peaks?*',route=>{peakRequests++;return peakRequests===1?route.fulfill({json:{state:'pending',peaks:''}}):peakRequests===2?route.fulfill({status:503,body:'temporary'}):route.fulfill({json:{state:'ready',peaks:'z'.repeat(96)}});});
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);
+ await page.locator('.waveform-strip:not(.is-flat)').waitFor({timeout:12000});assert.ok(peakRequests>=3,'peaks retry after temporary failure');
+ assert.match(await page.locator('.player-title').evaluate(el=>getComputedStyle(el).fontFamily),/Roboto/,'S04 must use condensed type');
+ await page.unroute('**/api/peaks?*');
+ // Broken image followed by a hero change must not remove DOM behind React.
+ const library=await (await fetch(base+'/api/library')).json();library.items=library.items.filter(p=>p.id===podcast.id||p.id===plain.id);
+ await page.route('**/api/library',route=>route.fulfill({json:library}));
+ await page.route('**/api/cover?*',route=>route.fulfill({status:404,body:'missing'}));
+ await page.goto(base+'/?mode=listen');await settle(page);await page.locator('.scene-mark').waitFor();
+ await page.locator('.scene-menu').click();await page.locator('.card-menu-action').click();await page.getByRole('dialog').waitFor({state:'hidden'});
+ await page.locator('.scene-title').filter({hasText:'Голос северного ветра'}).waitFor();
+ assert.equal(await page.locator('.scene-mark').count(),1,'new fallback survives image failure and hero replacement');
+ await page.unroute('**/api/library');await page.unroute('**/api/cover?*');
  await phone.close();
  // Переполнение и высота первого экрана — в чистом контексте: без «прочитанных»
  // публикаций, чтобы карточка-герой была на месте, как у нового слушателя.

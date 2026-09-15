@@ -1,11 +1,14 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video} from 'lucide-react';
+import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal} from 'lucide-react';
+import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
 import {readProgress} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
 import {clock,haptic} from '@/lib/client';
+import {Artwork} from './artwork';
 
 /**
  * Главная S01 «Погружение»: фотография во всю ширину, поверх неё снизу —
@@ -41,6 +44,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   return()=>{clearTimeout(timer);for(const event of ['tt-progress','tt-seen','tt-hidden'])window.removeEventListener(event,update);};
  },[]);
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
+ useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned});
  const fresh=freshSections({posts,seen:device.seen,hidden:device.hidden,heroId:picked.hero?.id??null});
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со
@@ -56,9 +60,9 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  };
  const heroCover=hero?coverOf(hero):'';
  const heroAction=hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
- const heroMeta=hero?(hero.kind==='podcast'&&hero.duration>0?clock(hero.duration):hero.kind==='video'?t('post.video'):t('post.story')):'';
+ const heroMeta=hero?(hero.kind==='podcast'?(hero.duration>0?clock(hero.duration):t('post.podcast')):hero.kind==='video'?t('post.video'):t('post.story')):'';
  const press=hero?{
-  onPointerDown:()=>{held.current=false;if(hold.current)clearTimeout(hold.current);hold.current=setTimeout(()=>{held.current=true;haptic();setMenu({id:hero.id,title:hero.title});},HOLD_MS);},
+  onPointerDown:(e:React.PointerEvent)=>{if(e.button!==0)return;held.current=false;if(hold.current)clearTimeout(hold.current);hold.current=setTimeout(()=>{held.current=true;haptic();setMenu({id:hero.id,title:hero.title});},HOLD_MS);},
   onPointerUp:()=>{if(hold.current)clearTimeout(hold.current);},
   onPointerLeave:()=>{if(hold.current)clearTimeout(hold.current);},
   onPointerCancel:()=>{if(hold.current)clearTimeout(hold.current);held.current=true;},
@@ -66,16 +70,15 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  }:{};
  return <div className="immersion">
   <section className={'scene'+(heroCover?'':' scene-fallback')} {...press}>
-   {heroCover
-    ?<img className="scene-photo" src={heroCover} alt="" referrerPolicy="no-referrer" onError={e=>{const scene=e.currentTarget.closest('.scene');scene?.classList.add('scene-fallback');e.currentTarget.remove();}}/>
-    :<img className="scene-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}
+   <Artwork className="scene-photo" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="scene-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/>
    <div className="scene-shade" aria-hidden="true"/>
    <p className="scene-intro">{t('home.channelIntro')}</p>
    {hero?<>
+    <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
     <div className="scene-copy">
      <h2 className="scene-title">{hero.title}</h2>
      {heroMeta&&<span className="scene-meta">{heroMeta}</span>}
-     <button type="button" className="scene-action" onClick={()=>{haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
+     <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
@@ -93,7 +96,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   <div className="section-tiles">
    {sections.map(s=>{const Icon=ICON[s.kind],cover=tileCover(s.kind);
     return <button key={s.kind} type="button" className={'section-tile'+(cover?'':' section-tile-plain')} onClick={()=>{haptic();s.go();}}>
-     {cover?<img src={cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.parentElement?.classList.add('section-tile-plain');e.currentTarget.remove();}}/>:<Icon className="section-tile-icon" size={26}/>}
+     <Artwork src={cover} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon className="section-tile-icon" size={26}/>}/>
      <span className="section-tile-shade" aria-hidden="true"/>
      <span className="section-tile-copy"><strong>{s.label}</strong>{fresh.has(s.kind)&&<span className="section-tile-new">{t('home.fresh')}</span>}</span>
     </button>;})}
@@ -101,12 +104,12 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
 
   {support}
 
-  {menu&&<div className="card-menu-backdrop" onClick={()=>setMenu(null)} role="presentation">
-   <div className="card-menu" onClick={e=>e.stopPropagation()}>
-    <strong>{menu.title}</strong>
-    <button className="card-menu-action" onClick={()=>{hideHighlight(menu.id,0);setMenu(null);}}><EyeOff size={18}/>{t('home.hideCard')}</button>
+  <Dialog open={!!menu} onOpenChange={open=>{if(!open)setMenu(null);}}>
+   <DialogContent aria-describedby={undefined}>
+    <DialogHeader><DialogTitle>{menu?.title}</DialogTitle></DialogHeader>
+    <button className="card-menu-action" onClick={()=>{if(menu)hideHighlight(menu.id,0);setMenu(null);}}><EyeOff size={18}/>{t('home.hideCard')}</button>
     <button className="quiet-button" onClick={()=>setMenu(null)}>{t('common.cancel')}</button>
-   </div>
-  </div>}
+   </DialogContent>
+  </Dialog>
  </div>;
 }

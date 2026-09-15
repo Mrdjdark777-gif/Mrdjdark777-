@@ -15,10 +15,10 @@ export async function GET(req: Request) {
     if (!post?.audioKey) return new Response('#err.notFound', { status: 404 });
     if (!post.published && !(await owner(req))) return new Response('#err.notFound', { status: 404 });
     const row = await getDb().select().from(audioPeaks).where(eq(audioPeaks.audioKey, post.audioKey)).get();
-    // Готовые пики не меняются: ключ файла у каждой загрузки свой, поэтому их
-    // можно кэшировать надолго. Ожидание кэшировать нельзя — оно закончится.
+    // Публикацию можно скрыть или удалить. Даже готовые пики не кэшируем:
+    // иначе proxy/браузер продолжает отдавать их после отзыва доступа,
+    // включая данные черновика, который ранее открыл владелец.
     const state = row?.state === 'ready' && row.peaks ? 'ready' : row?.state === 'error' ? 'error' : 'pending';
-    return result({ state, peaks: state === 'ready' ? row!.peaks : '' }, 200,
-      state === 'ready' ? { 'Cache-Control': 'public, max-age=86400' } : undefined);
+    return result({ state, peaks: state === 'ready' ? row!.peaks : '' });
   } catch (e) { return failure(e); }
 }

@@ -503,13 +503,13 @@ body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) 
 .player-stage-shade{position:absolute;inset:0;
  background:linear-gradient(180deg,rgba(18,22,25,.58) 0,rgba(18,22,25,.18) 14%,rgba(18,22,25,.04) 36%,rgba(18,22,25,.7) 74%,#121619 100%)}
 
-.player-sheet-top{position:relative;z-index:2;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;
+.player-sheet-top{position:relative;z-index:2;display:grid;width:100%;flex-shrink:0;grid-template-columns:44px 1fr 44px;align-items:center;
  gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 0}
 .player-kind{text-align:center;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#cdd3d5}
 .player-collapse,.player-more{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
  color:#eef1f2;background:none;border:none;grid-column:auto;grid-row:auto;filter:drop-shadow(0 1px 6px rgba(0,0,0,.8))}
 
-.player-body{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;
+.player-body{position:relative;z-index:2;flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
  gap:14px;padding:0 var(--tt-gutter) calc(22px + env(safe-area-inset-bottom));justify-content:flex-end;text-align:center}
 .player-caption{display:flex;flex-direction:column;gap:5px}
 .player-brand{font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#f0efed}
@@ -530,7 +530,7 @@ body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) 
 .is-open .podcast-transport>button>span{position:absolute;inset:0;display:grid;place-items:center;
  margin-top:2px;font-size:11.5px;font-weight:700;line-height:1}
 .podcast-transport>.podcast-toggle,.is-mini .podcast-toggle{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border-radius:50%;box-shadow:0 14px 32px -18px rgba(111,231,222,.75)}
-.is-open .podcast-transport>.podcast-toggle{width:72px;height:72px}
+.is-open .podcast-transport>.podcast-toggle{width:72px;height:72px;color:#08201e;box-shadow:none}
 
 /* Скорость и таймер: выбранное значение сверху, подпись под ним, как на листе. */
 .is-open .player-extras{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(100%,300px);
@@ -645,6 +645,10 @@ body{background:var(--background)}
 .listener-main:has(.immersion){padding-left:0!important;padding-right:0!important;padding-top:0!important}
 .immersion{display:flex;flex-direction:column;gap:10px;padding:0 var(--tt-gutter);
  min-height:calc(100dvh - var(--bottom-nav-h) - 26px - env(safe-area-inset-bottom))}
+/* Main content already reserves 70 extra pixels for the mini-player.
+   Subtract the same space from the hero layout, otherwise donation is covered. */
+body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bottom-nav-h) - 96px - env(safe-area-inset-bottom))}
+@media(max-height:700px){body:has(.podcast-player.is-mini) .immersion>.scene{min-height:240px}}
 .immersion>.scene{flex:1 1 auto}
 .listener-main:has(.immersion) .content-footer{margin-inline:var(--tt-gutter);padding-top:12px;margin-top:4px}
 .immersion>.scene{margin:0 calc(var(--tt-gutter) * -1)}
@@ -662,7 +666,7 @@ body{background:var(--background)}
 .scene-intro{position:absolute;top:10px;left:var(--tt-gutter);right:58px;margin:0;
  font-size:13px;line-height:1.45;color:#dfe3e4;text-shadow:0 1px 10px rgba(0,0,0,.65);max-width:24ch}
 .scene-copy{display:flex;flex-direction:column;gap:8px;position:relative}
-.scene-title{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(28px,8vw,38px);line-height:1.06;letter-spacing:-.01em;
+.scene-title{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(28px,8vw,38px);line-height:1.06;letter-spacing:-.01em;max-width:18ch;
  margin:0;color:#f4f3f1;text-shadow:0 2px 18px rgba(0,0,0,.55);text-wrap:balance;
  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .scene-meta{font-size:13px;color:#c2c6c8;font-variant-numeric:tabular-nums}
@@ -765,8 +769,8 @@ body{background:var(--background)}
    ========================================================================== */
 .voice-head{display:flex;flex-direction:column;gap:18px;margin-bottom:18px}
 .voice-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
-.voice-title{font-family:var(--tt-editorial);font-weight:500;
- font-size:clamp(30px,8.5vw,42px);line-height:1.06;letter-spacing:-.01em;margin:0;color:#f4f3f1;text-wrap:balance}
+.voice-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+ font-size:clamp(42px,13vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;color:#f4f3f1;text-wrap:balance}
 .voice-stop{display:inline-block;width:.16em;height:.16em;margin-left:.06em;border-radius:50%;
  background:var(--teal);vertical-align:baseline}
 .voice-kicker{margin:6px 0 0;max-width:11ch;text-align:right;font-size:10px;font-weight:700;line-height:1.5;
@@ -777,8 +781,8 @@ body{background:var(--background)}
  width:100%;padding:16px 78px 16px 18px;border:none;border-radius:16px;background:var(--teal);
  color:#08201E;text-align:left}
 .voice-card-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;opacity:.82}
-.voice-card-title{font-family:var(--tt-editorial);font-weight:500;
- font-size:clamp(22px,6.4vw,28px);line-height:1.1;letter-spacing:-.01em;
+.voice-card-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+ font-size:clamp(26px,8vw,36px);line-height:1.02;letter-spacing:-.015em;
  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .voice-card-meta{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.86}
 .voice-card-play{position:absolute;right:16px;top:50%;translate:0 -50%;width:52px;height:52px;border-radius:50%;
@@ -791,6 +795,7 @@ body{background:var(--background)}
  padding:14px 10px;background:none;border:none;border-left:1px solid var(--line);color:#f4f3f1;text-align:left}
 .voice-column:first-child{border-left:none;padding-left:0}
 .voice-column>strong{font-size:15px;font-weight:700}
+.voice-column-number{font-size:23px;line-height:1;color:var(--foreground);font-variant-numeric:tabular-nums}
 .voice-column-icon{color:var(--teal)}
 
 /* Фильтр записей эфира: каталог остаётся доступным целиком. */
@@ -816,7 +821,7 @@ body{background:var(--background)}
 .podcast-player.is-type .player-body{justify-content:space-between;align-items:stretch;text-align:left;gap:16px;
  padding-top:6px}
 .podcast-player.is-type .player-tagline{font-size:11px;letter-spacing:.22em;color:#a4a5aa}
-.podcast-player.is-type .player-title{font-family:var(--tt-editorial);font-weight:500;
+.podcast-player.is-type .player-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
  font-size:clamp(30px,9vw,44px);line-height:1.06;letter-spacing:-.01em;max-width:none;text-shadow:none;
  -webkit-line-clamp:3;margin-top:-4px}
 .podcast-player.is-type .player-note{margin:-8px 0 0;max-width:38ch;font-size:15px;color:#cdd3d5}

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { LOCALE_TAGS, translate } from "@/lib/i18n";
 import { currentLocale } from "@/lib/i18n/server";
 import { LocaleProvider } from "@/components/i18n-provider";
-import { Lora, Manrope } from "next/font/google";
+import { Lora, Manrope, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
 // viewport-fit=cover makes the browser report real safe-area insets, which the
@@ -38,10 +38,11 @@ const editorialFont = Lora({
   display: "swap",
 });
 
-// Узкий гротеск капсом был третьей гарнитурой — от него отказались, увидев
-// его вживую, а не на листе: он кричал и спорил с serif. Осталось две роли —
-// Manrope в интерфейсе и Lora в редакционных заголовках. Заодно приложение
-// перестало возить лишний шрифт.
+const condensedFont = Roboto_Condensed({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  variable: "--font-condensed",
+  display: "swap",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await currentLocale();
@@ -66,7 +67,7 @@ export default async function RootLayout({
 }>) {
   const locale = await currentLocale();
   return (
-    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable} ${editorialFont.variable}`}>
+    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable} ${editorialFont.variable} ${condensedFont.variable}`}>
       <body className="antialiased">
         <div aria-hidden className="app-aurora">
           <span className="tt-blob-1" />

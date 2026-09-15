@@ -3,6 +3,7 @@ import {Play,Pause,Loader2,Heart,ChevronRight,AudioLines} from 'lucide-react';
 import {liveStage,onAirLabelVisible,ringsPulsing,stageAction,type ListenPhase} from '@/lib/live-stage';
 import {haptic} from '@/lib/client';
 import {useT} from '@/components/i18n-provider';
+import {Artwork} from './artwork';
 
 /**
  * S05 — экран эфира для слушателя. Круг с обложкой и тонкие кольца вокруг —
@@ -31,7 +32,7 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   <div className={'live-rings'+(pulsing?' is-pulsing':'')}>
    <span className="live-ring" aria-hidden="true"/><span className="live-ring" aria-hidden="true"/><span className="live-ring" aria-hidden="true"/>
    <div className="live-orb">
-    {cover?<img src={cover} alt="" onError={e=>{e.currentTarget.parentElement?.classList.add('live-orb-plain');e.currentTarget.remove();}}/>:null}
+    <Artwork src={cover}/>
     <span className="live-orb-shade" aria-hidden="true"/>
     <span className="live-orb-copy" role="status">
      {onAirLabelVisible(stage)&&<span className="live-orb-dot" aria-hidden="true"/>}

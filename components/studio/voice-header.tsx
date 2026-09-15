@@ -35,10 +35,11 @@ export function VoiceHeader({latest,onOpen,columns,haptic=()=>{}}:{
   </button>}
 
   <div className="voice-columns">
-   {columns.map(column=>{const Icon=ICON[column.kind];
+   {columns.map((column,index)=>{const Icon=ICON[column.kind];
     return <button key={column.kind} type="button" className="voice-column tt-pressable" onClick={()=>{haptic();column.go();}}>
-     <Icon size={22} className="voice-column-icon"/>
+     <span className="voice-column-number" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>
      <strong>{column.label}</strong>
+     <Icon size={22} className="voice-column-icon" aria-hidden="true"/>
     </button>;})}
   </div>
  </header>;

@@ -10,7 +10,7 @@ const root=path.resolve(process.env.LIVE_DIR||'data/live'),storage=path.resolve(
 await mkdir(root,{recursive:true,mode:0o700});await mkdir(path.join(storage,'audio'),{recursive:true});
 execFileSync('ffmpeg',['-version'],{stdio:'ignore'});execFileSync('ffprobe',['-version'],{stdio:'ignore'});
 const db=new Database(process.env.DATABASE_PATH||'data/truethrills.db');db.pragma('busy_timeout = 5000');db.pragma('journal_mode = WAL');
-const active=new Map(),children=new Set();let quitting=false;
+const active=new Map(),children=new Set();let quitting=false,peaksTask=null,cancelPeaks=null;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function atomic(file,data){const tmp=file+'.tmp';await writeFile(tmp,data,{mode:0o600});await rename(tmp,file);}
 // Та же контрольная сумма, что пишет lib/storage.ts при обычной загрузке:
@@ -105,51 +105,62 @@ function peaksFromPcm(pcm,count){
  return bars.map(v=>PEAK_ALPHABET[Math.max(0,Math.min(35,Math.round(Math.sqrt(v/loudest)*35)))]).join('');
 }
 async function measurePeaks(){
+ let interrupted=false,encoder=null;
+ const cancel=()=>{interrupted=true;encoder?.kill('SIGKILL');};
+ cancelPeaks=cancel;
  // Берём выпуск, у которого пиков ещё нет или файл с тех пор заменили.
  const row=db.prepare(`SELECT p.audio_key AS key FROM posts p
    LEFT JOIN audio_peaks a ON a.audio_key=p.audio_key
    WHERE p.audio_key IS NOT NULL AND p.audio_key<>''
      AND (a.audio_key IS NULL OR (a.peaks='' AND a.updated_at < ?))
    LIMIT 1`).get(Date.now()-PEAK_RETRY_MS);
- if(!row)return false;
+ if(!row){if(cancelPeaks===cancel)cancelPeaks=null;return false;}
  const key=row.key,file=path.join(storage,key);
  const mark=(state,peaks,digest,error)=>db.prepare('INSERT INTO audio_peaks(audio_key,sha256,peaks,state,updated_at,error) VALUES(?,?,?,?,?,?) ON CONFLICT(audio_key) DO UPDATE SET sha256=excluded.sha256,peaks=excluded.peaks,state=excluded.state,updated_at=excluded.updated_at,error=excluded.error').run(key,digest??'',peaks??'',state,Date.now(),error??null);
  try{
   const info=await stat(file);
   if(info.size>PEAK_MAX_BYTES)throw new Error('Audio too large for analysis');
   const digest=await sha256(file);
+  if(interrupted||quitting)return false;
   const existing=db.prepare('SELECT sha256,peaks FROM audio_peaks WHERE audio_key=?').get(key);
   if(existing&&existing.peaks&&existing.sha256===digest)return true;
   const pcm=await new Promise((resolve,reject)=>{
    const ff=spawn('ffmpeg',['-hide_banner','-v','error','-nostdin','-i',file,'-map','0:a:0','-vn','-f','s16le','-acodec','pcm_s16le','-ac','1','-ar','4000','pipe:1'],{stdio:['ignore','pipe','pipe']});
+   encoder=ff;
    children.add(ff);ff.once('close',()=>children.delete(ff));
-   const chunks=[];let bytes=0,message='';
-   const timer=setTimeout(()=>{message=message||'Analysis timed out';ff.kill('SIGKILL');},PEAK_TIMEOUT_MS);timer.unref();
-   ff.stdout.on('data',b=>{bytes+=b.length;if(bytes<=64*1024*1024)chunks.push(b);});
+   const chunks=[];let bytes=0,message='',limitError='';
+   const timer=setTimeout(()=>{limitError='Analysis timed out';ff.kill('SIGKILL');},PEAK_TIMEOUT_MS);timer.unref();
+   ff.stdout.on('data',b=>{bytes+=b.length;if(bytes>64*1024*1024){limitError='Decoded audio exceeds analysis limit';ff.kill('SIGKILL');}else chunks.push(b);});
    ff.stderr.on('data',b=>{message=(message+b.toString()).slice(-500);});
    ff.on('error',e=>{clearTimeout(timer);reject(e);});
-   ff.on('close',code=>{clearTimeout(timer);if(code!==0)reject(new Error(message||'Analysis failed with code '+code));else resolve(Buffer.concat(chunks));});
+   ff.on('close',code=>{clearTimeout(timer);if(code!==0||limitError)reject(new Error(limitError||message||'Analysis failed with code '+code));else resolve(Buffer.concat(chunks));});
   });
+  if(interrupted||quitting)return false;
   const samples=new Int16Array(pcm.buffer,pcm.byteOffset,Math.floor(pcm.length/2));
   const peaks=peaksFromPcm(samples,PEAK_COUNT);
   mark('ready',peaks,digest,null);
   console.log(JSON.stringify({event:'peaks-ready',key,bars:PEAK_COUNT}));
  }catch(error){
+  if(interrupted||quitting)return false;
   mark('error','','',String(error.message).slice(0,300));
   console.error(JSON.stringify({event:'peaks-failed',key,error:String(error.message).slice(0,200)}));
- }
+ }finally{if(cancelPeaks===cancel)cancelPeaks=null;}
  return true;
 }
 
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{quitting=true;for(const child of children){child.stdin.destroy();child.kill('SIGTERM');const timer=setTimeout(()=>child.kill('SIGKILL'),3000);timer.unref();}});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{quitting=true;cancelPeaks?.();for(const child of children){child.stdin?.destroy();child.kill('SIGTERM');const timer=setTimeout(()=>child.kill('SIGKILL'),3000);timer.unref();}});
 while(!quitting){
  await atomic(path.join(root,'worker.json'),JSON.stringify({at:Date.now()}));
- for(const row of db.prepare("SELECT * FROM live_recordings WHERE state IN ('receiving','closing','processing')").all()){
+ const recordings=db.prepare("SELECT * FROM live_recordings WHERE state IN ('receiving','closing','processing')").all();
+ if(recordings.length)cancelPeaks?.();
+ for(const row of recordings){
   if(!active.has(row.id)){const task=processRecording(row).finally(()=>active.delete(row.id));active.set(row.id,task);}
  }
  await cleanupFinished();
  // Пики считаются только когда эфир не занимает процесс: звук важнее картинки.
- if(active.size===0)await measurePeaks();
+ // Анализ не задерживает heartbeat и запуск нового эфира. При появлении
+ // записи он прерывается без error/retry штрафа и возобновится позже.
+ if(active.size===0&&!peaksTask)peaksTask=measurePeaks().catch(e=>console.error(JSON.stringify({event:'peaks-task-failed',error:String(e.message).slice(0,200)}))).finally(()=>{peaksTask=null;});
  await delay(1000);
 }
-await rm(path.join(root,'worker.json'),{force:true});await Promise.allSettled([...active.values()]);db.close();
+await rm(path.join(root,'worker.json'),{force:true});await Promise.allSettled([...active.values(),peaksTask]);db.close();
