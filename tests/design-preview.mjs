@@ -242,12 +242,15 @@ try{
  // именно телефонную ширину, где она нижняя.
  {const nav=await desk.newPage();await nav.setViewportSize({width:390,height:844});await nav.goto(base+'/');await settle(nav);
   const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
-   return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size};});
-  assert.ok(rows.count>=6,'у автора шесть пунктов панели');
+   return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size,
+    labels:items.map(el=>el.textContent.trim())};});
+  assert.ok(rows.count>=5,'панель автора не потеряла пункты');
   assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
+  assert.equal(rows.labels.includes('Запись'),false,'страницы записи в панели больше нет: подкасты пишутся в FL Studio');
+  assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
   await nav.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
- await studio.locator('.bottom-nav-item').nth(1).click();await studio.waitForTimeout(400);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
+ await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
  const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
