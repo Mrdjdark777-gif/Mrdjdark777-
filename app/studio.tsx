@@ -163,7 +163,6 @@ export default function Studio(){
  // телефона: итальянский — PayPal, остальные — Boosty. Если нужной платформы у
  // автора нет, берём ту, что настроена. В блоке поддержки видны обе.
  const heartLink=data?.donations?.find(d=>d.kind===(locale==='it'?'paypal':'boosty'))??data?.donations?.[0];
- const supportCard=data?.donations?.length?<div className="support-card donation-card has-links"><div className="support-card-top"><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('donate.action')}</strong><span>{t('donate.free')}</span></span></div>{donationRow}</div>:<div className="support-card donation-card"><span className="support-icon"><Heart size={22}/></span><span className="support-copy"><strong>{t('donate.action')}</strong><span>{author?t('donate.setup'):t('donate.unavailable')}</span></span>{author&&<button className="secondary-button" onClick={()=>goto('settings')}>{t('donate.configure')}</button>}</div>;
 
  return <>
  <Toaster theme="dark" richColors position="top-center"/>
@@ -233,7 +232,7 @@ export default function Studio(){
  {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}
 
  </>}
- {author&&supportCard}</section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
+ </section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
  {(view==='settings'||(view==='home'&&author))&&<div className="settings-grid">
  {!author&&<NotificationSettings author={author}/>}
  {/* Строка поддержки на главной и в разделах ведёт на одну площадку — ту,

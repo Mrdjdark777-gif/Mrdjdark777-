@@ -448,6 +448,15 @@ try {
    await request('library',{action:'visibility',id:post2.data.id,published:true});await push.flushPush();
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
   }finally{globalThis.fetch=originalFetch;}
+
+  // Оформление канала живёт под одним адресом и меняется, поэтому его нельзя
+  // держать в кэше: удалённая картинка возвращалась из кэша WebView после
+  // перезапуска приложения, хотя настройка уже была пустой.
+  {
+   const art=await cover.GET(new Request(ORIGIN+'/api/cover?id=channel'));
+   assert.notEqual(art.headers.get('cache-control'),'public, max-age=86400','оформление канала не кэшируется надолго');
+  }
+
   console.log(
     'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion that leaves no dangling broadcast cover.',
   );

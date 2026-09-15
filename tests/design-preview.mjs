@@ -127,7 +127,6 @@ try{
    const x=Math.round(r.width/2),y=Math.round(r.height*0.8);
    const el=document.elementFromPoint(x,y);
    return {tag:el?.tagName,cls:el?.className?.toString?.().slice(0,60),inPlayer:!!el?.closest('.podcast-player')};});
-  console.log('ФОН ПЛЕЕРА:',bg,JSON.stringify(seen));
   assert.notEqual(bg,'rgba(0, 0, 0, 0)','плеер не прозрачен');
   assert.equal(seen.inPlayer,true,'под плеером не видно главную');}
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());
@@ -249,11 +248,21 @@ try{
   assert.equal(rows.labels.includes('Запись'),false,'страницы записи в панели больше нет: подкасты пишутся в FL Studio');
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
   await nav.close();}
+ // Окно EXE — 1280×880. Настроек немного, и владелец просил, чтобы ни одна
+ // вкладка студии не требовала прокрутки на этом размере.
+ {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:880});
+  for(const v of ['home','podcasts','videos','stories','live']){
+   await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
+   const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth}));
+   if(m.h>m.inner+2)problems.push('студия '+v+': прокрутка '+m.h+'>'+m.inner);
+   if(m.w>m.iw+1)problems.push('студия '+v+': переполнение по ширине');
+  }
+  await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
  const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; студия без переполнения');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно 1280×880 без прокрутки');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

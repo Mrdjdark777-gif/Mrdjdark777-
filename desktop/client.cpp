@@ -9,7 +9,6 @@
 #include "webview2-uuids.h"
 
 static const wchar_t* SITE=L"https://truethrills.com";
-static const wchar_t* VIEWER=L"https://truethrills.com/?mode=listen&view=live";
 static HWND windowHandle;
 static ICoreWebView2Controller* controller;
 static ICoreWebView2* webview;
@@ -96,11 +95,9 @@ static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
   case WM_COMMAND:switch(LOWORD(w)){
-   case 101:if(webview&&confirmLeave()){activity(false);webview->Navigate(SITE);}break;
    case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
-   case 103:external(VIEWER);break;
    case 104:external(SITE);break;
-   case 105:MessageBoxW(h,L"True Thrills 0.9.0\nСтудия подкастов, историй и прямых эфиров.\n\nWindows-клиент использует Microsoft Edge WebView2 и подключается к твоему True Thrills через интернет.\n\nДля входа используй пароль автора True Thrills. Слушателям аккаунт не нужен. Веб-версию можно открыть через меню «В браузере».",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
+   case 105:MessageBoxW(h,L"True Thrills — студия\nВерсия 0.9.2\n\nРабочее место автора: подкасты, видео, истории и прямые эфиры.\nСлушатели открывают канал в приложении на Android или в браузере.\n\n— — —\n\nКАК УСТРОЕНО\nОкно приложения показывает твой сайт через Microsoft Edge WebView2.\nСайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке.\nВо время эфира голос идёт с этого компьютера; запись, обработка и архив\nделаются на сервере и остаются доступны после того, как ПК выключен.\n\nЗВУК\nИсточник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или\nвиртуальный кабель из FL Studio. Приложение не пересобирает твой тракт\nи ничего не включает в системе без спроса.\n\nВХОД\nНужен пароль автора. Слушателям учётная запись не нужна, и приложение\nеё не создаёт: прогресс прослушивания хранится на устройстве человека.\n\nПОДДЕРЖКА КАНАЛА\nВсё бесплатно. Только добровольные донаты через внешние сервисы —\nприложение не обрабатывает платежи и не хранит данные карт.\n\n— — —\n\n© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio.",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
   }return 0;
   case WM_CLOSE:if(confirmLeave())DestroyWindow(h);return 0;
   case WM_DESTROY:activity(false);if(controller){controller->Close();controller->Release();controller=nullptr;}if(webview){webview->Release();webview=nullptr;}PostQuitMessage(0);return 0;
@@ -111,7 +108,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  HANDLE mutex=CreateMutexW(nullptr,FALSE,L"Local\\TrueThrills.Desktop.02");if(GetLastError()==ERROR_ALREADY_EXISTS){HWND existing=FindWindowW(L"TrueThrills.Desktop",nullptr);if(existing){ShowWindow(existing,SW_RESTORE);SetForegroundWindow(existing);}if(mutex)CloseHandle(mutex);return 0;}
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
- HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,101,L"Студия");AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,103,L"Слушатель");AppendMenuW(menu,MF_STRING,104,L"В браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
+ HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
  windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }

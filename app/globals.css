@@ -1047,3 +1047,197 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .main-content:not(.listener-main) .settings-panel p{font-size:13px;line-height:1.5;margin-bottom:16px}
 .main-content:not(.listener-main) .section-icon{margin-bottom:12px}
 @media(max-width:900px){.main-content:not(.listener-main) .settings-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ============================================================================
+   Студия: знак канала стоит по центру шапки и крупно — это марка автора, а не
+   значок в углу. Нажатие на знак или на название возвращает на главную.
+   ========================================================================== */
+.main-content:not(.listener-main)~.bottom-nav,.top-header:has(~.main-content:not(.listener-main)){}
+body:has(.main-content:not(.listener-main)) .top-header{justify-content:center;position:relative;padding-top:20px}
+body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:column;gap:8px;font-size:22px;font-weight:700;letter-spacing:.06em}
+body:has(.main-content:not(.listener-main)) .top-header-brand img{width:64px;height:64px}
+body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolute;right:calc(20px + env(safe-area-inset-right));top:20px}
+
+/* Экраны студии помещаются целиком: настроек немного, прокручивать нечего.
+   Панели идут в две колонки и не растягиваются по высоте под соседа. */
+.main-content:not(.listener-main){max-width:1280px;padding-bottom:20px}
+.main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;gap:14px;margin-top:22px}
+.main-content:not(.listener-main) .settings-panel{padding:18px}
+.main-content:not(.listener-main) .settings-panel h2{font-size:17px;margin-bottom:6px}
+.main-content:not(.listener-main) .settings-panel p{font-size:12.5px;line-height:1.45;margin-bottom:12px}
+.main-content:not(.listener-main) .settings-panel small{font-size:11.5px;line-height:1.5;margin-top:10px}
+.main-content:not(.listener-main) .settings-panel .primary-button,
+.main-content:not(.listener-main) .settings-panel .secondary-button{margin-top:12px}
+.main-content:not(.listener-main) .wide-panel{grid-column:auto}
+.main-content:not(.listener-main) .channel-art-preview{max-width:240px;margin-bottom:10px}
+.main-content:not(.listener-main) .links-grid{gap:10px}
+.main-content:not(.listener-main) .home-actions{margin-bottom:20px}
+.main-content:not(.listener-main) .home-tile{min-height:80px;padding:14px}
+.main-content:not(.listener-main) .library-heading{margin:4px 0 10px}
+.main-content:not(.listener-main) .content-footer{padding-top:16px;margin-top:20px}
+
+/* Плотная раскладка студии: окно EXE 1280×880, и ни одна вкладка не должна
+   требовать прокрутки — настроек и списков тут немного. */
+body:has(.main-content:not(.listener-main)) .top-header{padding-top:12px;padding-bottom:4px}
+body:has(.main-content:not(.listener-main)) .top-header-brand img{width:48px;height:48px}
+body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap:6px}
+.main-content:not(.listener-main){padding-top:16px}
+.main-content:not(.listener-main) .page-heading{margin-bottom:14px}
+.main-content:not(.listener-main) .page-heading h1{font-size:clamp(24px,2.2vw,32px)}
+.main-content:not(.listener-main) .heading-description{margin-top:6px;font-size:13px}
+/* Поля площадок идут сеткой, а не столбиком в шесть строк. */
+.main-content:not(.listener-main) .links-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.main-content:not(.listener-main) .field{gap:4px;font-size:12.5px}
+.main-content:not(.listener-main) input{padding:8px 10px;font-size:13px}
+/* Каталог в студии: карточка ниже, обложка той же пропорции, но меньше. */
+.main-content:not(.listener-main) .post-cover{width:104px}
+.main-content:not(.listener-main) .post-content{padding:12px 14px}
+.main-content:not(.listener-main) .post-title{font-size:17px;margin:6px 0 4px}
+.main-content:not(.listener-main) .post-content>p{font-size:12.5px;-webkit-line-clamp:2}
+.main-content:not(.listener-main) .post-actions{margin-top:10px;gap:14px}
+.main-content:not(.listener-main) .post-list{gap:10px}
+.main-content:not(.listener-main) .filter-tabs{margin-bottom:12px;height:38px!important}
+/* Пульт эфира: тот же тракт, но без лишнего воздуха между блоками. */
+.main-content:not(.listener-main) .live-console{gap:12px;padding:18px!important}
+.main-content:not(.listener-main) .signal-console{padding:10px 0}
+.main-content:not(.listener-main) .signal-console .waveform{height:64px;margin-top:8px}
+.main-content:not(.listener-main) .audio-controls-panel{gap:12px;padding:2px 0}
+.main-content:not(.listener-main) .session-status{padding:12px}
+.main-content:not(.listener-main) .live-info{padding:10px 4px}
+.main-content:not(.listener-main) .live-info>p{margin:10px 0;font-size:13px}
+.main-content:not(.listener-main) .pilot-note{margin-top:14px;padding:14px}
+/* Главная студии: библиотека и настройки делят один ряд, а не идут друг за
+   другом — тогда экран закрывается целиком. */
+@media(min-width:1100px){
+ .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+ .main-content:not(.listener-main) .library-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .main-content:not(.listener-main) .home-actions{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .main-content:not(.listener-main) .home-tile{min-height:68px;padding:12px;flex-direction:row;align-items:center;gap:10px}
+ .main-content:not(.listener-main) .library-tiles>button{padding:14px 16px}
+ .main-content:not(.listener-main) .library-tiles strong{font-size:20px}
+ .main-content:not(.listener-main) .settings-panel p{margin-bottom:10px}
+ .main-content:not(.listener-main) .channel-art-preview{max-width:180px}
+ /* Пульт эфира и подсказки — в два столбца, подсказки уже основной зоны. */
+ .main-content:not(.listener-main) .live-layout{grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+ .main-content:not(.listener-main) .live-console{gap:10px;padding:14px!important}
+ .main-content:not(.listener-main) .signal-console .waveform{height:52px}
+ .main-content:not(.listener-main) .live-info>p{margin:8px 0;font-size:12.5px;line-height:1.5}
+ .main-content:not(.listener-main) .live-info h3{margin-bottom:12px;font-size:15px}
+ .main-content:not(.listener-main) .pilot-note{margin-top:10px;padding:12px}
+ .main-content:not(.listener-main) .pilot-note p{font-size:11.5px;line-height:1.5;margin-top:6px}
+ .main-content:not(.listener-main) .record-device-area,
+ .main-content:not(.listener-main) .recorder-bottom{padding:12px 14px}
+}
+/* Подвал в студии не нужен: копирайт и данные о приложении живут в меню
+   «О приложении», а здесь он только отнимал высоту у рабочего экрана. */
+.main-content:not(.listener-main) .content-footer{display:none}
+@media(min-width:1100px){
+ .main-content:not(.listener-main) .page-heading{margin-bottom:10px}
+ .main-content:not(.listener-main) .page-heading h1{font-size:26px}
+ .main-content:not(.listener-main) .heading-description{margin-top:4px;font-size:12.5px}
+ .main-content:not(.listener-main) .settings-grid{margin-top:12px}
+ .main-content:not(.listener-main) .home-actions{margin-bottom:14px}
+ /* Пульт эфира: метр и регуляторы плотнее, подсказки короче по высоте. */
+ .main-content:not(.listener-main) .live-main-panel{padding:16px 18px;gap:12px}
+ .main-content:not(.listener-main) .signal-console{padding:6px 0}
+ .main-content:not(.listener-main) .signal-console .waveform{height:44px;margin-top:6px}
+ .main-content:not(.listener-main) .meter-labels{margin-top:6px;font-size:11px}
+ .main-content:not(.listener-main) .gain-control>div{margin-bottom:8px}
+ .main-content:not(.listener-main) .mic-toggles{gap:14px}
+ .main-content:not(.listener-main) .listener-link-actions,
+ .main-content:not(.listener-main) .preflight-actions{gap:10px}
+ .main-content:not(.listener-main) .live-archives{margin-bottom:8px}
+}
+@media(min-width:1100px){
+ /* Площадки: шесть полей в две колонки, подпись под панелью не нужна. */
+ .main-content:not(.listener-main) .links-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .main-content:not(.listener-main) .settings-panel small{display:none}
+ .main-content:not(.listener-main) .settings-panel .primary-button{margin-top:10px;min-height:38px}
+ /* Пульт эфира: выбор входа компактнее, превью обложки меньше. */
+ .main-content:not(.listener-main) .mic-setup{gap:8px}
+ .main-content:not(.listener-main) .input-grid{gap:8px}
+ .main-content:not(.listener-main) .input-help{margin-top:8px;font-size:11.5px}
+ .main-content:not(.listener-main) .device-discovery{gap:4px;margin-top:6px}
+ .main-content:not(.listener-main) .device-discovery small{font-size:11.5px;line-height:1.45}
+ .main-content:not(.listener-main) .cover-preview,
+ .main-content:not(.listener-main) .live-cover-preview{max-height:56px;width:auto}
+ .main-content:not(.listener-main) .cover-picker{gap:10px;align-items:center}
+ .main-content:not(.listener-main) .signal-head{font-size:11.5px}
+ .main-content:not(.listener-main) .gain-control label{font-size:12.5px}
+ .main-content:not(.listener-main) .mic-toggles label{font-size:12.5px}
+}
+@media(min-width:1100px){
+ /* Пульт эфира в две колонки: слева что настраивают до эфира, справа — что
+    смотрят во время. Иначе он вытягивается в столбец и не влезает в окно. */
+ .main-content:not(.listener-main) .live-console{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:start;gap:12px 16px}
+ .main-content:not(.listener-main) .live-console>.session-status,
+ .main-content:not(.listener-main) .live-console>.preflight-actions,
+ .main-content:not(.listener-main) .live-console>.listener-link-actions,
+ .main-content:not(.listener-main) .live-console>.broadcast-summary,
+ .main-content:not(.listener-main) .live-console>.stop-live-button,
+ .main-content:not(.listener-main) .live-console>.quiet-button{grid-column:1/-1}
+ .main-content:not(.listener-main) .live-console>.field:nth-of-type(1){grid-column:1}
+ .main-content:not(.listener-main) .live-console>.field:nth-of-type(2){grid-column:2}
+ .main-content:not(.listener-main) .live-console>.mic-setup{grid-column:1}
+ .main-content:not(.listener-main) .live-console>.signal-console{grid-column:2}
+ .main-content:not(.listener-main) .live-console>.audio-controls-panel{grid-column:2}
+}
+@media(min-width:1100px){
+ /* Последние сантиметры: на экране эфира заголовок без пояснения, карточка
+    архива компактнее, консоль без лишнего воздуха. */
+ .main-content:not(.listener-main)[data-view=live] .heading-description{display:none}
+ .main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:8px}
+ .main-content:not(.listener-main) .live-archives{margin-bottom:6px}
+ .main-content:not(.listener-main) .live-layout{gap:12px}
+ .main-content:not(.listener-main) .live-console{padding:12px!important;gap:10px 14px}
+ .main-content:not(.listener-main) .signal-console .waveform{height:38px}
+ .main-content:not(.listener-main) .audio-controls-panel{gap:8px}
+ .main-content:not(.listener-main) .cover-preview,
+ .main-content:not(.listener-main) .live-cover-preview{max-height:44px}
+ .main-content:not(.listener-main) .live-main-panel{padding:14px 16px;gap:10px}
+}
+@media(min-width:1100px){
+ /* Свёрнутый список записей — строка, а не панель: он открывается по нажатию
+    и не занимает высоту, пока не нужен. */
+ .main-content:not(.listener-main) .live-archives{padding:10px 14px;margin:0 0 8px;border-radius:12px}
+ .main-content:not(.listener-main) .live-archives summary{font-size:13px}
+ .main-content:not(.listener-main) .session-status{padding:10px 12px}
+ .main-content:not(.listener-main) .session-status strong{font-size:16px}
+ .main-content:not(.listener-main) .session-status span{font-size:12.5px}
+ .main-content:not(.listener-main) .live-info h3{margin-bottom:10px}
+ .main-content:not(.listener-main) .live-info>p{margin:7px 0}
+ .main-content:not(.listener-main) .preflight-actions>button{min-height:40px}
+}
+@media(min-width:1100px){
+ /* Последние 40 пикселей: списки устройств и подписи под ними компактнее. */
+ .main-content:not(.listener-main) .device-select{height:34px!important;font-size:12px}
+ .main-content:not(.listener-main) .mic-setup .field{font-size:12px}
+ .main-content:not(.listener-main) .input-grid>label{font-size:11.5px}
+ .main-content:not(.listener-main) .device-discovery .secondary-button,
+ .main-content:not(.listener-main) .device-discovery .quiet-button{font-size:12px;min-height:34px;padding:6px 12px}
+ .main-content:not(.listener-main) .peak-row{margin-top:8px}
+ .main-content:not(.listener-main) .clip-notice{margin-top:8px;font-size:12px}
+ .main-content:not(.listener-main) .live-main-panel .eyebrow{margin:0;font-size:11px}
+ .main-content:not(.listener-main) .live-main-panel h2{font-size:22px}
+ .main-content:not(.listener-main) .live-main-panel>p{font-size:12.5px;line-height:1.5}
+}
+@media(min-width:1100px){
+ /* Подсказки автору сжимаются в свой столбец, а не задают высоту экрану. */
+ .main-content:not(.listener-main) .live-info{padding:6px 2px;font-size:12px}
+ .main-content:not(.listener-main) .live-info>p{margin:6px 0;gap:8px;line-height:1.45}
+ .main-content:not(.listener-main) .pilot-note{margin-top:8px;padding:10px}
+ .main-content:not(.listener-main) .pilot-note strong{font-size:12px}
+ .main-content:not(.listener-main) .pilot-note p{margin-top:4px}
+ .main-content:not(.listener-main) .mic-toggles{gap:10px}
+ .main-content:not(.listener-main) .gain-control [data-slot=slider]{padding:2px 0}
+}
+@media(min-width:1100px){
+ /* Ровно под окно: верхний отступ рабочей области и поля пульта. */
+ .main-content:not(.listener-main){padding-top:10px;padding-bottom:12px}
+ .main-content:not(.listener-main) .live-console{padding:10px!important}
+ .main-content:not(.listener-main) .signal-console{padding:4px 0}
+}
+@media(min-width:1100px){.main-content:not(.listener-main) .live-layout{gap:10px}
+ .main-content:not(.listener-main) .live-archives{margin-bottom:4px}}
+@media(min-width:1100px){.main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}}
