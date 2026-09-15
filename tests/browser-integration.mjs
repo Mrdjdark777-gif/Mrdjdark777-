@@ -31,10 +31,15 @@ try{
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await page.locator('.reader-scroll').waitFor();assert.equal(await page.locator('.reading-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 23, 25)');await page.locator('.reader-options select').selectOption('22');await page.locator('.reader-scroll').evaluate(el=>el.scrollTop=500);await page.waitForTimeout(150);await page.screenshot({path:'outputs/ui/reader-mobile.png',fullPage:true});
  await page.reload();await page.locator('.reader-scroll').waitFor();await page.waitForFunction(()=>document.querySelector('.reader-scroll')?.scrollTop>400);assert.equal(await page.locator('.reader-options select').inputValue(),'22');
- // Donation remains visible with no links, and lists real buttons once platforms are configured.
- await page.goto(base+'/?mode=listen');await page.locator('.donation-card').waitFor();assert.ok((await page.locator('.donation-card').innerText()).trim().length>0,'карточка поддержки должна показывать текст');assert.equal(await page.locator('.donation-card .social-chip').count(),0);
- await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});await page.reload();await page.locator('.donation-card .social-chip').first().waitFor();
- assert.deepEqual(await page.locator('.donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills']);
+ // Донат на главной остаётся виден и без настроенных площадок: это правило
+ // проекта, а не украшение. На главной он ведёт на одну — уместную по языку
+ // телефона, — поэтому доступ ко второй проверяется отдельно, в настройках.
+ await page.goto(base+'/?mode=listen');await page.locator('.support-strip,.support-card').first().waitFor();
+ assert.ok((await page.locator('.support-strip,.support-card').first().innerText()).trim().length>0,'строка поддержки должна показывать текст');
+ await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});
+ await page.goto(base+'/?mode=listen&view=settings');await page.locator('.donation-card .social-chip').first().waitFor();
+ assert.deepEqual(await page.locator('.donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills'],'обе площадки остаются доступны слушателю');
+ await page.goto(base+'/?mode=listen');await page.locator('.support-strip').waitFor();
  // Сердечко в шапке ведёт на одну ссылку, и она зависит от языка телефона:
  // PayPal в России не работает, Boosty за её пределами почти не знают.
  assert.equal(await page.locator('.support-button').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
@@ -49,10 +54,14 @@ try{
  const eq=cookie.indexOf('=');await ownerContext.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
  const studio=await ownerContext.newPage();await studio.goto(base+'/?view=live');await studio.getByLabel('Название эфира').fill('Browser live archive');await studio.getByRole('button',{name:'Начать эфир',exact:true}).click();
  await studio.locator('.stop-live-button').waitFor();
- await page.goto(base+'/?mode=listen&view=live');await page.locator('.listener-playback-actions .primary-button').click();
- try{await page.waitForFunction(()=>document.querySelector('.session-status.is-onair')!==null,{},{timeout:45000});}catch(e){await page.screenshot({path:'outputs/ui/live-failure.png',fullPage:true});console.log('Live UI:',await page.locator('.live-console').innerText());
+ await page.goto(base+'/?mode=listen&view=live');await page.locator('.live-cta').click();
+ // Кольца пульсируют только при настоящем воспроизведении — по ним и видно,
+ // что звук пошёл, а не что экран нарисовал «Мы в эфире».
+ try{await page.waitForFunction(()=>document.querySelector('.live-rings.is-pulsing')!==null,{},{timeout:45000});}catch(e){await page.screenshot({path:'outputs/ui/live-failure.png',fullPage:true});console.log('Live UI:',await page.locator('.live-stage').innerText());
  throw e;}
- assert.deepEqual(await page.locator('.live-console .donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills']);await page.screenshot({path:'outputs/ui/donation-live.png',fullPage:true});
+ // Донат виден во время эфира — это правило проекта, а не украшение.
+ assert.equal(await page.locator('.live-stage .support-strip').getAttribute('href'),'https://boosty.to/truethrills','во время эфира поддержка ведёт на настоящую площадку');
+ await page.screenshot({path:'outputs/ui/donation-live.png',fullPage:true});
  await studio.locator('.stop-live-button').click();await studio.waitForFunction(()=>!document.querySelector('.stop-live-button'),{},{timeout:30000});
  await page.waitForFunction(async()=>{const r=await fetch('/api/library');return (await r.json()).items.some(p=>p.title==='Browser live archive'&&p.duration>0);},{},{timeout:30000});
  await ownerContext.close();

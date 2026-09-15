@@ -23,7 +23,7 @@
    идёт запасной системный стек на случай, если шрифт не успел загрузиться. */
 :root, .dark {
   --font-ui: var(--font-display), var(--font-display-fallback);
-  --background:#101113;--foreground:#f4f3f1;--card:#18191c;--card-foreground:#f4f3f1;
+  --background:#121619;--foreground:#f4f3f1;--card:#18191c;--card-foreground:#f4f3f1;
   --popover:#202124;--popover-foreground:#f4f3f1;--primary:#6FE7DE;--primary-foreground:#08201E;
   --secondary:#26272b;--secondary-foreground:#f4f3f1;--muted:#222327;--muted-foreground:#a4a5aa;
   --accent:#123330;--accent-foreground:#8FEFE8;--destructive:#E0564C;--border:#303136;--input:#36373c;--ring:#6FE7DE;
@@ -300,9 +300,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 
 /* Заставка при запуске: логотип «выпрыгивает», под ним бегущая полоса
    загрузки, и всё гаснет, как только приходит первый ответ сервера.
-   Фон тот же #101113, что и у окна Android-приложения, поэтому переход
+   Фон тот же #121619, что и у окна Android-приложения, поэтому переход
    от системной заставки к нашей выглядит одним движением. */
-.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#101113;transition:opacity .4s ease}
+.splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;background:#121619;transition:opacity .4s ease}
 .splash-out{opacity:0;pointer-events:none}
 .splash img{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #6FE7DE,0 18px 40px -12px rgba(111,231,222,.6);animation:splash-pop .55s cubic-bezier(.2,.9,.3,1.25) both}
 .splash-bar{width:120px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;animation:splash-fade .3s .35s both}
@@ -402,7 +402,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .live-disc{position:relative;align-self:center;flex-shrink:0;--disc-size:min(260px,64vw);width:var(--disc-size);height:var(--disc-size);border-radius:50%;padding:6px;border:1px solid rgba(111,231,222,.35);background:radial-gradient(circle closest-side,rgba(255,196,60,.08),rgba(111,231,222,.08) 60%,transparent 78%)}
 .live-disc::before{content:'';position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle closest-side,rgba(111,231,222,.22),transparent 72%);opacity:.6}
 .live-disc.is-live::before{animation:disc-breathe 3.2s ease-in-out infinite}
-.live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#101113;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
+.live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#121619;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
 @keyframes disc-breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
 /* Спектр в строку: 64 столбика, которые прыгают на месте в такт звуку. */
 .live-spectrum{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:56px}
@@ -430,42 +430,17 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .is-author .support-button svg{fill:none;color:var(--teal)}
 @media(min-width:768px){.is-author .support-button span{display:inline}}
 /* Основная область слушателя: ровные поля, место под плавающую навигацию. */
-.listener-main{padding:6px 18px calc(var(--bottom-nav-h) + 26px + env(safe-area-inset-bottom))!important;min-height:0!important}
+.listener-main{padding:6px 18px calc(var(--bottom-nav-h) + 26px + env(safe-area-inset-bottom))!important;
+ /* Раньше здесь стояло min-height:0, чтобы убрать лишнюю прокрутку от общего
+    правила. Экран всё равно должен быть не ниже окна — иначе подвал подпирает
+    короткий список вместо того, чтобы стоять внизу. */
+ min-height:calc(100dvh - var(--bottom-nav-h))!important}
 .listener-main .page-heading{margin:6px 0 12px;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:14px}
 .listener-main .page-heading h1{width:max-content;max-width:100%;font-size:32px;font-weight:800;letter-spacing:-.035em;line-height:1.1;background:linear-gradient(90deg,#f4f3f1 55%,#8FEFE8);-webkit-background-clip:text;background-clip:text;color:transparent}
 .listener-main .heading-description{font-size:14px;color:#a3abaf;margin-top:8px}
 .listener-main .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
 .listener-main .home-heading h1{background:none;-webkit-background-clip:initial;background-clip:initial;color:#f4f3f1}
 .heading-mark{color:var(--teal);flex:none;margin-bottom:4px}
-/* Карточка-герой. */
-.hero-card{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:14px;align-items:end;padding:14px 16px 14px 18px;border-radius:24px;background:linear-gradient(135deg,#123330 0%,#151c1d 55%,#131617 100%);border:1px solid rgba(111,231,222,.22);box-shadow:0 22px 50px -30px rgba(0,0,0,.9);margin:0 0 10px;text-align:left;-webkit-user-select:none;user-select:none;cursor:pointer}
-.hero-card.is-live{background:linear-gradient(135deg,#2b2321 0%,#171b1c 45%,#12302d 100%);border-color:rgba(255,140,110,.28);cursor:default}
-.hero-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
-.hero-eyebrow{display:flex;align-items:center;gap:8px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.is-live .hero-eyebrow{color:#ffb39f}
-.hero-dot{width:7px;height:7px;border-radius:50%;background:#ff6a55;box-shadow:0 0 0 0 rgba(255,106,85,.55);animation:stage-pulse 1.8s ease-out infinite}
-.hero-title{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin:4px 0 0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:var(--font-display),var(--font-display-fallback)}
-.hero-meta{font-size:13px;color:#9fb1ae;font-variant-numeric:tabular-nums}
-.hero-note{font-size:13px;color:#a7adb2;line-height:1.5;margin:0}
-.hero-action{align-self:flex-start;margin-top:8px;border-radius:999px;padding:11px 18px 11px 20px;min-height:44px;font-size:15px;gap:10px}
-.hero-art{width:104px;height:104px;border-radius:22px;margin-bottom:2px;overflow:hidden;background:#0d1112;box-shadow:0 14px 30px -14px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06);display:grid;place-items:center;align-self:center}
-.hero-art img{width:100%;height:100%;object-fit:cover;display:block}
-.hero-menu{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#c8cfd3;background:rgba(0,0,0,.18)}
-/* Плитки разделов и строка эфира. */
-.listener-main .home-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 8px;max-width:none}
-.home-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px 12px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;background-image:none;text-align:left;min-width:0}
-.listener-main .home-actions>button:last-child:nth-child(odd){grid-column:auto}
-.home-tile span:not(.tile-badge):not(.tile-count){font-size:14px;font-weight:700;color:#f4f3f1}
-.is-author .home-tile>svg{color:var(--teal)}
-.home-tile-live{background:var(--surface)!important;border-color:rgba(255,106,85,.3)!important}
-.tile-badge{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);flex:none}
-.tile-label{font-size:14px;font-weight:700;color:#f4f3f1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.tile-count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-6px}
-.tile-arrow{position:absolute;right:12px;bottom:12px;color:var(--teal)}
-.live-row{display:flex;align-items:center;gap:14px;width:100%;padding:8px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--line);margin:0 0 10px;text-align:left}
-.live-row-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
-.live-row-copy strong{font-size:15px;font-weight:700}.live-row-copy span{font-size:13px;color:var(--muted)}
-.live-row>svg:last-child{color:var(--teal);flex:none}
 /* Поддержка: в сетке — иконка, заголовок с подписью, ниже две кнопки. */
 .listener-main .support-card{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px 12px;align-items:center;padding:12px 14px 12px;border-radius:20px;background:var(--surface);background-image:none;border:1px solid rgba(111,231,222,.18);margin:0 0 10px;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;min-height:0}
 .listener-main .support-card-top{display:contents}
@@ -514,23 +489,67 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 /* Плеер выпуска: лист между шапкой и навигацией или мини-панель над ней. */
 .podcast-player{grid-template-columns:none;background:none;border:none;box-shadow:none;padding:0}
 .podcast-player audio{display:none}
-.podcast-player.is-open{position:fixed;z-index:40;left:14px;right:14px;top:calc(clamp(84px,100dvh - 700px,200px) + env(safe-area-inset-top));bottom:calc(var(--bottom-nav-h) + 18px + env(safe-area-inset-bottom))!important;display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 20px 22px;border-radius:26px;background:linear-gradient(180deg,#132927,#111617 62%)!important;border:1px solid rgba(111,231,222,.25)!important;box-shadow:0 30px 70px -30px rgba(0,0,0,.95);overflow:auto;-webkit-backdrop-filter:none;backdrop-filter:none}
-.player-sheet-top{width:100%;display:flex;justify-content:space-between;align-items:center}
-.player-collapse,.podcast-player .player-close{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#c8cfd3;background:rgba(255,255,255,.05);grid-column:auto;grid-row:auto}
-.is-open .podcast-player-logo{width:min(170px,42vw);height:min(170px,42vw);border-radius:22px;object-fit:cover;box-shadow:0 20px 40px -18px rgba(0,0,0,.95);margin-top:2px;grid-column:auto}
-.is-open .podcast-player-title{align-items:center;text-align:center;gap:6px;grid-column:auto;width:100%}
-.is-open .podcast-player-title strong{font-size:22px;font-weight:800;white-space:normal;letter-spacing:-.02em;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.podcast-clock{font-size:13px;color:#9fb1ae;font-variant-numeric:tabular-nums}
+.podcast-player.is-open{position:fixed;inset:0!important;z-index:60;display:flex;flex-direction:column;
+ gap:0;padding:0;border:none!important;border-radius:0;box-shadow:none;overflow:auto;overscroll-behavior:contain;
+ background:var(--background)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Экран плеера показывает свою кнопку свернуть, а не шапку и нижнюю панель. */
+body:has(.podcast-player.is-open) .top-header,body:has(.podcast-player.is-open) .bottom-nav{display:none}
+
+/* Фотография сверху, затухающая в угольный низ. Без обложки — фирменный знак. */
+.player-stage{position:absolute;top:0;left:0;right:0;height:min(58dvh,520px);z-index:0;
+ display:grid;place-items:center;background:linear-gradient(180deg,#18202a,#121619)}
+.player-stage-photo{width:100%;height:100%;object-fit:cover;display:block}
+.player-stage-mark{width:118px;height:118px;object-fit:contain;opacity:.5}
+.player-stage-shade{position:absolute;inset:0;
+ background:linear-gradient(180deg,rgba(18,22,25,.58) 0,rgba(18,22,25,.18) 14%,rgba(18,22,25,.04) 36%,rgba(18,22,25,.7) 74%,#121619 100%)}
+
+.player-sheet-top{position:relative;z-index:2;display:grid;width:100%;flex-shrink:0;grid-template-columns:44px 1fr 44px;align-items:center;
+ gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 0}
+.player-kind{text-align:center;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#cdd3d5}
+.player-collapse,.player-more{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+ color:#eef1f2;background:none;border:none;grid-column:auto;grid-row:auto;filter:drop-shadow(0 1px 6px rgba(0,0,0,.8))}
+
+.player-body{position:relative;z-index:2;flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
+ gap:14px;padding:0 var(--tt-gutter) calc(22px + env(safe-area-inset-bottom));justify-content:flex-end;text-align:center}
+.player-caption{display:flex;flex-direction:column;gap:5px}
+.player-brand{font-size:12px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#f0efed}
+.player-tagline{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#a4a5aa;
+ font-variant-numeric:tabular-nums}
+.player-title{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(26px,7.4vw,36px);line-height:1.1;
+ letter-spacing:-.01em;margin:0;color:#f4f3f1;text-wrap:balance;text-shadow:0 2px 18px rgba(0,0,0,.55);max-width:min(100%,18ch);
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.player-note{margin:-6px 0 0;font-size:13px;line-height:1.45;color:#b9bec0;max-width:34ch;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 .is-open .podcast-timeline{width:100%;padding:0;grid-column:auto;grid-row:auto}
-.is-open .podcast-timeline .podcast-times{font-size:12px;color:#9fb1ae;margin-top:4px}
-.is-open .podcast-transport{gap:28px;margin-top:2px;grid-column:auto;grid-row:auto}
-.is-open .podcast-transport>button{color:#dfe7e5}
-.podcast-transport>.podcast-toggle,.is-mini .podcast-toggle{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border-radius:50%;box-shadow:0 12px 30px -12px rgba(111,231,222,.8)}
-.is-open .podcast-transport>.podcast-toggle{width:64px;height:64px}
-.is-open .player-extras{flex-direction:column;align-items:center;gap:12px;font-size:15px;color:#c0c6ca;grid-column:auto}
-.is-open .player-extras label{gap:12px}
-.is-open .player-extras select{padding:10px 14px;border-radius:12px;font-size:15px;background:var(--surface-2);border-color:var(--line-strong)}
-.is-open .podcast-player-message{grid-column:auto;text-align:center}
+.is-open .podcast-timeline .podcast-times{font-size:12px;color:#a4a5aa;margin-top:6px}
+.podcast-clock{font-size:13px;color:#9fb1ae;font-variant-numeric:tabular-nums}
+.is-open .podcast-transport{gap:34px;grid-column:auto;grid-row:auto}
+.is-open .podcast-transport>button{position:relative;width:54px;height:54px;color:#e4e8e9;justify-content:center}
+.is-open .podcast-transport>button>svg{width:40px;height:40px;stroke-width:1.4}
+.is-open .podcast-transport>button>span{position:absolute;inset:0;display:grid;place-items:center;
+ margin-top:2px;font-size:11.5px;font-weight:700;line-height:1}
+.podcast-transport>.podcast-toggle,.is-mini .podcast-toggle{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border-radius:50%;box-shadow:0 14px 32px -18px rgba(111,231,222,.75)}
+.is-open .podcast-transport>.podcast-toggle{width:72px;height:72px;color:#08201e;box-shadow:none}
+
+/* Скорость и таймер: выбранное значение сверху, подпись под ним, как на листе. */
+.is-open .player-extras{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(100%,300px);
+ justify-items:center;grid-column:auto}
+.player-extra{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;justify-content:center}
+.player-extra select{-webkit-appearance:none;appearance:none;text-align:center;text-align-last:center;
+ background:none;border:none;color:#f4f3f1;font-size:16px;font-weight:600;padding:2px 4px;border-radius:8px}
+.player-extra select option{background:var(--surface);color:#f4f3f1}
+.player-extra>span{font-size:12.5px;color:#b8bdc0}
+.player-extra-icon{color:#e4e8e9;display:grid;place-items:center}
+.is-open .podcast-player-message{grid-column:auto;text-align:center;color:#ffc18d}
+
+.player-menu{position:absolute;z-index:3;top:calc(58px + env(safe-area-inset-top));right:14px;min-width:210px;
+ display:flex;flex-direction:column;padding:6px;border-radius:16px;background:var(--surface);
+ border:1px solid var(--line);box-shadow:0 24px 50px -24px rgba(0,0,0,.95)}
+.player-menu>*{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:11px;
+ background:none;border:none;color:#f4f3f1;font-size:15px;text-align:left;text-decoration:none}
+.player-menu>*:hover{background:rgba(255,255,255,.06)}
+
 .podcast-player.is-mini{position:fixed;z-index:40;left:14px;right:14px;bottom:calc(var(--bottom-nav-h) + 16px + env(safe-area-inset-bottom))!important;display:grid;grid-template-columns:minmax(0,1fr) 48px 40px;align-items:center;gap:10px;padding:8px 8px 8px 8px;border-radius:18px;background:rgba(19,29,29,.97)!important;border:1px solid rgba(111,231,222,.25)!important;box-shadow:0 18px 40px -20px rgba(0,0,0,.9)}
 .mini-open{display:flex;align-items:center;gap:12px;min-width:0;text-align:left;padding:0;background:none;border:none;color:inherit}
 .is-mini .podcast-player-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}
@@ -541,7 +560,10 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .player-expand{width:40px;height:40px;display:grid;place-items:center;color:#c8cfd3}
 body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 26px + env(safe-area-inset-bottom))!important}
 body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom-nav-h) + 96px + env(safe-area-inset-bottom))!important}
-@media(min-width:640px){.podcast-player.is-open,.podcast-player.is-mini{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px))}}
+@media(min-width:640px){.podcast-player.is-mini{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px))}
+/* Плеер на широком экране остаётся во всю высоту, но текст и кнопки не растягиваются. */
+.podcast-player.is-open .player-body>*{width:min(100%,460px)}
+.podcast-player.is-open .player-stage{height:min(52dvh,560px)}}
 /* Читалка: на телефоне — лист на весь экран между шапкой и навигацией. */
 .reading-dialog[data-slot=dialog-content]{border-radius:26px;background:#111719;border-color:rgba(255,255,255,.1)}
 .reading-dialog [data-slot=dialog-description]{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -585,21 +607,413 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .is-author .recorder-bottom,.is-author .record-device-area{background:#171b1d}
 .is-author .live-card .secondary-button{border-radius:12px}
 .is-author .waveform>span{background:#c9776b}}
-/* Маленькие экраны: главная целиком в первом экране. */
-@media(max-height:700px){.hero-card{padding:14px 14px;grid-template-columns:minmax(0,1fr) 84px;margin-bottom:10px}
-.hero-art{width:84px;height:84px;border-radius:18px}
-.hero-title{font-size:20px}
-.hero-meta,.hero-note{display:none}
-.hero-action{margin-top:6px;min-height:42px;padding:10px 16px 10px 18px;font-size:14px}
-.listener-main .home-tile{padding:12px 10px 10px;gap:10px}
-.tile-badge{width:40px;height:40px}
-.live-row{padding:9px 14px}
-.listener-main .support-card{padding:10px 12px}
+/* Маленькие экраны: сокращается высота кадра и второстепенные подписи, но не
+   зоны касания и не сами действия. */
+@media(max-height:700px){.listener-main .support-card{padding:10px 12px}
 .listener-main .support-copy>span{display:none}
-.listener-main[data-view=home] .content-footer{display:none}
+.listener-main[data-view=home] .content-footer,.listener-main[data-view=live] .content-footer{display:none}
 .listener-main[data-view=home] .home-social{padding:10px 12px;margin-bottom:10px}
 .listener-main[data-view=home] .home-social .social-caption{display:none}
-.tile-count{margin-top:-4px}
 .listener-main .page-heading{margin:2px 0 8px}
 .listener-main .page-heading h1{font-size:28px}}
 .listener-main .onair-banner{border-radius:20px;background:linear-gradient(135deg,#2b2321,#171b1c 60%);border-color:rgba(255,140,110,.28);padding:14px 16px}
+
+
+/* ============================================================================
+   Утверждённый лист из шести экранов (REFERENCE-APPROVED.png, 14 сентября).
+   S01 «Погружение»: фотография во всю ширину, поверх неё снизу название
+   выпуска и действие; под кадром — продолжение, эфир, плитки разделов.
+   Токены листа добавлены к прежним, второй системы !important не заводим.
+   ========================================================================== */
+:root,.dark{--tt-gutter:20px;--tt-target:44px;--tt-cta:52px;--tt-transport:72px;
+ --tt-editorial:var(--font-editorial),Georgia,"Times New Roman",serif;
+ --tt-live:#FF6A55;
+ /* Фон снят пипеткой с самого листа: #121619, а не #121619 из текста
+    спецификации. Он холоднее и чуть светлее, и именно поэтому фотографии на
+    листе сидят в экране, а не висят на мёртво-сером. */
+ --background:#121619}
+body{background:var(--background)}
+@media(max-height:700px){:root,.dark{--tt-gutter:16px;--tt-cta:48px}}
+/* Нажатие: подрастает сама иконка, разметка рядом не дёргается. */
+.tt-pressable{min-height:var(--tt-target);min-width:var(--tt-target)}
+.tt-pressable>svg{transition:transform 200ms cubic-bezier(.2,1.4,.5,1)}
+.tt-pressable:active>svg{transform:scale(.92);transition-duration:90ms}
+@media(prefers-reduced-motion:reduce){.tt-pressable>svg,.tt-pressable:active>svg{transition:none;transform:none}}
+
+/* Главная целиком уходит под края экрана: фотография начинается от самого
+   верха, поэтому у неё свои поля, а не общие поля основной области. */
+.listener-main:has(.immersion){padding-left:0!important;padding-right:0!important;padding-top:0!important}
+.immersion{display:flex;flex-direction:column;gap:10px;padding:0 var(--tt-gutter);
+ min-height:calc(100dvh - var(--bottom-nav-h) - 26px - env(safe-area-inset-bottom))}
+/* Main content already reserves 70 extra pixels for the mini-player.
+   Subtract the same space from the hero layout, otherwise donation is covered. */
+body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bottom-nav-h) - 96px - env(safe-area-inset-bottom))}
+@media(max-height:700px){body:has(.podcast-player.is-mini) .immersion>.scene{min-height:240px}}
+.immersion>.scene{flex:1 1 auto}
+.listener-main:has(.immersion) .content-footer{margin-inline:var(--tt-gutter);padding-top:12px;margin-top:4px}
+.immersion>.scene{margin:0 calc(var(--tt-gutter) * -1)}
+
+.scene{position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+ min-height:clamp(300px,48dvh,430px);padding:16px var(--tt-gutter) 16px;overflow:hidden;isolation:isolate;
+ -webkit-user-select:none;user-select:none}
+.scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.scene-mark{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);width:132px;height:132px;object-fit:contain;opacity:.92;z-index:-2}
+.scene-fallback{min-height:0;padding-top:212px;background:radial-gradient(circle at 50% 32%,#16302e,#121619 66%)}
+.scene-fallback .scene-mark{top:auto;bottom:calc(100% - 196px);transform:translate(-50%,0);width:96px;height:96px}
+/* Светлый текст поверх фотографии защищает чёрный градиент — не цветной фильтр
+   поверх всего кадра: обложка должна остаться собой. */
+.scene-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,22,25,.86) 0,rgba(18,22,25,.46) 15%,rgba(18,22,25,.12) 32%,rgba(18,22,25,.58) 64%,#121619 100%)}
+.scene-intro{position:absolute;top:10px;left:var(--tt-gutter);right:58px;margin:0;
+ font-size:13px;line-height:1.45;color:#dfe3e4;text-shadow:0 1px 10px rgba(0,0,0,.65);max-width:24ch}
+.scene-copy{display:flex;flex-direction:column;gap:8px;position:relative}
+.scene-title{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(28px,8vw,38px);line-height:1.06;letter-spacing:-.01em;max-width:18ch;
+ margin:0;color:#f4f3f1;text-shadow:0 2px 18px rgba(0,0,0,.55);text-wrap:balance;
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.scene-meta{font-size:13px;color:#c2c6c8;font-variant-numeric:tabular-nums}
+.scene-action{display:inline-flex;align-items:center;justify-content:center;gap:10px;align-self:stretch;
+ min-height:var(--tt-cta);margin-top:4px;border-radius:999px;border:none;font-size:16px;font-weight:700;
+ background:var(--teal);color:#08201E;box-shadow:0 14px 34px -16px rgba(111,231,222,.85)}
+.scene-menu{position:absolute;top:8px;right:12px;width:40px;height:40px;border-radius:50%;
+ display:grid;place-items:center;color:#e4e8e9;background:rgba(8,10,11,.42);border:none;z-index:2}
+
+.resume-row,.live-strip{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:16px;
+ background:var(--surface);border:1px solid var(--line);color:#f4f3f1;text-align:left}
+.resume-row svg:first-child{color:var(--teal);flex:none}
+.resume-copy{flex:1;display:flex;align-items:baseline;gap:7px;min-width:0}
+.resume-label{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resume-sep{color:var(--muted);flex:none}
+.resume-time{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.resume-row>svg:last-child{color:var(--muted);flex:none}
+.live-strip{border-color:rgba(255,106,85,.38);background:linear-gradient(135deg,rgba(60,28,24,.85),var(--surface) 62%)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--tt-live);flex:none;
+ box-shadow:0 0 0 0 rgba(255,106,85,.55);animation:stage-pulse 1.8s ease-out infinite}
+@media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
+.live-strip-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.live-strip-copy strong{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-strip-copy span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#ffb3a2}
+.live-strip-action{display:inline-flex;align-items:center;gap:4px;flex:none;font-size:14px;font-weight:700;color:var(--teal)}
+
+/* Три фото-плитки разделов: обложка самой свежей публикации этого типа. */
+.section-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.section-tile{position:relative;display:flex;align-items:flex-end;min-height:104px;padding:10px;border-radius:12px;
+ overflow:hidden;border:1px solid var(--line);background:var(--surface);text-align:left;isolation:isolate}
+.section-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.section-tile-plain{background:linear-gradient(160deg,#17302e,#141719)}
+.section-tile-icon{position:absolute;top:14px;left:50%;transform:translateX(-50%);color:var(--teal);opacity:.85}
+.section-tile-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,22,25,.15),rgba(18,22,25,.88))}
+.section-tile-copy{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0}
+.section-tile-copy strong{font-size:14px;font-weight:700;color:#f4f3f1}
+.section-tile-copy>span:not(.section-tile-new){display:none}
+@media(max-height:700px){.scene{min-height:clamp(240px,40dvh,320px)}
+.scene-fallback{padding-top:128px}
+.scene-fallback .scene-mark{bottom:calc(100% - 118px);width:78px;height:78px}
+.section-tile{min-height:86px}
+.section-tile-copy span{display:none}
+.scene-intro{display:none}}
+
+
+/* ============================================================================
+   Оболочка листа: шапка лежит поверх фотографии, панель снизу плоская, донат —
+   тонкая строка в рамке. Раньше здесь оставалась прежняя оболочка, и новый
+   экран читался как старый.
+   ========================================================================== */
+/* Шапка бренда: маленький логотип и wordmark вразрядку, как на листе. */
+.is-listener .top-header-brand{gap:10px;font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;min-width:0}
+.is-listener .wordmark{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:379px){.is-listener .top-header-brand{font-size:14px;letter-spacing:.1em}}
+.is-listener .top-header-brand img{width:34px;height:34px;border-radius:50%}
+.is-listener .top-header-actions .quiet-button{width:40px;height:40px;background:none;border:none;color:#e8ebec}
+.is-listener .support-button{width:40px;height:40px;background:none;border:none;color:#e8ebec;box-shadow:none}
+.is-listener .support-button svg{fill:none}
+
+/* Главная: фотография начинается от самого верха, шапка ложится на неё. */
+.is-immersive .top-header{position:absolute;top:0;left:0;right:0;z-index:20;background:none;
+ padding-top:calc(10px + env(safe-area-inset-top))}
+.is-immersive .top-header-brand,.is-immersive .top-header-actions .quiet-button,.is-immersive .support-button{
+ color:#f4f3f1;text-shadow:0 1px 12px rgba(0,0,0,.6)}
+.is-immersive .status-bar-veil{display:none}
+.is-immersive .listener-main{padding-top:0!important}
+/* Кадр уходит под шапку, поэтому отступ сверху освобождает ей место. */
+.immersion>.scene{padding-top:calc(104px + env(safe-area-inset-top))}
+.scene-intro{top:calc(62px + env(safe-area-inset-top))}
+.scene-menu{top:calc(58px + env(safe-area-inset-top))}
+.scene-fallback{padding-top:calc(236px + env(safe-area-inset-top))!important}
+.scene-fallback .scene-mark{bottom:calc(100% - 220px - env(safe-area-inset-top))}
+@media(max-height:700px){.immersion>.scene{padding-top:calc(92px + env(safe-area-inset-top))}
+.scene-fallback{padding-top:calc(150px + env(safe-area-inset-top))!important}
+.scene-fallback .scene-mark{bottom:calc(100% - 140px - env(safe-area-inset-top))}}
+
+/* Донат на главной — тонкая строка в рамке, а не карточка с кнопками. */
+.support-strip{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;
+ border:1px solid var(--line-strong);background:none;color:#f4f3f1}
+.support-strip>svg:first-child{color:var(--teal);fill:currentColor;flex:none}
+.support-strip-label{font-size:15px;font-weight:700;flex:none}
+.support-strip-note{flex:1;min-width:0;font-size:9px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:359px){.support-strip-note{display:none}}
+.support-strip>svg:last-child{color:var(--muted);flex:none}
+
+/* Нижняя панель как на листе: плоская, на фоне страницы, без «таблетки». */
+.is-listener .bottom-nav{left:0;right:0;bottom:0;width:auto;max-width:none;transform:none;border-radius:0;
+ border:none;border-top:1px solid var(--line);background:var(--background);box-shadow:none;
+ -webkit-backdrop-filter:none;backdrop-filter:none;
+ padding:6px calc(8px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left))}
+.is-listener .bottom-nav-item{border-radius:12px;background:none}
+.is-listener .bottom-nav-item[data-active=true]{background:none;color:var(--teal)}
+@media(min-width:640px){.is-listener .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,100%);border-inline:1px solid var(--line)}}
+
+/* ============================================================================
+   S03 — редакционная шапка раздела подкастов. Узкий гротеск здесь намеренно
+   отличается от serif на главной: на листе это разные голоса, а не одна
+   типографика на всё приложение. Настоящий каталог идёт сразу под ней.
+   ========================================================================== */
+.voice-head{display:flex;flex-direction:column;gap:18px;margin-bottom:18px}
+.voice-headline{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
+.voice-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+ font-size:clamp(42px,13vw,64px);line-height:.98;letter-spacing:-.025em;margin:0;color:#f4f3f1;text-wrap:balance}
+.voice-stop{display:inline-block;width:.16em;height:.16em;margin-left:.06em;border-radius:50%;
+ background:var(--teal);vertical-align:baseline}
+.voice-kicker{margin:6px 0 0;max-width:11ch;text-align:right;font-size:10px;font-weight:700;line-height:1.5;
+ letter-spacing:.14em;text-transform:uppercase;color:#a4a5aa}
+
+/* Карточка нового выпуска: mint, чёрный узкий заголовок, круглая play. */
+.voice-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+ width:100%;padding:16px 78px 16px 18px;border:none;border-radius:16px;background:var(--teal);
+ color:#08201E;text-align:left}
+.voice-card-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;opacity:.82}
+.voice-card-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+ font-size:clamp(26px,8vw,36px);line-height:1.02;letter-spacing:-.015em;
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.voice-card-meta{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;opacity:.86}
+.voice-card-play{position:absolute;right:16px;top:50%;translate:0 -50%;width:52px;height:52px;border-radius:50%;
+ display:grid;place-items:center;background:#08201E;color:var(--teal)}
+
+/* Три пронумерованных столбца, разделённые тонкими линиями, как на листе. */
+.voice-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.voice-column{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;
+ padding:14px 10px;background:none;border:none;border-left:1px solid var(--line);color:#f4f3f1;text-align:left}
+.voice-column:first-child{border-left:none;padding-left:0}
+.voice-column>strong{font-size:15px;font-weight:700}
+.voice-column-number{font-size:23px;line-height:1;color:var(--foreground);font-variant-numeric:tabular-nums}
+.voice-column-icon{color:var(--teal)}
+
+/* Фильтр записей эфира: каталог остаётся доступным целиком. */
+.catalog-scope{display:flex;gap:6px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.catalog-scope button{min-height:38px;padding:0 14px;border:none;border-radius:999px;background:none;
+ color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
+.catalog-scope button[data-active=true]{background:var(--teal);color:#08201E}
+@media(max-width:379px){.voice-column{padding:14px 6px}}
+
+/* Инструменты каталога под редакционной частью занимают одну компактную строку. */
+.listener-main .catalog-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 14px}
+.listener-main .catalog-search{flex:1 1 180px;min-width:0;min-height:44px}
+.listener-main .catalog-sort{flex:0 0 auto;min-height:44px}
+.listener-main .catalog-scope{flex:1 1 100%}
+.listener-main .voice-head+.support-strip{margin-top:-2px}
+
+/* ============================================================================
+   S04 — типографический плеер. Узкий крупный заголовок по левому краю, форма
+   звука над полосой перемотки и «Далее» внизу. Выбирается для выпуска без
+   обложки; фотография и serif остаются у S02.
+   ========================================================================== */
+.podcast-player.is-type .player-stage{display:none}
+.podcast-player.is-type .player-body{justify-content:space-between;align-items:stretch;text-align:left;gap:16px;
+ padding-top:6px}
+.podcast-player.is-type .player-tagline{font-size:11px;letter-spacing:.22em;color:#a4a5aa}
+.podcast-player.is-type .player-title{font-family:var(--font-condensed),sans-serif;font-weight:800;text-transform:uppercase;
+ font-size:clamp(30px,9vw,44px);line-height:1.06;letter-spacing:-.01em;max-width:none;text-shadow:none;
+ -webkit-line-clamp:3;margin-top:-4px}
+.podcast-player.is-type .player-note{margin:-8px 0 0;max-width:38ch;font-size:15px;color:#cdd3d5}
+.podcast-player.is-type .podcast-transport{align-self:center}
+.podcast-player.is-type .player-extras{width:100%}
+
+/* Форма звука: ровная линия, пока воркер не посчитал пики. Никаких случайных
+   палочек — они читались бы как настоящие. */
+.waveform-strip{display:flex;align-items:flex-end;gap:2px;width:100%;height:64px}
+.waveform-strip:not(.is-flat)>span{flex:1;min-width:0;border-radius:2px;background:#3b4246}
+.waveform-strip:not(.is-flat)>span.is-played{background:var(--teal)}
+.waveform-strip.is-flat{flex-direction:column;align-items:flex-start;justify-content:center;gap:9px}
+.waveform-line{width:100%;height:2px;border-radius:2px;background:#2b3134}
+.waveform-note{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7c8285}
+
+/* «Далее» — реальный следующий выпуск раздела; на последнем блока нет. */
+.player-next{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;margin-top:4px;
+ padding-top:14px;border:none;border-top:1px solid var(--line);background:none;color:#f4f3f1;text-align:left}
+.player-next-label{font-size:13px;font-weight:700;color:#f4f3f1}
+.player-next-row{display:flex;align-items:center;gap:12px;min-width:0}
+.player-next-row img,.player-next-mark{width:52px;height:46px;flex:none;border-radius:8px;object-fit:cover;
+ background:linear-gradient(135deg,#1d262b,#141a1c)}
+.player-next-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.player-next-copy strong{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-next-copy span{font-size:12px;color:#a4a5aa;font-variant-numeric:tabular-nums}
+.player-next>svg,.player-next-row>svg{color:var(--muted);flex:none}
+@media(prefers-reduced-motion:reduce){.waveform-strip>span{transition:none}}
+
+/* ============================================================================
+   S05 — экран эфира. Кольца вокруг круга — декоративный мотив, а не спектр:
+   они ничего не измеряют и пульсируют только при настоящем воспроизведении.
+   Донат остаётся виден во всех состояниях, включая offline и ended.
+   ========================================================================== */
+.live-stage{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
+.live-rings{position:relative;display:grid;place-items:center;
+ width:min(74vw,290px);height:min(74vw,290px);margin:6px 0 2px}
+.live-ring{position:absolute;border-radius:50%;border:1px solid rgba(111,231,222,.22)}
+.live-ring:nth-child(1){inset:0}
+.live-ring:nth-child(2){inset:7%;border-color:rgba(111,231,222,.15)}
+.live-ring:nth-child(3){inset:14%;border-color:rgba(111,231,222,.1)}
+.live-rings.is-pulsing .live-ring{animation:live-breathe 2.4s ease-in-out infinite}
+.live-rings.is-pulsing .live-ring:nth-child(2){animation-delay:.3s}
+.live-rings.is-pulsing .live-ring:nth-child(3){animation-delay:.6s}
+@keyframes live-breathe{0%,100%{opacity:.5}50%{opacity:1}}
+.live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
+ display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
+ border:1px solid rgba(255,255,255,.07)}
+.live-orb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.live-orb-shade{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(18,22,25,.25),rgba(18,22,25,.82))}
+.live-orb-copy{position:relative;display:flex;align-items:center;gap:9px;padding:0 16px;text-align:center}
+.live-orb-copy strong{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(21px,6vw,27px);
+ line-height:1.12;color:#f4f3f1;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+.live-orb-dot{width:11px;height:11px;flex:none;border-radius:50%;background:var(--tt-live);
+ box-shadow:0 0 12px rgba(255,106,85,.8)}
+.live-stage-name{font-family:var(--tt-editorial);font-weight:500;font-size:clamp(22px,6.4vw,30px);
+ line-height:1.14;margin:0;text-align:center;color:#f4f3f1;text-wrap:balance}
+.live-stage-sub{margin:-8px 0 0;font-size:14px;line-height:1.45;color:#a4a5aa;text-align:center;max-width:32ch}
+.live-stage-clock{display:flex;align-items:baseline;gap:8px;margin:-4px 0 0}
+.live-stage-clock strong{font-size:20px;font-variant-numeric:tabular-nums;color:#e8eaee}
+.live-stage-clock span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7c8285}
+.live-cta{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;
+ min-height:var(--tt-cta);border:none;border-radius:999px;font-size:16px;font-weight:700;
+ background:var(--teal);color:#08201E;box-shadow:0 14px 34px -18px rgba(111,231,222,.85)}
+.live-cta:disabled{opacity:.72}
+.live-archive-card{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;
+ border-radius:16px;border:1px solid var(--line);background:var(--surface);color:#f4f3f1;text-align:left}
+.live-archive-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;
+ background:var(--teal-dark,#123330);color:var(--teal)}
+.live-archive-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.live-archive-copy strong{font-size:15px;font-weight:600}
+.live-archive-copy span{font-size:12px;line-height:1.35;color:#a4a5aa}
+.live-archive-card>svg{color:var(--muted);flex:none}
+.live-stage+.live-spectrum{margin-top:14px}
+.live-leave{align-self:center;display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.live-stage-support-missing{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){.live-rings.is-pulsing .live-ring{animation:none;opacity:.8}}
+
+/* ============================================================================
+   S06 — запись эфира. Круглая обложка с кольцом прогресса; кольцо и полоса
+   показывают одно и то же значение, потому что берут его из одного места.
+   ========================================================================== */
+/* Один плотный столбец, как в спецификации: круг, название, описание, полоса,
+   время, транспорт, скорость и таймер, поддержка. Круг — часть этого столбца,
+   а не отдельный этаж: иначе между ним и текстом повисает пустой экран. */
+.podcast-player.is-archive .player-body{justify-content:space-between;gap:12px;padding-top:6px}
+/* Поддержка прижата к низу, остальное идёт подряд сверху: столбец занимает
+   экран целиком, без провала ни в середине, ни под кнопками. */
+/* Столбец расходится по высоте экрана: круг наверху, поддержка внизу. */
+.podcast-player.is-archive .player-support{margin-top:0}
+.player-orb{position:relative;align-self:center;display:grid;place-items:center;
+ width:min(60vw,246px);height:min(60vw,246px);margin:0 0 2px;z-index:1}
+.player-orb::before{content:'';position:absolute;width:88%;height:88%;border-radius:50%;
+ background:radial-gradient(circle,rgba(111,231,222,.07),transparent 72%);filter:blur(12px)}
+.player-orb>img{position:relative;width:79%;height:79%;border-radius:50%;object-fit:cover;
+ box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 40px -18px rgba(0,0,0,.9)}
+/* Обложка внутри круга приглушена: на листе фотография сидит в экране, а не
+   выпрыгивает из него. */
+.player-orb>img{filter:brightness(.82) saturate(.86)}
+.player-orb-mark{padding:18%;object-fit:contain;background:linear-gradient(180deg,#1b242b,#121619);filter:none}
+.player-orb-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.player-orb-ring circle{fill:none;stroke-width:2.6;stroke-linecap:round}
+.player-orb-track{stroke:rgba(255,255,255,.2)}
+.player-orb-progress{stroke:var(--teal)}
+.podcast-player.is-archive .player-title{font-size:clamp(26px,7.2vw,34px);-webkit-line-clamp:2}
+.podcast-player.is-archive .player-note{margin-top:-4px}
+.player-support{display:flex;align-items:center;gap:10px;width:100%;margin-top:4px;padding:12px 16px;
+ border-radius:999px;border:1px solid var(--line-strong,#3a3b40);background:none;color:#f4f3f1;text-decoration:none}
+.player-support-label{flex:1;font-size:15px;font-weight:600;text-align:left}
+.player-support>svg:first-child{color:var(--teal);flex:none}
+.player-support>svg:last-child{color:var(--muted);flex:none}
+
+/* Экран эфира у слушателя — сцена, а не панель: без рамки и фона консоли. */
+.listener-main[data-view=live] .live-console{padding:0!important;gap:18px;background:none;border:none;box-shadow:none}
+.listener-main[data-view=live] .live-layout{gap:18px}
+
+/* Скорость и таймер: значение и подпись — обычный текст, выбор лежит поверх
+   прозрачным select. Так выключенный таймер показывает только часы и подпись,
+   а управление остаётся настоящим, с клавиатурой и озвучкой. */
+.player-extra{position:relative}
+.player-extra-value{font-size:17px;font-weight:600;color:#f4f3f1;line-height:1.2}
+.player-extra-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+ -webkit-appearance:none;appearance:none;border:none;background:none;padding:0;cursor:pointer}
+.player-extra:focus-within{border-radius:12px;outline:2px solid var(--teal);outline-offset:4px}
+
+/* ============================================================================
+   Перенос темы листа на остальные экраны слушателя. Видео, истории, настройки
+   и читалка наследуют шапку, панель, палитру и спокойные поверхности раздела
+   подкастов: одна система, а не четыре похожих. Списки остаются на месте.
+   ========================================================================== */
+/* Заголовок раздела — тот же узкий гротеск, что и «Ближе к голосу.»; градиент
+   поперёк текста убран, на листе его нет. */
+.listener-main .page-heading{flex-direction:column;align-items:flex-start;gap:4px;margin:2px 0 14px}
+.listener-main .page-heading h1{font-family:var(--tt-editorial);font-weight:500;
+ font-size:clamp(28px,8vw,38px);line-height:1.08;letter-spacing:-.01em;background:none;color:#f4f3f1;
+ -webkit-text-fill-color:currentColor;width:auto;max-width:100%}
+.listener-main .heading-description{margin:2px 0 0;font-size:13px;line-height:1.45;color:var(--muted);max-width:34ch}
+
+/* Спокойные поверхности: одна рамка, один радиус, один фон на все карточки. */
+.listener-main .post-card{border-radius:18px}
+.listener-main .settings-panel{border-radius:18px;padding:20px 18px}
+.listener-main .settings-panel h2{font-size:18px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+.listener-main .settings-panel p{font-size:14px;line-height:1.55;color:var(--muted);margin-bottom:16px}
+.listener-main .settings-panel small{font-size:12px;line-height:1.6;color:#7c8285;margin-top:14px}
+.listener-main .section-icon{margin-bottom:12px}
+.listener-main .panel-title{font-size:18px;font-weight:700}
+
+/* Подвал прижат к низу экрана, а не подпирает короткий список. */
+.listener-main{display:flex;flex-direction:column}
+.listener-main .content-footer{margin-top:auto}
+
+/* Читалка — редакционный текст: заголовок тем же serif, что и названия
+   выпусков в плеере. Размер текста и сохранение позиции не трогаем. */
+.reading-dialog [data-slot=dialog-title]{font-family:var(--tt-editorial);font-weight:500;letter-spacing:-.01em}
+
+/* ============================================================================
+   Windows-студия: тот же лист, но рабочий инструмент, а не растянутый телефон.
+   Боковая навигация и рабочая зона остаются на месте; меняются только
+   поверхности и типографика. Serif — на редакционных заголовках, цифры
+   уровней и настройки звука остаются моноширинными и мелкими.
+   ========================================================================== */
+.main-content:not(.listener-main) .page-heading h1{font-family:var(--tt-editorial);font-weight:500;
+ letter-spacing:-.01em;line-height:1.1}
+.main-content:not(.listener-main) .page-heading h1 .accent{color:var(--teal)}
+.live-card h2,.setup-card h1{font-family:var(--tt-editorial);font-weight:500;letter-spacing:-.01em}
+
+/* Спокойные поверхности вместо трёх разных серых. */
+.recorder-panel,.quick-story,.pilot-note,.draft-bar,.library-tiles>button{
+ background:var(--surface);border-color:var(--line);border-radius:16px}
+.live-card{background:linear-gradient(150deg,#16211f,var(--surface) 62%);border-color:var(--line);border-radius:16px}
+.settings-panel{background:var(--surface);border-color:var(--line);border-radius:16px}
+.record-device-area,.recorder-bottom{background:var(--surface-2);border-color:var(--line)}
+.panel-heading{border-bottom-color:var(--line)}
+.session-status,.broadcast-summary{background:var(--surface-2);border-color:var(--line);border-radius:14px}
+.live-main-panel{background:var(--surface);border-color:var(--line);border-radius:18px}
+.icon-button,.secondary-button{border-color:var(--line-strong);background:var(--surface-2)}
+.empty-state{background:var(--surface);border-color:var(--line-strong)}
+.post-card{background:var(--surface);border-color:var(--line);border-radius:16px}
+/* Цифры и метки звука — по-прежнему техника: моноширинные и негромкие. */
+.record-time,.peak-row strong,.meter-labels,.mono-label,.gain-control strong{font-family:ui-monospace,Consolas,monospace}
+
+/* Донат виден на главной и во время эфира даже без настроенных площадок:
+   это правило проекта. Без ссылки строка не притворяется кнопкой и честно
+   говорит, что поддержку пока не подключили. */
+.support-strip.is-empty{cursor:default;opacity:.72}
+.support-strip.is-empty .support-strip-label{color:var(--muted)}
+.live-stage-hint{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted);text-align:center;max-width:34ch}
+
+/* Метка «новое» на плитке раздела: кадр показывает одну публикацию, и без
+   неё человек не узнаёт, что вышло что-то ещё. */
+.section-tile-copy .section-tile-new{display:inline-block;align-self:flex-start;margin-top:5px;
+ padding:3px 9px;border-radius:999px;line-height:1.1;-webkit-line-clamp:none;overflow:visible;
+ background:var(--teal);color:#08201E;font-size:11px;font-weight:700;letter-spacing:.02em;
+ text-transform:none;white-space:nowrap}
+/* Строка поддержки без приписки: остаются знак, слово и стрелка. */
+.support-strip-label{flex:1}

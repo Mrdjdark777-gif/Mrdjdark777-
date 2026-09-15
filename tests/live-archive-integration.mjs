@@ -10,11 +10,11 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,seconds=30){const end=Date.now()+seconds*1000;while(Date.now()<end){const result=await fn();if(result)return result;await delay(200);}throw new Error('Timed out; worker: '+logs);}
 try{
  execFileSync('npx',['drizzle-kit','migrate'],{stdio:'pipe'});
- const outfile=path.join(dir,'routes.mjs');await build({stdin:{contents:`export * as live from '${root}/app/api/live/route.ts';export * as stream from '${root}/app/api/live-stream/route.ts';export * as auth from '${root}/lib/auth.ts';export {getDb} from '${root}/db';`,resolveDir:root},outfile,bundle:true,format:'esm',platform:'node',packages:'external'});
- const {live,stream,auth,getDb}=await import(outfile),db=getDb().$client;
+ const outfile=path.join(dir,'routes.mjs');await build({stdin:{contents:`export * as live from '${root}/app/api/live/route.ts';export * as stream from '${root}/app/api/live-stream/route.ts';export * as peaks from '${root}/app/api/peaks/route.ts';export * as auth from '${root}/lib/auth.ts';export {getDb} from '${root}/db';`,resolveDir:root},outfile,bundle:true,format:'esm',platform:'node',packages:'external'});
+ const {live,stream,peaks,auth,getDb}=await import(outfile),db=getDb().$client;
  const origin='https://true-thrills.test',cookie=auth.createSessionCookie(new Request(origin)).split(';')[0];
  const sessionReq=new Request(origin,{headers:{cookie}});db.prepare('INSERT INTO settings VALUES(?,?)').run('owner',auth.sessionUserId(sessionReq));
- const call=async(route,method,body,query='',authorized=true)=>route[method](new Request(origin+'/api/'+(route===live?'live':'live-stream')+query,{method,headers:{host:'true-thrills.test',origin,...(authorized?{cookie}:{}),'content-type':body instanceof Buffer?'audio/webm':'application/json'},...(body!==undefined?{body:body instanceof Buffer?body:JSON.stringify(body)}:{})}));
+ const call=async(route,method,body,query='',authorized=true)=>route[method](new Request(origin+'/api/'+(route===live?'live':route===peaks?'peaks':'live-stream')+query,{method,headers:{host:'true-thrills.test',origin,...(authorized?{cookie}:{}),'content-type':body instanceof Buffer?'audio/webm':'application/json'},...(body!==undefined?{body:body instanceof Buffer?body:JSON.stringify(body)}:{})}));
  assert.equal((await call(live,'POST',{action:'start',title:'No worker',transport:'hls'})).status,400);
  worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env:process.env});worker.stderr.on('data',b=>logs+=b);worker.stdout.on('data',b=>logs+=b);
  await until(async()=>{try{return JSON.parse(await readFile(path.join(process.env.LIVE_DIR,'worker.json'),'utf8')).at;}catch{return false;}});
@@ -25,7 +25,9 @@ try{
  await mkdir(path.join(process.env.STORAGE_DIR,'cover'),{recursive:true});
  await writeFile(path.join(process.env.STORAGE_DIR,coverKey),coverBytes);
  await writeFile(path.join(process.env.STORAGE_DIR,coverKey+'.meta.json'),JSON.stringify({contentType:'image/png',customMetadata:{owner:auth.sessionUserId(sessionReq)},size:coverBytes.length,etag:'test-cover'}));
- const fixture=path.join(dir,'sample.webm');execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','14','-c:a','libopus','-b:a','128k','-f','webm',fixture]);const bytes=await readFile(fixture);
+ // Громкость фикстуры намеренно плавает: на ровной синусоиде форма звука была
+ // бы плоской и ничего не доказывала.
+ const fixture=path.join(dir,'sample.webm');execFileSync('ffmpeg',['-v','error','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-af',"volume='0.05+0.95*abs(sin(2*PI*t/5))':eval=frame",'-t','14','-c:a','libopus','-b:a','128k','-f','webm',fixture]);const bytes=await readFile(fixture);
  const startedBefore=Date.now();
  const id=await start('Archived test',coverKey),size=24000;
  // Экран слушателя показывает, сколько эфир уже идёт. Время берётся отсюда, и
@@ -49,6 +51,24 @@ try{
  const post=db.prepare('SELECT * FROM posts WHERE id=?').get(archive.post_id);assert.equal(post.published,1);
  assert.equal(post.cover_key,coverKey,'обложка эфира должна стать обложкой выпуска');assert.ok(post.duration>=13&&post.duration<=15);assert.equal(post.kind,'podcast');
  const file=path.join(process.env.STORAGE_DIR,post.audio_key);assert.ok((await readFile(file)).length>0);assert.match(await (await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false)).text(),/#EXT-X-ENDLIST/);
+ // Форма звука: её считает этот же воркер вне запроса, уже после публикации.
+ // Пока пиков нет, API честно отвечает pending — плеер показывает спокойное
+ // состояние, а не выдуманные палочки.
+ {const early=await (await call(peaks,'GET',undefined,'?id='+post.id,false)).json();
+  assert.ok(['pending','ready'].includes(early.state),'до готовности состояние честное: '+early.state);}
+ const measured=await until(()=>{const row=db.prepare('SELECT * FROM audio_peaks WHERE audio_key=?').get(post.audio_key);if(row?.state==='error')throw new Error(row.error+' '+logs);return row?.state==='ready'?row:false;},60);
+ assert.equal(measured.peaks.length,96,'пики сведены в 96 столбиков');
+ assert.match(measured.peaks,/^[0-9a-z]+$/,'пики хранятся компактной строкой');
+ assert.ok(measured.peaks.includes('z'),'самый громкий участок упирается в потолок шкалы');
+ assert.ok(new Set(measured.peaks).size>4,'форма звука следует за громкостью, а не плоская');
+ assert.match(measured.sha256,/^[0-9a-f]{64}$/,'кэш привязан к контрольной сумме файла');
+ {const response=await call(peaks,'GET',undefined,'?id='+post.id,false);
+  assert.equal(response.headers.get('cache-control'),'no-store','готовые пики должны повторно проверять доступ');
+  const ready=await response.json();
+  assert.equal(ready.state,'ready');assert.equal(ready.peaks,measured.peaks);}
+ // Чужого и несуществующего выпуска в API нет.
+ assert.equal((await call(peaks,'GET',undefined,'?id=нет-такого',false)).status,404);
+
  // Final POST response may be lost: retry remains safe even after publication.
  const lastStart=(seq-1)*size;assert.equal((await call(stream,'POST',bytes.subarray(lastStart),'?id='+id+'&seq='+(seq-1))).status,200);
  // Force the abandoned sender timeout; the VPS must archive the received part.
@@ -59,6 +79,11 @@ try{
  // Unpublishing the generated podcast also revokes the retained HLS archive.
  db.prepare('UPDATE posts SET published=0 WHERE id=?').run(post.id);
  assert.equal((await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false)).status,404);
+ // Снятая публикация прячет и форму звука: она рассказывает о содержании файла.
+ assert.equal((await call(peaks,'GET',undefined,'?id='+post.id,false)).status,404);
+ {const privatePeaks=await call(peaks,'GET',undefined,'?id='+post.id);
+  assert.equal(privatePeaks.status,200,'автору она по-прежнему доступна');
+  assert.equal(privatePeaks.headers.get('cache-control'),'no-store','ответ владельцу нельзя сохранять в shared cache');}
  // Full backup includes live recovery fragments and the externally referenced Firebase file.
  await writeFile(path.join(dir,'.env'),'PUBLIC_SITE_URL=https://true-thrills.test\n');
  const firebase=path.join(dir,'firebase.json');await writeFile(firebase,'{"test":true}');
@@ -66,7 +91,7 @@ try{
  const backup=backupResult.split('Backup created: ')[1].trim();assert.equal(await readFile(path.join(backup,'firebase-service-account.json'),'utf8'),'{"test":true}');
  assert.ok((await readFile(path.join(backup,'live',abandoned,'chunks','000000.webm'))).length>0);
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM push_events WHERE id=?').get('post:'+id).n,1);
- console.log('PASS: real FFmpeg HLS, idempotent upload, ordered fragments, path/auth isolation, M4A duration, automatic publication, abandoned PC recovery and unpublished archive privacy');
+ console.log('PASS: real FFmpeg HLS, idempotent upload, ordered fragments, path/auth isolation, M4A duration, automatic publication, off-request waveform peaks, abandoned PC recovery and unpublished archive privacy');
 }finally{
  if(worker){worker.kill('SIGTERM');await new Promise(resolve=>{if(worker.exitCode!==null)resolve();else worker.once('exit',resolve);});}
  await rm(dir,{recursive:true,force:true});

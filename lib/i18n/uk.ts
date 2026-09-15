@@ -60,6 +60,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "donate.free": "Усе безкоштовно і залишиться безкоштовним.",
 
   "donate.action": "Підтримати True Thrills",
+  "donate.supportLive": "Підтримати ефір",
 
   "donate.boosty": "Boosty",
 
@@ -103,11 +104,11 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "player.sleep": "Таймер сну",
 
-  "player.sleepOff": "Вимкнено",
+  "player.sleepOff": "Вимк.",
 
   "player.minutes": "хв",
 
-  "home.continue": "Продовжити слухати",
+  "home.continue": "Продовжити",
 
   "home.latest": "Остання публікація",
 
@@ -142,12 +143,26 @@ export const uk: Record<keyof typeof ru, string> = {
   "nav.stories": "Історії",
 
   "nav.live": "Ефір",
+  "donate.stripNote": "Допомагаємо історіям залишатися незалежними",
+  "home.channelIntro": "Історії про людей, дику природу і про те, що справді важливо.",
+  "home.emptyTitle": "Тут з'явиться перший випуск",
+  "home.emptyNote": "Автор ще не опублікував матеріали.",
+  "home.sectionPodcasts": "Голоси з далеких місць",
+  "home.sectionVideos": "Більше, ніж аудіо",
+  "home.sectionStories": "Люди та маршрути",
+  "home.fresh": "нове",
+  "nav.library": "Бібліотека",
   "heading.homeListener": "Що вмикаємо?",
   "home.eyebrow": "True Thrills / Головна",
   "home.cardMenu": "Дії з карткою",
   "home.liveRowNone": "Зараз ефіру немає",
   "catalog.search": "Пошук за назвою та описом",
   "catalog.sortNew": "Спочатку нові",
+  "voice.headline": "Ближче до голосу",
+  "voice.kicker": "Дикі, справжні, чесні історії",
+  "voice.newEpisode": "новий епізод",
+  "catalog.allEpisodes": "Усі випуски",
+  "catalog.onlyArchive": "Записи ефірів",
   "catalog.sortOld": "Спочатку старі",
   "catalog.sortAria": "Порядок",
   "catalog.nothingFound": "Нічого не знайдено",
@@ -355,6 +370,12 @@ export const uk: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "в ефірі",
+  "live.weAreOnAir": "Ми в ефірі",
+  "live.noBroadcast": "Зараз ефіру немає",
+  "live.endedTitle": "Ефір завершено",
+  "live.stopListening": "Зупинити",
+  "live.archiveTitle": "Архів ефірів",
+  "live.archiveNote": "Минулі випуски та спеціальні записи",
 
   "live.mute": "Вимкнути звук",
 
@@ -512,6 +533,10 @@ export const uk: Record<keyof typeof ru, string> = {
   "post.publish": "Опублікувати",
 
   "post.delete": "Видалити",
+  "post.pin": "Поставити в кадр головної",
+  "post.unpin": "Прибрати з кадру",
+  "post.pinned": "Стоїть у кадрі головної",
+  "post.unpinned": "Прибрано з кадру",
 
   "post.defaultVideo": "Відео True Thrills",
 
@@ -707,6 +732,10 @@ export const uk: Record<keyof typeof ru, string> = {
   "player.aria": "Плеєр: {title}",
 
   "player.close": "Закрити плеєр",
+  "player.menu": "Меню випуску",
+  "player.sleepShort": "Таймер",
+  "player.waveformPending": "Форма звуку готується",
+  "player.next": "Далі",
 
   "player.back15": "Назад на 15 секунд",
 
@@ -903,6 +932,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "err.badStorageKey": "Неприпустимий ключ сховища",
 
   "err.notFound": "Не знайдено",
+  "err.pinDraft": "Закріпити можна лише опубліковане.",
 
   "err.liveTitle": "Вкажи назву ефіру",
 

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { LOCALE_TAGS, translate } from "@/lib/i18n";
 import { currentLocale } from "@/lib/i18n/server";
 import { LocaleProvider } from "@/components/i18n-provider";
-import { Inter } from "next/font/google";
+import { Lora, Manrope, Roboto_Condensed } from "next/font/google";
 import "./globals.css";
 
 // viewport-fit=cover makes the browser report real safe-area insets, which the
@@ -14,14 +14,33 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Один шрифт на весь интерфейс и на все языки. Подмножества latin-ext и
-// cyrillic обязательны: без них итальянские акценты или русский текст
-// подставились бы системным шрифтом, и приложение выглядело бы по-разному
-// на разных телефонах. Inter — переменный, поэтому все насыщенности от
-// обычной до чёрной приходят одним файлом.
-const uiFont = Inter({
+// Три роли шрифта из утверждённого листа: спокойный интерфейс, серьёзный serif
+// на фотографических экранах и плотный узкий гротеск в «Голосе». Различие
+// намеренное — сводить всё к одному шрифту нельзя.
+//
+// У всех трёх обязательны подмножества latin-ext и cyrillic: без них румынские
+// ș и ț или русский текст подставились бы системным шрифтом, и приложение
+// выглядело бы по-разному на разных телефонах. Все три под SIL Open Font
+// License, файлы раздаёт сам сервер через next/font — внешних загрузок во
+// время работы нет.
+const uiFont = Manrope({
   subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-display",
+  display: "swap",
+});
+
+// Serif для названий выпусков на фотографических экранах. ТЗ допускало Prata,
+// но у неё нет latin-ext: румынские ș и ț выпали бы из заголовка. Lora покрывает
+// все четыре языка — проверка языков и решила выбор.
+const editorialFont = Lora({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  variable: "--font-editorial",
+  display: "swap",
+});
+
+const condensedFont = Roboto_Condensed({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  variable: "--font-condensed",
   display: "swap",
 });
 
@@ -48,7 +67,7 @@ export default async function RootLayout({
 }>) {
   const locale = await currentLocale();
   return (
-    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable}`}>
+    <html lang={LOCALE_TAGS[locale]} className={`dark ${uiFont.variable} ${editorialFont.variable} ${condensedFont.variable}`}>
       <body className="antialiased">
         <div aria-hidden className="app-aurora">
           <span className="tt-blob-1" />

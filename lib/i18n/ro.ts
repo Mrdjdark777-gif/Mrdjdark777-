@@ -60,6 +60,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "donate.free": "Totul e gratuit și va rămâne gratuit.",
 
   "donate.action": "Susține True Thrills",
+  "donate.supportLive": "Susține transmisiunea",
 
   "donate.boosty": "Boosty",
 
@@ -107,7 +108,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "player.minutes": "min",
 
-  "home.continue": "Continuă să asculți",
+  "home.continue": "Continuă",
 
   "home.latest": "Ultima publicare",
 
@@ -142,12 +143,26 @@ export const ro: Record<keyof typeof ru, string> = {
   "nav.stories": "Povești",
 
   "nav.live": "Live",
+  "donate.stripNote": "Ajutăm poveștile să rămână independente",
+  "home.channelIntro": "Povești despre oameni, natură sălbatică și despre ce contează cu adevărat.",
+  "home.emptyTitle": "Aici va apărea primul episod",
+  "home.emptyNote": "Autorul nu a publicat încă nimic.",
+  "home.sectionPodcasts": "Voci din locuri îndepărtate",
+  "home.sectionVideos": "Mai mult decât audio",
+  "home.sectionStories": "Oameni și trasee",
+  "home.fresh": "nou",
+  "nav.library": "Bibliotecă",
   "heading.homeListener": "Ce ascultăm?",
   "home.eyebrow": "True Thrills / Acasă",
   "home.cardMenu": "Acțiuni pentru card",
   "home.liveRowNone": "Nicio emisiune acum",
   "catalog.search": "Caută după titlu și descriere",
   "catalog.sortNew": "Întâi cele noi",
+  "voice.headline": "Mai aproape de voce",
+  "voice.kicker": "Povești sălbatice, reale, oneste",
+  "voice.newEpisode": "episod nou",
+  "catalog.allEpisodes": "Toate episoadele",
+  "catalog.onlyArchive": "Înregistrări live",
   "catalog.sortOld": "Întâi cele vechi",
   "catalog.sortAria": "Ordine",
   "catalog.nothingFound": "Nimic găsit",
@@ -355,6 +370,12 @@ export const ro: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "în direct",
+  "live.weAreOnAir": "Suntem în direct",
+  "live.noBroadcast": "Nicio transmisiune acum",
+  "live.endedTitle": "Transmisiune încheiată",
+  "live.stopListening": "Oprește",
+  "live.archiveTitle": "Arhiva transmisiunilor",
+  "live.archiveNote": "Episoade trecute și înregistrări speciale",
 
   "live.mute": "Oprește sunetul",
 
@@ -512,6 +533,10 @@ export const ro: Record<keyof typeof ru, string> = {
   "post.publish": "Publică",
 
   "post.delete": "Șterge",
+  "post.pin": "Pune în prim-plan",
+  "post.unpin": "Scoate din prim-plan",
+  "post.pinned": "Este în prim-planul paginii",
+  "post.unpinned": "Scos din prim-plan",
 
   "post.defaultVideo": "Video True Thrills",
 
@@ -707,6 +732,10 @@ export const ro: Record<keyof typeof ru, string> = {
   "player.aria": "Player: {title}",
 
   "player.close": "Închide playerul",
+  "player.menu": "Meniul episodului",
+  "player.sleepShort": "Cronometru",
+  "player.waveformPending": "Forma de undă se pregătește",
+  "player.next": "Următorul",
 
   "player.back15": "Înapoi 15 secunde",
 
@@ -903,6 +932,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "err.badStorageKey": "Cheie de stocare nepermisă",
 
   "err.notFound": "Nu a fost găsit",
+  "err.pinDraft": "Poate fi fixat doar ce este publicat.",
 
   "err.liveTitle": "Scrie titlul emisiunii",
 
