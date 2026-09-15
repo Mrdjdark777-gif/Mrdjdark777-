@@ -116,6 +116,22 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);await page.locator('.podcast-player').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(300);await shot(page,'player');
+ // Плеер открывается поверх главной: за ним не должно просвечивать ничего.
+ // Владелец увидел на телефоне два кадра одной фотографии — верх от плеера,
+ // низ от главной под ним.
+ await page.goto(base+'/?mode=listen');await settle(page);
+ await page.locator('.scene-action').click();await page.locator('.podcast-player.is-open').waitFor();
+ await page.waitForTimeout(400);
+ {const bg=await page.locator('.podcast-player.is-open').evaluate(el=>getComputedStyle(el).backgroundColor);
+  const seen=await page.evaluate(()=>{const p=document.querySelector('.podcast-player.is-open');const r=p.getBoundingClientRect();
+   const x=Math.round(r.width/2),y=Math.round(r.height*0.8);
+   const el=document.elementFromPoint(x,y);
+   return {tag:el?.tagName,cls:el?.className?.toString?.().slice(0,60),inPlayer:!!el?.closest('.podcast-player')};});
+  console.log('ФОН ПЛЕЕРА:',bg,JSON.stringify(seen));
+  assert.notEqual(bg,'rgba(0, 0, 0, 0)','плеер не прозрачен');
+  assert.equal(seen.inPlayer,true,'под плеером не видно главную');}
+ await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());
+
  // Типографический плеер: выпуск без обложки. Форма звука здесь в спокойном
  // состоянии — пики считает воркер эфира, которого в этой проверке нет.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);await page.locator('.podcast-player.is-type').waitFor();
@@ -220,6 +236,16 @@ try{
  await fresh.close();
  // Студия автора на широком экране.
  const desk=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});await desk.addCookies([{name:cookie.split('=')[0],value:cookie.split('=').slice(1).join('='),url:base}]);
+ // Панель автора: шесть пунктов против пяти у слушателя. Раньше сетка была
+ // жёстко на пять колонок, и шестая кнопка уезжала во второй ряд.
+ // На широком экране панель автора становится боковой колонкой — проверяем
+ // именно телефонную ширину, где она нижняя.
+ {const nav=await desk.newPage();await nav.setViewportSize({width:390,height:844});await nav.goto(base+'/');await settle(nav);
+  const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+   return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size};});
+  assert.ok(rows.count>=6,'у автора шесть пунктов панели');
+  assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
+  await nav.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.locator('.bottom-nav-item').nth(1).click();await studio.waitForTimeout(400);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
  const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);

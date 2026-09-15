@@ -83,15 +83,16 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
 
-  {resume&&<button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
-   <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
-   <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span><ChevronRight size={18}/>
-  </button>}
-
-  {live&&<button type="button" className="live-strip tt-pressable" onClick={()=>{haptic();onOpenLive();}}>
+  {/* Под кадром — одна строка, а не стопка. Идёт эфир — он и стоит здесь, он
+      важнее и заканчивается; нет эфира — строка «Продолжить». Раньше сюда
+      сходились обе сразу, и экран превращался в лестницу из плашек. */}
+  {live?<button type="button" className="live-strip tt-pressable" onClick={()=>{haptic();onOpenLive();}}>
    <span className="live-dot" aria-hidden="true"/><span className="live-strip-copy"><strong>{live.title}</strong><span>{t('live.authorOnAir')}</span></span>
    <span className="live-strip-action">{liveAction}<ChevronRight size={17}/></span>
-  </button>}
+  </button>:resume?<button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
+   <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
+   <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span><ChevronRight size={18}/>
+  </button>:null}
 
   <div className="section-tiles">
    {sections.map(s=>{const Icon=ICON[s.kind],cover=tileCover(s.kind);
