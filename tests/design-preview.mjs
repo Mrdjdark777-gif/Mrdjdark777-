@@ -260,9 +260,11 @@ try{
   assert.equal(home.at,Math.floor(home.count/2),'главная стоит ровно посередине панели');
   assert.ok(home.markW>=home.otherW+8,'знак главной заметно крупнее соседних значков');
   await nav.close();}
- // Окно EXE — 1280×880. Настроек немного, и владелец просил, чтобы ни одна
- // вкладка студии не требовала прокрутки на этом размере.
- {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:880});
+ // Окно EXE просит под страницу 1280×880, но на мониторе с масштабом 125%
+ // рабочий стол 1080p столько не отдаёт, и окно подрезается примерно до 780
+ // CSS-пикселей по высоте. Меряем по этому худшему случаю: владелец просил,
+ // чтобы ни одна вкладка студии не требовала прокрутки.
+ {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:780});
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
    const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth}));
@@ -284,5 +286,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно 1280×880 без прокрутки');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно 1280×780 без прокрутки');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

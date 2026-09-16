@@ -109,6 +109,20 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
  HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
+ // 1280×880 — это размер страницы, а не рамки: заголовок, рамка и строка меню
+ // забирали около семидесяти пикселей высоты, и вкладки, размеченные под 880,
+ // в настоящем окне требовали прокрутки. AdjustWindowRectEx возвращает рамку
+ // поверх клиентской области, и страница получает ровно ту высоту, под
+ // которую свёрстана. Масштаб экрана учитывается тоже: при 125% те же 1280
+ // CSS-пикселей занимают 1600 физических.
+ HDC screen=GetDC(nullptr);const int dpi=screen?GetDeviceCaps(screen,LOGPIXELSX):96;if(screen)ReleaseDC(nullptr,screen);
+ RECT want={0,0,MulDiv(1280,dpi,96),MulDiv(880,dpi,96)};AdjustWindowRectEx(&want,WS_OVERLAPPEDWINDOW,TRUE,0);
+ int frameW=want.right-want.left,frameH=want.bottom-want.top;
+ // Не больше рабочего стола: на ноутбуке с крупным масштабом окно иначе уходит
+ // под панель задач, и нижний край страницы становится недосягаем.
+ RECT work={0,0,0,0};if(SystemParametersInfoW(SPI_GETWORKAREA,0,&work,0)){
+  const int maxW=work.right-work.left,maxH=work.bottom-work.top;
+  if(maxW>0&&frameW>maxW)frameW=maxW;if(maxH>0&&frameH>maxH)frameH=maxH;}
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,frameW,frameH,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }
