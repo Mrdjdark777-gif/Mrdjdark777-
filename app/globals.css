@@ -1123,7 +1123,15 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 /* Главная студии: библиотека и настройки делят один ряд, а не идут друг за
    другом — тогда экран закрывается целиком. */
 @media(min-width:1100px){
- .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+ .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px;gap:18px}
+ /* Карточки настроек на шаг крупнее внутри: заголовок, текст и поля. */
+ .main-content:not(.listener-main) .settings-panel{padding:24px 26px}
+ .main-content:not(.listener-main) .settings-panel h2{font-size:21px;margin-bottom:9px}
+ .main-content:not(.listener-main) .settings-panel p{font-size:14px;line-height:1.55}
+ .main-content:not(.listener-main) .settings-panel small{font-size:12.5px}
+ .main-content:not(.listener-main) .section-icon{width:26px;height:26px;margin-bottom:14px}
+ .main-content:not(.listener-main) .field{font-size:13.5px}
+ .main-content:not(.listener-main) input{padding:10px 12px;font-size:14px}
  .main-content:not(.listener-main) .library-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
  /* Верхний ряд действий по ширине совпадает с рядами под ним: ограничение
     в 780px делало его заметно уже и прижимало влево. */
@@ -1275,3 +1283,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
    высоту панели и выравниваются внутри себя. */
 .bottom-nav{align-items:stretch}
 .bottom-nav-item{justify-content:center}
+
+/* Большой монитор: колонка студии шире, иначе карточки настроек упираются
+   в предел 1280px и не используют экран. */
+@media(min-width:1600px){.main-content:not(.listener-main){max-width:1700px}}
