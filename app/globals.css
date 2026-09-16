@@ -1063,7 +1063,7 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 
 /* Экраны студии помещаются целиком: настроек немного, прокручивать нечего.
    Панели идут в две колонки и не растягиваются по высоте под соседа. */
-.main-content:not(.listener-main){max-width:1280px;padding-bottom:20px}
+.main-content:not(.listener-main){max-width:1600px;padding-bottom:20px}
 .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;gap:14px;margin-top:22px}
 .main-content:not(.listener-main) .settings-panel{padding:18px}
 .main-content:not(.listener-main) .settings-panel h2{font-size:17px;margin-bottom:6px}

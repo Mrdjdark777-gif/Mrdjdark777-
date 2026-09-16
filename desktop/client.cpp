@@ -60,28 +60,10 @@ class NavigationDone:public Callback<ICoreWebView2NavigationCompletedEventHandle
 class ProcessFailed:public Callback<ICoreWebView2ProcessFailedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2ProcessFailedEventArgs*) override{activity(false);fail(L"Окно приложения потеряло соединение с WebView2. Если шла запись, проверь сохранённый черновик после перезапуска.");return S_OK;}
 };
-// Страница свёрстана под 1280×780 CSS-пикселей, но окно бывает любым: его
-// разворачивают на весь монитор, растягивают, у мониторов разный масштаб.
-// Приложение объявлено DPI-aware, поэтому WebView2 рисует один CSS-пиксель в
-// один физический и сам ничего не подгоняет — в большом окне интерфейс выходил
-// физически мелким, а содержимое висело в углу пустого окна.
-//
-// Считаем, во сколько раз окно больше расчётного по ширине и по высоте, и
-// берём МЕНЬШЕЕ из двух: по большему страница не влезла бы в высоту и появилась
-// бы прокрутка. Ровно на 1280×880 множитель равен единице, и ничего не меняется.
-static void fitZoom(){
- if(!controller)return;
- RECT r;GetClientRect(windowHandle,&r);
- const double w=r.right-r.left,h=r.bottom-r.top;
- if(w<=0||h<=0)return;
- double zoom=w/1280.0;const double byHeight=h/780.0;if(byHeight<zoom)zoom=byHeight;
- if(zoom<0.5)zoom=0.5;if(zoom>3.0)zoom=3.0;
- controller->put_ZoomFactor(zoom);
-}
 class ControllerReady:public Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(HRESULT hr,ICoreWebView2Controller* c) override{
   if(FAILED(hr)||!c){fail(L"Не удалось запустить окно True Thrills. Обнови Microsoft Edge WebView2 Runtime и перезапусти приложение.");return S_OK;}
-  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);fitZoom();
+  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);
   ICoreWebView2Settings* settings=nullptr;if(SUCCEEDED(webview->get_Settings(&settings))){settings->put_IsWebMessageEnabled(TRUE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->Release();}
   EventRegistrationToken token;
   auto permission=new Permission();webview->add_PermissionRequested(permission,&token);permission->Release();
@@ -109,7 +91,7 @@ static void initialize(){
 }
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
  switch(message){
-  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);fitZoom();}return 0;
+  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);}return 0;
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
   case WM_COMMAND:switch(LOWORD(w)){

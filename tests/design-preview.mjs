@@ -270,7 +270,7 @@ try{
  // 1264×813 — столько страницы остаётся внутри окна 1280×880: заголовок,
  // рамка и строка меню съедают своё. 1280×780 — запас вниз. 1600×1100 —
  // окно, растянутое или развёрнутое вручную: прокрутки быть не должно и там.
- for(const box of [{width:1264,height:813},{width:1280,height:780},{width:1600,height:1100}])
+ for(const box of [{width:1264,height:813},{width:1280,height:780},{width:2560,height:1300}])
  {const fit=await desk.newPage();await fit.setViewportSize(box);
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
@@ -295,5 +295,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно приложения 1264×813, в запас 1280×780 и в растянутое 1600×1100');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно приложения 1264×813, в запас 1280×780 и и в развёрнутое на весь монитор 2560×1300');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
