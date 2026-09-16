@@ -60,10 +60,28 @@ class NavigationDone:public Callback<ICoreWebView2NavigationCompletedEventHandle
 class ProcessFailed:public Callback<ICoreWebView2ProcessFailedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2ProcessFailedEventArgs*) override{activity(false);fail(L"Окно приложения потеряло соединение с WebView2. Если шла запись, проверь сохранённый черновик после перезапуска.");return S_OK;}
 };
+// Страница свёрстана под 1280×780 CSS-пикселей, но окно бывает любым: его
+// разворачивают на весь монитор, растягивают, у мониторов разный масштаб.
+// Приложение объявлено DPI-aware, поэтому WebView2 рисует один CSS-пиксель в
+// один физический и сам ничего не подгоняет — в большом окне интерфейс выходил
+// физически мелким, а содержимое висело в углу пустого окна.
+//
+// Считаем, во сколько раз окно больше расчётного по ширине и по высоте, и
+// берём МЕНЬШЕЕ из двух: по большему страница не влезла бы в высоту и появилась
+// бы прокрутка. Ровно на 1280×880 множитель равен единице, и ничего не меняется.
+static void fitZoom(){
+ if(!controller)return;
+ RECT r;GetClientRect(windowHandle,&r);
+ const double w=r.right-r.left,h=r.bottom-r.top;
+ if(w<=0||h<=0)return;
+ double zoom=w/1280.0;const double byHeight=h/780.0;if(byHeight<zoom)zoom=byHeight;
+ if(zoom<0.5)zoom=0.5;if(zoom>3.0)zoom=3.0;
+ controller->put_ZoomFactor(zoom);
+}
 class ControllerReady:public Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(HRESULT hr,ICoreWebView2Controller* c) override{
   if(FAILED(hr)||!c){fail(L"Не удалось запустить окно True Thrills. Обнови Microsoft Edge WebView2 Runtime и перезапусти приложение.");return S_OK;}
-  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);
+  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);fitZoom();
   ICoreWebView2Settings* settings=nullptr;if(SUCCEEDED(webview->get_Settings(&settings))){settings->put_IsWebMessageEnabled(TRUE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->Release();}
   EventRegistrationToken token;
   auto permission=new Permission();webview->add_PermissionRequested(permission,&token);permission->Release();
@@ -91,7 +109,7 @@ static void initialize(){
 }
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
  switch(message){
-  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);}return 0;
+  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);fitZoom();}return 0;
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
   case WM_COMMAND:switch(LOWORD(w)){
@@ -109,6 +127,6 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
  HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show==SW_SHOWMAXIMIZED||show==SW_MAXIMIZE?SW_SHOWNORMAL:show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }
