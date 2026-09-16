@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {draftFile,errorText} from '@/lib/client';
 import {prepareAudioFile} from '@/lib/prepare-audio';
 import {discoverMicrophones} from '@/lib/device-discovery';
-import {captureSettingsKey,parseCaptureSettings,type CaptureSettings} from '@/lib/capture-settings';
+import {captureSettingsKey,channelForMode,parseCaptureSettings,type CaptureSettings} from '@/lib/capture-settings';
 import {captureGraph} from '@/lib/capture-graph';
 import {t} from '@/lib/i18n/runtime';
 export function useCapture(){
@@ -54,7 +54,7 @@ export function useCapture(){
  // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydrate capture preferences from browser storage after SSR.
  useEffect(()=>{let raw:string|null=null;try{raw=localStorage.getItem(captureSettingsKey);}catch{}const saved=parseCaptureSettings(raw);setMode(saved.mode);setDevice(saved.device);setChannel(saved.channel);setGainDb(saved.gainDb);setLowCut(saved.lowCut);setSettingsLoaded(true);},[]);
  useEffect(()=>{if(settingsLoaded){try{localStorage.setItem(captureSettingsKey,JSON.stringify({mode,device,channel,gainDb,lowCut}));}catch{}}},[settingsLoaded,mode,device,channel,gainDb,lowCut]);
- function changeMode(value:CaptureSettings['mode']){release();setMode(value);setChannel(value==='daw'?'stereo':'0');setGainDb(0);setLowCut(false);setMuted(false);}
+ function changeMode(value:CaptureSettings['mode']){release();setMode(value);setChannel(channelForMode(value));setGainDb(0);setLowCut(false);setMuted(false);}
  useEffect(()=>{if(gain.current&&ctx.current)gain.current.gain.setTargetAtTime(muted?0:Math.pow(10,gainDb/20),ctx.current.currentTime,0.02);},[gainDb,muted]);
  useEffect(()=>{if(filter.current)filter.current.type=lowCut?'highpass':'allpass';},[lowCut]);
  async function accept(b:Blob){
