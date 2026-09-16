@@ -240,7 +240,9 @@ try{
  // На широком экране панель автора становится боковой колонкой — проверяем
  // именно телефонную ширину, где она нижняя.
  {const nav=await desk.newPage();await nav.setViewportSize({width:390,height:844});await nav.goto(base+'/');await settle(nav);
-  const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+  // Считаем только видимые пункты: настройки — кнопка боковой панели на ПК,
+  // на телефоне она скрыта и позиции в ряду не занимает.
+  const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')].filter(el=>el.offsetParent!==null);
    return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size,
     labels:items.map(el=>el.textContent.trim())};});
   assert.ok(rows.count>=5,'панель автора не потеряла пункты');
@@ -249,7 +251,7 @@ try{
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
   // Главная стоит по центру панели и несёт знак канала: до неё чаще всего
   // тянутся большим пальцем, и она должна быть заметно крупнее соседей.
-  const home=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+  const home=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')].filter(el=>el.offsetParent!==null);
    const at=items.findIndex(el=>el.classList.contains('bottom-nav-home'));
    const mark=document.querySelector('.bottom-nav-home .nav-brand-mark');
    const other=items.find(el=>!el.classList.contains('bottom-nav-home'))?.querySelector('svg');
@@ -258,15 +260,28 @@ try{
   assert.equal(home.at,Math.floor(home.count/2),'главная стоит ровно посередине панели');
   assert.ok(home.markW>=home.otherW+8,'знак главной заметно крупнее соседних значков');
   await nav.close();}
- // Окно EXE — 1280×880. Настроек немного, и владелец просил, чтобы ни одна
- // вкладка студии не требовала прокрутки на этом размере.
+ // Окно EXE — 1280×880. Требование «ни одна вкладка не прокручивается»
+ // владелец снял в пользу более крупных элементов: знак канала и кнопки
+ // боковой панели важнее пары вкладок, которые теперь чуть длиннее окна.
+ // Поэтому здесь проверяется то, что он попросил вместо этого: размеры
+ // органов управления и отсутствие переполнения по ширине. Высота каждой
+ // вкладки печатается — чтобы видеть цену, а не догадываться о ней.
  {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:880});
+  const tall=[];
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
-   const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth}));
-   if(m.h>m.inner+2)problems.push('студия '+v+': прокрутка '+m.h+'>'+m.inner);
+   const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth,
+    markW:Math.round(document.querySelector('.top-header-brand img')?.getBoundingClientRect().width||0),
+    navW:Math.round(document.querySelector('.bottom-nav')?.getBoundingClientRect().width||0),
+    settings:!!document.querySelector('.bottom-nav-settings')?.getBoundingClientRect().height}));
    if(m.w>m.iw+1)problems.push('студия '+v+': переполнение по ширине');
+   if(m.markW<72)problems.push('студия '+v+': знак канала мельче 72px ('+m.markW+')');
+   if(m.navW<100)problems.push('студия '+v+': боковая панель уже 100px ('+m.navW+')');
+   if(!m.settings)problems.push('студия '+v+': в боковой панели нет кнопки настроек');
+   if(m.h>m.inner+2)tall.push(v+' '+m.h);
+   await fit.screenshot({path:'outputs/ui/design-pc-'+v+'.png'});
   }
+  if(tall.length)console.log('Длиннее окна 880:',tall.join(', '));
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
@@ -274,5 +289,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно 1280×880 без прокрутки');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; знак канала, боковая панель и кнопка настроек в студии нужного размера');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

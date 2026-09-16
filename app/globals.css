@@ -464,6 +464,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .bottom-nav-item[data-active=true] svg{background:none;box-shadow:none}
 .bottom-nav-item span{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .bottom-nav-dot{top:7px;right:calc(50% - 16px)}
+.bottom-nav-settings{display:none}
 @media(min-width:640px){.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px));border-radius:22px;border-top:1px solid var(--line)}}
 /* Разделы: поиск и порядок. */
 .catalog-tools{display:grid;gap:12px;margin:0 0 16px}
@@ -599,10 +600,12 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Студия автора: боковая панель и акцент в заголовке на широком экране. */
 .page-heading h1 .accent{background:linear-gradient(90deg,#8FEFE8,#54D9C6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .is-author .main-content{padding-bottom:calc(var(--bottom-nav-h) + 36px)}
-@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:22px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:72px;display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:22px}
-.is-author .bottom-nav-item{padding:10px 2px;min-height:56px}
-.is-author .bottom-nav-item span{font-size:10px}
-.is-author .main-content{padding-left:130px;padding-right:44px;padding-bottom:36px}
+@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:104px;display:flex;flex-direction:column;gap:6px;padding:12px 10px;border-radius:26px}
+.is-author .bottom-nav-item{padding:12px 4px;min-height:76px;gap:7px}
+.is-author .bottom-nav-item svg{width:26px;height:26px}
+.is-author .bottom-nav-item span{font-size:12px}
+.is-author .bottom-nav-settings{display:flex}
+.is-author .main-content{padding-left:160px;padding-right:44px;padding-bottom:36px}
 .is-author .recorder-panel,.is-author .live-card,.is-author .quick-story,.is-author .library-tiles>button,.is-author .draft-bar{border-radius:20px;background:var(--surface);border-color:var(--line)}
 .is-author .recorder-bottom,.is-author .record-device-area{background:#171b1d}
 .is-author .live-card .secondary-button{border-radius:12px}
@@ -1078,9 +1081,9 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 
 /* Плотная раскладка студии: окно EXE 1280×880, и ни одна вкладка не должна
    требовать прокрутки — настроек и списков тут немного. */
-body:has(.main-content:not(.listener-main)) .top-header{padding-top:12px;padding-bottom:4px}
-body:has(.main-content:not(.listener-main)) .top-header-brand img{width:48px;height:48px}
-body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap:6px}
+body:has(.main-content:not(.listener-main)) .top-header{padding-top:16px;padding-bottom:8px}
+body:has(.main-content:not(.listener-main)) .top-header-brand img{width:76px;height:76px}
+body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:25px;gap:10px}
 .main-content:not(.listener-main){padding-top:16px}
 .main-content:not(.listener-main) .page-heading{margin-bottom:14px}
 .main-content:not(.listener-main) .page-heading h1{font-size:clamp(24px,2.2vw,32px)}
