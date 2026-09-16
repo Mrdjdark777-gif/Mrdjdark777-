@@ -1063,7 +1063,7 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 
 /* Экраны студии помещаются целиком: настроек немного, прокручивать нечего.
    Панели идут в две колонки и не растягиваются по высоте под соседа. */
-.main-content:not(.listener-main){max-width:1280px;padding-bottom:20px}
+.main-content:not(.listener-main){max-width:1500px;padding-bottom:20px}
 .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;gap:14px;margin-top:22px}
 .main-content:not(.listener-main) .settings-panel{padding:18px}
 .main-content:not(.listener-main) .settings-panel h2{font-size:17px;margin-bottom:6px}
@@ -1298,7 +1298,10 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
  .is-author .bottom-nav-settings{order:6}
  /* На ПК панель стоит сбоку, и запас под нижнюю полосу (он объявлен через
     !important для телефона) здесь только съедал высоту окна. */
- .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important}
+ .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important;
+  display:flex;flex-direction:column;justify-content:safe center}
+ /* safe center, а не просто center: если содержимое всё же окажется выше
+    окна, верх останется доступен, а не уедет за край. */
 
  /* Стекло вернулось на плитки действий и библиотеки. */
  .main-content:not(.listener-main) .home-tile,
@@ -1316,10 +1319,12 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
   border-radius:50%;background:rgba(111,231,222,.1);box-shadow:var(--glass-bevel-sm)}
 }
 
-/* Низкое окно: на мониторе с масштабом 125% рабочий стол отдаёт странице около
-   780 пикселей по высоте. Знак канала и боковая панель остаются крупными —
-   ужимается воздух между блоками, а не сами элементы. */
-@media(min-width:1024px) and (max-height:900px){
+/* Плотная студия на ПК. Раньше эти правила включались только при max-height
+   до 900 пикселей — и стоило окну оказаться выше (другой масштаб экрана,
+   растянутое или развёрнутое окно), как студия проваливалась в просторный
+   режим: мелкий текст, колонка посреди пустого окна. Теперь это просто вид
+   студии на большом экране, и от высоты окна он не зависит. */
+@media(min-width:1024px){
  body:has(.main-content:not(.listener-main)) .top-header{padding-top:8px;padding-bottom:4px}
  /* Знак и надпись встают в строку: столбиком шапка съедала 111 пикселей из
     780, и нижний край вкладки уходил под рамку окна. Сам знак остаётся

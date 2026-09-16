@@ -264,21 +264,26 @@ try{
  // рабочий стол 1080p столько не отдаёт, и окно подрезается примерно до 780
  // CSS-пикселей по высоте. Меряем по этому худшему случаю: владелец просил,
  // чтобы ни одна вкладка студии не требовала прокрутки.
- {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:780});
+ // Окно можно растянуть или развернуть, а масштаб экрана у разных мониторов
+ // свой — меряем и тесное окно, и просторное. Один раз студия уже провалилась
+ // в чужой режим вёрстки просто потому, что окно оказалось выше 900 пикселей.
+ for(const box of [{width:1280,height:780},{width:1600,height:1100}])
+ {const fit=await desk.newPage();await fit.setViewportSize(box);
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
    const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth}));
-   if(m.h>m.inner+2)problems.push('студия '+v+': прокрутка '+m.h+'>'+m.inner);
-   if(m.w>m.iw+1)problems.push('студия '+v+': переполнение по ширине');
+   const where='студия '+v+' в окне '+box.width+'×'+box.height;
+   if(m.h>m.inner+2)problems.push(where+': прокрутка '+m.h+'>'+m.inner);
+   if(m.w>m.iw+1)problems.push(where+': переполнение по ширине');
    // Знак канала и боковая панель с настройками видны на каждой вкладке.
    const rail=await fit.evaluate(()=>({mark:!!document.querySelector('.top-header-brand img')?.getBoundingClientRect().width,
     markW:Math.round(document.querySelector('.top-header-brand img')?.getBoundingClientRect().width||0),
     navW:Math.round(document.querySelector('.bottom-nav')?.getBoundingClientRect().width||0),
     settings:!!document.querySelector('.bottom-nav-settings')?.getBoundingClientRect().height}));
-   if(rail.markW<56)problems.push('студия '+v+': знак канала мельче 56px ('+rail.markW+')');
-   if(rail.navW<90)problems.push('студия '+v+': боковая панель уже 90px ('+rail.navW+')');
-   if(!rail.settings)problems.push('студия '+v+': в боковой панели нет настроек');
-   await fit.screenshot({path:'outputs/ui/design-pc-'+v+'.png'});
+   if(rail.markW<56)problems.push(where+': знак канала мельче 56px ('+rail.markW+')');
+   if(rail.navW<90)problems.push(where+': боковая панель уже 90px ('+rail.navW+')');
+   if(!rail.settings)problems.push(where+': в боковой панели нет настроек');
+   await fit.screenshot({path:'outputs/ui/design-pc-'+box.height+'-'+v+'.png'});
   }
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
@@ -287,5 +292,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии помещается в окно 1280×780 без прокрутки');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии держится и в тесном окне 1280×780, и в просторном 1600×1100');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}

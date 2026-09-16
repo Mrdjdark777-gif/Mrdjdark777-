@@ -113,13 +113,16 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  // забирали около семидесяти пикселей высоты, и вкладки, размеченные под 880,
  // в настоящем окне требовали прокрутки. AdjustWindowRectEx возвращает рамку
  // поверх клиентской области, и страница получает ровно ту высоту, под
- // которую свёрстана. Масштаб экрана учитывается тоже: при 125% те же 1280
- // CSS-пикселей занимают 1600 физических.
- HDC screen=GetDC(nullptr);const int dpi=screen?GetDeviceCaps(screen,LOGPIXELSX):96;if(screen)ReleaseDC(nullptr,screen);
- RECT want={0,0,MulDiv(1280,dpi,96),MulDiv(880,dpi,96)};AdjustWindowRectEx(&want,WS_OVERLAPPEDWINDOW,TRUE,0);
+ // которую свёрстана.
+ //
+ // Масштаб экрана здесь НЕ учитывается намеренно. Приложение объявлено
+ // DPI-aware, поэтому WebView2 рисует один CSS-пиксель в один физический и
+ // сам ничего не масштабирует. Умножение размера окна на масштаб давало
+ // 1600×1100 именно в CSS-пикселях: вёрстка уходила в просторный режим,
+ // колонка повисала посреди окна, а текст выглядел мелким.
+ RECT want={0,0,1280,880};AdjustWindowRectEx(&want,WS_OVERLAPPEDWINDOW,TRUE,0);
  int frameW=want.right-want.left,frameH=want.bottom-want.top;
- // Не больше рабочего стола: на ноутбуке с крупным масштабом окно иначе уходит
- // под панель задач, и нижний край страницы становится недосягаем.
+ // Не больше рабочего стола: иначе нижний край страницы уходит под панель задач.
  RECT work={0,0,0,0};if(SystemParametersInfoW(SPI_GETWORKAREA,0,&work,0)){
   const int maxW=work.right-work.left,maxH=work.bottom-work.top;
   if(maxW>0&&frameW>maxW)frameW=maxW;if(maxH>0&&frameH>maxH)frameH=maxH;}
