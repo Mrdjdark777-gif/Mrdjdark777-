@@ -246,6 +246,11 @@ try{
    return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size,
     labels:items.map(el=>el.textContent.trim())};});
   assert.ok(rows.count>=5,'панель автора не потеряла пункты');
+  // Металлические круги вокруг иконок держат по одному WebGL-контексту
+  // каждый. На телефоне их быть не должно: старому WebView это лишний
+  // расход, а разметка тут общая с ПК.
+  const phoneShaders=await nav.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+  assert.equal(phoneShaders,0,'на телефоне шейдерных кругов нет');
   assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
   assert.equal(rows.labels.includes('Запись'),false,'страницы записи в панели больше нет: подкасты пишутся в FL Studio');
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
@@ -280,6 +285,11 @@ try{
    if(m.markW<72)problems.push('студия '+v+': знак канала мельче 72px ('+m.markW+')');
    if(m.navW<100)problems.push('студия '+v+': боковая панель уже 100px ('+m.navW+')');
    if(!m.settings)problems.push('студия '+v+': в боковой панели нет кнопки настроек');
+   // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
+   // на вкладку, дальше самые старые гаснут.
+   const shaders=await fit.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+   if(v==='home'&&shaders<9)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 9');
+   if(shaders>12)problems.push('студия '+v+': WebGL-контекстов '+shaders+' — близко к пределу браузера');
    if(m.h>m.inner+2)tall.push(v+' '+m.h);
    // Ряды главной стоят по одной сетке: одинаковые края и, у библиотеки с
    // настройками, одинаковые колонки. Раньше верхний ряд упирался в свой

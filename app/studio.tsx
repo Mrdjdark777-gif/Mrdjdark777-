@@ -16,6 +16,8 @@ import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
+import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
+import {useWideScreen} from '@/hooks/use-wide-screen';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
 import {LiveStageView} from '@/components/studio/live-stage-view';
@@ -49,6 +51,7 @@ export default function Studio(){
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('all'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false);
+ const wide=useWideScreen();
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
@@ -188,10 +191,10 @@ export default function Studio(){
  {liveStatus&&view!=='live'&&!(view==='home'&&!author)&&<button type="button" className="onair-banner onair-notice" onClick={openLive}><span className="onair-symbol"><Radio size={25}/></span><span className="onair-copy"><span className="onair-label">{live.joined&&live.activeId===liveStatus.id&&live.listening?t('live.youAreListening'):t('live.authorOnAir')}</span><strong>{liveStatus.title}</strong></span><span className="primary-button">{author?t('live.open'):live.joined&&live.activeId===liveStatus.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}<ChevronRight size={17}/></span></button>}
  {author&&live.hosting&&view!=='live'&&<div className="host-running-note">{t('live.micOnNote')}<button onClick={()=>void stopLive()}>{t('live.stop')}</button></div>}
  {view==='home'&&author&&<div className="home-actions">
- <button className="home-tile" onClick={()=>openEditor('video')}><Video size={22}/><span>{t('home.addVideo')}</span></button>
- <button className="home-tile" onClick={()=>openEditor('story')}><BookOpen size={22}/><span>{t('home.writeStory')}</span></button>
- <button className="home-tile home-tile-live" onClick={()=>goto('live')}><Radio size={22}/><span>{t('home.startLive')}</span></button>
- <button className="home-tile" onClick={()=>void copyChannelLink()}><Share2 size={22}/><span>{t('home.shareChannel')}</span></button>
+ <button className="home-tile" onClick={()=>openEditor('video')}>{wide?<LiquidMetalButton viewMode="icon" size={52} interactive={false} icon={<Video size={22} color="#6FE7DE"/>}/>:<Video size={22}/>}<span>{t('home.addVideo')}</span></button>
+ <button className="home-tile" onClick={()=>openEditor('story')}>{wide?<LiquidMetalButton viewMode="icon" size={52} interactive={false} icon={<BookOpen size={22} color="#6FE7DE"/>}/>:<BookOpen size={22}/>}<span>{t('home.writeStory')}</span></button>
+ <button className="home-tile home-tile-live" onClick={()=>goto('live')}>{wide?<LiquidMetalButton viewMode="icon" size={52} interactive={false} icon={<Radio size={22} color="#6FE7DE"/>}/>:<Radio size={22}/>}<span>{t('home.startLive')}</span></button>
+ <button className="home-tile" onClick={()=>void copyChannelLink()}>{wide?<LiquidMetalButton viewMode="icon" size={52} interactive={false} icon={<Share2 size={22} color="#6FE7DE"/>}/>:<Share2 size={22}/>}<span>{t('home.shareChannel')}</span></button>
  </div>}
 
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
@@ -251,12 +254,12 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<Headphones size={22} color="#6FE7DE"/>}/>:<Headphones size={22}/>}<span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}>{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<Video size={22} color="#6FE7DE"/>}/>:<Video size={22}/>}<span>{t('nav.videos')}</span></button>
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
- <button className="bottom-nav-item bottom-nav-live tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
- <button className="bottom-nav-item bottom-nav-stories tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
- {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
+ <button className="bottom-nav-item bottom-nav-live tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}>{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<Radio size={22} color="#6FE7DE"/>}/>:<Radio size={22}/>}<span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
+ <button className="bottom-nav-item bottom-nav-stories tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}>{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<BookOpen size={22} color="#6FE7DE"/>}/>:<BookOpen size={22}/>}<span>{t('nav.stories')}</span></button>
+ {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}>{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<SlidersHorizontal size={22} color="#6FE7DE"/>}/>:<SlidersHorizontal size={22}/>}<span>{t('header.settings')}</span></button>}
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>
