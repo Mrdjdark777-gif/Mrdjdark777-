@@ -16,7 +16,6 @@ import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
-import {workbench} from '@/lib/studio-home';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
 import {LiveStageView} from '@/components/studio/live-stage-view';
@@ -39,7 +38,7 @@ const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 // целиком живёт на экране эфира.
 const RETIRED_VIEWS:Record<string,string>={studio:'live'};
 // Настройки автора живут на главной студии, отдельной страницы у него нет.
-const AUTHOR_RETIRED:Record<string,string>={};
+const AUTHOR_RETIRED:Record<string,string>={settings:'home'};
 // Цвета сняты пипеткой с логотипа и лежат так же, как на нём самом: закат
 // наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
 // верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
@@ -146,7 +145,6 @@ export default function Studio(){
  };});
  const visible=(data?.items??[]).filter(p=>(author||p.published===1)&&(filter==='all'||p.published===(filter==='published'?1:0)));
  const count=(kind:string)=>(data?.items??[]).filter(p=>p.kind===kind&&(author||p.published===1)).length;
- const bench=workbench(data?.items??[]);
  const inputChoice=<InputPicker capture={capture} locked={capture.recording||!!live.hosting}/>;
  // Смена вкладки сворачивает развёрнутый плеер: лист закрывал бы то, ради
  // чего человек нажал на вкладку.
@@ -199,26 +197,6 @@ export default function Studio(){
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
- {/* Настройки ушли на свою страницу: здесь они повторяли её один в один.
-     Вместо них — состояние работы: что недоделано и что последним ушло
-     к слушателям. */}
- {view==='home'&&author&&<div className="workbench">
-  <section className="work-panel">
-   <div className="work-head"><h2>{t('work.title')}</h2><span>{bench.draftCount>0?t('work.subtitle'):t('work.noDrafts')}</span></div>
-   {bench.drafts.length>0&&<ul className="work-list">{bench.drafts.map(p=><li key={p.id}><button className="work-row" onClick={()=>openEditor(p.kind as 'podcast'|'story'|'video',p)}>
-    {p.kind==='podcast'?<Headphones size={17}/>:p.kind==='video'?<Video size={17}/>:<BookOpen size={17}/>}
-    <span className="work-name">{p.title}</span><span className="work-when">{new Date(p.createdAt).toLocaleDateString(tag)}</span><Pencil size={15}/>
-   </button></li>)}</ul>}
-   {bench.draftCount>bench.drafts.length&&<button className="quiet-button work-more" onClick={()=>{setFilter('draft');setView('podcasts');}}>{t('work.allDrafts',{count:bench.draftCount})}</button>}
-  </section>
-  <section className="work-panel">
-   <div className="work-head"><h2>{t('work.latestTitle')}</h2>{bench.published.length===0&&<span>{t('work.noPublished')}</span>}</div>
-   {bench.published.length>0&&<ul className="work-list">{bench.published.map(p=><li key={p.id}><button className="work-row" onClick={()=>openPost(p)}>
-    {p.kind==='podcast'?<Headphones size={17}/>:p.kind==='video'?<Video size={17}/>:<BookOpen size={17}/>}
-    <span className="work-name">{p.title}</span><span className="work-when">{new Date(p.createdAt).toLocaleDateString(tag)}</span><ChevronRight size={15}/>
-   </button></li>)}</ul>}
-  </section>
- </div>}
  {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned}
@@ -231,7 +209,7 @@ export default function Studio(){
  {!author&&view==='podcasts'&&heartLink&&<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>}
  {!author&&<div className="catalog-tools"><label className="catalog-search"><Search size={18}/><input type="search" value={query} placeholder={t('catalog.search')} aria-label={t('catalog.search')} onChange={e=>setQuery(e.target.value)}/></label><select className="catalog-sort" aria-label={t('catalog.sortAria')} value={sort} onChange={e=>setSort(e.target.value as 'new'|'old')}><option value="new">{t('catalog.sortNew')}</option><option value="old">{t('catalog.sortOld')}</option></select>{view==='podcasts'&&<div className="catalog-scope" role="group" aria-label={t('nav.podcasts')}><button type="button" data-active={!archiveOnly} onClick={()=>{haptic();setArchiveOnly(false);}}>{t('catalog.allEpisodes')}</button><button type="button" data-active={archiveOnly} onClick={()=>{haptic();setArchiveOnly(true);}}>{t('catalog.onlyArchive')}</button></div>}</div>}
  {author&&<Tabs value={filter} onValueChange={setFilter}><TabsList className="filter-tabs"><TabsTrigger value="all">{t('filter.all')}</TabsTrigger><TabsTrigger value="published">{t('filter.published')}</TabsTrigger><TabsTrigger value="draft">{t('filter.drafts')}</TabsTrigger></TabsList></Tabs>}
- {listed.length===0?<section className="empty-state"><span className="empty-icon">{view==='podcasts'?<Headphones size={36}/>:view==='videos'?<Video size={36}/>:<BookOpen size={36}/>}</span><h2>{needle?t('catalog.nothingFound'):filter!=='all'?t('empty.sectionEmpty'):view==='podcasts'?t('empty.firstPodcast'):view==='videos'?t('empty.firstVideo'):t('empty.firstStory')}</h2><p>{!author?t('empty.listener'):view==='podcasts'?t('empty.podcastHint'):view==='videos'?t('empty.videoHint'):t('empty.storyHint')}</p>{author&&<button className="secondary-button" onClick={()=>view==='podcasts'?fileInput.current?.click():openEditor(view==='videos'?'video':'story')}><Plus size={17}/>{view==='podcasts'?t('studio.uploadEpisode'):view==='videos'?t('empty.addVideo'):t('studio.writeStory')}</button>}</section>:<div className="post-list">{listed.map((p,i)=><article className="post-card" key={p.id}><button className={'post-cover '+(p.kind==='story'?'story-cover':p.kind==='video'?'video-cover':'')} onClick={()=>openPost(p)} aria-label={t(p.kind==='podcast'?'post.listenAria':p.kind==='video'?'post.watchAria':'post.readAria',{title:p.title})}>{p.coverKey||p.coverUrl?<img className="post-cover-image" src={p.coverKey?'/api/cover?id='+p.id:p.coverUrl!} loading="lazy" referrerPolicy="no-referrer" alt=""/>:p.kind==='podcast'?<img className="post-logo" src="/brand/logo.png?v=0.4.1" width="76" height="76" alt=""/>:p.kind==='video'?<Play size={30}/>:<BookOpen size={34}/>}{p.kind!=='video'&&<span>{String(listed.length-i).padStart(2,'0')}</span>}</button><div className="post-content"><div className="post-meta">{p.kind==='podcast'?(isLiveArchive(p.audioKey)?t('post.liveArchive'):t('post.podcast')):p.kind==='video'?t('post.video'):t('post.story')}<span>{new Date(p.createdAt).toLocaleDateString(tag)}</span>{author&&<span className={'publish-tag '+(p.published?'published':'')}>{p.published?t('post.published'):t('post.draft')}</span>}</div><button className="post-title" onClick={()=>openPost(p)}>{p.title}</button><p>{p.description||(p.kind==='story'?p.body.slice(0,130):p.kind==='video'?t('post.defaultVideo'):t('post.defaultPodcast'))}</p><div className="post-actions"><button className="text-button" onClick={()=>openPost(p)}>{p.kind==='podcast'?<Play size={15}/>:p.kind==='video'?<Video size={15}/>:<BookOpen size={15}/>} {p.kind==='podcast'?t('post.listen'):p.kind==='video'?t('post.watch'):t('post.read')}{p.duration>0&&<span>{clock(p.duration)}</span>}</button>{author&&<><button aria-label={t('post.edit')} onClick={()=>openEditor(p.kind as 'podcast'|'story'|'video',p)}><Pencil size={16}/></button><button aria-label={p.published?t('post.unpublish'):t('post.publish')} onClick={()=>void run(()=>api('library',{action:'visibility',id:p.id,published:!p.published}),p.published?t('post.movedToDrafts'):t('post.publishedToast'))}>{p.published?<EyeOff size={16}/>:<Eye size={16}/>}</button><button aria-label={data.pinned===p.id?t('post.unpin'):t('post.pin')} title={data.pinned===p.id?t('post.unpin'):t('post.pin')} data-active={data.pinned===p.id} onClick={()=>void run(()=>api('library',{action:'pin',id:data.pinned===p.id?'':p.id}),data.pinned===p.id?t('post.unpinned'):t('post.pinned'))}><Pin size={16}/></button><button aria-label={t('post.delete')} onClick={()=>setConfirmDelete(p)}><Trash2 size={16}/></button></>}</div></div></article>)}</div>}
+ {listed.length===0?<section className="empty-state"><span className="empty-icon">{view==='podcasts'?<Headphones size={36}/>:view==='videos'?<Video size={36}/>:<BookOpen size={36}/>}</span><h2>{needle?t('catalog.nothingFound'):filter!=='all'?t('empty.sectionEmpty'):view==='podcasts'?t('empty.firstPodcast'):view==='videos'?t('empty.firstVideo'):t('empty.firstStory')}</h2><p>{!author?t('empty.listener'):view==='podcasts'?t('empty.podcastHint'):view==='videos'?t('empty.videoHint'):t('empty.storyHint')}</p>{author&&<button className="secondary-button" onClick={()=>view==='podcasts'?setView('studio'):openEditor(view==='videos'?'video':'story')}><Plus size={17}/>{view==='podcasts'?t('empty.toStudio'):view==='videos'?t('empty.addVideo'):t('studio.writeStory')}</button>}</section>:<div className="post-list">{listed.map((p,i)=><article className="post-card" key={p.id}><button className={'post-cover '+(p.kind==='story'?'story-cover':p.kind==='video'?'video-cover':'')} onClick={()=>openPost(p)} aria-label={t(p.kind==='podcast'?'post.listenAria':p.kind==='video'?'post.watchAria':'post.readAria',{title:p.title})}>{p.coverKey||p.coverUrl?<img className="post-cover-image" src={p.coverKey?'/api/cover?id='+p.id:p.coverUrl!} loading="lazy" referrerPolicy="no-referrer" alt=""/>:p.kind==='podcast'?<img className="post-logo" src="/brand/logo.png?v=0.4.1" width="76" height="76" alt=""/>:p.kind==='video'?<Play size={30}/>:<BookOpen size={34}/>}{p.kind!=='video'&&<span>{String(listed.length-i).padStart(2,'0')}</span>}</button><div className="post-content"><div className="post-meta">{p.kind==='podcast'?(isLiveArchive(p.audioKey)?t('post.liveArchive'):t('post.podcast')):p.kind==='video'?t('post.video'):t('post.story')}<span>{new Date(p.createdAt).toLocaleDateString(tag)}</span>{author&&<span className={'publish-tag '+(p.published?'published':'')}>{p.published?t('post.published'):t('post.draft')}</span>}</div><button className="post-title" onClick={()=>openPost(p)}>{p.title}</button><p>{p.description||(p.kind==='story'?p.body.slice(0,130):p.kind==='video'?t('post.defaultVideo'):t('post.defaultPodcast'))}</p><div className="post-actions"><button className="text-button" onClick={()=>openPost(p)}>{p.kind==='podcast'?<Play size={15}/>:p.kind==='video'?<Video size={15}/>:<BookOpen size={15}/>} {p.kind==='podcast'?t('post.listen'):p.kind==='video'?t('post.watch'):t('post.read')}{p.duration>0&&<span>{clock(p.duration)}</span>}</button>{author&&<><button aria-label={t('post.edit')} onClick={()=>openEditor(p.kind as 'podcast'|'story'|'video',p)}><Pencil size={16}/></button><button aria-label={p.published?t('post.unpublish'):t('post.publish')} onClick={()=>void run(()=>api('library',{action:'visibility',id:p.id,published:!p.published}),p.published?t('post.movedToDrafts'):t('post.publishedToast'))}>{p.published?<EyeOff size={16}/>:<Eye size={16}/>}</button><button aria-label={data.pinned===p.id?t('post.unpin'):t('post.pin')} title={data.pinned===p.id?t('post.unpin'):t('post.pin')} data-active={data.pinned===p.id} onClick={()=>void run(()=>api('library',{action:'pin',id:data.pinned===p.id?'':p.id}),data.pinned===p.id?t('post.unpinned'):t('post.pinned'))}><Pin size={16}/></button><button aria-label={t('post.delete')} onClick={()=>setConfirmDelete(p)}><Trash2 size={16}/></button></>}</div></div></article>)}</div>}
  </>}
  {view==='live'&&author&&<LiveArchives/>}{view==='live'&&<div className="live-layout"><section className="live-main-panel live-console">
  {author?<>
@@ -255,7 +233,7 @@ export default function Studio(){
 
  </>}
  </section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
- {view==='settings'&&<div className="settings-grid">
+ {(view==='settings'||(view==='home'&&author))&&<div className="settings-grid">
  {!author&&<NotificationSettings author={author}/>}
  {/* Строка поддержки на главной и в разделах ведёт на одну площадку — ту,
      что уместна по языку телефона. Обе должны оставаться доступны, поэтому
@@ -273,12 +251,11 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
- <button className="bottom-nav-item bottom-nav-live tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
- <button className="bottom-nav-item bottom-nav-stories tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
- {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" data-active={view==='settings'} aria-label={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
+ <button className="bottom-nav-item tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
+ <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>

@@ -464,9 +464,6 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .bottom-nav-item[data-active=true] svg{background:none;box-shadow:none}
 .bottom-nav-item span{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .bottom-nav-dot{top:7px;right:calc(50% - 16px)}
-/* Настройки — кнопка боковой панели на ПК. На телефоне их открывают с главной,
-   и шестой пункт сбил бы главную с центра ряда. */
-.bottom-nav-settings{display:none}
 @media(min-width:640px){.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px));border-radius:22px;border-top:1px solid var(--line)}}
 /* Разделы: поиск и порядок. */
 .catalog-tools{display:grid;gap:12px;margin:0 0 16px}
@@ -1063,7 +1060,7 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 
 /* Экраны студии помещаются целиком: настроек немного, прокручивать нечего.
    Панели идут в две колонки и не растягиваются по высоте под соседа. */
-.main-content:not(.listener-main){max-width:1600px;padding-bottom:20px}
+.main-content:not(.listener-main){max-width:1280px;padding-bottom:20px}
 .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;gap:14px;margin-top:22px}
 .main-content:not(.listener-main) .settings-panel{padding:18px}
 .main-content:not(.listener-main) .settings-panel h2{font-size:17px;margin-bottom:6px}
@@ -1112,18 +1109,9 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
 /* Главная студии: библиотека и настройки делят один ряд, а не идут друг за
    другом — тогда экран закрывается целиком. */
 @media(min-width:1100px){
- /* Площадок шесть штук в два столбца, а поддержки — две: колонке со ссылками
-    нужно больше места, иначе адрес не помещается в поле. */
- .main-content:not(.listener-main) .settings-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr);margin-top:16px}
+ .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
  .main-content:not(.listener-main) .library-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
- /* Верхний ряд действий по ширине совпадает с библиотекой под ним: ограничение
-    max-width делало его заметно уже и ряды не читались как одна сетка. */
- .main-content:not(.listener-main) .home-actions{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none}
- .main-content:not(.listener-main) .home-tile{gap:14px}
- .main-content:not(.listener-main) .home-tile>svg{width:24px;height:24px;padding:11px}
- .main-content:not(.listener-main) .home-tile span{font-size:14px}
- .main-content:not(.listener-main) .tile-icon{width:26px;height:26px;padding:11px}
- .main-content:not(.listener-main) .section-icon{width:26px;height:26px;padding:11px}
+ .main-content:not(.listener-main) .home-actions{grid-template-columns:repeat(4,minmax(0,1fr))}
  .main-content:not(.listener-main) .home-tile{min-height:68px;padding:12px;flex-direction:row;align-items:center;gap:10px}
  .main-content:not(.listener-main) .library-tiles>button{padding:14px 16px}
  .main-content:not(.listener-main) .library-tiles strong{font-size:20px}
@@ -1266,126 +1254,3 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
    высоту панели и выравниваются внутри себя. */
 .bottom-nav{align-items:stretch}
 .bottom-nav-item{justify-content:center}
-
-/* ============================================================================
-   Студия на ПК: знак канала крупнее и по центру, боковая панель шире, а её
-   значки и плитки снова в том же стекле, что и на телефоне, — многослойная
-   фаска по кромке, а не плоская заливка.
-   ========================================================================== */
-@media(min-width:1024px){
- /* Шапка: знак и название видны на каждой вкладке и служат кнопкой «домой». */
- body:has(.main-content:not(.listener-main)) .top-header{padding-top:14px;padding-bottom:6px}
- body:has(.main-content:not(.listener-main)) .top-header-brand img{width:76px;height:76px;
-  border-radius:50%;box-shadow:var(--glass-bevel-sm),0 10px 26px -12px rgba(0,0,0,.9)}
- body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:23px;gap:8px;letter-spacing:.1em}
-
- /* Боковая панель шире, кнопки крупнее — по ним удобнее попадать мышью. */
- .is-author .bottom-nav{left:18px;width:96px;gap:6px;padding:10px;border-radius:26px;
-  background:var(--glass-2);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);
-  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
- .is-author .bottom-nav-item{padding:10px 4px;min-height:70px;gap:6px}
- .is-author .bottom-nav-item span{font-size:11px}
- .is-author .bottom-nav-item svg{padding:12px;width:24px;height:24px}
- .is-author .bottom-nav-settings{display:flex}
- /* Порядок колонки на ПК: главная первой, дальше по частоте работы. На
-    телефоне порядок другой — там главная стоит по центру ряда, и трогать
-    её нельзя, поэтому переставляем не разметку, а показ. */
- .is-author .bottom-nav-home{order:1}
- .is-author .bottom-nav-live{order:2}
- .is-author .bottom-nav-videos{order:3}
- .is-author .bottom-nav-podcasts{order:4}
- .is-author .bottom-nav-stories{order:5}
- .is-author .bottom-nav-settings{order:6}
- /* На ПК панель стоит сбоку, и запас под нижнюю полосу (он объявлен через
-    !important для телефона) здесь только съедал высоту окна. */
- .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important}
-
- /* Стекло вернулось на плитки действий и библиотеки. */
- .main-content:not(.listener-main) .home-tile,
- .main-content:not(.listener-main) .library-tiles>button{background:var(--glass-1);
-  border:1px solid var(--glass-border);box-shadow:var(--glass-bevel),0 18px 40px -26px rgba(0,0,0,.9);
-  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
- .main-content:not(.listener-main) .home-tile-live{background:var(--glass-warm-1);
-  border-color:rgba(255,106,85,.3);box-shadow:var(--glass-bevel),var(--glass-shadow-warm)}
- .main-content:not(.listener-main) .home-tile>svg,
- .main-content:not(.listener-main) .tile-icon{box-sizing:content-box;padding:9px;border-radius:50%;
-  background:rgba(255,255,255,.05);box-shadow:var(--glass-bevel-sm)}
- .main-content:not(.listener-main) .settings-panel{background:var(--glass-2);
-  border:1px solid var(--glass-border);box-shadow:var(--glass-bevel-sm),0 20px 44px -30px rgba(0,0,0,.9)}
- .main-content:not(.listener-main) .section-icon{box-sizing:content-box;width:22px;height:22px;padding:9px;
-  border-radius:50%;background:rgba(111,231,222,.1);box-shadow:var(--glass-bevel-sm)}
-}
-
-/* Плотная студия на ПК. Раньше эти правила включались только при max-height
-   до 900 пикселей — и стоило окну оказаться выше (другой масштаб экрана,
-   растянутое или развёрнутое окно), как студия проваливалась в просторный
-   режим: мелкий текст, колонка посреди пустого окна. Теперь это просто вид
-   студии на большом экране, и от высоты окна он не зависит. */
-@media(min-width:1024px){
- body:has(.main-content:not(.listener-main)) .top-header{padding-top:8px;padding-bottom:4px}
- /* Знак и надпись встают в строку: столбиком шапка съедала 111 пикселей из
-    780, и нижний край вкладки уходил под рамку окна. Сам знак остаётся
-    крупным, группа — по центру, и по ней по-прежнему кликают «домой». */
- body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row;gap:12px}
- .main-content:not(.listener-main){padding-top:6px}
- .main-content:not(.listener-main) .page-heading{margin-bottom:8px}
- .main-content:not(.listener-main) .heading-description{margin-top:3px}
- .main-content:not(.listener-main) .home-actions{margin-bottom:10px}
- .main-content:not(.listener-main) .home-tile{min-height:58px;padding:10px 12px}
- .main-content:not(.listener-main) .library-heading{margin:0 0 6px}
- .main-content:not(.listener-main) .library-tiles{gap:10px}
- .main-content:not(.listener-main) .library-tiles>button{padding:10px 14px;gap:12px}
- /* Карточки настроек тянутся до одной высоты: их нижние края стояли на разных
-    уровнях и ряд выглядел рваным. */
- .main-content:not(.listener-main) .settings-grid{margin-top:8px;gap:10px;align-items:stretch}
- .main-content:not(.listener-main) .settings-panel{padding:14px 16px}
- .main-content:not(.listener-main) .settings-panel h2{font-size:17px}
- .main-content:not(.listener-main) .settings-panel p{margin-bottom:6px;font-size:12.5px;line-height:1.45}
- .main-content:not(.listener-main) .channel-art-preview{max-width:140px;margin-bottom:6px}
- .main-content:not(.listener-main) .links-grid{gap:8px}
- .main-content:not(.listener-main) .live-archives{margin-bottom:6px}
- .main-content:not(.listener-main) .live-archives p{margin:3px 0 0;font-size:12.5px;line-height:1.4}
- .main-content:not(.listener-main) .pilot-note p{line-height:1.45}
- .main-content:not(.listener-main) .live-layout{gap:12px}
- .main-content:not(.listener-main) .live-console{gap:6px;padding:10px!important}
- .main-content:not(.listener-main) .signal-console .waveform{height:44px;margin-top:6px}
- .main-content:not(.listener-main) .live-info>p{margin:6px 0}
- .main-content:not(.listener-main) .live-info h3{margin-bottom:8px}
- .main-content:not(.listener-main) .pilot-note{margin-top:8px;padding:10px}
- /* Пульт эфира: сам тракт не трогаем — ужимаются отступы карточек. */
- .main-content:not(.listener-main) .session-status{padding:11px 12px;gap:10px}
- .main-content:not(.listener-main) .session-status strong{font-size:16px}
- .main-content:not(.listener-main) .mic-setup>.field{margin-bottom:8px}
- .main-content:not(.listener-main) .audio-mode-help{margin:6px 0 8px;font-size:12px;line-height:1.45}
- .main-content:not(.listener-main) .audio-controls-panel{gap:10px}
- .main-content:not(.listener-main) .gain-control>div{margin-bottom:6px}
- .main-content:not(.listener-main) .device-discovery{margin-top:6px;gap:6px}
- .main-content:not(.listener-main) .signal-console{padding:4px 0}
- /* Поля площадок держат ширину, достаточную для адреса: узкие колонки
-    экономили высоту, но ссылку в них было не прочитать. */
- .main-content:not(.listener-main) .links-grid{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px}
- .main-content:not(.listener-main) .field{gap:3px}
- .main-content:not(.listener-main) input{padding:7px 10px;font-size:13px}
-}
-
-/* ============================================================================
-   Главная студии: состояние работы. Черновики и последние публикации — то,
-   ради чего автор открывает студию; настройки живут на своей странице.
-   ========================================================================== */
-.workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:4px;align-items:start}
-.work-panel{padding:16px 18px;border-radius:16px;background:var(--glass-1);
- border:1px solid var(--glass-border);box-shadow:var(--glass-bevel),0 18px 40px -26px rgba(0,0,0,.9);
- -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
-.work-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.work-head h2{font-size:17px;font-weight:600;letter-spacing:-.02em;margin:0}
-.work-head span{font-size:12.5px;color:#92959f}
-.work-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.work-row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:11px;
- background:rgba(255,255,255,.03);border:1px solid transparent;color:#e8ebec;text-align:left}
-.work-row:hover{background:rgba(255,255,255,.06);border-color:var(--glass-border)}
-.work-row>svg:first-child{color:var(--teal);flex-shrink:0}
-.work-row>svg:last-child{color:#81848e;flex-shrink:0;margin-left:2px}
-.work-name{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.work-when{font-size:12px;color:#92959f;white-space:nowrap;font-variant-numeric:tabular-nums}
-.work-more{font-size:12.5px;padding:8px 2px 0;color:var(--teal)}
-@media(min-width:900px){.workbench{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}}

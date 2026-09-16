@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Cross-compile the Windows x64 app and single-file installer with Zig 0.13.0."""
-import argparse, hashlib, pathlib, re, shutil, subprocess, tempfile, urllib.request, zipfile
+import argparse, hashlib, pathlib, shutil, subprocess, tempfile, urllib.request, zipfile
 
 ROOT=pathlib.Path(__file__).resolve().parent
 SDK_URL='https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.2903.40/microsoft.web.webview2.1.0.2903.40.nupkg'
@@ -23,18 +23,14 @@ with tempfile.TemporaryDirectory(prefix='true-thrills-build-') as temp:
   if not pkg.exists() or hashlib.sha256(pkg.read_bytes()).hexdigest()!=SDK_SHA256:raise SystemExit('SDK archive is missing or checksum mismatch')
  def run(*args):subprocess.run([str(x) for x in args],cwd=ROOT,check=True)
  resource=work/'client.res';run(zig,'rc','/fo',resource,'--','client.rc')
- # Имя установщика берётся из ресурса версии, а не из строки в скрипте:
- # иначе свежая сборка скачивается под старым номером.
- version=re.search(r'VALUE "ProductVersion", "([0-9.]+)"',(ROOT/'client.rc').read_text()).group(1)
- setup_name='TrueThrills-Setup-'+version+'.exe'
  common=[zig,'c++','-target','x86_64-windows-gnu','-std=c++17','-fms-extensions','-municode','-Wl,--subsystem,windows','-O2','-static','-s']
  libs=['-luser32','-lole32','-lshell32','-ladvapi32','-luuid','-lgdi32']
  exe=out/'TrueThrills.exe'
  run(*common,'-I',ROOT/'include','-I',sdk/'build/native/include',ROOT/'client.cpp',resource,'-o',exe,*libs)
  shutil.copy2(sdk/'build/native/x64/WebView2Loader.dll',out/'WebView2Loader.dll');shutil.copy2(sdk/'LICENSE.txt',out/'WebView2-LICENSE.txt')
- setup_rc=work/'setup.rc';base=(ROOT/'client.rc').read_text().replace('"app.ico"','"'+str(ROOT/'app.ico')+'"').replace('"app.manifest"','"'+str(ROOT/'app.manifest')+'"').replace('True Thrills Desktop','True Thrills Setup').replace('TrueThrills.exe',setup_name)
+ setup_rc=work/'setup.rc';base=(ROOT/'client.rc').read_text().replace('"app.ico"','"'+str(ROOT/'app.ico')+'"').replace('"app.manifest"','"'+str(ROOT/'app.manifest')+'"').replace('True Thrills Desktop','True Thrills Setup').replace('TrueThrills.exe','TrueThrills-Setup-0.9.0.exe')
  setup_rc.write_text(base+'\n100 RCDATA "'+str(exe)+'"\n101 RCDATA "'+str(out/'WebView2Loader.dll')+'"\n102 RCDATA "'+str(out/'WebView2-LICENSE.txt')+'"\n')
  setup_res=work/'setup.res';run(zig,'rc','/fo',setup_res,'--',setup_rc)
- installer=out/setup_name;run(*common,ROOT/'setup.cpp',setup_res,'-o',installer,*libs)
+ installer=out/'TrueThrills-Setup-0.9.0.exe';run(*common,ROOT/'setup.cpp',setup_res,'-o',installer,*libs)
  print(f'Installer: {installer} ({installer.stat().st_size} bytes)')
  print(f'SHA256: {hashlib.sha256(installer.read_bytes()).hexdigest()}')

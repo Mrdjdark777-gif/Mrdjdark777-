@@ -109,6 +109,6 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
  HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show==SW_SHOWMAXIMIZED||show==SW_MAXIMIZE?SW_SHOWNORMAL:show);UpdateWindow(windowHandle);initialize();
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }

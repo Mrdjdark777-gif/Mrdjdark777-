@@ -26,11 +26,7 @@ def inspect(p):
  visit(0);assert any(k[0]==14 for k in resources),'Missing app icon'
  manifest=next(v for k,v in resources.items() if k[:2]==(24,1));assert b'level="asInvoker"' in manifest
  return b,resources
-# Номер версии живёт в client.rc, и установщик называется по нему: проверяем
-# то, что собралось, а не имя, записанное здесь когда-то.
-found=sorted(folder.glob('TrueThrills-Setup-*.exe'))
-assert len(found)==1,'Ожидался ровно один установщик: '+str([f.name for f in found])
-app,ar=inspect(folder/'TrueThrills.exe');setup,sr=inspect(found[0])
+app,ar=inspect(folder/'TrueThrills.exe');setup,sr=inspect(folder/'TrueThrills-Setup-0.9.0.exe')
 for id,name in [(100,'TrueThrills.exe'),(101,'WebView2Loader.dll'),(102,'WebView2-LICENSE.txt')]:
  data=next(v for k,v in sr.items() if k[:2]==(10,id));assert data==(folder/name).read_bytes(),name
 print('PASS: Windows x64 PE, GUI subsystem, executable entrypoint, icon, user-level manifest, and exact embedded installer payloads.')
