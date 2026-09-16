@@ -1303,3 +1303,13 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
    поэтому сам круг виден только кромкой — ей и остаётся окантовка. */
 .brand-inside-metal{border-radius:50%;object-fit:cover;display:block;
  box-shadow:0 2px 6px -2px rgba(0,0,0,.8)}
+
+/* Фон с лучами: отдельный слой под всем содержимым, кликов не ловит.
+   Содержимому поднимается только z-index. Позицию задавать нельзя: боковая
+   панель закреплена через position:fixed, и сброс на relative возвращал её
+   в поток — страница вырастала на её высоту. */
+.tt-beams{position:fixed;inset:0;z-index:0;pointer-events:none}
+.tt-beams>div{min-height:100%;height:100%;background:transparent}
+body:has(.tt-beams) .top-header{z-index:20}
+body:has(.tt-beams) .main-content{position:relative;z-index:1}
+body:has(.tt-beams) .bottom-nav{z-index:30}

@@ -17,6 +17,7 @@ import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
+import {BeamsBackground} from '@/components/ui/beams-background';
 import {useWideScreen} from '@/hooks/use-wide-screen';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
@@ -253,6 +254,7 @@ export default function Studio(){
  </>}
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
+ {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
  {data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<Headphones size={22} color="#6FE7DE"/>}/>:<Headphones size={22}/>}<span>{t('nav.podcasts')}</span></button>
  <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}>{wide?<LiquidMetalButton viewMode="icon" size={46} interactive={false} icon={<Video size={22} color="#6FE7DE"/>}/>:<Video size={22}/>}<span>{t('nav.videos')}</span></button>

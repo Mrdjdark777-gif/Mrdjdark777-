@@ -251,6 +251,7 @@ try{
   // расход, а разметка тут общая с ПК.
   const phoneShaders=await nav.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
   assert.equal(phoneShaders,0,'на телефоне шейдерных кругов нет');
+  assert.equal(await nav.evaluate(()=>document.querySelectorAll('.tt-beams').length),0,'на телефоне фона с лучами нет');
   assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
   assert.equal(rows.labels.includes('Запись'),false,'страницы записи в панели больше нет: подкасты пишутся в FL Studio');
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
@@ -288,6 +289,7 @@ try{
    // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
    // на вкладку, дальше самые старые гаснут.
    const shaders=await fit.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+   if(!(await fit.evaluate(()=>document.querySelectorAll('.tt-beams').length)))problems.push('студия '+v+': фон с лучами не нарисовался');
    if(v==='home'&&shaders<11)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 11 — четыре плитки, пять кнопок панели и два знака канала');
    if(shaders>12)problems.push('студия '+v+': WebGL-контекстов '+shaders+' — близко к пределу браузера');
    if(m.h>m.inner+2)tall.push(v+' '+m.h);
