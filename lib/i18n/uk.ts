@@ -284,7 +284,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.micReady": "Мікрофон готовий. Можна перевірити голос.",
 
-  "live.pickSource": "Спочатку вибери джерело звуку.",
+  "live.pickSource": "Перевір мікрофон і рівень — і в ефір.",
 
   "live.titleField": "Назва ефіру",
 
@@ -384,7 +384,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.infoAuthor": "Контроль ефіру",
 
-  "live.authorTip1": "Перевір хвилю до початку ефіру. Список мікрофонів доступний без запису.",
+  "live.authorTip1": "Перевір хвилю до початку ефіру: перевірка не записується і слухачам не чути.",
 
   "live.authorTip2": "Підсилення та вимкнення мікрофона працюють під час ефіру.",
 
@@ -461,6 +461,12 @@ export const uk: Record<keyof typeof ru, string> = {
   "studio.libraryTitle": "Твоя бібліотека",
 
   "studio.librarySubtitle": "Контент, який залишається.",
+  "work.title": "Що не дороблено",
+  "work.subtitle": "Чернетки чекають на публікацію.",
+  "work.noDrafts": "Чернеток немає — усе опубліковано.",
+  "work.latestTitle": "Останнє у слухачів",
+  "work.noPublished": "Поки нічого не опубліковано.",
+  "work.allDrafts": "Усі чернетки · {count}",
 
   "studio.supportTile": "Підтримка",
 
@@ -773,31 +779,20 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "input.daw": "Звук із FL Studio",
 
-  "input.dawHelp": "Вибери CABLE Output. У FL Studio спрямуй Master у CABLE Input, Stereo separation залиш по центру. Голос, музика та ефекти надійдуть разом.",
+  "input.dawHelp": "Звук береться з пристрою запису Windows за замовчуванням. У FL Studio спрямуй Master у CABLE Input, а CABLE Output зроби пристроєм за замовчуванням у параметрах звуку Windows. Голос, музика та ефекти підуть разом, у стерео.",
+  "input.micHelp": "Звук береться з пристрою запису Windows за замовчуванням. Якщо мікрофонів кілька, обери потрібний у параметрах звуку Windows.",
 
-  "input.source": "Джерело звуку",
 
-  "input.savedSource": "Збережене джерело · онови список",
 
-  "input.systemDefault": "Пристрій Windows за замовчуванням",
 
-  "input.micNumbered": "Мікрофон {number}",
 
-  "input.channel": "Канал входу",
 
-  "input.channel1": "Вхід 1 → моно",
 
-  "input.channel2": "Вхід 2 → моно",
 
-  "input.channelStereo": "Входи 1 + 2 → стерео",
 
-  "input.searching": "Шукаємо пристрої…",
 
-  "input.refreshDevices": "Оновити пристрої",
 
-  "input.allowAndFind": "Дозволити мікрофон і знайти пристрої",
 
-  "input.listOnlyNote": "Доступ потрібен лише для списку входів. Запис не почнеться.",
 
   "input.noSignal": "Немає сигналу",
 
@@ -807,7 +802,6 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "input.muteAll": "Вимкнути весь вхідний звук",
 
-  "input.lowCut": "Зріз низьких частот · 80 Гц",
 
   "capture.noRecorder": "Браузер не підтримує запис аудіо",
 

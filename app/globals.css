@@ -1257,3 +1257,24 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:25px;gap
    высоту панели и выравниваются внутри себя. */
 .bottom-nav{align-items:stretch}
 .bottom-nav-item{justify-content:center}
+
+/* ============================================================================
+   Главная студии: состояние работы. Черновики и последние публикации — то,
+   ради чего автор открывает студию; настройки живут на своей странице.
+   Оформление то же плоское, что у карточек настроек, — без стекла.
+   ========================================================================== */
+.workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:6px;align-items:start}
+.work-panel{padding:18px 20px;background:#1a1c20;border:1px solid #33363e;border-radius:12px}
+.work-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.work-head h2{font-size:18px;font-weight:500;letter-spacing:-.02em;margin:0}
+.work-head span{font-size:13px;color:#92959f}
+.work-list{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.work-row{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border-radius:9px;
+ background:#202227;border:1px solid #33363e;color:#e8ebec;text-align:left}
+.work-row:hover{background:#26282e}
+.work-row>svg:first-child{color:#6FE7DE;flex-shrink:0}
+.work-row>svg:last-child{color:#81848e;flex-shrink:0}
+.work-name{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.work-when{font-size:12px;color:#92959f;white-space:nowrap;font-variant-numeric:tabular-nums}
+.work-more{font-size:13px;padding:10px 2px 0;color:#6FE7DE}
+@media(min-width:900px){.workbench{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}}

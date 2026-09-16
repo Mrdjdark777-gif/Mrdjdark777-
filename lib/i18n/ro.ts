@@ -284,7 +284,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.micReady": "Microfonul e gata. Poți verifica vocea.",
 
-  "live.pickSource": "Alege mai întâi sursa de sunet.",
+  "live.pickSource": "Verifică microfonul și nivelul, apoi intră în direct.",
 
   "live.titleField": "Titlul emisiunii",
 
@@ -384,7 +384,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.infoAuthor": "Controlul emisiunii",
 
-  "live.authorTip1": "Verifică unda înainte de emisiune. Lista microfoanelor e disponibilă fără înregistrare.",
+  "live.authorTip1": "Verifică unda înainte de direct: proba nu se înregistrează și nu o aude nimeni.",
 
   "live.authorTip2": "Amplificarea și oprirea microfonului funcționează în timpul emisiunii.",
 
@@ -461,6 +461,12 @@ export const ro: Record<keyof typeof ru, string> = {
   "studio.libraryTitle": "Biblioteca ta",
 
   "studio.librarySubtitle": "Conținutul care rămâne.",
+  "work.title": "Ce a rămas de terminat",
+  "work.subtitle": "Ciornele așteaptă publicarea.",
+  "work.noDrafts": "Nicio ciornă: totul este publicat.",
+  "work.latestTitle": "Ultimele pentru ascultători",
+  "work.noPublished": "Încă nu ai publicat nimic.",
+  "work.allDrafts": "Toate ciornele · {count}",
 
   "studio.supportTile": "Susținere",
 
@@ -773,31 +779,20 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "input.daw": "Sunet din FL Studio",
 
-  "input.dawHelp": "Alege CABLE Output. În FL Studio trimite Master în CABLE Input, lasă Stereo separation la centru. Vocea, muzica și efectele vor intra împreună.",
+  "input.dawHelp": "Sunetul vine de la dispozitivul de înregistrare implicit din Windows. În FL Studio trimite Master în CABLE Input, iar CABLE Output setează-l ca implicit în setările de sunet Windows. Vocea, muzica și efectele trec împreună, în stereo.",
+  "input.micHelp": "Sunetul vine de la dispozitivul de înregistrare implicit din Windows. Dacă ai mai multe microfoane, alege-l pe cel potrivit în setările de sunet Windows.",
 
-  "input.source": "Sursa de sunet",
 
-  "input.savedSource": "Sursă salvată · reîmprospătează lista",
 
-  "input.systemDefault": "Dispozitivul implicit Windows",
 
-  "input.micNumbered": "Microfon {number}",
 
-  "input.channel": "Canalul de intrare",
 
-  "input.channel1": "Intrarea 1 → mono",
 
-  "input.channel2": "Intrarea 2 → mono",
 
-  "input.channelStereo": "Intrările 1 + 2 → stereo",
 
-  "input.searching": "Căutăm dispozitive…",
 
-  "input.refreshDevices": "Reîmprospătează dispozitivele",
 
-  "input.allowAndFind": "Permite microfonul și caută dispozitive",
 
-  "input.listOnlyNote": "Accesul e necesar doar pentru lista de intrări. Înregistrarea nu pornește.",
 
   "input.noSignal": "Fără semnal",
 
@@ -807,7 +802,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "input.muteAll": "Oprește tot sunetul de intrare",
 
-  "input.lowCut": "Tăierea frecvențelor joase · 80 Hz",
 
   "capture.noRecorder": "Browserul nu acceptă înregistrarea audio",
 
