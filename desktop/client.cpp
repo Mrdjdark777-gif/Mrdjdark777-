@@ -60,28 +60,10 @@ class NavigationDone:public Callback<ICoreWebView2NavigationCompletedEventHandle
 class ProcessFailed:public Callback<ICoreWebView2ProcessFailedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2ProcessFailedEventArgs*) override{activity(false);fail(L"Окно приложения потеряло соединение с WebView2. Если шла запись, проверь сохранённый черновик после перезапуска.");return S_OK;}
 };
-// Страница свёрстана под 1280×780 CSS-пикселей. Окно бывает любым: его
-// растягивают, разворачивают на весь ультраширокий монитор, у мониторов разный
-// масштаб. Приложение объявлено DPI-aware, поэтому WebView2 рисует один
-// CSS-пиксель в один физический и сам ничего не подгоняет — в большом окне
-// интерфейс выходил физически мелким, а колонка висела посреди пустоты.
-//
-// Поэтому масштаб задаём сами: берём во сколько раз окно больше расчётного по
-// ширине и по высоте и берём МЕНЬШЕЕ из двух. Меньшее — потому что по
-// большему страница не поместилась бы в высоту и появилась бы прокрутка.
-static void fitZoom(){
- if(!controller)return;
- RECT r;GetClientRect(windowHandle,&r);
- const double w=r.right-r.left,h=r.bottom-r.top;
- if(w<=0||h<=0)return;
- double zoom=w/1280.0;const double byHeight=h/780.0;if(byHeight<zoom)zoom=byHeight;
- if(zoom<0.5)zoom=0.5;if(zoom>3.0)zoom=3.0;
- controller->put_ZoomFactor(zoom);
-}
 class ControllerReady:public Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(HRESULT hr,ICoreWebView2Controller* c) override{
   if(FAILED(hr)||!c){fail(L"Не удалось запустить окно True Thrills. Обнови Microsoft Edge WebView2 Runtime и перезапусти приложение.");return S_OK;}
-  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);fitZoom();
+  controller=c;c->AddRef();c->get_CoreWebView2(&webview);RECT bounds;GetClientRect(windowHandle,&bounds);c->put_Bounds(bounds);c->put_IsVisible(TRUE);
   ICoreWebView2Settings* settings=nullptr;if(SUCCEEDED(webview->get_Settings(&settings))){settings->put_IsWebMessageEnabled(TRUE);settings->put_AreDevToolsEnabled(FALSE);settings->put_IsStatusBarEnabled(FALSE);settings->Release();}
   EventRegistrationToken token;
   auto permission=new Permission();webview->add_PermissionRequested(permission,&token);permission->Release();
@@ -109,7 +91,7 @@ static void initialize(){
 }
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
  switch(message){
-  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);fitZoom();}return 0;
+  case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);}return 0;
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
   case WM_COMMAND:switch(LOWORD(w)){
@@ -127,23 +109,6 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
  HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
- // 1280×880 — это размер страницы, а не рамки: заголовок, рамка и строка меню
- // забирали около семидесяти пикселей высоты, и вкладки, размеченные под 880,
- // в настоящем окне требовали прокрутки. AdjustWindowRectEx возвращает рамку
- // поверх клиентской области, и страница получает ровно ту высоту, под
- // которую свёрстана.
- //
- // Масштаб экрана здесь НЕ учитывается намеренно. Приложение объявлено
- // DPI-aware, поэтому WebView2 рисует один CSS-пиксель в один физический и
- // сам ничего не масштабирует. Умножение размера окна на масштаб давало
- // 1600×1100 именно в CSS-пикселях: вёрстка уходила в просторный режим,
- // колонка повисала посреди окна, а текст выглядел мелким.
- RECT want={0,0,1280,880};AdjustWindowRectEx(&want,WS_OVERLAPPEDWINDOW,TRUE,0);
- int frameW=want.right-want.left,frameH=want.bottom-want.top;
- // Не больше рабочего стола: иначе нижний край страницы уходит под панель задач.
- RECT work={0,0,0,0};if(SystemParametersInfoW(SPI_GETWORKAREA,0,&work,0)){
-  const int maxW=work.right-work.left,maxH=work.bottom-work.top;
-  if(maxW>0&&frameW>maxW)frameW=maxW;if(maxH>0&&frameH>maxH)frameH=maxH;}
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,frameW,frameH,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }

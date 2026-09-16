@@ -1063,7 +1063,7 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 
 /* Экраны студии помещаются целиком: настроек немного, прокручивать нечего.
    Панели идут в две колонки и не растягиваются по высоте под соседа. */
-.main-content:not(.listener-main){max-width:1800px;padding-bottom:20px}
+.main-content:not(.listener-main){max-width:1280px;padding-bottom:20px}
 .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;gap:14px;margin-top:22px}
 .main-content:not(.listener-main) .settings-panel{padding:18px}
 .main-content:not(.listener-main) .settings-panel h2{font-size:17px;margin-bottom:6px}
@@ -1298,10 +1298,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
  .is-author .bottom-nav-settings{order:6}
  /* На ПК панель стоит сбоку, и запас под нижнюю полосу (он объявлен через
     !important для телефона) здесь только съедал высоту окна. */
- .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important;
-  display:flex;flex-direction:column;justify-content:safe center}
- /* safe center, а не просто center: если содержимое всё же окажется выше
-    окна, верх останется доступен, а не уедет за край. */
+ .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important}
 
  /* Стекло вернулось на плитки действий и библиотеки. */
  .main-content:not(.listener-main) .home-tile,
