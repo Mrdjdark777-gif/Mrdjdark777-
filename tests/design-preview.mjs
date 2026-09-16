@@ -267,7 +267,11 @@ try{
  // Окно можно растянуть или развернуть, а масштаб экрана у разных мониторов
  // свой — меряем и тесное окно, и просторное. Один раз студия уже провалилась
  // в чужой режим вёрстки просто потому, что окно оказалось выше 900 пикселей.
- for(const box of [{width:1280,height:780},{width:1600,height:1100}])
+ // 1280×780 — окно приложения как оно открывается. 1920×780 — оно же
+ // развёрнутое на ультрашироком мониторе: EXE подбирает масштаб так, чтобы
+ // высота осталась расчётной, а лишнее ушло в ширину. 1600×1100 — окно,
+ // растянутое вручную.
+ for(const box of [{width:1280,height:780},{width:1920,height:780},{width:1600,height:1100}])
  {const fit=await desk.newPage();await fit.setViewportSize(box);
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
@@ -283,7 +287,7 @@ try{
    if(rail.markW<56)problems.push(where+': знак канала мельче 56px ('+rail.markW+')');
    if(rail.navW<90)problems.push(where+': боковая панель уже 90px ('+rail.navW+')');
    if(!rail.settings)problems.push(where+': в боковой панели нет настроек');
-   await fit.screenshot({path:'outputs/ui/design-pc-'+box.height+'-'+v+'.png'});
+   await fit.screenshot({path:'outputs/ui/design-pc-'+box.width+'x'+box.height+'-'+v+'.png'});
   }
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
@@ -292,5 +296,5 @@ try{
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
- console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии держится и в тесном окне 1280×780, и в просторном 1600×1100');
+ console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; каждая вкладка студии держится и в тесном окне 1280×780, в развёрнутом 1920×780 и в растянутом 1600×1100');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
