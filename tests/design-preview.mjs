@@ -278,6 +278,7 @@ try{
    if(rail.markW<56)problems.push('студия '+v+': знак канала мельче 56px ('+rail.markW+')');
    if(rail.navW<90)problems.push('студия '+v+': боковая панель уже 90px ('+rail.navW+')');
    if(!rail.settings)problems.push('студия '+v+': в боковой панели нет настроек');
+   await fit.screenshot({path:'outputs/ui/design-pc-'+v+'.png'});
   }
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
