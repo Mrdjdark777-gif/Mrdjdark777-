@@ -1123,7 +1123,10 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 /* Главная студии: библиотека и настройки делят один ряд, а не идут друг за
    другом — тогда экран закрывается целиком. */
 @media(min-width:1100px){
+ /* Промежуток тот же, что у библиотеки: иначе три карточки встают на пару
+    пикселей мимо трёх плиток над ними. */
  .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px;gap:18px}
+ .main-content:not(.listener-main) .library-tiles{gap:18px}
  /* Карточки настроек на шаг крупнее внутри: заголовок, текст и поля. */
  .main-content:not(.listener-main) .settings-panel{padding:24px 26px}
  .main-content:not(.listener-main) .settings-panel h2{font-size:21px;margin-bottom:9px}
@@ -1159,6 +1162,14 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .page-heading{margin-bottom:10px}
  /* Заголовок вкладки и строка под ним — крупнее: с них начинается экран. */
  .main-content:not(.listener-main) .page-heading h1{font-size:34px}
+ /* «Твоя библиотека» — тот же заголовок, что и «Что делаем сегодня?»:
+    та же гарнитура, тот же размер и та же градиентная заливка текста.
+    Строка под ним — как строка под верхним заголовком. */
+ .main-content:not(.listener-main) .library-heading{align-items:baseline;gap:14px}
+ .main-content:not(.listener-main) .library-heading h2{font-family:var(--tt-editorial);font-weight:500;
+  font-size:34px;letter-spacing:-.01em;line-height:1.1;
+  background:linear-gradient(135deg,#f4f3f1,#6FE7DE);-webkit-background-clip:text;background-clip:text;color:transparent}
+ .main-content:not(.listener-main) .library-heading>span{font-size:15px;color:#9699a2}
  .main-content:not(.listener-main) .heading-description{margin-top:6px;font-size:15px}
  /* Плитки действий — крупнее: по ним чаще всего кликают. */
  .main-content:not(.listener-main) .home-tile{min-height:88px;padding:16px 18px;gap:14px}

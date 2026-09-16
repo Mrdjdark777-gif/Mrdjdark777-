@@ -281,6 +281,26 @@ try{
    if(m.navW<100)problems.push('студия '+v+': боковая панель уже 100px ('+m.navW+')');
    if(!m.settings)problems.push('студия '+v+': в боковой панели нет кнопки настроек');
    if(m.h>m.inner+2)tall.push(v+' '+m.h);
+   // Ряды главной стоят по одной сетке: одинаковые края и, у библиотеки с
+   // настройками, одинаковые колонки. Раньше верхний ряд упирался в свой
+   // предел ширины и стоял уже остальных, а промежутки в 15 и 18 пикселей
+   // разводили карточки на пару пикселей мимо плиток над ними.
+   if(v==='home'){
+    const grid=await fit.evaluate(()=>{
+     const box=el=>{const r=el.getBoundingClientRect();return [Math.round(r.left),Math.round(r.right)];};
+     const kids=sel=>[...(document.querySelector(sel)?.children??[])].map(box);
+     return {rows:{'заголовок':box(document.querySelector('.page-heading')),'библиотека':box(document.querySelector('.library-heading')),
+      'действия':box(document.querySelector('.home-actions')),'плитки':box(document.querySelector('.library-tiles')),'настройки':box(document.querySelector('.settings-grid'))},
+      library:kids('.library-tiles'),settings:kids('.settings-grid')};});
+    const edges=Object.entries(grid.rows);
+    const [,first]=edges[0];
+    for(const [name,[l,r]] of edges){
+     if(Math.abs(l-first[0])>1)problems.push('главная: ряд «'+name+'» начинается на '+l+', а остальные на '+first[0]);
+     if(Math.abs(r-first[1])>1)problems.push('главная: ряд «'+name+'» кончается на '+r+', а остальные на '+first[1]);
+    }
+    grid.library.forEach(([l,r],i)=>{const c=grid.settings[i];
+     if(c&&(Math.abs(l-c[0])>1||Math.abs(r-c[1])>1))problems.push('главная: карточка настроек '+(i+1)+' ('+c+') не совпадает с плиткой над ней ('+[l,r]+')');});
+   }
    await fit.screenshot({path:'outputs/ui/design-pc-'+v+'.png'});
   }
   if(tall.length)console.log('Длиннее экрана 1400:',tall.join(', '));
