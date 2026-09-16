@@ -266,7 +266,9 @@ try{
  // Поэтому здесь проверяется то, что он попросил вместо этого: размеры
  // органов управления и отсутствие переполнения по ширине. Высота каждой
  // вкладки печатается — чтобы видеть цену, а не догадываться о ней.
- {const fit=await desk.newPage();await fit.setViewportSize({width:1280,height:880});
+ // 2560×1400 — монитор владельца: 27" 2560×1440, приложение всегда во весь
+ // экран. Меряем именно его, а не окно, которого у него не бывает.
+ {const fit=await desk.newPage();await fit.setViewportSize({width:2560,height:1400});
   const tall=[];
   for(const v of ['home','podcasts','videos','stories','live']){
    await fit.goto(base+'/?view='+v);await settle(fit);await fit.waitForTimeout(250);
@@ -281,7 +283,7 @@ try{
    if(m.h>m.inner+2)tall.push(v+' '+m.h);
    await fit.screenshot({path:'outputs/ui/design-pc-'+v+'.png'});
   }
-  if(tall.length)console.log('Длиннее окна 880:',tall.join(', '));
+  if(tall.length)console.log('Длиннее экрана 1400:',tall.join(', '));
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});

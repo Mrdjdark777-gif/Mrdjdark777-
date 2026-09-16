@@ -615,6 +615,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .is-author .bottom-nav-stories{order:5}
 .is-author .bottom-nav-settings{order:6}
 .is-author .main-content{padding-left:172px;padding-right:44px;padding-bottom:36px}
+@media(min-width:1600px){.is-author .main-content{padding-left:44px;padding-right:44px}}
 .is-author .recorder-panel,.is-author .live-card,.is-author .quick-story,.is-author .library-tiles>button,.is-author .draft-bar{border-radius:20px;background:var(--surface);border-color:var(--line)}
 .is-author .recorder-bottom,.is-author .record-device-area{background:#171b1d}
 .is-author .live-card .secondary-button{border-radius:12px}
@@ -1091,8 +1092,9 @@ body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolut
 /* Плотная раскладка студии: окно EXE 1280×880, и ни одна вкладка не должна
    требовать прокрутки — настроек и списков тут немного. */
 body:has(.main-content:not(.listener-main)) .top-header{padding-top:16px;padding-bottom:8px}
-body:has(.main-content:not(.listener-main)) .top-header-brand img{width:76px;height:76px}
-body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:25px;gap:10px}
+body:has(.main-content:not(.listener-main)) .top-header-brand img{width:96px;height:96px}
+/* Надпись справа от знака, а не под ним: группа остаётся по центру шапки. */
+body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row;font-size:30px;gap:16px}
 .main-content:not(.listener-main){padding-top:16px}
 .main-content:not(.listener-main) .page-heading{margin-bottom:14px}
 .main-content:not(.listener-main) .page-heading h1{font-size:clamp(24px,2.2vw,32px)}
