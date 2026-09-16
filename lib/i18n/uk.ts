@@ -461,12 +461,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "studio.libraryTitle": "Твоя бібліотека",
 
   "studio.librarySubtitle": "Контент, який залишається.",
-  "work.title": "Що не дороблено",
-  "work.subtitle": "Чернетки чекають на публікацію.",
-  "work.noDrafts": "Чернеток немає — усе опубліковано.",
-  "work.latestTitle": "Останнє у слухачів",
-  "work.noPublished": "Поки нічого не опубліковано.",
-  "work.allDrafts": "Усі чернетки · {count}",
 
   "studio.supportTile": "Підтримка",
 

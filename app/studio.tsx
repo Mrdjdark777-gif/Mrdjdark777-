@@ -16,7 +16,6 @@ import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
-import {workbench} from '@/lib/studio-home';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
 import {LiveStageView} from '@/components/studio/live-stage-view';
@@ -39,7 +38,7 @@ const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 // целиком живёт на экране эфира.
 const RETIRED_VIEWS:Record<string,string>={studio:'live'};
 // Настройки автора живут на главной студии, отдельной страницы у него нет.
-const AUTHOR_RETIRED:Record<string,string>={};
+const AUTHOR_RETIRED:Record<string,string>={settings:'home'};
 // Цвета сняты пипеткой с логотипа и лежат так же, как на нём самом: закат
 // наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
 // верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
@@ -146,7 +145,6 @@ export default function Studio(){
  };});
  const visible=(data?.items??[]).filter(p=>(author||p.published===1)&&(filter==='all'||p.published===(filter==='published'?1:0)));
  const count=(kind:string)=>(data?.items??[]).filter(p=>p.kind===kind&&(author||p.published===1)).length;
- const bench=workbench(data?.items??[]);
  const inputChoice=<InputPicker capture={capture} locked={capture.recording||!!live.hosting}/>;
  // Смена вкладки сворачивает развёрнутый плеер: лист закрывал бы то, ради
  // чего человек нажал на вкладку.
@@ -199,26 +197,6 @@ export default function Studio(){
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
- {/* Настройки ушли на свою страницу: здесь они повторяли её один в один.
-     Вместо них — состояние работы: что недоделано и что последним ушло
-     к слушателям. */}
- {view==='home'&&author&&<div className="workbench">
-  <section className="work-panel">
-   <div className="work-head"><h2>{t('work.title')}</h2><span>{bench.draftCount>0?t('work.subtitle'):t('work.noDrafts')}</span></div>
-   {bench.drafts.length>0&&<ul className="work-list">{bench.drafts.map(p=><li key={p.id}><button className="work-row" onClick={()=>openEditor(p.kind as 'podcast'|'story'|'video',p)}>
-    {p.kind==='podcast'?<Headphones size={17}/>:p.kind==='video'?<Video size={17}/>:<BookOpen size={17}/>}
-    <span className="work-name">{p.title}</span><span className="work-when">{new Date(p.createdAt).toLocaleDateString(tag)}</span><Pencil size={15}/>
-   </button></li>)}</ul>}
-   {bench.draftCount>bench.drafts.length&&<button className="quiet-button work-more" onClick={()=>{setFilter('draft');setView('podcasts');}}>{t('work.allDrafts',{count:bench.draftCount})}</button>}
-  </section>
-  <section className="work-panel">
-   <div className="work-head"><h2>{t('work.latestTitle')}</h2>{bench.published.length===0&&<span>{t('work.noPublished')}</span>}</div>
-   {bench.published.length>0&&<ul className="work-list">{bench.published.map(p=><li key={p.id}><button className="work-row" onClick={()=>openPost(p)}>
-    {p.kind==='podcast'?<Headphones size={17}/>:p.kind==='video'?<Video size={17}/>:<BookOpen size={17}/>}
-    <span className="work-name">{p.title}</span><span className="work-when">{new Date(p.createdAt).toLocaleDateString(tag)}</span><ChevronRight size={15}/>
-   </button></li>)}</ul>}
-  </section>
- </div>}
  {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned}
@@ -255,7 +233,7 @@ export default function Studio(){
 
  </>}
  </section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
- {view==='settings'&&<div className="settings-grid">
+ {(view==='settings'||(view==='home'&&author))&&<div className="settings-grid">
  {!author&&<NotificationSettings author={author}/>}
  {/* Строка поддержки на главной и в разделах ведёт на одну площадку — ту,
      что уместна по языку телефона. Обе должны оставаться доступны, поэтому
@@ -278,7 +256,7 @@ export default function Studio(){
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
- {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" data-active={view==='settings'} aria-label={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
+ {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>

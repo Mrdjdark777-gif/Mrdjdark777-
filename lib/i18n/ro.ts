@@ -461,12 +461,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "studio.libraryTitle": "Biblioteca ta",
 
   "studio.librarySubtitle": "Conținutul care rămâne.",
-  "work.title": "Ce a rămas de terminat",
-  "work.subtitle": "Ciornele așteaptă publicarea.",
-  "work.noDrafts": "Nicio ciornă: totul este publicat.",
-  "work.latestTitle": "Ultimele pentru ascultători",
-  "work.noPublished": "Încă nu ai publicat nimic.",
-  "work.allDrafts": "Toate ciornele · {count}",
 
   "studio.supportTile": "Susținere",
 
