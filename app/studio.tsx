@@ -256,6 +256,7 @@ export default function Studio(){
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
  <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
+ {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>

@@ -240,7 +240,9 @@ try{
  // На широком экране панель автора становится боковой колонкой — проверяем
  // именно телефонную ширину, где она нижняя.
  {const nav=await desk.newPage();await nav.setViewportSize({width:390,height:844});await nav.goto(base+'/');await settle(nav);
-  const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+  // Считаем только видимые пункты: настройки живут в боковой панели на ПК и
+  // на телефоне скрыты, иначе главная съезжает с центра ряда.
+  const rows=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')].filter(el=>el.offsetParent!==null);
    return {count:items.length,tops:new Set(items.map(el=>Math.round(el.getBoundingClientRect().top))).size,
     labels:items.map(el=>el.textContent.trim())};});
   assert.ok(rows.count>=5,'панель автора не потеряла пункты');
@@ -249,7 +251,7 @@ try{
   assert.equal(rows.labels.includes('Эфир'),true,'эфир доступен из панели');
   // Главная стоит по центру панели и несёт знак канала: до неё чаще всего
   // тянутся большим пальцем, и она должна быть заметно крупнее соседей.
-  const home=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')];
+  const home=await nav.evaluate(()=>{const items=[...document.querySelectorAll('.bottom-nav-item')].filter(el=>el.offsetParent!==null);
    const at=items.findIndex(el=>el.classList.contains('bottom-nav-home'));
    const mark=document.querySelector('.bottom-nav-home .nav-brand-mark');
    const other=items.find(el=>!el.classList.contains('bottom-nav-home'))?.querySelector('svg');
@@ -266,6 +268,14 @@ try{
    const m=await fit.evaluate(()=>({h:document.documentElement.scrollHeight,inner:innerHeight,w:document.documentElement.scrollWidth,iw:innerWidth}));
    if(m.h>m.inner+2)problems.push('студия '+v+': прокрутка '+m.h+'>'+m.inner);
    if(m.w>m.iw+1)problems.push('студия '+v+': переполнение по ширине');
+   // Знак канала и боковая панель с настройками видны на каждой вкладке.
+   const rail=await fit.evaluate(()=>({mark:!!document.querySelector('.top-header-brand img')?.getBoundingClientRect().width,
+    markW:Math.round(document.querySelector('.top-header-brand img')?.getBoundingClientRect().width||0),
+    navW:Math.round(document.querySelector('.bottom-nav')?.getBoundingClientRect().width||0),
+    settings:!!document.querySelector('.bottom-nav-settings')?.getBoundingClientRect().height}));
+   if(rail.markW<56)problems.push('студия '+v+': знак канала мельче 56px ('+rail.markW+')');
+   if(rail.navW<90)problems.push('студия '+v+': боковая панель уже 90px ('+rail.navW+')');
+   if(!rail.settings)problems.push('студия '+v+': в боковой панели нет настроек');
   }
   await fit.close();}
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});

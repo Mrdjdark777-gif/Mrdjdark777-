@@ -464,6 +464,9 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .bottom-nav-item[data-active=true] svg{background:none;box-shadow:none}
 .bottom-nav-item span{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .bottom-nav-dot{top:7px;right:calc(50% - 16px)}
+/* Настройки — кнопка боковой панели на ПК. На телефоне их открывают с главной,
+   и шестой пункт сбил бы главную с центра ряда. */
+.bottom-nav-settings{display:none}
 @media(min-width:640px){.bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 40px));border-radius:22px;border-top:1px solid var(--line)}}
 /* Разделы: поиск и порядок. */
 .catalog-tools{display:grid;gap:12px;margin:0 0 16px}
@@ -1254,3 +1257,43 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:19px;gap
    высоту панели и выравниваются внутри себя. */
 .bottom-nav{align-items:stretch}
 .bottom-nav-item{justify-content:center}
+
+/* ============================================================================
+   Студия на ПК: знак канала крупнее и по центру, боковая панель шире, а её
+   значки и плитки снова в том же стекле, что и на телефоне, — многослойная
+   фаска по кромке, а не плоская заливка.
+   ========================================================================== */
+@media(min-width:1024px){
+ /* Шапка: знак и название видны на каждой вкладке и служат кнопкой «домой». */
+ body:has(.main-content:not(.listener-main)) .top-header{padding-top:14px;padding-bottom:6px}
+ body:has(.main-content:not(.listener-main)) .top-header-brand img{width:60px;height:60px;
+  border-radius:50%;box-shadow:var(--glass-bevel-sm),0 10px 26px -12px rgba(0,0,0,.9)}
+ body:has(.main-content:not(.listener-main)) .top-header-brand{font-size:23px;gap:8px;letter-spacing:.1em}
+
+ /* Боковая панель шире, кнопки крупнее — по ним удобнее попадать мышью. */
+ .is-author .bottom-nav{left:18px;width:96px;gap:6px;padding:10px;border-radius:26px;
+  background:var(--glass-2);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+ .is-author .bottom-nav-item{padding:10px 4px;min-height:70px;gap:6px}
+ .is-author .bottom-nav-item span{font-size:11px}
+ .is-author .bottom-nav-item svg{padding:12px;width:24px;height:24px}
+ .is-author .bottom-nav-settings{display:flex}
+ /* На ПК панель стоит сбоку, и запас под нижнюю полосу (он объявлен через
+    !important для телефона) здесь только съедал высоту окна. */
+ .is-author .main-content{padding-left:150px;padding-right:40px;padding-bottom:16px!important}
+
+ /* Стекло вернулось на плитки действий и библиотеки. */
+ .main-content:not(.listener-main) .home-tile,
+ .main-content:not(.listener-main) .library-tiles>button{background:var(--glass-1);
+  border:1px solid var(--glass-border);box-shadow:var(--glass-bevel),0 18px 40px -26px rgba(0,0,0,.9);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+ .main-content:not(.listener-main) .home-tile-live{background:var(--glass-warm-1);
+  border-color:rgba(255,106,85,.3);box-shadow:var(--glass-bevel),var(--glass-shadow-warm)}
+ .main-content:not(.listener-main) .home-tile>svg,
+ .main-content:not(.listener-main) .tile-icon{box-sizing:content-box;padding:9px;border-radius:50%;
+  background:rgba(255,255,255,.05);box-shadow:var(--glass-bevel-sm)}
+ .main-content:not(.listener-main) .settings-panel{background:var(--glass-2);
+  border:1px solid var(--glass-border);box-shadow:var(--glass-bevel-sm),0 20px 44px -30px rgba(0,0,0,.9)}
+ .main-content:not(.listener-main) .section-icon{box-sizing:content-box;width:22px;height:22px;padding:9px;
+  border-radius:50%;background:rgba(111,231,222,.1);box-shadow:var(--glass-bevel-sm)}
+}
