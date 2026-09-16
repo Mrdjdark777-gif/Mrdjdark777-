@@ -600,12 +600,21 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Студия автора: боковая панель и акцент в заголовке на широком экране. */
 .page-heading h1 .accent{background:linear-gradient(90deg,#8FEFE8,#54D9C6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .is-author .main-content{padding-bottom:calc(var(--bottom-nav-h) + 36px)}
-@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:104px;display:flex;flex-direction:column;gap:6px;padding:12px 10px;border-radius:26px}
-.is-author .bottom-nav-item{padding:12px 4px;min-height:76px;gap:7px}
-.is-author .bottom-nav-item svg{width:26px;height:26px}
-.is-author .bottom-nav-item span{font-size:12px}
+@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:116px;display:flex;flex-direction:column;gap:7px;padding:14px 11px;border-radius:28px}
+.is-author .bottom-nav-item{padding:13px 4px;min-height:84px;gap:8px}
+.is-author .bottom-nav-item svg{width:28px;height:28px}
+.is-author .bottom-nav-item span{font-size:12.5px}
 .is-author .bottom-nav-settings{display:flex}
-.is-author .main-content{padding-left:160px;padding-right:44px;padding-bottom:36px}
+/* Порядок колонки: главная первой, дальше по частоте работы. На телефоне
+   порядок другой — там «Главная» стоит по центру ряда и трогать её нельзя,
+   поэтому переставляется показ, а не разметка. */
+.is-author .bottom-nav-home{order:1}
+.is-author .bottom-nav-live{order:2}
+.is-author .bottom-nav-videos{order:3}
+.is-author .bottom-nav-podcasts{order:4}
+.is-author .bottom-nav-stories{order:5}
+.is-author .bottom-nav-settings{order:6}
+.is-author .main-content{padding-left:172px;padding-right:44px;padding-bottom:36px}
 .is-author .recorder-panel,.is-author .live-card,.is-author .quick-story,.is-author .library-tiles>button,.is-author .draft-bar{border-radius:20px;background:var(--surface);border-color:var(--line)}
 .is-author .recorder-bottom,.is-author .record-device-area{background:#171b1d}
 .is-author .live-card .secondary-button{border-radius:12px}

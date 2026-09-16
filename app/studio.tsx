@@ -251,11 +251,11 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {data&&!data.needsSetup&&<nav className="bottom-nav">
- <button className="bottom-nav-item tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
- <button className="bottom-nav-item tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
+ <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}<Headphones size={22}/><span>{t('nav.podcasts')}</span></button>
+ <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}><Video size={22}/><span>{t('nav.videos')}</span></button>
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}><img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/><span>{t('nav.home')}</span></button>
- <button className="bottom-nav-item tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
- <button className="bottom-nav-item tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
+ <button className="bottom-nav-item bottom-nav-live tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}><Radio size={22}/><span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
+ <button className="bottom-nav-item bottom-nav-stories tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}><BookOpen size={22}/><span>{t('nav.stories')}</span></button>
  {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}><SlidersHorizontal size={22}/><span>{t('header.settings')}</span></button>}
  </nav>}
  </div>
