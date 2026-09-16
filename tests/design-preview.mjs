@@ -288,7 +288,7 @@ try{
    // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
    // на вкладку, дальше самые старые гаснут.
    const shaders=await fit.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
-   if(v==='home'&&shaders<9)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 9');
+   if(v==='home'&&shaders<11)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 11 — четыре плитки, пять кнопок панели и два знака канала');
    if(shaders>12)problems.push('студия '+v+': WebGL-контекстов '+shaders+' — близко к пределу браузера');
    if(m.h>m.inner+2)tall.push(v+' '+m.h);
    // Ряды главной стоят по одной сетке: одинаковые края и, у библиотеки с
