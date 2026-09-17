@@ -96,6 +96,9 @@ export const it: Record<keyof typeof ru, string> = {
 
   'common.retry': 'Riprova',
   'common.refresh': 'Aggiorna',
+  'shell.menu': "Azioni dell’app",
+  'shell.browser': "Apri nel browser",
+  'shell.about': "Informazioni",
   'common.cancel': 'Annulla',
   'common.login': 'Accedi',
   'common.loading': 'Caricamento dello studio…',

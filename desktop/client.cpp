@@ -8,6 +8,7 @@
 #include "WebView2.h"
 #include "webview2-uuids.h"
 
+static void runCommand(HWND h,WPARAM id);
 static const wchar_t* SITE=L"https://truethrills.com";
 static HWND windowHandle;
 static ICoreWebView2Controller* controller;
@@ -47,7 +48,7 @@ class NewWindow:public Callback<ICoreWebView2NewWindowRequestedEventHandler>{
 class WebMessage:public Callback<ICoreWebView2WebMessageReceivedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2WebMessageReceivedEventArgs* args) override{
   LPWSTR source=nullptr,text=nullptr;args->get_Source(&source);
-  if(trusted(source)&&SUCCEEDED(args->TryGetWebMessageAsString(&text))&&text){if(wcscmp(text,L"true-thrills:active")==0)activity(true);else if(wcscmp(text,L"true-thrills:idle")==0)activity(false);}
+  if(trusted(source)&&SUCCEEDED(args->TryGetWebMessageAsString(&text))&&text){if(wcscmp(text,L"true-thrills:active")==0)activity(true);else if(wcscmp(text,L"true-thrills:idle")==0)activity(false);else if(wcscmp(text,L"true-thrills:reload")==0)runCommand(windowHandle,102);else if(wcscmp(text,L"true-thrills:browser")==0)runCommand(windowHandle,104);else if(wcscmp(text,L"true-thrills:about")==0)runCommand(windowHandle,105);}
   CoTaskMemFree(source);CoTaskMemFree(text);return S_OK;
  }
 };
@@ -89,26 +90,49 @@ static void initialize(){
  wcscat(data,L"\\TrueThrills");CreateDirectoryW(data,nullptr);wcscat(data,L"\\WebView2");CreateDirectoryW(data,nullptr);
  auto callback=new EnvironmentReady();HRESULT hr=create(nullptr,data,nullptr,callback);callback->Release();if(FAILED(hr))runtimeHelp();
 }
+// Тёмный заголовок окна. Светлая системная полоса над тёмной страницей была
+// единственным светлым пятном в приложении. Атрибут 20 — Windows 10 2004 и
+// новее, 19 — более ранние сборки; на старых системах вызов просто не удастся.
+static void darkTitleBar(HWND h){
+ HMODULE dwm=LoadLibraryW(L"dwmapi.dll");if(!dwm)return;
+ using SetAttr=HRESULT(WINAPI*)(HWND,DWORD,LPCVOID,DWORD);
+ auto setAttr=reinterpret_cast<SetAttr>(GetProcAddress(dwm,"DwmSetWindowAttribute"));
+ if(setAttr){BOOL on=TRUE;if(FAILED(setAttr(h,20,&on,sizeof(on))))setAttr(h,19,&on,sizeof(on));}
+ FreeLibrary(dwm);
+}
+// Три действия приложения. Строки меню над страницей больше нет, поэтому они
+// живут в системном меню окна — правый клик по заголовку или Alt+Space. Это
+// запасной путь: он работает, даже если страница не загрузилась.
+static void appMenu(HWND h){
+ HMENU menu=GetSystemMenu(h,FALSE);if(!menu)return;
+ AppendMenuW(menu,MF_SEPARATOR,0,nullptr);
+ AppendMenuW(menu,MF_STRING,102,L"Обновить");
+ AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");
+ AppendMenuW(menu,MF_STRING,105,L"О приложении");
+}
+
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
  switch(message){
   case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);}return 0;
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
-  case WM_COMMAND:switch(LOWORD(w)){
-   case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
-   case 104:external(SITE);break;
-   case 105:MessageBoxW(h,L"True Thrills — студия\nВерсия 0.9.2\n\nРабочее место автора: подкасты, видео, истории и прямые эфиры.\nСлушатели открывают канал в приложении на Android или в браузере.\n\n— — —\n\nКАК УСТРОЕНО\nОкно приложения показывает твой сайт через Microsoft Edge WebView2.\nСайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке.\nВо время эфира голос идёт с этого компьютера; запись, обработка и архив\nделаются на сервере и остаются доступны после того, как ПК выключен.\n\nЗВУК\nИсточник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или\nвиртуальный кабель из FL Studio. Приложение не пересобирает твой тракт\nи ничего не включает в системе без спроса.\n\nВХОД\nНужен пароль автора. Слушателям учётная запись не нужна, и приложение\nеё не создаёт: прогресс прослушивания хранится на устройстве человека.\n\nПОДДЕРЖКА КАНАЛА\nВсё бесплатно. Только добровольные донаты через внешние сервисы —\nприложение не обрабатывает платежи и не хранит данные карт.\n\n— — —\n\n© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio.",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
-  }return 0;
+  case WM_COMMAND:runCommand(h,LOWORD(w));return 0;
+  case WM_SYSCOMMAND:if(w==102||w==104||w==105){runCommand(h,w);return 0;}break;
   case WM_CLOSE:if(confirmLeave())DestroyWindow(h);return 0;
   case WM_DESTROY:activity(false);if(controller){controller->Close();controller->Release();controller=nullptr;}if(webview){webview->Release();webview=nullptr;}PostQuitMessage(0);return 0;
   case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(h,&ps);RECT r;GetClientRect(h,&r);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(224,224,230));SelectObject(dc,GetStockObject(DEFAULT_GUI_FONT));DrawTextW(dc,loadingText,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE);EndPaint(h,&ps);return 0;}
  }return DefWindowProcW(h,message,w,l);
 }
+static void runCommand(HWND h,WPARAM id){switch(id){
+   case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
+   case 104:external(SITE);break;
+   case 105:MessageBoxW(h,L"True Thrills — студия\nВерсия 0.9.2\n\nРабочее место автора: подкасты, видео, истории и прямые эфиры.\nСлушатели открывают канал в приложении на Android или в браузере.\n\n— — —\n\nКАК УСТРОЕНО\nОкно приложения показывает твой сайт через Microsoft Edge WebView2.\nСайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке.\nВо время эфира голос идёт с этого компьютера; запись, обработка и архив\nделаются на сервере и остаются доступны после того, как ПК выключен.\n\nЗВУК\nИсточник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или\nвиртуальный кабель из FL Studio. Приложение не пересобирает твой тракт\nи ничего не включает в системе без спроса.\n\nВХОД\nНужен пароль автора. Слушателям учётная запись не нужна, и приложение\nеё не создаёт: прогресс прослушивания хранится на устройстве человека.\n\nПОДДЕРЖКА КАНАЛА\nВсё бесплатно. Только добровольные донаты через внешние сервисы —\nприложение не обрабатывает платежи и не хранит данные карт.\n\n— — —\n\n© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio.",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
+  }}
+
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  HANDLE mutex=CreateMutexW(nullptr,FALSE,L"Local\\TrueThrills.Desktop.02");if(GetLastError()==ERROR_ALREADY_EXISTS){HWND existing=FindWindowW(L"TrueThrills.Desktop",nullptr);if(existing){ShowWindow(existing,SW_RESTORE);SetForegroundWindow(existing);}if(mutex)CloseHandle(mutex);return 0;}
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
- HMENU menu=CreateMenu();AppendMenuW(menu,MF_STRING,102,L"Обновить");AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");AppendMenuW(menu,MF_STRING,105,L"О приложении");
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,menu,instance,nullptr);if(!windowHandle)return 1;ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,nullptr,instance,nullptr);if(!windowHandle)return 1;darkTitleBar(windowHandle);appMenu(windowHandle);ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }

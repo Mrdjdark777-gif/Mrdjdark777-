@@ -266,6 +266,30 @@ try{
   assert.equal(home.at,Math.floor(home.count/2),'главная стоит ровно посередине панели');
   assert.ok(home.markW>=home.otherW+8,'знак главной заметно крупнее соседних значков');
   await nav.close();}
+ // Оконное приложение на ПК: строки меню над страницей больше нет, три её
+ // команды переехали в шапку. Подставляем мост WebView2 до загрузки страницы и
+ // проверяем весь путь до сообщения, которое ловит оконная часть.
+ {const shell=await desk.newPage();await shell.setViewportSize({width:2560,height:1400});
+  // window.chrome в Chromium уже существует и переопределению не поддаётся,
+  // поэтому подставляем только webview — как это и делает WebView2.
+  await shell.addInitScript(()=>{const sent=[];
+   const w=window;w.chrome=w.chrome||{};w.chrome.webview={postMessage:(m)=>sent.push(m)};
+   Object.defineProperty(window,'__sent',{get:()=>sent});});
+  await shell.goto(base+'/');await settle(shell);
+  const menu=shell.locator('.shell-menu > button');
+  if(await menu.count()!==1)problems.push('в приложении на ПК нет меню действий');
+  else{
+   await menu.click();
+   const items=await shell.locator('.shell-menu-list button').allTextContents();
+   if(items.length!==3)problems.push('в меню действий приложения '+items.length+' пунктов вместо трёх');
+   await shell.locator('.shell-menu-list button').first().click();
+   await menu.click();await shell.locator('.shell-menu-list button').nth(1).click();
+   await menu.click();await shell.locator('.shell-menu-list button').nth(2).click();
+   const sent=await shell.evaluate(()=>window.__sent.filter(m=>m!=='true-thrills:active'&&m!=='true-thrills:idle'));
+   const want=['true-thrills:reload','true-thrills:browser','true-thrills:about'];
+   if(sent.join(',')!==want.join(','))problems.push('меню действий шлёт '+JSON.stringify(sent)+' вместо '+JSON.stringify(want));
+  }
+  await shell.close();}
  // Окно EXE — 1280×880. Требование «ни одна вкладка не прокручивается»
  // владелец снял в пользу более крупных элементов: знак канала и кнопки
  // боковой панели важнее пары вкладок, которые теперь чуть длиннее окна.
@@ -289,6 +313,9 @@ try{
    // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
    // на вкладку, дальше самые старые гаснут.
    const shaders=await fit.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+   // В браузере моста к оконному приложению нет, значит и меню действий быть
+   // не должно: иначе кнопки нажимались бы вхолостую.
+   if(await fit.evaluate(()=>document.querySelectorAll('.shell-menu').length))problems.push('студия '+v+': меню действий приложения показано в браузере');
    if(!(await fit.evaluate(()=>document.querySelectorAll('.tt-beams').length)))problems.push('студия '+v+': фон с лучами не нарисовался');
    if(v==='home'&&shaders<11)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 11 — четыре плитки, пять кнопок панели и два знака канала');
    if(shaders>12)problems.push('студия '+v+': WebGL-контекстов '+shaders+' — близко к пределу браузера');

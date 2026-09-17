@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
+import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -19,6 +19,8 @@ import {nextEpisode} from '@/lib/next-episode';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
 import {useWideScreen} from '@/hooks/use-wide-screen';
+import {sendDesktopCommand} from '@/lib/desktop-shell';
+import {useDesktopApp} from '@/hooks/use-desktop-app';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {VoiceHeader} from '@/components/studio/voice-header';
 import {LiveStageView} from '@/components/studio/live-stage-view';
@@ -53,6 +55,9 @@ export default function Studio(){
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('all'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false);
  const wide=useWideScreen();
+ // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
+ const shell=useDesktopApp();
+ const [shellOpen,setShellOpen]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
@@ -176,6 +181,15 @@ export default function Studio(){
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={96} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="82" height="82" alt=""/>}/>:<img src="/brand/logo.png?v=0.4.1" width="34" height="34" alt=""/>}<span className="wordmark">True Thrills</span></button>
   <div className="top-header-actions">
+   {shell&&<div className="shell-menu">
+    <button className="quiet-button tt-pressable" aria-label={t('shell.menu')} title={t('shell.menu')} aria-expanded={shellOpen} onClick={()=>setShellOpen(v=>!v)}><MoreHorizontal size={20}/></button>
+    {shellOpen&&<><button className="shell-menu-veil" aria-label={t('common.cancel')} onClick={()=>setShellOpen(false)}/>
+     <div className="shell-menu-list" role="menu">
+      <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('reload');}}>{t('common.refresh')}</button>
+      <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('browser');}}>{t('shell.browser')}</button>
+      <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('about');}}>{t('shell.about')}</button>
+     </div></>}
+   </div>}
    {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('catalog.search')} title={t('catalog.search')} onClick={()=>{haptic();goto('podcasts');setTimeout(()=>document.querySelector<HTMLInputElement>('.catalog-search input')?.focus(),120);}}><Search size={20}/></button>}
    {!author&&!!heartLink&&<a className="support-button" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('header.settings')} title={t('header.settings')} onClick={()=>{haptic();goto('settings');}}><SlidersHorizontal size={20}/></button>}

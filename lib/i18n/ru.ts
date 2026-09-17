@@ -95,6 +95,9 @@ export const ru = {
 
   'common.retry': 'Повторить',
   'common.refresh': 'Обновить',
+  'shell.menu': "Действия приложения",
+  'shell.browser': "Открыть в браузере",
+  'shell.about': "О приложении",
   'common.cancel': 'Отмена',
   'common.login': 'Войти',
   'common.loading': 'Загружаем студию…',

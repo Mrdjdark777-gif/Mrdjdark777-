@@ -119,6 +119,9 @@ export const uk: Record<keyof typeof ru, string> = {
   "common.retry": "Повторити",
 
   "common.refresh": "Оновити",
+  "shell.menu": "Дії застосунку",
+  "shell.browser": "Відкрити у браузері",
+  "shell.about": "Про застосунок",
 
   "common.cancel": "Скасувати",
 
