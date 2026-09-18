@@ -187,6 +187,7 @@ export default function Studio(){
      <div className="shell-menu-list" role="menu">
       <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('reload');}}>{t('common.refresh')}</button>
       <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('browser');}}>{t('shell.browser')}</button>
+      <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('fullscreen');}}>{t('shell.fullscreen')}</button>
       <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('about');}}>{t('shell.about')}</button>
      </div></>}
    </div>}

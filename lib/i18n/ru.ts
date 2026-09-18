@@ -97,6 +97,7 @@ export const ru = {
   'common.refresh': 'Обновить',
   'shell.menu': "Действия приложения",
   'shell.browser': "Открыть в браузере",
+  'shell.fullscreen': "Полноэкранный режим (F11)",
   'shell.about': "О приложении",
   'common.cancel': 'Отмена',
   'common.login': 'Войти',

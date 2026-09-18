@@ -121,6 +121,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "common.refresh": "Оновити",
   "shell.menu": "Дії застосунку",
   "shell.browser": "Відкрити у браузері",
+  "shell.fullscreen": "Повноекранний режим (F11)",
   "shell.about": "Про застосунок",
 
   "common.cancel": "Скасувати",

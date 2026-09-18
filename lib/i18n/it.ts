@@ -98,6 +98,7 @@ export const it: Record<keyof typeof ru, string> = {
   'common.refresh': 'Aggiorna',
   'shell.menu': "Azioni dell’app",
   'shell.browser': "Apri nel browser",
+  'shell.fullscreen': "Schermo intero (F11)",
   'shell.about': "Informazioni",
   'common.cancel': 'Annulla',
   'common.login': 'Accedi',

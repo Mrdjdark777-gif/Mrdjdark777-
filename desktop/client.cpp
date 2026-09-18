@@ -9,6 +9,8 @@
 #include "webview2-uuids.h"
 
 static void runCommand(HWND h,WPARAM id);
+static void setFullscreen(HWND h,bool on);
+static bool fullscreen=false;
 static const wchar_t* SITE=L"https://truethrills.com";
 static HWND windowHandle;
 static ICoreWebView2Controller* controller;
@@ -48,7 +50,7 @@ class NewWindow:public Callback<ICoreWebView2NewWindowRequestedEventHandler>{
 class WebMessage:public Callback<ICoreWebView2WebMessageReceivedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2WebMessageReceivedEventArgs* args) override{
   LPWSTR source=nullptr,text=nullptr;args->get_Source(&source);
-  if(trusted(source)&&SUCCEEDED(args->TryGetWebMessageAsString(&text))&&text){if(wcscmp(text,L"true-thrills:active")==0)activity(true);else if(wcscmp(text,L"true-thrills:idle")==0)activity(false);else if(wcscmp(text,L"true-thrills:reload")==0)runCommand(windowHandle,102);else if(wcscmp(text,L"true-thrills:browser")==0)runCommand(windowHandle,104);else if(wcscmp(text,L"true-thrills:about")==0)runCommand(windowHandle,105);}
+  if(trusted(source)&&SUCCEEDED(args->TryGetWebMessageAsString(&text))&&text){if(wcscmp(text,L"true-thrills:active")==0)activity(true);else if(wcscmp(text,L"true-thrills:idle")==0)activity(false);else if(wcscmp(text,L"true-thrills:reload")==0)runCommand(windowHandle,102);else if(wcscmp(text,L"true-thrills:browser")==0)runCommand(windowHandle,104);else if(wcscmp(text,L"true-thrills:about")==0)runCommand(windowHandle,105);else if(wcscmp(text,L"true-thrills:fullscreen")==0)runCommand(windowHandle,106);}
   CoTaskMemFree(source);CoTaskMemFree(text);return S_OK;
  }
 };
@@ -60,6 +62,17 @@ class NavigationDone:public Callback<ICoreWebView2NavigationCompletedEventHandle
 };
 class ProcessFailed:public Callback<ICoreWebView2ProcessFailedEventHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2*,ICoreWebView2ProcessFailedEventArgs*) override{activity(false);fail(L"Окно приложения потеряло соединение с WebView2. Если шла запись, проверь сохранённый черновик после перезапуска.");return S_OK;}
+};
+// Пока страница в фокусе, клавиатурой распоряжается WebView2 и WM_KEYDOWN до
+// окна не доходит. Контроллер отдаёт нажатие сюда раньше, чем веб-содержимому,
+// поэтому F11 перехватывается здесь.
+class AcceleratorKey:public Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>{
+ HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2Controller*,ICoreWebView2AcceleratorKeyPressedEventArgs* args) override{
+  COREWEBVIEW2_KEY_EVENT_KIND kind=COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN;UINT key=0;
+  args->get_KeyEventKind(&kind);args->get_VirtualKey(&key);
+  if(key==VK_F11&&(kind==COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN||kind==COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)){args->put_Handled(TRUE);setFullscreen(windowHandle,!fullscreen);}
+  return S_OK;
+ }
 };
 class ControllerReady:public Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>{
  HRESULT STDMETHODCALLTYPE Invoke(HRESULT hr,ICoreWebView2Controller* c) override{
@@ -73,6 +86,7 @@ class ControllerReady:public Callback<ICoreWebView2CreateCoreWebView2ControllerC
   auto nav=new Navigation();webview->add_NavigationStarting(nav,&token);nav->Release();
   auto done=new NavigationDone();webview->add_NavigationCompleted(done,&token);done->Release();
   auto failed=new ProcessFailed();webview->add_ProcessFailed(failed,&token);failed->Release();
+  auto keys=new AcceleratorKey();c->add_AcceleratorKeyPressed(keys,&token);keys->Release();
   webview->Navigate(SITE);return S_OK;
  }
 };
@@ -109,6 +123,34 @@ static void appMenu(HWND h){
  AppendMenuW(menu,MF_STRING,102,L"Обновить");
  AppendMenuW(menu,MF_STRING,104,L"Открыть в браузере");
  AppendMenuW(menu,MF_STRING,105,L"О приложении");
+ AppendMenuW(menu,MF_STRING,106,L"Полноэкранный режим (F11)");
+}
+
+// Полноэкранный режим без рамки. Окно теряет заголовок и границы и точно
+// накрывает монитор — панель задач Windows прячет сама, пока такое окно
+// впереди. WS_SYSMENU остаётся: без заголовка меню окна (Alt+Space) —
+// единственный системный путь наружу, если страница не загрузилась.
+static WINDOWPLACEMENT framedPlacement={sizeof(framedPlacement)};
+static LONG_PTR framedStyle=0;
+static void setFullscreen(HWND h,bool on){
+ if(on==fullscreen)return;
+ if(on){
+  MONITORINFO monitor={sizeof(monitor)};
+  if(!GetMonitorInfoW(MonitorFromWindow(h,MONITOR_DEFAULTTONEAREST),&monitor))return;
+  framedStyle=GetWindowLongPtrW(h,GWL_STYLE);
+  GetWindowPlacement(h,&framedPlacement);
+  SetWindowLongPtrW(h,GWL_STYLE,(framedStyle&~(WS_CAPTION|WS_THICKFRAME|WS_MINIMIZEBOX|WS_MAXIMIZEBOX))|WS_POPUP);
+  SetWindowPos(h,HWND_TOP,monitor.rcMonitor.left,monitor.rcMonitor.top,
+   monitor.rcMonitor.right-monitor.rcMonitor.left,monitor.rcMonitor.bottom-monitor.rcMonitor.top,
+   SWP_NOOWNERZORDER|SWP_FRAMECHANGED);
+ }else{
+  SetWindowLongPtrW(h,GWL_STYLE,framedStyle);
+  SetWindowPlacement(h,&framedPlacement);
+  SetWindowPos(h,nullptr,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_NOOWNERZORDER|SWP_FRAMECHANGED);
+ }
+ fullscreen=on;
+ HMENU menu=GetSystemMenu(h,FALSE);
+ if(menu)CheckMenuItem(menu,106,MF_BYCOMMAND|(on?MF_CHECKED:MF_UNCHECKED));
 }
 
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
@@ -117,7 +159,7 @@ static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
   case WM_MOVE:if(controller)controller->NotifyParentWindowPositionChanged();return 0;
   case WM_SETFOCUS:if(controller)controller->MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC);return 0;
   case WM_COMMAND:runCommand(h,LOWORD(w));return 0;
-  case WM_SYSCOMMAND:if(w==102||w==104||w==105){runCommand(h,w);return 0;}break;
+  case WM_SYSCOMMAND:if(w==102||w==104||w==105||w==106){runCommand(h,w);return 0;}break;
   case WM_CLOSE:if(confirmLeave())DestroyWindow(h);return 0;
   case WM_DESTROY:activity(false);if(controller){controller->Close();controller->Release();controller=nullptr;}if(webview){webview->Release();webview=nullptr;}PostQuitMessage(0);return 0;
   case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(h,&ps);RECT r;GetClientRect(h,&r);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(224,224,230));SelectObject(dc,GetStockObject(DEFAULT_GUI_FONT));DrawTextW(dc,loadingText,-1,&r,DT_CENTER|DT_VCENTER|DT_SINGLELINE);EndPaint(h,&ps);return 0;}
@@ -126,6 +168,7 @@ static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
 static void runCommand(HWND h,WPARAM id){switch(id){
    case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
    case 104:external(SITE);break;
+   case 106:setFullscreen(h,!fullscreen);break;
    case 105:MessageBoxW(h,L"True Thrills — студия\nВерсия 0.9.2\n\nРабочее место автора: подкасты, видео, истории и прямые эфиры.\nСлушатели открывают канал в приложении на Android или в браузере.\n\n— — —\n\nКАК УСТРОЕНО\nОкно приложения показывает твой сайт через Microsoft Edge WebView2.\nСайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке.\nВо время эфира голос идёт с этого компьютера; запись, обработка и архив\nделаются на сервере и остаются доступны после того, как ПК выключен.\n\nЗВУК\nИсточник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или\nвиртуальный кабель из FL Studio. Приложение не пересобирает твой тракт\nи ничего не включает в системе без спроса.\n\nВХОД\nНужен пароль автора. Слушателям учётная запись не нужна, и приложение\nеё не создаёт: прогресс прослушивания хранится на устройстве человека.\n\nПОДДЕРЖКА КАНАЛА\nВсё бесплатно. Только добровольные донаты через внешние сервисы —\nприложение не обрабатывает платежи и не хранит данные карт.\n\n— — —\n\n© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio.",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
   }}
 
@@ -133,6 +176,6 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
  HANDLE mutex=CreateMutexW(nullptr,FALSE,L"Local\\TrueThrills.Desktop.02");if(GetLastError()==ERROR_ALREADY_EXISTS){HWND existing=FindWindowW(L"TrueThrills.Desktop",nullptr);if(existing){ShowWindow(existing,SW_RESTORE);SetForegroundWindow(existing);}if(mutex)CloseHandle(mutex);return 0;}
  SetProcessDPIAware();if(FAILED(CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED)))return 1;
  background=CreateSolidBrush(RGB(16,17,19));WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=WindowProc;cls.hInstance=instance;cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=background;cls.lpszClassName=L"TrueThrills.Desktop";cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;RegisterClassExW(&cls);
- windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,nullptr,instance,nullptr);if(!windowHandle)return 1;darkTitleBar(windowHandle);appMenu(windowHandle);ShowWindow(windowHandle,show);UpdateWindow(windowHandle);initialize();
+ windowHandle=CreateWindowExW(0,cls.lpszClassName,L"True Thrills",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,880,nullptr,nullptr,instance,nullptr);if(!windowHandle)return 1;darkTitleBar(windowHandle);appMenu(windowHandle);ShowWindow(windowHandle,show);setFullscreen(windowHandle,true);UpdateWindow(windowHandle);initialize();
  MSG msg;while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}CoUninitialize();DeleteObject(background);if(mutex)CloseHandle(mutex);return 0;
 }

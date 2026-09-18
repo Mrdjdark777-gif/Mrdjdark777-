@@ -121,6 +121,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "common.refresh": "Reîmprospătează",
   "shell.menu": "Acțiuni aplicație",
   "shell.browser": "Deschide în browser",
+  "shell.fullscreen": "Mod ecran complet (F11)",
   "shell.about": "Despre aplicație",
 
   "common.cancel": "Anulează",

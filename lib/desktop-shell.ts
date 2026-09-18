@@ -7,7 +7,7 @@
  * сообщения и, кроме того, держит команды в системном меню окна (Alt+Space) —
  * на случай, если страница не загрузилась и нажать здесь нечего.
  */
-export type DesktopCommand='reload'|'browser'|'about';
+export type DesktopCommand='reload'|'browser'|'about'|'fullscreen';
 
 type WebView2=Window&{chrome?:{webview?:{postMessage:(message:string)=>void}}};
 

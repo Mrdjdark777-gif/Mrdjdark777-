@@ -281,12 +281,13 @@ try{
   else{
    await menu.click();
    const items=await shell.locator('.shell-menu-list button').allTextContents();
-   if(items.length!==3)problems.push('в меню действий приложения '+items.length+' пунктов вместо трёх');
+   if(items.length!==4)problems.push('в меню действий приложения '+items.length+' пунктов вместо четырёх');
    await shell.locator('.shell-menu-list button').first().click();
    await menu.click();await shell.locator('.shell-menu-list button').nth(1).click();
    await menu.click();await shell.locator('.shell-menu-list button').nth(2).click();
+   await menu.click();await shell.locator('.shell-menu-list button').nth(3).click();
    const sent=await shell.evaluate(()=>window.__sent.filter(m=>m!=='true-thrills:active'&&m!=='true-thrills:idle'));
-   const want=['true-thrills:reload','true-thrills:browser','true-thrills:about'];
+   const want=['true-thrills:reload','true-thrills:browser','true-thrills:fullscreen','true-thrills:about'];
    if(sent.join(',')!==want.join(','))problems.push('меню действий шлёт '+JSON.stringify(sent)+' вместо '+JSON.stringify(want));
   }
   await shell.close();}

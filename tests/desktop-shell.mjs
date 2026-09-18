@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {build} from 'esbuild';
 const {outputFiles}=await build({stdin:{contents:"export * from './lib/desktop-shell';",resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node'});
 const {isDesktopApp,sendDesktopCommand}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
@@ -15,10 +16,16 @@ assert.equal(isDesktopApp(win),true);
 assert.equal(sendDesktopCommand('reload',win),true);
 assert.equal(sendDesktopCommand('browser',win),true);
 assert.equal(sendDesktopCommand('about',win),true);
-assert.deepEqual(sent,['true-thrills:reload','true-thrills:browser','true-thrills:about']);
+assert.equal(sendDesktopCommand('fullscreen',win),true);
+assert.deepEqual(sent,['true-thrills:reload','true-thrills:browser','true-thrills:about','true-thrills:fullscreen']);
 
 // Сломанный мост не роняет страницу.
 const broken={chrome:{webview:{postMessage(){throw new Error('мост закрыт');}}}};
 assert.equal(sendDesktopCommand('about',broken),false,'ошибка моста не выбрасывается наружу');
 
-console.log('PASS: мост к приложению на ПК — определение окна, три команды и устойчивость к сбою моста.');
+// Каждая команда страницы должна иметь разбор в оконной части: разъехавшиеся
+// стороны моста молча ничего не делают, и заметить это можно только на ПК.
+const client=await readFile('desktop/client.cpp','utf8');
+for(const message of sent)assert.ok(client.includes('L"'+message+'"'),'окно не разбирает '+message);
+
+console.log('PASS: мост к приложению на ПК — определение окна, четыре команды, их разбор в оконной части и устойчивость к сбою моста.');
