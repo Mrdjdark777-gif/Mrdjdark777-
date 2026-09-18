@@ -44,7 +44,7 @@ async function processRecording(row){
      silenceSeconds:Math.round(silence/1000),onAirSeconds:Math.round(age/1000),chunks:seq}));
     db.transaction(()=>{db.prepare("UPDATE live_recordings SET state='closing' WHERE id=? AND state='receiving'").run(row.id);db.prepare('UPDATE broadcasts SET active=0 WHERE id=?').run(row.id);})();
    }else if(current.state!=='receiving'){
-    console.log(JSON.stringify({event:'live-stopped',id:row.id,state:current.state,chunks:seq,onAirSeconds:Math.round(age/1000)}));
+    console.log(JSON.stringify({event:'live-stopped',id:row.id,state:current.state,chunks:seq,onAirSeconds:Math.round(age/1000),studioReason:current.error||null}));
     break;
    }
    await delay(250);

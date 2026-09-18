@@ -95,7 +95,7 @@ export function useLive(){
    host.current=r.id;uploadError.current=null;queue.current=Promise.resolve();queued.current=0;
    const rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:160000});recorder.current=rec;let seq=0;
    rec.ondataavailable=e=>{if(!e.data.size)return;const n=seq++;queued.current++;
-    if(queued.current>45){uploadError.current=new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();void api('live',{action:'stop',id:r.id}).catch(()=>{});toast.error(t('liveArchive.partial'));}
+    if(queued.current>45){uploadError.current=new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();void api('live',{action:'stop',id:r.id,reason:'studio-queue-overflow: '+queued.current+' кусков не ушло, сеть не успевает'}).catch(()=>{});toast.error(t('liveArchive.partial'));}
     queue.current=queue.current.then(async()=>{try{
      if(uploadError.current)return;
      let error:unknown;
@@ -105,10 +105,10 @@ export function useLive(){
       }catch(e){error=e;setHostStatus(t('liveArchive.retry'));await wait(Math.min(8000,1000*2**attempt));}
      }
      throw error;
-    }catch(e){uploadError.current=e instanceof Error?e:new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();setHostStatus(t('liveArchive.partial'));toast.error(errorText(e));void api('live',{action:'stop',id:r.id}).catch(()=>{});
+    }catch(e){uploadError.current=e instanceof Error?e:new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();setHostStatus(t('liveArchive.partial'));toast.error(errorText(e));void api('live',{action:'stop',id:r.id,reason:'studio-upload-failed: кусок '+n+' не ушёл за 5 попыток — '+(e instanceof Error?e.message:String(e))}).catch(()=>{});
     }finally{queued.current--;}});
    };
-   rec.onerror=()=>{uploadError.current=new Error('#err.liveRecorder');void stop().catch(e=>toast.error(errorText(e)));};
+   rec.onerror=()=>{uploadError.current=new Error('#err.liveRecorder');void api('live',{action:'stop',id:r.id,reason:'studio-recorder-error: MediaRecorder остановился сам'}).catch(()=>{});void stop().catch(e=>toast.error(errorText(e)));};
    rec.start(2000);setHosting(r.id);setHostSeconds(0);setHostStatus(t('liveArchive.receiving'));const began=Date.now();let polling=false;
    hostTimer.current=setInterval(()=>{setHostSeconds(Math.floor((Date.now()-began)/1000));if(polling)return;polling=true;
     void api<Recording>('live-stream?id='+r.id).then(d=>{setListeners(d.listeners||0);if(d.state!=='receiving'&&!stopTask.current)void stop().catch(e=>toast.error(errorText(e)));}).catch(()=>setHostStatus(t('liveArchive.retry'))).finally(()=>{polling=false;});},3000);

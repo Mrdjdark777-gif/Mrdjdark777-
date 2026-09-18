@@ -46,8 +46,13 @@ try{
  const list=await until(async()=>{const response=await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false);return response.status===200?response.text():false;});
  assert.match(list,/#EXTINF:/);const segment=list.split('\n').find(x=>x.startsWith('?id='));assert.equal((await call(stream,'GET',undefined,segment,false)).status,200);
  assert.equal((await call(stream,'GET',undefined,'?id='+id+'&file=../../.env',false)).status,404);
- await call(live,'POST',{action:'stop',id});
+ // Причина остановки от студии: без неё обрыв эфира на стороне ПК оставался
+ // в журнале как «студия остановила», и понять почему было нечем.
+ const studioReason='studio-upload-failed: кусок 7 не ушёл за 5 попыток — проверка';
+ await call(live,'POST',{action:'stop',id,reason:studioReason});
  const archive=await until(()=>{const r=db.prepare('SELECT * FROM live_recordings WHERE id=?').get(id);if(r.state==='failed')throw new Error(r.error+' '+logs);return r.state==='ready'?r:false;});
+ assert.ok(logs.includes(studioReason),'воркер обязан напечатать причину остановки студии в журнал');
+ assert.equal(archive.error,null,'на удавшейся записи причина стирается и не показывается как ошибка');
  const post=db.prepare('SELECT * FROM posts WHERE id=?').get(archive.post_id);assert.equal(post.published,1);
  assert.equal(post.cover_key,coverKey,'обложка эфира должна стать обложкой выпуска');assert.ok(post.duration>=13&&post.duration<=15);assert.equal(post.kind,'podcast');
  const file=path.join(process.env.STORAGE_DIR,post.audio_key);assert.ok((await readFile(file)).length>0);assert.match(await (await call(stream,'GET',undefined,'?id='+id+'&file=index.m3u8',false)).text(),/#EXT-X-ENDLIST/);
