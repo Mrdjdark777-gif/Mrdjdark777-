@@ -332,6 +332,18 @@ try{
    // настройками, одинаковые колонки. Раньше верхний ряд упирался в свой
    // предел ширины и стоял уже остальных, а промежутки в 15 и 18 пикселей
    // разводили карточки на пару пикселей мимо плиток над ними.
+   // Строка списка: у каждого значка действия должна быть подсказка, иначе
+   // понять его можно только методом тыка. И состояний ровно два — черновик
+   // или опубликованное; вкладку «Все» владелец убрал как лишнюю.
+   if(v==='videos'){
+    const row=await fit.evaluate(()=>({
+     tabs:[...document.querySelectorAll('.filter-tabs button')].map(b=>b.textContent.trim()),
+     untitled:[...document.querySelectorAll('.post-actions button:not(.text-button)')].filter(b=>!b.title.trim()).length,
+     actions:document.querySelectorAll('.post-actions button:not(.text-button)').length}));
+    if(row.tabs.length!==2)problems.push('видео: вкладок фильтра '+row.tabs.length+' вместо двух — '+row.tabs.join(', '));
+    if(!row.actions)problems.push('видео: в строке нет значков действий, проверять нечего');
+    if(row.untitled)problems.push('видео: у '+row.untitled+' значков строки нет подсказки');
+   }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{
      const box=el=>{const r=el.getBoundingClientRect();return [Math.round(r.left),Math.round(r.right)];};

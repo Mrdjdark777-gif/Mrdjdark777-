@@ -1106,11 +1106,11 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 .main-content:not(.listener-main) .field{gap:4px;font-size:12.5px}
 .main-content:not(.listener-main) input{padding:8px 10px;font-size:13px}
 /* Каталог в студии: карточка ниже, обложка той же пропорции, но меньше. */
-.main-content:not(.listener-main) .post-cover{width:104px}
-.main-content:not(.listener-main) .post-content{padding:12px 14px}
-.main-content:not(.listener-main) .post-title{font-size:17px;margin:6px 0 4px}
-.main-content:not(.listener-main) .post-content>p{font-size:12.5px;-webkit-line-clamp:2}
-.main-content:not(.listener-main) .post-actions{margin-top:10px;gap:14px}
+.main-content:not(.listener-main) .post-cover{width:124px}
+.main-content:not(.listener-main) .post-content{padding:17px 19px}
+.main-content:not(.listener-main) .post-title{font-size:19px;margin:8px 0 5px}
+.main-content:not(.listener-main) .post-content>p{font-size:13.5px;-webkit-line-clamp:2}
+.main-content:not(.listener-main) .post-actions{margin-top:14px;gap:16px}
 .main-content:not(.listener-main) .post-list{gap:10px}
 .main-content:not(.listener-main) .filter-tabs{margin-bottom:12px;height:38px!important}
 /* Пульт эфира: тот же тракт, но без лишнего воздуха между блоками. */

@@ -298,7 +298,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.coverChange": "Alege alta",
 
-  "live.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Devine coperta episodului la podcasturi. Dacă nu încarci una, pe card rămâne logoul.",
+  "live.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Devine coperta episodului din podcasturi. Fără ea, fundalul transmisiunii va fi imaginea canalului din setări, iar pe card — logoul.",
 
   "live.titlePlaceholder": "Despre ce povestești azi?",
 
@@ -482,7 +482,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "studio.ready0": "Studioul e gata",
 
-  "filter.all": "Toate",
 
   "filter.published": "Publicate",
 
@@ -537,10 +536,10 @@ export const ro: Record<keyof typeof ru, string> = {
   "post.publish": "Publică",
 
   "post.delete": "Șterge",
-  "post.pin": "Pune în prim-plan",
-  "post.unpin": "Scoate din prim-plan",
-  "post.pinned": "Este în prim-planul paginii",
-  "post.unpinned": "Scos din prim-plan",
+  "post.pin": "Fixează pe pagina principală",
+  "post.unpin": "Elimină de pe pagina principală",
+  "post.pinned": "Fixat pe pagina principală",
+  "post.unpinned": "Eliminat de pe pagina principală",
 
   "post.defaultVideo": "Video True Thrills",
 
@@ -644,9 +643,9 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "settings.donationNote": "Plățile sunt procesate de serviciul ales. Aplicația nu păstrează datele cardurilor.",
 
-  "settings.artTitle": "Fundalul notificărilor și al emisiunii",
+  "settings.artTitle": "Fundalul notificărilor",
 
-  "settings.artText": "Imaginea apare în notificarea de redare în fundal (ca o copertă de album) și ca fundal al transmisiunii, dacă episodul nu are copertă proprie. Merge bannerul canalului tău.",
+  "settings.artText": "Imaginea apare în notificarea de redare în fundal — ca o copertă de album pe ecranul blocat. Bannerul canalului tău este potrivit.",
 
   "settings.artUpload": "Încarcă o imagine",
   "settings.artRemove": "Șterge imaginea",
