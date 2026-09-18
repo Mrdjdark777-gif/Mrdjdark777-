@@ -1066,7 +1066,7 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    значок в углу. Нажатие на знак или на название возвращает на главную.
    ========================================================================== */
 .main-content:not(.listener-main)~.bottom-nav,.top-header:has(~.main-content:not(.listener-main)){}
-body:has(.main-content:not(.listener-main)) .top-header{justify-content:center;position:relative;padding-top:20px}
+body:has(.main-content:not(.listener-main)) .top-header{justify-content:center;position:relative;padding-top:36px}
 body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:column;gap:8px;font-size:22px;font-weight:700;letter-spacing:.06em}
 body:has(.main-content:not(.listener-main)) .top-header-brand img{width:64px;height:64px}
 body:has(.main-content:not(.listener-main)) .top-header-actions{position:absolute;right:calc(20px + env(safe-area-inset-right));top:20px}
