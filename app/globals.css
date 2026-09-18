@@ -600,10 +600,10 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Студия автора: боковая панель и акцент в заголовке на широком экране. */
 .page-heading h1 .accent{background:linear-gradient(90deg,#8FEFE8,#54D9C6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .is-author .main-content{padding-bottom:calc(var(--bottom-nav-h) + 36px)}
-@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:116px;display:flex;flex-direction:column;gap:7px;padding:14px 11px;border-radius:28px}
-.is-author .bottom-nav-item{padding:13px 4px;min-height:84px;gap:8px}
-.is-author .bottom-nav-item svg{width:28px;height:28px}
-.is-author .bottom-nav-item span{font-size:12.5px}
+@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:96px;display:flex;flex-direction:column;gap:6px;padding:11px 9px;border-radius:24px}
+.is-author .bottom-nav-item{padding:10px 4px;min-height:68px;gap:6px}
+.is-author .bottom-nav-item svg{width:23px;height:23px}
+.is-author .bottom-nav-item span{font-size:11px}
 .is-author .bottom-nav-settings{display:flex}
 /* Порядок колонки: главная первой, дальше по частоте работы. На телефоне
    порядок другой — там «Главная» стоит по центру ряда и трогать её нельзя,
@@ -614,7 +614,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .is-author .bottom-nav-podcasts{order:4}
 .is-author .bottom-nav-stories{order:5}
 .is-author .bottom-nav-settings{order:6}
-.is-author .main-content{padding-left:172px;padding-right:44px;padding-bottom:36px}
+.is-author .main-content{padding-left:146px;padding-right:44px;padding-bottom:36px}
 @media(min-width:1600px){.is-author .main-content{padding-left:44px;padding-right:44px}}
 .is-author .recorder-panel,.is-author .live-card,.is-author .quick-story,.is-author .library-tiles>button,.is-author .draft-bar{border-radius:20px;background:var(--surface);border-color:var(--line)}
 .is-author .recorder-bottom,.is-author .record-device-area{background:#171b1d}
@@ -1128,20 +1128,20 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px;gap:18px}
  .main-content:not(.listener-main) .library-tiles{gap:18px}
  /* Карточки настроек на шаг крупнее внутри: заголовок, текст и поля. */
- .main-content:not(.listener-main) .settings-panel{padding:24px 26px}
- .main-content:not(.listener-main) .settings-panel h2{font-size:21px;margin-bottom:9px}
- .main-content:not(.listener-main) .settings-panel p{font-size:14px;line-height:1.55}
- .main-content:not(.listener-main) .settings-panel small{font-size:12.5px}
- .main-content:not(.listener-main) .section-icon{width:26px;height:26px;margin-bottom:14px}
- .main-content:not(.listener-main) .field{font-size:13.5px}
- .main-content:not(.listener-main) input{padding:10px 12px;font-size:14px}
+ .main-content:not(.listener-main) .settings-panel{padding:19px 21px}
+ .main-content:not(.listener-main) .settings-panel h2{font-size:18px;margin-bottom:8px}
+ .main-content:not(.listener-main) .settings-panel p{font-size:12.5px;line-height:1.5}
+ .main-content:not(.listener-main) .settings-panel small{font-size:11.5px}
+ .main-content:not(.listener-main) .section-icon{width:22px;height:22px;margin-bottom:11px}
+ .main-content:not(.listener-main) .field{font-size:12.5px}
+ .main-content:not(.listener-main) input{padding:8px 10px;font-size:13px}
  .main-content:not(.listener-main) .library-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
  /* Верхний ряд действий по ширине совпадает с рядами под ним: ограничение
     в 780px делало его заметно уже и прижимало влево. */
  .main-content:not(.listener-main) .home-actions{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none}
  .main-content:not(.listener-main) .home-tile{min-height:68px;padding:12px;flex-direction:row;align-items:center;gap:10px}
- .main-content:not(.listener-main) .library-tiles>button{padding:14px 16px}
- .main-content:not(.listener-main) .library-tiles strong{font-size:20px}
+ .main-content:not(.listener-main) .library-tiles>button{padding:11px 14px}
+ .main-content:not(.listener-main) .library-tiles strong{font-size:17px}
  .main-content:not(.listener-main) .settings-panel p{margin-bottom:10px}
  .main-content:not(.listener-main) .channel-art-preview{max-width:180px}
  /* Пульт эфира и подсказки — в два столбца, подсказки уже основной зоны. */
@@ -1161,20 +1161,20 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 @media(min-width:1100px){
  .main-content:not(.listener-main) .page-heading{margin-bottom:10px}
  /* Заголовок вкладки и строка под ним — крупнее: с них начинается экран. */
- .main-content:not(.listener-main) .page-heading h1{font-size:34px}
+ .main-content:not(.listener-main) .page-heading h1{font-size:28px}
  /* «Твоя библиотека» — тот же заголовок, что и «Что делаем сегодня?»:
     та же гарнитура, тот же размер и та же градиентная заливка текста.
     Строка под ним — как строка под верхним заголовком. */
  .main-content:not(.listener-main) .library-heading{align-items:baseline;gap:14px}
  .main-content:not(.listener-main) .library-heading h2{font-family:var(--tt-editorial);font-weight:500;
-  font-size:34px;letter-spacing:-.01em;line-height:1.1;
+  font-size:28px;letter-spacing:-.01em;line-height:1.1;
   background:linear-gradient(135deg,#f4f3f1,#6FE7DE);-webkit-background-clip:text;background-clip:text;color:transparent}
- .main-content:not(.listener-main) .library-heading>span{font-size:15px;color:#9699a2}
- .main-content:not(.listener-main) .heading-description{margin-top:6px;font-size:15px}
+ .main-content:not(.listener-main) .library-heading>span{font-size:13.5px;color:#9699a2}
+ .main-content:not(.listener-main) .heading-description{margin-top:5px;font-size:13.5px}
  /* Плитки действий — крупнее: по ним чаще всего кликают. */
- .main-content:not(.listener-main) .home-tile{min-height:88px;padding:16px 18px;gap:14px}
- .main-content:not(.listener-main) .home-tile span{font-size:15px}
- .main-content:not(.listener-main) .home-tile>svg{width:26px;height:26px}
+ .main-content:not(.listener-main) .home-tile{min-height:72px;padding:13px 15px;gap:12px}
+ .main-content:not(.listener-main) .home-tile span{font-size:13.5px}
+ .main-content:not(.listener-main) .home-tile>svg{width:22px;height:22px}
  .main-content:not(.listener-main) .settings-grid{margin-top:12px}
  .main-content:not(.listener-main) .home-actions{margin-bottom:14px}
  /* Пульт эфира: метр и регуляторы плотнее, подсказки короче по высоте. */
@@ -1323,3 +1323,11 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
 .shell-menu-list button{padding:10px 12px;border-radius:8px;text-align:left;font-size:14px;color:#e8ebec;background:none;border:none}
 .shell-menu-list button:hover{background:#26282e}
+
+/* Иконка внутри металлического круга живёт по своим размерам. Правила
+   .is-author .bottom-nav-item svg и .home-tile svg задают величину обычной
+   иконки; внутри круга от неё остаётся видимая кромка, поэтому здесь она
+   меньше. Блок стоит в конце файла: у тех правил такой же вес, и спор
+   решает порядок. */
+.is-author .bottom-nav-item .tt-metal svg{width:18px;height:18px}
+.home-tile .tt-metal svg{width:19px;height:19px}

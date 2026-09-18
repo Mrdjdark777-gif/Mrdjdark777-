@@ -308,7 +308,7 @@ try{
     settings:!!document.querySelector('.bottom-nav-settings')?.getBoundingClientRect().height}));
    if(m.w>m.iw+1)problems.push('студия '+v+': переполнение по ширине');
    if(m.markW<72)problems.push('студия '+v+': знак канала мельче 72px ('+m.markW+')');
-   if(m.navW<100)problems.push('студия '+v+': боковая панель уже 100px ('+m.navW+')');
+   if(m.navW<90)problems.push('студия '+v+': боковая панель уже 90px ('+m.navW+')');
    if(!m.settings)problems.push('студия '+v+': в боковой панели нет кнопки настроек');
    // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
    // на вкладку, дальше самые старые гаснут.

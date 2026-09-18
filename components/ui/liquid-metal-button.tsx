@@ -175,7 +175,7 @@ export function LiquidMetalButton({
   };
 
   return (
-    <div className="relative inline-block" style={interactive ? undefined : { pointerEvents: "none" }}>
+    <div className="tt-metal relative inline-block" style={interactive ? undefined : { pointerEvents: "none" }}>
       <div
         style={{
           perspective: "1000px",
