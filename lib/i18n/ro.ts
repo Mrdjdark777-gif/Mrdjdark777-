@@ -531,7 +531,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "post.edit": "Editează",
 
-  "post.unpublish": "Retrage din publicare",
+  "post.unpublish": "Mută în ciorne",
 
   "post.publish": "Publică",
 

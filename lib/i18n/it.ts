@@ -328,7 +328,7 @@ export const it: Record<keyof typeof ru, string> = {
   'post.watchAria': 'Guarda {title}',
   'post.readAria': 'Leggi {title}',
   'post.edit': 'Modifica',
-  'post.unpublish': 'Rimuovi dalla pubblicazione',
+  'post.unpublish': "Sposta nelle bozze",
   'post.publish': 'Pubblica',
   'post.delete': 'Elimina',
   'post.pin': "Fissa in home",

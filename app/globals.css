@@ -1106,7 +1106,12 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 .main-content:not(.listener-main) .field{gap:4px;font-size:12.5px}
 .main-content:not(.listener-main) input{padding:8px 10px;font-size:13px}
 /* Каталог в студии: карточка ниже, обложка той же пропорции, но меньше. */
-.main-content:not(.listener-main) .post-cover{width:124px}
+.main-content:not(.listener-main) .post-cover{width:124px;align-self:stretch;aspect-ratio:auto}
+/* Кадр видео горизонтальный: в узкой вертикальной полоске от него оставалась
+   середина. Ширина задана числом, а не соотношением: с aspect-ratio и
+   width:auto высота строки и ширина обложки начинали разгонять друг друга,
+   и обложка растягивала карточку на пол-экрана. */
+.main-content:not(.listener-main) .video-cover{width:230px}
 .main-content:not(.listener-main) .post-content{padding:17px 19px}
 .main-content:not(.listener-main) .post-title{font-size:19px;margin:8px 0 5px}
 .main-content:not(.listener-main) .post-content>p{font-size:13.5px;-webkit-line-clamp:2}

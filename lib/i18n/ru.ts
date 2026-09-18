@@ -327,7 +327,7 @@ export const ru = {
   'post.watchAria': 'Смотреть {title}',
   'post.readAria': 'Читать {title}',
   'post.edit': 'Редактировать',
-  'post.unpublish': 'Снять с публикации',
+  'post.unpublish': "Убрать в черновики",
   'post.publish': 'Опубликовать',
   'post.delete': 'Удалить',
   'post.pin': "Закрепить на главной",

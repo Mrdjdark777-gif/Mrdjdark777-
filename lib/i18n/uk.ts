@@ -531,7 +531,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "post.edit": "Редагувати",
 
-  "post.unpublish": "Зняти з публікації",
+  "post.unpublish": "Прибрати в чернетки",
 
   "post.publish": "Опублікувати",
 
