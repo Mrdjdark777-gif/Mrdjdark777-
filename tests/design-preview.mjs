@@ -292,6 +292,15 @@ try{
   }
   await shell.close();}
 
+ // Одно число во всех трёх местах: памятка автору, подсказка в приложении и
+ // вёрстка. Раньше памятка говорила 4:5, а приложение — 9:16.
+ {const {readFile}=await import('node:fs/promises');
+  const doc=await readFile('docs/COVERS-RU.md','utf8'),ru=await readFile('lib/i18n/ru.ts','utf8');
+  const hint=/'editor\.coverNote'|"editor\.coverNote"/.test(ru)?ru.split(/["']editor\.coverNote["']\s*:\s*/)[1].split('\n')[0]:'';
+  if(!/4:5/.test(doc)||!/1080\s*[×x]\s*1350/.test(doc))problems.push('памятка docs/COVERS-RU.md больше не называет 4:5 / 1080×1350');
+  if(!/4:5/.test(hint))problems.push('подсказка в редакторе не называет 4:5: '+hint.slice(0,80));
+  if(!/1080×1350/.test(hint))problems.push('подсказка в редакторе не называет 1080×1350');}
+
  // Редактор видео. Предпросмотр нужен, чтобы убедиться, что ссылка та, но
  // запускаться сам он не должен: человек пришёл править карточку, а не
  // смотреть ролик. И перекрывать кнопки сохранения ему нечем.
@@ -377,6 +386,10 @@ try{
     // слушателю, а не середину подрезанной картинки.
     const fitMode=await fit.evaluate(()=>{const i=document.querySelector('.post-cover-image');return i?getComputedStyle(i).objectFit:'нет картинки';});
     if(fitMode!=='contain')problems.push('видео: обложка подрезается (object-fit: '+fitMode+')');
+    // Пропорция ячейки — та же, что памятка велит готовить. Разъехавшись,
+    // они молча заставляли бы автора делать картинку не под то место.
+    const shape=await fit.evaluate(()=>{const c=document.querySelector('.post-cover');const r=c.getBoundingClientRect();return r.width/r.height;});
+    if(Math.abs(shape-0.8)>0.04)problems.push('видео: ячейка обложки '+shape.toFixed(2)+' вместо 0.80 (4:5)');
    }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{

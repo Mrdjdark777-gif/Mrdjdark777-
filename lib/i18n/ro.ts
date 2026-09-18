@@ -84,7 +84,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "editor.coverUpload": "Încarcă o copertă",
 
-  "editor.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Umple cardul pe înălțime; un alt raport se decupează din centru.",
+  "editor.coverNote": "Copertă verticală 4:5 — 1080×1350, JPEG. Ține subiectul principal în pătratul central: în cercul playerului și în notificare se vede doar mijlocul. Alt raport nu se decupează, dar apare cu margini.",
 
   "editor.coverUrlPlaceholder": "sau lipește un link https://…",
 
@@ -298,7 +298,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.coverChange": "Alege alta",
 
-  "live.coverNote": "Copertă verticală 9:16 — de exemplu 1080×1920. Devine coperta episodului din podcasturi. Fără ea, fundalul transmisiunii va fi imaginea canalului din setări, iar pe card — logoul.",
+  "live.coverNote": "Copertă verticală 4:5 — 1080×1350. Devine coperta episodului din podcasturi. Fără ea, fundalul transmisiunii va fi imaginea canalului din setări, iar pe card — logoul.",
 
   "live.titlePlaceholder": "Despre ce povestești azi?",
 
@@ -659,7 +659,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "settings.artSaved": "Imagine salvată",
 
-  "settings.artNote": "Recomandăm o imagine lată (ca bannerul unui canal YouTube), până la 12 MB.",
+  "settings.artNote": "Banner orizontal 16:9 — 1920×1080, până la 12 MB. Ține centrul liniștit: peste el se desenează textele.",
 
   "settings.linksTitle": "Platformele tale",
 
