@@ -343,6 +343,12 @@ try{
     if(row.tabs.length!==2)problems.push('видео: вкладок фильтра '+row.tabs.length+' вместо двух — '+row.tabs.join(', '));
     if(!row.actions)problems.push('видео: в строке нет значков действий, проверять нечего');
     if(row.untitled)problems.push('видео: у '+row.untitled+' значков строки нет подсказки');
+    // Высоту строки задаёт текст, а не обложка. Вертикальный постер однажды
+    // растянул карточку вдвое: у картинки height:100%, а у растянутой ячейки
+    // высота не число — процент превращался в «сколько получится».
+    const card=await fit.evaluate(()=>{const c=document.querySelector('.post-card');
+     return c?{card:Math.round(c.getBoundingClientRect().height),text:Math.round(c.querySelector('.post-content').getBoundingClientRect().height)}:null;});
+    if(card&&card.card>card.text+8)problems.push('видео: строка '+card.card+'px при тексте '+card.text+'px — высоту задаёт обложка, а не текст');
    }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{

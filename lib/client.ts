@@ -16,7 +16,30 @@ export async function api<T=unknown>(path:string,data?:unknown,init?:RequestInit
   if(!type.includes('application/json'))throw new Error(t('err.serverDown'));
   const d=await r.json() as T & {error?:string};if(!r.ok)throw new Error(serverMessage(d.error));return d;
 }
-export const clock=(seconds:number)=>{const n=Math.max(0,Math.floor(seconds||0));return `${Math.floor(n/60).toString().padStart(2,'0')}:${(n%60).toString().padStart(2,'0')}`;};
+export const clock=(seconds:number)=>{
+ const n=Math.max(0,Math.floor(seconds||0)),m=Math.floor(n/60)%60,s=n%60,h=Math.floor(n/3600);
+ const mm=m.toString().padStart(2,'0'),ss=s.toString().padStart(2,'0');
+ // Часы появляются только когда есть: у выпуска на 12 минут «00:12:30» читается
+ // хуже, чем «12:30», а у полуторачасового «90:00» уже вводит в заблуждение.
+ return h?`${h}:${mm}:${ss}`:`${mm}:${ss}`;
+};
+/**
+ * Разбор длительности, введённой руками. У видео это ссылка на чужую площадку,
+ * длины ролика мы не знаем — её вписывает автор.
+ *
+ * Пусто — длительности нет, карточка её не показывает. Иначе «мм:сс» или
+ * «ч:мм:сс»; всё остальное — null, и вызывающий говорит об этом человеку,
+ * а не сохраняет молча ноль.
+ */
+export const parseClock=(text:string):number|null=>{
+ const value=text.trim();
+ if(!value)return 0;
+ const parts=/^(\d{1,3}):([0-5]\d)$/.exec(value);
+ if(parts)return Number(parts[1])*60+Number(parts[2]);
+ const long=/^(\d{1,2}):([0-5]\d):([0-5]\d)$/.exec(value);
+ if(long)return Number(long[1])*3600+Number(long[2])*60+Number(long[3]);
+ return null;
+};
 // Короткий тактильный отклик на тап по нижней навигации. В Android-приложении
 // зовёт нативный EFFECT_CLICK через мост (см. NativeBridge.haptic) — это
 // калиброванная волна, а не голая длительность, ощущается заметно чётче.

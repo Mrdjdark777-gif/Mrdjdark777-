@@ -582,6 +582,10 @@ export const uk: Record<keyof typeof ru, string> = {
   "editor.storyPlaceholder": "Починай розповідати…",
 
   "editor.videoUrl": "Посилання на відео",
+  "editor.videoDuration": "Тривалість",
+  "editor.videoDurationPlaceholder": "хх:сс",
+  "editor.videoDurationNote": "Довжини ролика застосунок не знає — ролик лежить на чужому майданчику. Впиши її сам, і вона з’явиться на картці. Можна залишити порожнім.",
+  "editor.badDuration": "Тривалість пиши як хх:сс, наприклад 12:30, або г:хх:сс для довгого ролика",
 
   "editor.videoNote": "YouTube, Rutube, VK Відео, TikTok або пряме посилання на файл MP4. Решта посилань відкриються на майданчику.",
 

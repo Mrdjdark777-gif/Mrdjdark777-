@@ -1112,6 +1112,11 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
    width:auto высота строки и ширина обложки начинали разгонять друг друга,
    и обложка растягивала карточку на пол-экрана. */
 .main-content:not(.listener-main) .video-cover{width:230px}
+/* Картинка не должна задавать высоту строки. У ячейки высота не число, а
+   «во всю строку», поэтому height:100% у картинки превращался в «сколько
+   получится», и вертикальный постер растягивал карточку вдвое. Вне потока
+   она подрезается по ячейке, а высоту строки задаёт только текст. */
+.main-content:not(.listener-main) .post-cover-image{position:absolute;inset:0}
 .main-content:not(.listener-main) .post-content{padding:17px 19px}
 .main-content:not(.listener-main) .post-title{font-size:19px;margin:8px 0 5px}
 .main-content:not(.listener-main) .post-content>p{font-size:13.5px;-webkit-line-clamp:2}

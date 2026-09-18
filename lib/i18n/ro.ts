@@ -582,6 +582,10 @@ export const ro: Record<keyof typeof ru, string> = {
   "editor.storyPlaceholder": "Începe să povestești…",
 
   "editor.videoUrl": "Linkul videoclipului",
+  "editor.videoDuration": "Durată",
+  "editor.videoDurationPlaceholder": "mm:ss",
+  "editor.videoDurationNote": "Aplicația nu știe durata clipului — clipul se află pe o platformă externă. Scrie-o tu și va apărea pe card. Poate rămâne gol.",
+  "editor.badDuration": "Scrie durata ca mm:ss, de exemplu 12:30, sau h:mm:ss pentru un clip lung",
 
   "editor.videoNote": "YouTube, Rutube, VK Video, TikTok sau un link direct către un fișier MP4. Restul linkurilor se deschid pe platformă.",
 
