@@ -1333,3 +1333,13 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    решает порядок. */
 .is-author .bottom-nav-item .tt-metal svg{width:18px;height:18px}
 .home-tile .tt-metal svg{width:19px;height:19px}
+
+/* Полоса прокрутки студии на ПК. Системная рисуется светлой и на тёмной
+   странице читается как дефект окна, а прокручивать там почти нечего —
+   колесо и клавиши работают и без неё, ничего не становится недостижимым.
+   color-scheme:dark отдельно: он делает тёмными и те системные полосы,
+   что остаются внутри диалогов. Блок стоит в конце файла: у правил
+   одинаковый вес, и спор решает порядок. */
+:root{color-scheme:dark}
+:root:has(.main-content:not(.listener-main)){scrollbar-width:none}
+:root:has(.main-content:not(.listener-main))::-webkit-scrollbar{width:0;height:0}

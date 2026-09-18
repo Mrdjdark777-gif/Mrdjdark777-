@@ -317,6 +317,13 @@ try{
    // В браузере моста к оконному приложению нет, значит и меню действий быть
    // не должно: иначе кнопки нажимались бы вхолостую.
    if(await fit.evaluate(()=>document.querySelectorAll('.shell-menu').length))problems.push('студия '+v+': меню действий приложения показано в браузере');
+   // Светлая системная полоса прокрутки на тёмной странице читается как
+   // дефект окна. Мерить её ширину здесь нельзя — в headless-браузере
+   // полоса наложенная и ширины не занимает никогда, такая проверка
+   // прошла бы и без правила. Поэтому спрашиваем сам каскад: он и был
+   // местом поломки, когда правило перебивалось другим ниже по файлу.
+   const bar=await fit.evaluate(()=>getComputedStyle(document.documentElement).scrollbarWidth);
+   if(bar!=='none')problems.push('студия '+v+': полоса прокрутки не спрятана (scrollbar-width: '+bar+')');
    if(!(await fit.evaluate(()=>document.querySelectorAll('.tt-beams').length)))problems.push('студия '+v+': фон с лучами не нарисовался');
    if(v==='home'&&shaders<11)problems.push('студия home: кругов с окантовкой '+shaders+', ожидалось 11 — четыре плитки, пять кнопок панели и два знака канала');
    if(shaders>12)problems.push('студия '+v+': WebGL-контекстов '+shaders+' — близко к пределу браузера');
