@@ -1111,7 +1111,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
    середина. Ширина задана числом, а не соотношением: с aspect-ratio и
    width:auto высота строки и ширина обложки начинали разгонять друг друга,
    и обложка растягивала карточку на пол-экрана. */
-.main-content:not(.listener-main) .video-cover{width:230px}
+.main-content:not(.listener-main) .video-cover{width:150px}
 /* Картинка не должна задавать высоту строки. У ячейки высота не число, а
    «во всю строку», поэтому height:100% у картинки превращался в «сколько
    получится», и вертикальный постер растягивал карточку вдвое. Вне потока
@@ -1353,3 +1353,15 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 :root{color-scheme:dark}
 :root:has(.main-content:not(.listener-main)){scrollbar-width:none}
 :root:has(.main-content:not(.listener-main))::-webkit-scrollbar{width:0;height:0}
+
+/* Кадр предпросмотра позиционирован (position:relative), а строка кнопок —
+   обычный блок. Позиционированный элемент рисуется поверх таких соседей,
+   и кадр накрывал «Отмена» и «Опубликовать». Поднимаем кнопки в тот же слой. */
+.editor-dialog .editor-actions{position:relative;z-index:1}
+
+/* Обложка целиком. Раньше она подрезалась под ячейку, и автор не видел, что
+   именно уйдёт слушателю. Пустое место по краям закрашено фоном карточки —
+   так видно и саму картинку, и её настоящее соотношение. */
+.main-content:not(.listener-main) .post-cover{background:#101116}
+.main-content:not(.listener-main) .post-cover-image{object-fit:contain}
+.editor-dialog .cover-preview{object-fit:contain;background:#101116}

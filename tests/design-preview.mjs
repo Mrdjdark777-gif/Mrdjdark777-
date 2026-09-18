@@ -291,6 +291,30 @@ try{
    if(sent.join(',')!==want.join(','))problems.push('меню действий шлёт '+JSON.stringify(sent)+' вместо '+JSON.stringify(want));
   }
   await shell.close();}
+
+ // Редактор видео. Предпросмотр нужен, чтобы убедиться, что ссылка та, но
+ // запускаться сам он не должен: человек пришёл править карточку, а не
+ // смотреть ролик. И перекрывать кнопки сохранения ему нечем.
+ {const ed=await desk.newPage();await ed.setViewportSize({width:2560,height:1400});
+  await ed.goto(base+'/?view=videos');await settle(ed);
+  await ed.locator('.post-actions button[title]').first().click();
+  await ed.locator('.editor-dialog').waitFor({timeout:8000});
+  // Мерим при прокрутке вниз: именно там кадр сходится с кнопками.
+  await ed.evaluate(()=>{const d=document.querySelector('.editor-dialog');if(d)d.scrollTop=d.scrollHeight;});
+  await ed.waitForTimeout(400);
+  const box=await ed.evaluate(()=>{
+   const frame=document.querySelector('.editor-dialog .video-frame'),actions=document.querySelector('.editor-dialog .editor-actions');
+   const rect=el=>{const r=el.getBoundingClientRect();return {top:Math.round(r.top),bottom:Math.round(r.bottom),left:Math.round(r.left),right:Math.round(r.right)};};
+   return {frame:frame?rect(frame):null,actions:actions?rect(actions):null,
+    src:document.querySelector('.editor-dialog .video-frame iframe')?.getAttribute('src')??'',
+    autoplayAttr:!!document.querySelector('.editor-dialog .video-frame video')?.autoplay};});
+  if(!box.frame)problems.push('редактор видео: предпросмотра нет');
+  else if(!box.actions)problems.push('редактор видео: не найдены кнопки сохранения');
+  else if(box.frame.bottom>box.actions.top&&box.frame.right>box.actions.left&&box.frame.left<box.actions.right)
+   problems.push('редактор видео: предпросмотр ('+JSON.stringify(box.frame)+') накрывает кнопки ('+JSON.stringify(box.actions)+')');
+  if(/autoplay=1/.test(box.src)||box.autoplayAttr)problems.push('редактор видео: предпросмотр запускается сам');
+  await ed.screenshot({path:'outputs/ui/design-pc-video-editor.png'});
+  await ed.close();}
  // Окно EXE — 1280×880. Требование «ни одна вкладка не прокручивается»
  // владелец снял в пользу более крупных элементов: знак канала и кнопки
  // боковой панели важнее пары вкладок, которые теперь чуть длиннее окна.
@@ -349,6 +373,10 @@ try{
     const card=await fit.evaluate(()=>{const c=document.querySelector('.post-card');
      return c?{card:Math.round(c.getBoundingClientRect().height),text:Math.round(c.querySelector('.post-content').getBoundingClientRect().height)}:null;});
     if(card&&card.card>card.text+8)problems.push('видео: строка '+card.card+'px при тексте '+card.text+'px — высоту задаёт обложка, а не текст');
+    // Обложка показывается целиком: автор должен видеть, что именно уйдёт
+    // слушателю, а не середину подрезанной картинки.
+    const fitMode=await fit.evaluate(()=>{const i=document.querySelector('.post-cover-image');return i?getComputedStyle(i).objectFit:'нет картинки';});
+    if(fitMode!=='contain')problems.push('видео: обложка подрезается (object-fit: '+fitMode+')');
    }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{
