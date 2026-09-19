@@ -876,7 +876,9 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    месте. Дыхание идёт всегда, энергия добавляется к нему сверху — так круг
    живой и до начала эфира, а под музыку начинает качать. */
 .live-ring{position:absolute;border-radius:50%;
- inset:calc(var(--ring) * 3.4%);
+ /* Начальный отступ 4%: на пике размаха внешнее кольцо приходит примерно
+    к краю своей области и не наезжает на название под кругом. */
+ inset:calc(4% + var(--ring) * 3.1%);
  border:1px solid rgba(111,231,222,calc(.42 - var(--ring) * .028 + var(--ring-energy,0) * .5));
  transition:border-color 140ms linear;
  animation:live-breathe 3.6s ease-in-out infinite;
@@ -889,8 +891,8 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    .live-ring — анимация перебила бы его своим transform, и кольца перестали
    бы отзываться на звук. */
 @keyframes live-breathe{
- 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .09));opacity:.55}
- 50%{transform:scale(calc(1.045 + var(--ring-energy,0) * .09));opacity:1}}
+ 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .09));opacity:.45}
+ 50%{transform:scale(calc(1.09 + var(--ring-energy,0) * .09));opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
