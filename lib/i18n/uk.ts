@@ -155,6 +155,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.sectionVideos": "Більше, ніж аудіо",
   "home.sectionStories": "Люди та маршрути",
   "home.fresh": "нове",
+  "home.freshList": "Свіже",
   "nav.library": "Бібліотека",
   "heading.homeListener": "Що вмикаємо?",
   "home.eyebrow": "True Thrills / Головна",

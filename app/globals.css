@@ -1463,10 +1463,15 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  /* Главная в две колонки: слева кадр, справа то, ради чего человек пришёл —
     эфир или «Продолжить», разделы, поддержка и приложение. Прежде кадр
     занимал экран по высоте, а всё остальное оказывалось под сгибом. */
+ /* align-items:stretch — колонки одной высоты: кадр слева был заметно короче
+    правой колонки, и под ним зияла дыра до самого подвала. */
  .is-listener .immersion{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
-  gap:24px;align-items:start;min-height:0}
+  gap:24px;align-items:stretch;min-height:0}
+ /* Кадр тянется вслед за правой колонкой, но не выше 70% экрана: иначе на
+    невысоком мониторе он снова съедал бы страницу целиком — это ловит
+    проверка «кадр занимает столько-то при экране столько-то». */
  .is-listener .immersion>.scene{margin:0;border-radius:18px;overflow:hidden;
-  min-height:clamp(420px,52vh,620px);padding-top:0}
+  min-height:clamp(380px,46vh,560px);max-height:70vh;padding-top:0}
  .is-listener .scene-side{display:flex;flex-direction:column;gap:12px}
  /* Разделы — три карточки в ряд той же пропорции 4:5, что и обложки. Стопкой
     из широких плашек обложку резало по высоте до полоски: от вертикальной
@@ -1522,4 +1527,40 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 }
 @media(min-width:1440px){
  .listener-main .post-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Свежие выпуски — часть настольной правой колонки. На телефоне их место
+   занимает сам кадр со строкой «Продолжить», и лишний список выталкивал
+   главную за сгиб: 1780 вместо 844. Правило стоит перед медиазапросом —
+   вес одинаковый, спор решает порядок. */
+.fresh-list{display:none}
+
+@media(min-width:1024px){
+ /* Подвал поднимается к содержимому. Колонка страницы тянулась на всю высоту
+    окна, и на пустой главной подвал уезжал вниз — прокручивать приходилось
+    сквозь пустоту, ради одной строки. */
+ .is-listener .listener-main{min-height:0}
+ .is-listener .immersion{min-height:0}
+
+ /* Свежие выпуски: то, чем правая колонка заполняется по мере роста канала. */
+ .fresh-list{display:grid;gap:8px;margin-top:2px}
+ .fresh-list-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:#8d919c;font-weight:600;margin:6px 0 2px}
+ .fresh-row{display:flex;align-items:center;gap:12px;padding:8px 12px 8px 8px;
+  border-radius:14px;border:1px solid var(--glass-border);background:var(--surface);
+  text-align:left;color:inherit;width:100%}
+ .fresh-row:hover{background:#1c2124}
+ .fresh-cover{width:38px;aspect-ratio:4/5;border-radius:9px;object-fit:cover;flex:none;
+  background:#123330;color:var(--teal);display:grid;place-items:center;overflow:hidden}
+ .fresh-copy{display:grid;gap:2px;min-width:0;flex:1}
+ .fresh-copy strong{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .fresh-copy>span{font-size:11.5px;color:#8d919c}
+ .fresh-row>svg:last-child{color:#8d919c;flex:none}
+
+ /* Поддержка и приложение — того же вида, что строки свежего: одна рамка,
+    один радиус, один фон. До этого они были плоскими полосами во всю ширину
+    и выпадали из ряда карточек. */
+ .is-listener .scene-side .support-strip{border:1px solid var(--glass-border);
+  background:var(--surface);border-radius:14px;padding:11px 12px}
+ .is-listener .scene-side .support-strip:hover{background:#1c2124}
 }

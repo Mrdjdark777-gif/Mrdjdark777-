@@ -120,6 +120,7 @@ export const ru = {
   'home.sectionVideos': 'Больше, чем аудио',
   'home.sectionStories': 'Люди и маршруты',
   'home.fresh': 'новое',
+  'home.freshList': "Свежее",
   'nav.library': 'Библиотека',
   'heading.homeListener': 'Что включим?',
   'home.eyebrow': 'True Thrills / Главная',

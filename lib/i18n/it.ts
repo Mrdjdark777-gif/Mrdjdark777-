@@ -121,6 +121,7 @@ export const it: Record<keyof typeof ru, string> = {
   'home.sectionVideos': 'Più che audio',
   'home.sectionStories': 'Persone e percorsi',
   'home.fresh': 'nuovo',
+  'home.freshList': "Novità",
   'nav.library': 'Libreria',
   'heading.homeListener': 'Cosa ascoltiamo?',
   'home.eyebrow': 'True Thrills / Home',

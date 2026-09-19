@@ -155,6 +155,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.sectionVideos": "Mai mult decât audio",
   "home.sectionStories": "Oameni și trasee",
   "home.fresh": "nou",
+  "home.freshList": "Recente",
   "nav.library": "Bibliotecă",
   "heading.homeListener": "Ce ascultăm?",
   "home.eyebrow": "True Thrills / Acasă",

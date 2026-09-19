@@ -52,6 +52,11 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const hero=picked.hero?posts.find(p=>p.id===picked.hero!.id)??null:null;
  const resume=picked.resume?{...picked.resume,post:posts.find(p=>p.id===picked.resume!.post.id)!}:null;
  const ICON={podcast:Headphones,video:Video,story:BookOpen} as const;
+ // Свежее — то, чего ещё нет в кадре и в строке «Продолжить»: повторять
+ // один и тот же выпуск в двух местах подряд незачем.
+ const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
+ const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
+  .sort((a,b)=>b.createdAt-a.createdAt).slice(0,4);
  // Плитка раздела показывает обложку самой свежей публикации этого типа —
  // настоящую, а не отдельную декоративную картинку.
  const tileCover=(kind:string)=>{
@@ -108,6 +113,19 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
      <span className="section-tile-copy"><strong>{s.label}</strong>{fresh.has(s.kind)&&<span className="section-tile-new">{t('home.fresh')}</span>}</span>
     </button>;})}
   </div>
+
+  {latest.length>0&&<section className="fresh-list">
+   <h3 className="fresh-list-title">{t('home.freshList')}</h3>
+   {latest.map(p=>{const Icon=ICON[p.kind as 'podcast'|'video'|'story']??Headphones;
+    return <button key={p.id} type="button" className="fresh-row tt-pressable" onClick={()=>{haptic();onOpen(p);}}>
+     <Artwork className="fresh-cover" src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon size={18}/>}/>
+     <span className="fresh-copy">
+      <strong>{p.title}</strong>
+      <span>{p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story')}{p.duration>0?' · '+clock(p.duration):''}</span>
+     </span>
+     <ChevronRight size={17}/>
+    </button>;})}
+  </section>}
 
   {support}
   {appLink}
