@@ -877,14 +877,20 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    живой и до начала эфира, а под музыку начинает качать. */
 .live-ring{position:absolute;border-radius:50%;
  inset:calc(var(--ring) * 3.4%);
- border:1px solid rgba(111,231,222,calc(.24 - var(--ring) * .022 + var(--ring-energy,0) * .5));
- transform:scale(calc(1 + var(--ring-energy,0) * .05));
- transition:transform 90ms linear,border-color 140ms linear;
+ border:1px solid rgba(111,231,222,calc(.42 - var(--ring) * .028 + var(--ring-energy,0) * .5));
+ transition:border-color 140ms linear;
  animation:live-breathe 3.6s ease-in-out infinite;
  animation-delay:calc(var(--ring) * -.28s)}
 .live-rings.is-pulsing .live-ring{animation-duration:2.4s}
 @media(prefers-reduced-motion:reduce){.live-ring{animation:none}}
-@keyframes live-breathe{0%,100%{opacity:.5}50%{opacity:1}}
+/* Дыхание — это именно движение, а не мерцание. Прежний вариант менял одну
+   прозрачность у почти невидимой линии, и на глаз не происходило ничего.
+   Масштаб задан внутри кадров вместе с энергией звука: положи его в саму
+   .live-ring — анимация перебила бы его своим transform, и кольца перестали
+   бы отзываться на звук. */
+@keyframes live-breathe{
+ 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .09));opacity:.55}
+ 50%{transform:scale(calc(1.045 + var(--ring-energy,0) * .09));opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}

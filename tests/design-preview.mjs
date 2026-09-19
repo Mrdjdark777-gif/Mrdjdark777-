@@ -202,6 +202,15 @@ try{
    if(!String(stage.rim).startsWith('exclude'))problems.push('эфир: у знака нет металлической кромки (mask-composite: '+stage.rim+')');
    if(stage.dot!=='live-blink')problems.push('эфир: красная точка не мигает ('+stage.dot+')');
    if(stage.breath!=='live-breathe')problems.push('эфир: кольца не дышат без звука ('+stage.breath+')');}
+  // Имя анимации ничего не доказывает: прежний вариант «дышал» одной
+  // прозрачностью у почти невидимой линии, имя было на месте, а на экране не
+  // происходило ничего. Поэтому мерим, что кольцо реально двигается.
+  {const moved=await page.evaluate(async()=>{const ring=document.querySelector('.live-ring');
+    if(!ring)return null;const a=getComputedStyle(ring).transform;
+    await new Promise(r=>setTimeout(r,700));
+    return {a,b:getComputedStyle(ring).transform};});
+   if(!moved)problems.push('эфир: колец нет');
+   else if(moved.a===moved.b)problems.push('эфир: кольцо не двигается — transform не меняется ('+moved.a+')');}
  await page.waitForTimeout(300);await shot(page,'live');
  const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
  // Pending, then transient network failure, then success must recover while
