@@ -39,10 +39,11 @@ export async function GET(req: Request) {
     const obj = await bucket().get(key);
     if (!obj) return new Response('#err.notFound', { status: 404 });
     // Обложки выпусков неизменны: у каждой загрузки свой ключ, их можно
-    // держать в кэше сутки. Оформление канала живёт под одним адресом и
-    // меняется — закэшированное на сутки изображение возвращалось даже
-    // после удаления, пока кэш не истечёт.
-    const h = new Headers({ 'Cache-Control': id === 'channel' ? 'no-store' : 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+    // держать в кэше сутки. Оформление канала и картинка круга покоя живут
+    // под одним адресом и меняются — закэшированное на сутки изображение
+    // возвращалось даже после замены, пока кэш не истечёт.
+    const single = id === 'channel' || id === 'calm';
+    const h = new Headers({ 'Cache-Control': single ? 'no-store' : 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
     obj.writeHttpMetadata(h); h.set('ETag', obj.httpEtag); h.set('Content-Length', String(obj.size));
     return new Response(obj.body, { headers: h });
   } catch (e) { return failure(e); }

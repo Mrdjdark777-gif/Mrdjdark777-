@@ -227,6 +227,18 @@ try{
     if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');
     if(orbState.sub)problems.push('покой: под кругом лишняя строка «'+orbState.sub+'» — про это уже сказано лампой и вкладкой');
    }}
+  // Замена картинки круга должна быть видна сразу. Адрес у неё один, поэтому
+  // ответ не кэшируется, а в ссылке стоит версия: иначе браузер и WebView
+  // сутки показывают прежнюю картинку — на этом уже обжигались с обложками.
+  {const before=await page.evaluate(()=>document.querySelector('.live-orb img')?.getAttribute('src')||'');
+   const head=await fetch(base+'/api/cover?id=calm');
+   const cache=head.headers.get('cache-control')||'';
+   if(!/no-store/.test(cache))problems.push('картинка круга кэшируется ('+cache+') — замена не будет видна');
+   await post({action:'calmArt',key:await demoCover('tile-waterfall.jpg')});
+   await page.goto(base+'/?mode=listen&view=live');await settle(page);
+   const after=await page.evaluate(()=>document.querySelector('.live-orb img')?.getAttribute('src')||'');
+   if(!before||!after)problems.push('картинки круга нет на экране эфира');
+   else if(before===after)problems.push('после замены картинки адрес не изменился ('+after+')');}
   // «Архив эфиров» раскрывается здесь же. Прежде кнопка уводила в «Подкасты»:
   // запись эфира и подготовленный выпуск — разные вещи, и вкладку менять
   // нельзя.
