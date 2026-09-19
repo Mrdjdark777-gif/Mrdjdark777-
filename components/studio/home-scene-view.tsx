@@ -26,9 +26,9 @@ const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>p.coverKey?'/api/cover?id='+p.id:p.coverUrl||'';
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,sections,pinned}:{
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,appLink,sections,pinned}:{
  posts:T[];live:Live|null;onOpen:(post:T)=>void;onOpenLive:()=>void;liveAction:string;
- support:React.ReactNode;pinned?:string|null;
+ support:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
  sections:{kind:'podcast'|'video'|'story';label:string;go:()=>void}[];
 }){
  const {t}=useT();
@@ -104,6 +104,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   </div>
 
   {support}
+  {appLink}
 
   <Dialog open={!!menu} onOpenChange={open=>{if(!open)setMenu(null);}}>
    <DialogContent aria-describedby={undefined}>

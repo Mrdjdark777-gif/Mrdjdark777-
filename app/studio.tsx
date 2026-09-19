@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
+import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Smartphone,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -29,6 +29,7 @@ import {NotificationSettings} from '@/components/studio/notification-settings';
 import {Slider} from '@/components/ui/slider';
 import {api,clock,parseClock,errorText,haptic} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
+import {APP_RELEASE,releaseSize} from '@/lib/app-release';
 import {markSeen} from '@/lib/seen-posts';
 import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
@@ -60,6 +61,15 @@ export default function Studio(){
  const [shellOpen,setShellOpen]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
+ // Ссылку на приложение показываем только в браузере: внутри самого
+ // приложения и в окне студии на ПК предлагать его скачать незачем.
+ const appLink=!shell&&!hasNativeClient()?(
+  <a className="support-strip app-strip tt-pressable" href={APP_RELEASE.href} download>
+   <Smartphone size={19}/>
+   <span className="support-strip-label">{t('app.download')}</span>
+   <span className="support-strip-note">{t('app.meta',{version:APP_RELEASE.version,size:releaseSize(tag)})}</span>
+   <ChevronRight size={18}/>
+  </a>):null;
  // Оформление студии — только автору на широком экране. Слушателю страница
  // канала показывается одинаково и в браузере на ПК, и в приложении.
  const wide=wideScreen&&author;
@@ -222,7 +232,7 @@ export default function Studio(){
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
- {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
+ {view==='home'&&!author&&<HomeSceneView posts={data.items} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned}
   sections={[{kind:'podcast',label:t('nav.podcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),go:()=>goto('stories')}]}/>}

@@ -142,6 +142,8 @@ export const it: Record<keyof typeof ru, string> = {
 
   'header.settings': 'Impostazioni',
   "header.support": "Sostieni",
+  "app.download": "Scarica l'app",
+  "app.meta": "Android · {version} · {size} MB",
   'header.toStudio': 'Vai allo studio',
   'header.asListener': 'Vista ascoltatore',
   'header.logout': 'Esci',

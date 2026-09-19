@@ -141,6 +141,8 @@ export const ru = {
 
   'header.settings': 'Настройки',
   "header.support": "Поддержать",
+  "app.download": "Скачать приложение",
+  "app.meta": "Android · {version} · {size} МБ",
   'header.toStudio': 'В студию',
   'header.asListener': 'Как слушатель',
   'header.logout': 'Выйти',

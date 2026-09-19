@@ -171,7 +171,7 @@ try{
  for(const [width,height] of [[390,844],[360,640]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(150);
   const m=await metrics(page);check(m.scrollH<=height+1,`главная с мини-плеером ${width}x${height}: ${m.scrollH}>${height}`);
-  const support=await page.locator('.support-strip').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
+  const support=await page.locator('.support-strip:not(.app-strip)').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
   check(support.y+support.height<=mini.y,`мини-плеер закрывает донат ${width}x${height}`);
   await shot(page,`mini-${width}`);
  }
@@ -227,7 +227,7 @@ try{
  // плитки и поддержка, — а площадки могут оказаться чуть ниже.
  for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
-  const bottom=await page.locator('.support-strip').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
+  const bottom=await page.locator('.support-strip:not(.app-strip)').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
   check(bottom<=640,`на 360×640 строка поддержки уходит за первый экран: ${bottom}>640`);
   const m=await metrics(page);
   check(m.scrollH<=m.innerH+140,`на 360×640 главная прокручивается больше чем на один блок: ${m.scrollH}>${m.innerH}`);
@@ -313,6 +313,13 @@ try{
    if(m.shaders)problems.push('слушатель '+w+': кругов студии '+m.shaders+', должно быть 0');
    if(m.beams)problems.push('слушатель '+w+': фон студии с лучами показан гостю');
    if(m.w>m.iw+1)problems.push('слушатель '+w+': переполнение по ширине');
+   // Ссылка на приложение — то, за чем человек и приходит на сайт с
+   // компьютера. Она должна быть видна и вести на существующий файл.
+   const app=await g.evaluate(async()=>{const a=document.querySelector('.app-strip');
+    if(!a)return null;const r=await fetch(a.getAttribute('href'),{method:'HEAD'});
+    return {href:a.getAttribute('href'),status:r.status,type:r.headers.get('content-type')};});
+   if(!app)problems.push('слушатель '+w+': на главной нет ссылки на приложение');
+   else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
   }
   await guest.close();}
 
