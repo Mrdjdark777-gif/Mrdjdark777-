@@ -16,9 +16,10 @@ import {Artwork} from './artwork';
 /** Сколько колец рисуем вокруг знака эфира. */
 const RINGS=8;
 
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmArt=false}:{
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmArt=false,archiveOpen=false,archive}:{
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmArt?:boolean;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
+ archiveOpen?:boolean;archive?:React.ReactNode;
 }){
  const {t}=useT();
  const stage=liveStage({onAir,joined,phase});
@@ -71,7 +72,9 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   {calm&&<p className="breath-note">{t('breath.note')}</p>}
 
   {name&&<h2 className="live-stage-name">{name}</h2>}
-  <p className="live-stage-sub">{status||note}</p>
+  {/* Без эфира строка молчит: в круге горит OFF AIR, и человек стоит во
+      вкладке «Эфир» — повторять это словами незачем. */}
+  {(status||stage!=='offline')&&<p className="live-stage-sub">{status||note}</p>}
   {elapsed&&stage==='playing'&&<p className="live-stage-clock"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></p>}
 
   {action!=='none'&&<button type="button" className="live-cta tt-pressable" disabled={action==='busy'}
@@ -80,11 +83,16 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
    {action==='busy'?t('live.connecting'):action==='pause'?t('live.stopListening'):t('live.listen')}
   </button>}
 
-  <button type="button" className="live-archive-card tt-pressable" onClick={()=>{haptic();onArchive();}}>
+  {/* Архив эфиров раскрывается здесь же. Уводить отсюда в подкасты нельзя:
+      подкаст — подготовленный выпуск, запись эфира — другое, и человек
+      нажимает «Архив эфиров», чтобы остаться в эфире, а не сменить раздел. */}
+  <button type="button" className={'live-archive-card tt-pressable'+(archiveOpen?' is-open':'')}
+   aria-expanded={archiveOpen} onClick={()=>{haptic();onArchive();}}>
    <span className="live-archive-icon"><AudioLines size={22}/></span>
    <span className="live-archive-copy"><strong>{t('live.archiveTitle')}</strong><span>{t('live.archiveNote')}</span></span>
    <ChevronRight size={18}/>
   </button>
+  {archiveOpen&&archive}
 
   {hint&&<p className="live-stage-hint">{hint}</p>}
   {support??<span className="live-stage-support-missing"><Heart size={17}/>{t('donate.unavailable')}</span>}

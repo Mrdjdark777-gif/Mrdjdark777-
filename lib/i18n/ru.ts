@@ -255,6 +255,7 @@ export const ru = {
   'live.stopListening': 'Остановить',
   'live.archiveTitle': 'Архив эфиров',
   'live.archiveNote': 'Прошлые выпуски и специальные записи',
+  'live.archiveEmpty': 'Записей пока нет — они появятся после первого эфира.',
   'live.mute': 'Выключить звук',
   'live.unmute': 'Включить звук',
   'live.volumeAria': 'Громкость эфира',

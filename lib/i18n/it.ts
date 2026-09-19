@@ -256,6 +256,7 @@ export const it: Record<keyof typeof ru, string> = {
   'live.stopListening': 'Ferma',
   'live.archiveTitle': 'Archivio dirette',
   'live.archiveNote': 'Puntate passate e registrazioni speciali',
+  'live.archiveEmpty': 'Ancora nessuna registrazione: appariranno dopo la prima diretta.',
   'live.mute': 'Disattiva l’audio',
   'live.unmute': 'Riattiva l’audio',
   'live.volumeAria': 'Volume della diretta',

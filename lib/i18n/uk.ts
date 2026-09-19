@@ -387,6 +387,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "live.stopListening": "Зупинити",
   "live.archiveTitle": "Архів ефірів",
   "live.archiveNote": "Минулі випуски та спеціальні записи",
+  "live.archiveEmpty": "Записів поки немає — вони з'являться після першого ефіру.",
 
   "live.mute": "Вимкнути звук",
 

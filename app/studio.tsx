@@ -55,6 +55,7 @@ export default function Studio(){
  const [coverUrl,setCoverUrl]=useState('');
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
+ const [archiveOpen,setArchiveOpen]=useState(false);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('published'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false),[videoDuration,setVideoDuration]=useState(''),[calmFile,setCalmFile]=useState<File|null>(null),[calmPreview,setCalmPreview]=useState('/api/cover?id=calm'),[calmMissing,setCalmMissing]=useState(false);
  const wideScreen=useWideScreen();
  // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
@@ -180,6 +181,9 @@ export default function Studio(){
  const goto=(v:string)=>{setView((author?AUTHOR_RETIRED[v]:undefined)??RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setArchiveOnly(false);setPlayerExpanded(false);};
  const listKind=view==='podcasts'?'podcast':view==='videos'?'video':'story';
  const sectionOrder=visible.filter(p=>p.kind==='podcast').sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
+ // Записи эфиров живут в разделе «Эфир»: это не подкасты, а то, что осталось
+ // от прямых включений.
+ const liveArchives=visible.filter(p=>p.kind==='podcast'&&isLiveArchive(p.audioKey)).sort((a,b)=>b.createdAt-a.createdAt);
  const needle=query.trim().toLowerCase();
  const listed=visible.filter(p=>p.kind===listKind&&(!archiveOnly||isLiveArchive(p.audioKey))&&(!needle||(p.title+' '+p.description).toLowerCase().includes(needle))).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
  const socialRow=data?.links?.length?<div className="social-row">{data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;return <a key={l.kind+l.url} className="social-chip" href={l.url} target="_blank" rel="noopener noreferrer"><Icon size={16}/>{t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
@@ -260,7 +264,8 @@ export default function Studio(){
  </>:<>
  <LiveStageView levels={live.levels} calmArt={!!data.calmArt} title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
   cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
-  elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>{goto('podcasts');setArchiveOnly(true);}}
+  elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>!v)} archiveOpen={archiveOpen}
+  archive={<div className="live-archive-list">{liveArchives.length===0?<p className="live-archive-empty">{t('live.archiveEmpty')}</p>:liveArchives.map(p=><button type="button" key={p.id} className="live-archive-row tt-pressable" onClick={()=>{haptic();openPost(p);}}><Play size={14} fill="currentColor"/><span className="live-archive-row-copy"><strong>{p.title}</strong><span>{new Date(p.createdAt).toLocaleDateString(tag)}{p.duration>0?' · '+clock(p.duration):''}</span></span></button>)}</div>}
   support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}/>
  {live.listening&&<LiveSpectrum levels={live.levels} active={live.listening}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}

@@ -214,7 +214,8 @@ try{
      lamp:copy.textContent.trim(),
      backdrop:cs.backdropFilter||cs.webkitBackdropFilter||'none',
      picture:img?getComputedStyle(img).filter:'нет картинки',
-     title:document.querySelector('.live-stage-name')?.textContent.trim()||''};});
+     title:document.querySelector('.live-stage-name')?.textContent.trim()||'',
+     sub:document.querySelector('.live-stage-sub')?.textContent.trim()||''};});
    if(!orbState)problems.push('эфир: круга покоя нет');
    else{
     if(orbState.lamp!=='OFF AIR')problems.push('покой: лампа показывает «'+orbState.lamp+'», а не OFF AIR');
@@ -224,7 +225,26 @@ try{
     if(orbState.picture==='нет картинки')problems.push('покой: картинка круга не загрузилась');
     else if(orbState.picture!=='none')problems.push('покой: размыта сама картинка ('+orbState.picture+') — размывать можно только подложку');
     if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');
+    if(orbState.sub)problems.push('покой: под кругом лишняя строка «'+orbState.sub+'» — про это уже сказано лампой и вкладкой');
    }}
+  // «Архив эфиров» раскрывается здесь же. Прежде кнопка уводила в «Подкасты»:
+  // запись эфира и подготовленный выпуск — разные вещи, и вкладку менять
+  // нельзя.
+  {await page.locator('.live-archive-card').click();await page.waitForTimeout(250);
+   const opened=await page.evaluate(()=>({view:document.querySelector('.main-content')?.dataset.view,
+    rows:document.querySelectorAll('.live-archive-row').length,
+    first:document.querySelector('.live-archive-row strong')?.textContent.trim()||''}));
+   if(opened.view!=='live')problems.push('архив эфиров уводит из вкладки эфира в «'+opened.view+'»');
+   if(!opened.rows)problems.push('архив эфиров раскрылся пустым, хотя запись эфира есть');
+   await shot(page,'live-archive');
+   if(opened.rows){
+    await page.locator('.live-archive-row').first().click();await page.waitForTimeout(400);
+    const playing=await page.evaluate(()=>({view:document.querySelector('.main-content')?.dataset.view,
+     player:!!document.querySelector('.podcast-player')}));
+    if(playing.view!=='live')problems.push('запись эфира открылась в разделе «'+playing.view+'», а не в эфире');
+    if(!playing.player)problems.push('запись эфира не включилась: плеера нет');
+   }
+   await page.goto(base+'/?mode=listen&view=live');await settle(page);}
   // Большой экран: у слушателя нет колонки с подсказками автору, и без правки
   // столбец эфира уезжал на 149 пикселей левее середины страницы.
   for(const width of [1280,1920]){
