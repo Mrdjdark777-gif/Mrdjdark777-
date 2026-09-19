@@ -7,7 +7,7 @@ import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
 import {readProgress} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
-import {clock,haptic} from '@/lib/client';
+import {clock,haptic,coverSrc} from '@/lib/client';
 import {Artwork} from './artwork';
 
 /**
@@ -24,7 +24,7 @@ import {Artwork} from './artwork';
  */
 const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
-const coverOf=(p:ScenePost)=>p.coverKey?'/api/cover?id='+p.id:p.coverUrl||'';
+const coverOf=(p:ScenePost)=>coverSrc(p);
 
 export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,appLink,sections,pinned}:{
  posts:T[];live:Live|null;onOpen:(post:T)=>void;onOpenLive:()=>void;liveAction:string;

@@ -1484,3 +1484,20 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .editor-preview{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
 .editor-preview-label{font-size:12px;letter-spacing:.06em;color:#8d919c}
 .editor-dialog .editor-preview .video-frame{margin:0 auto}
+
+/* Рамка обложки в списке студии подстраивается под саму картинку: ни полей по
+   краям, ни подрезки. Высоту рамки задаёт строка, ширину — соотношение
+   картинки, поэтому строки остаются одной высоты, а обложка видна целиком и в
+   своих пропорциях. Картинка снова в потоке — иначе ширину рамки задать
+   нечем; за тем, чтобы она не начала растягивать строку, следит проверка
+   «высоту задаёт обложка, а не текст» в tests/design-preview.mjs. */
+.main-content:not(.listener-main) .post-cover{width:auto;aspect-ratio:auto;
+ align-self:center;background:none}
+.main-content:not(.listener-main) .video-cover{width:auto}
+/* Высоту картинке задаём числом. height:100% внутри растянутой ячейки не
+   работает: у ячейки нет заданной высоты, процент превращается в «сколько
+   получится», и вертикальный постер тянет строку за собой — на это уже
+   наступали. С пределом по высоте ширина рамки идёт за соотношением
+   картинки, а строки остаются предсказуемой высоты. */
+.main-content:not(.listener-main) .post-cover-image{position:static;inset:auto;
+ width:auto;height:auto;max-height:190px;max-width:240px;object-fit:contain}

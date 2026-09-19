@@ -440,15 +440,20 @@ try{
     // высота не число — процент превращался в «сколько получится».
     const card=await fit.evaluate(()=>{const c=document.querySelector('.post-card');
      return c?{card:Math.round(c.getBoundingClientRect().height),text:Math.round(c.querySelector('.post-content').getBoundingClientRect().height)}:null;});
-    if(card&&card.card>card.text+8)problems.push('видео: строка '+card.card+'px при тексте '+card.text+'px — высоту задаёт обложка, а не текст');
+    // Обложка больше не обязана укладываться в высоту текста: владелец выбрал,
+    // чтобы рамка шла за картинкой. Но и растягивать строку без предела ей
+    // нельзя — вертикальный постер однажды удвоил карточку.
+    if(card&&card.card>240)problems.push('видео: строка выросла до '+card.card+'px при тексте '+card.text+'px');
     // Обложка показывается целиком: автор должен видеть, что именно уйдёт
     // слушателю, а не середину подрезанной картинки.
     const fitMode=await fit.evaluate(()=>{const i=document.querySelector('.post-cover-image');return i?getComputedStyle(i).objectFit:'нет картинки';});
     if(fitMode!=='contain')problems.push('видео: обложка подрезается (object-fit: '+fitMode+')');
-    // Пропорция ячейки — та же, что памятка велит готовить. Разъехавшись,
-    // они молча заставляли бы автора делать картинку не под то место.
-    const shape=await fit.evaluate(()=>{const c=document.querySelector('.post-cover');const r=c.getBoundingClientRect();return r.width/r.height;});
-    if(Math.abs(shape-0.8)>0.04)problems.push('видео: ячейка обложки '+shape.toFixed(2)+' вместо 0.80 (4:5)');
+    // Пропорцию из памятки держит предпросмотр в редакторе — то место, по
+    // которому автор сверяет, что приготовил. Рамка в списке идёт за самой
+    // картинкой и своего соотношения не имеет.
+    const shape=await fit.evaluate(()=>{const c=document.querySelector('.post-cover'),i=c?.querySelector('img');
+     const r=c?.getBoundingClientRect();return i&&r&&i.naturalWidth?Math.abs(r.width/r.height-i.naturalWidth/i.naturalHeight):null;});
+    if(shape!==null&&shape>0.06)problems.push('видео: рамка обложки не совпала с картинкой, расхождение '+shape.toFixed(2));
    }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{

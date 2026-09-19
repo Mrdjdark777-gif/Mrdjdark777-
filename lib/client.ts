@@ -54,3 +54,16 @@ export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise
   const r=indexedDB.open('true-thrills-drafts',1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onerror=()=>reject(r.error);
   r.onsuccess=()=>{const db=r.result,tx=db.transaction('audio',file===undefined?'readonly':'readwrite'),s=tx.objectStore('audio');const q=file===undefined?s.get('latest'):file?s.put(file,'latest'):s.delete('latest');let value:Blob|null=null;q.onsuccess=()=>{value=q.result instanceof Blob?q.result:null;};tx.oncomplete=()=>{db.close();resolve(value);};tx.onerror=()=>{db.close();reject(tx.error);};};
 });}
+
+/**
+ * Ссылка на обложку выпуска.
+ *
+ * Ключ загрузки в адресе обязателен. Сам адрес /api/cover?id=<выпуск> не
+ * меняется при замене картинки, а ответ кэшируется на сутки — заменив обложку,
+ * автор целый день видел старую и считал, что она не сохранилась. Ключ у
+ * каждой загрузки свой, поэтому новая картинка — это новый адрес.
+ */
+export function coverSrc(post:{id:string;coverKey?:string|null;coverUrl?:string|null}){
+ if(post.coverKey)return '/api/cover?id='+encodeURIComponent(post.id)+'&v='+encodeURIComponent(post.coverKey.replace(/^cover\//,''));
+ return post.coverUrl||'';
+}
