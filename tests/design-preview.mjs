@@ -50,6 +50,9 @@ try{
   const r=await fetch(base+'/api/cover',{method:'POST',headers:{cookie,'content-type':'image/jpeg','x-upload-size':String(bytes.length)},body:bytes});
   const text=await r.text();assert.equal(r.status,200,text);return JSON.parse(text).key;
  };
+ // Картинка круга покоя: без неё круг на экране эфира пустой, и проверять
+ // в нём нечего.
+ await post({action:'calmArt',key:await demoCover('tile-forest.jpg')});
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
  // Второй выпуск специально без обложки иновее первого: по нему видно
@@ -196,25 +199,49 @@ try{
     if(guide.lit>1)problems.push('эфир: одновременно горит '+guide.lit+' слова подсказки');
    }}
   // Когда эфира нет, в круге стоит картинка автора, и она должна быть видна:
-  // надпись не закрывает середину и не занимает пол-круга, а затемнение в
-  // центре близко к нулю. Проверяем геометрией, а не наличием классов.
+  // затемнение в центре близко к нулю, лампа не занимает полкруга, а саму
+  // картинку размывать нельзя — размывается только подложка под лампой.
   {const orbState=await page.evaluate(()=>{const orb=document.querySelector('.live-orb'),
-     copy=document.querySelector('.live-orb-copy'),shade=document.querySelector('.live-orb-shade');
+     copy=document.querySelector('.live-orb-copy'),shade=document.querySelector('.live-orb-shade'),
+     img=document.querySelector('.live-orb img');
     if(!orb||!copy||!shade)return null;
     const o=orb.getBoundingClientRect(),c=copy.getBoundingClientRect();
     const first=getComputedStyle(shade).backgroundImage.match(/rgba?\(([^)]*)\)/);
     const parts=first?first[1].split(',').map(v=>v.trim()):[];
+    const cs=getComputedStyle(copy);
     return {share:(c.width*c.height)/(o.width*o.height),
-     belowCenter:c.top+c.height/2>o.top+o.height/2,
      centerAlpha:parts.length>3?Number(parts[3]):1,
-     font:parseFloat(getComputedStyle(copy.querySelector('strong')).fontSize)};});
+     lamp:copy.textContent.trim(),
+     backdrop:cs.backdropFilter||cs.webkitBackdropFilter||'none',
+     picture:img?getComputedStyle(img).filter:'нет картинки',
+     title:document.querySelector('.live-stage-name')?.textContent.trim()||''};});
    if(!orbState)problems.push('эфир: круга покоя нет');
    else{
-    if(orbState.font>15)problems.push('покой: надпись в круге '+orbState.font+'px, картинку не видно');
-    if(orbState.share>0.16)problems.push('покой: надпись занимает '+Math.round(orbState.share*100)+'% круга');
-    if(!orbState.belowCenter)problems.push('покой: надпись стоит в середине круга, поверх картинки');
+    if(orbState.lamp!=='OFF AIR')problems.push('покой: лампа показывает «'+orbState.lamp+'», а не OFF AIR');
+    if(orbState.share>0.2)problems.push('покой: лампа занимает '+Math.round(orbState.share*100)+'% круга');
     if(orbState.centerAlpha>0.1)problems.push('покой: центр круга затемнён на '+orbState.centerAlpha);
+    if(!/blur/.test(orbState.backdrop))problems.push('покой: под лампой нет размытия ('+orbState.backdrop+')');
+    if(orbState.picture==='нет картинки')problems.push('покой: картинка круга не загрузилась');
+    else if(orbState.picture!=='none')problems.push('покой: размыта сама картинка ('+orbState.picture+') — размывать можно только подложку');
+    if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');
    }}
+  // Большой экран: у слушателя нет колонки с подсказками автору, и без правки
+  // столбец эфира уезжал на 149 пикселей левее середины страницы.
+  for(const width of [1280,1920]){
+   await page.setViewportSize({width,height:900});await page.waitForTimeout(200);
+   const wide=await page.evaluate(()=>{const mid=e=>{const r=e.getBoundingClientRect();return r.left+r.width/2;};
+    const main=document.querySelector('.main-content'),stage=document.querySelector('.live-stage'),
+     card=document.querySelector('.live-archive-card'),rings=document.querySelector('.live-rings');
+    if(!main||!stage||!card||!rings)return null;
+    return {off:Math.round(Math.abs(mid(main)-mid(stage))),card:Math.round(card.getBoundingClientRect().width),
+     ring:Math.round(rings.getBoundingClientRect().width)};});
+   if(!wide)problems.push('эфир '+width+': экран не найден');
+   else{
+    if(wide.off>2)problems.push('эфир '+width+': столбец смещён от середины страницы на '+wide.off+'px');
+    if(wide.card>620)problems.push('эфир '+width+': карточка архива растянута на '+wide.card+'px');
+    if(wide.ring<320)problems.push('эфир '+width+': круг всего '+wide.ring+'px на мониторе');
+   }}
+  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(150);
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
  // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
  const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Истории после заката',coverKey:await demoCover('tile-mountains.jpg')})});const startText=await start.text();assert.equal(start.status,200,startText);

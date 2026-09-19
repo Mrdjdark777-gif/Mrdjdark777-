@@ -377,8 +377,8 @@ export const uk: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "в ефірі",
-  "live.weAreOnAir": "Ми в ефірі",
-  "live.noBroadcast": "Зараз ефіру немає",
+  "live.weAreOnAir": "ON AIR",
+  "live.noBroadcast": "OFF AIR",
   "breath.in": "Вдих",
   "breath.hold": "Затримка",
   "breath.out": "Видих",

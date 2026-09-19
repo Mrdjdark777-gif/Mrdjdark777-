@@ -29,14 +29,18 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  // как средство снять острую тревогу за полторы-две минуты; лечением
  // тревожного расстройства он не является, и обещать этого нельзя.
  // Только когда эфира нет вовсе. При идущем эфире, даже неподключённом,
- // вести дыхание неуместно: на экране написано «Мы в эфире».
+ // вести дыхание неуместно: в круге горит ON AIR.
  const calm=stage==='offline'||stage==='ended';
- // Заголовок внутри круга — ровно то, что происходит сейчас.
- const heading=stage==='offline'?t('live.noBroadcast')
-  :stage==='ended'?t('live.endedTitle')
-  :stage==='reconnecting'?t('live.reconnecting')
-  :stage==='connecting'?t('live.connecting')
-  :t('live.weAreOnAir');
+ // Круг — студийная лампа: ON AIR, когда станция в эфире, OFF AIR, когда нет.
+ // Так это подписано на любой радиостанции, поэтому слово не переводится, а
+ // лежит в словаре: захочется вернуть русский — меняется в одном месте.
+ // Состояние подключения лампу не касается: оно и так сказано строкой под
+ // кругом и самой кнопкой.
+ const onAirLamp=onAirLabelVisible(stage);
+ const heading=onAirLamp?t('live.weAreOnAir'):t('live.noBroadcast');
+ // Крупное имя под кругом — имя эфира. Своего имени у «эфира нет» не бывает,
+ // и подставлять туда название канала незачем: оно уже стоит в шапке.
+ const name=stage==='ended'?t('live.endedTitle'):stage==='offline'?'':title;
 
  return <section className="live-stage">
   <div className={'live-rings'+(pulsing?' is-pulsing':'')+(calm?' is-calm':'')}>
@@ -54,8 +58,8 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
     {/* В покое в круге стоит своя картинка автора, если он её загрузил. */}
     <Artwork src={calm&&calmArt?'/api/cover?id=calm':cover}/>
     <span className="live-orb-shade" aria-hidden="true"/>
-    <span className="live-orb-copy" role="status">
-     {onAirLabelVisible(stage)&&<span className="live-orb-dot" aria-hidden="true"/>}
+    <span className={'live-orb-copy'+(onAirLamp?' is-live':'')} role="status">
+     {onAirLamp&&<span className="live-orb-dot" aria-hidden="true"/>}
      <strong>{heading}</strong>
     </span>
    </div>
@@ -66,7 +70,7 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   </p>}
   {calm&&<p className="breath-note">{t('breath.note')}</p>}
 
-  <h2 className="live-stage-name">{title}</h2>
+  {name&&<h2 className="live-stage-name">{name}</h2>}
   <p className="live-stage-sub">{status||note}</p>
   {elapsed&&stage==='playing'&&<p className="live-stage-clock"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></p>}
 

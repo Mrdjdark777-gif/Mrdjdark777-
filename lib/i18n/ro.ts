@@ -377,8 +377,8 @@ export const ro: Record<keyof typeof ru, string> = {
 
 
   "live.onAirFor": "în direct",
-  "live.weAreOnAir": "Suntem în direct",
-  "live.noBroadcast": "Nicio transmisiune acum",
+  "live.weAreOnAir": "ON AIR",
+  "live.noBroadcast": "OFF AIR",
   "breath.in": "Inspiră",
   "breath.hold": "Ține",
   "breath.out": "Expiră",
