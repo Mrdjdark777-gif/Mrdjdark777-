@@ -296,7 +296,11 @@ try{
  // нет, и владелец увидел там раскладку студии вместо страницы канала.
  // Снимки без проверок: сначала нужно посмотреть, что вообще происходит.
  {const guest=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});
-  for(const w of [1280,1600,2560]){
+  // Ширины: 1024 и 1440 — сами границы, на которых раскладка переключается
+  // (настольный каркас и третья колонка каталога), остальные — между ними и
+  // монитор владельца. Разъезжается вёрстка обычно ровно на границе, которую
+  // никто не смотрит.
+  for(const w of [1024,1280,1440,1600,1920,2560]){
    const g=await guest.newPage();await g.setViewportSize({width:w,height:Math.round(w*0.56)});
    // Раздел снимаем тем же заходом: каталог на мониторе владелец видит не реже
    // главной, а проверялся он только на телефоне.
@@ -378,6 +382,24 @@ try{
     if(two.sceneH>two.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+two.sceneH+'px при экране '+two.viewport);
    }
   }
+  // 1023 — последний пиксель телефонной раскладки. Проверяем, что за границей
+  // ничего настольного не включилось: панель разделов снова плавающая внизу,
+  // подвала сайта нет, описание канала лежит поверх кадра.
+  // Высота 820, а не 700: на низком экране описание с кадра прячет отдельное
+  // правило @media(max-height:700px) — проверяли бы его, а не границу ширины.
+  {const edge=await guest.newPage();await edge.setViewportSize({width:1023,height:820});
+   await edge.goto(base+'/?mode=listen');await settle(edge);await edge.waitForTimeout(250);
+   const m=await edge.evaluate(()=>({nav:getComputedStyle(document.querySelector('.bottom-nav')).position,
+    foot:!!document.querySelector('.site-footer')&&getComputedStyle(document.querySelector('.site-footer')).display!=='none',
+    side:!!document.querySelector('.side-intro')&&getComputedStyle(document.querySelector('.side-intro')).display!=='none',
+    over:!!document.querySelector('.scene-intro')&&getComputedStyle(document.querySelector('.scene-intro')).display!=='none',
+    w:document.documentElement.scrollWidth,iw:innerWidth}));
+   if(m.nav!=='fixed')problems.push('граница 1023: панель разделов не плавающая ('+m.nav+')');
+   if(m.foot)problems.push('граница 1023: показан настольный подвал');
+   if(m.side)problems.push('граница 1023: описание канала ушло в колонку раньше границы');
+   if(!m.over)problems.push('граница 1023: описание канала пропало с кадра');
+   if(m.w>m.iw+1)problems.push('граница 1023: переполнение по ширине');
+   await edge.close();}
   await guest.close();}
 
  // Одно число во всех трёх местах: памятка автору, подсказка в приложении и
