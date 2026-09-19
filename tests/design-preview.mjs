@@ -195,6 +195,26 @@ try{
     if(guide.count!==4)problems.push('эфир: в подсказке дыхания '+guide.count+' слова вместо четырёх');
     if(guide.lit>1)problems.push('эфир: одновременно горит '+guide.lit+' слова подсказки');
    }}
+  // Когда эфира нет, в круге стоит картинка автора, и она должна быть видна:
+  // надпись не закрывает середину и не занимает пол-круга, а затемнение в
+  // центре близко к нулю. Проверяем геометрией, а не наличием классов.
+  {const orbState=await page.evaluate(()=>{const orb=document.querySelector('.live-orb'),
+     copy=document.querySelector('.live-orb-copy'),shade=document.querySelector('.live-orb-shade');
+    if(!orb||!copy||!shade)return null;
+    const o=orb.getBoundingClientRect(),c=copy.getBoundingClientRect();
+    const first=getComputedStyle(shade).backgroundImage.match(/rgba?\(([^)]*)\)/);
+    const parts=first?first[1].split(',').map(v=>v.trim()):[];
+    return {share:(c.width*c.height)/(o.width*o.height),
+     belowCenter:c.top+c.height/2>o.top+o.height/2,
+     centerAlpha:parts.length>3?Number(parts[3]):1,
+     font:parseFloat(getComputedStyle(copy.querySelector('strong')).fontSize)};});
+   if(!orbState)problems.push('эфир: круга покоя нет');
+   else{
+    if(orbState.font>15)problems.push('покой: надпись в круге '+orbState.font+'px, картинку не видно');
+    if(orbState.share>0.16)problems.push('покой: надпись занимает '+Math.round(orbState.share*100)+'% круга');
+    if(!orbState.belowCenter)problems.push('покой: надпись стоит в середине круга, поверх картинки');
+    if(orbState.centerAlpha>0.1)problems.push('покой: центр круга затемнён на '+orbState.centerAlpha);
+   }}
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
  // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
  const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Истории после заката',coverKey:await demoCover('tile-mountains.jpg')})});const startText=await start.text();assert.equal(start.status,200,startText);
