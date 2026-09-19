@@ -211,6 +211,31 @@ try{
     return {a,b:getComputedStyle(ring).transform};});
    if(!moved)problems.push('эфир: колец нет');
    else if(moved.a===moved.b)problems.push('эфир: кольцо не двигается — transform не меняется ('+moved.a+')');}
+  // TT_CAPTURE_MOTION=1 — покадровая съёмка круга эфира. Нужна, чтобы показать
+  // владельцу движение: на обычном снимке дыхание колец увидеть нельзя. По
+  // умолчанию выключена, каждый кадр это отдельный screenshot.
+  if(process.env.TT_CAPTURE_MOTION==='1'){
+   const {mkdir}=await import('node:fs/promises');
+   await mkdir('outputs/ui/motion',{recursive:true});
+   const orb=page.locator('.live-rings');
+   for(let i=0;i<24;i++){
+    // 3.6 с — полный вдох-выдох; 24 кадра по 150 мс покрывают его целиком.
+    await orb.screenshot({path:'outputs/ui/motion/breath-'+String(i).padStart(2,'0')+'.png'});
+    await page.waitForTimeout(150);
+   }
+   // Второй набор — как кольца отзовутся на звук. Настоящего эфира здесь нет,
+   // поэтому энергия подаётся руками теми же значениями, что дал бы спектр.
+   for(let i=0;i<24;i++){
+    const phase=i/24*Math.PI*2;
+    await page.evaluate(([ph])=>{document.querySelectorAll('.live-ring').forEach((r,n)=>{
+     const v=Math.max(0,Math.sin(ph*(1+n*.35)+n)*.5+.35);
+     r.style.setProperty('--ring-energy',v.toFixed(3));});},[phase]);
+    await orb.screenshot({path:'outputs/ui/motion/sound-'+String(i).padStart(2,'0')+'.png'});
+    await page.waitForTimeout(60);
+   }
+   await page.evaluate(()=>document.querySelectorAll('.live-ring').forEach(r=>r.style.removeProperty('--ring-energy')));
+   console.log('Кадры движения: outputs/ui/motion');
+  }
  await page.waitForTimeout(300);await shot(page,'live');
  const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
  // Pending, then transient network failure, then success must recover while

@@ -65,3 +65,4 @@ __pycache__/
 
 /.test-live-*/
 /.update-staging/
+outputs/ui/motion/
