@@ -292,6 +292,30 @@ try{
   }
   await shell.close();}
 
+ // Сайт слушателя на настольных ширинах. Телефон проверяется давно, ПК —
+ // нет, и владелец увидел там раскладку студии вместо страницы канала.
+ // Снимки без проверок: сначала нужно посмотреть, что вообще происходит.
+ {const guest=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});
+  for(const w of [1280,1600,2560]){
+   const g=await guest.newPage();await g.setViewportSize({width:w,height:Math.round(w*0.56)});
+   await g.goto(base+'/?mode=listen');await settle(g);await g.waitForTimeout(300);
+   await g.screenshot({path:'outputs/ui/guest-'+w+'.png',fullPage:false});
+   const m=await g.evaluate(()=>({w:document.documentElement.scrollWidth,iw:innerWidth,
+    h:document.documentElement.scrollHeight,ih:innerHeight,
+    shaders:document.querySelectorAll('.shader-container-exploded').length,
+    beams:document.querySelectorAll('.tt-beams').length,
+    listener:!!document.querySelector('.listener-main'),
+    content:Math.round(document.querySelector('.main-content')?.getBoundingClientRect().width??0)}));
+   console.log('слушатель '+w+':',JSON.stringify(m));
+   // Оформление студии слушателю не принадлежит: металлические круги стоят
+   // WebGL-контекста каждый, лучи — анимации холста. Гость платил за них,
+   // просто открыв канал с компьютера.
+   if(m.shaders)problems.push('слушатель '+w+': кругов студии '+m.shaders+', должно быть 0');
+   if(m.beams)problems.push('слушатель '+w+': фон студии с лучами показан гостю');
+   if(m.w>m.iw+1)problems.push('слушатель '+w+': переполнение по ширине');
+  }
+  await guest.close();}
+
  // Одно число во всех трёх местах: памятка автору, подсказка в приложении и
  // вёрстка. Раньше памятка говорила 4:5, а приложение — 9:16.
  {const {readFile}=await import('node:fs/promises');

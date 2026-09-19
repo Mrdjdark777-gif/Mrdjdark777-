@@ -54,12 +54,15 @@ export default function Studio(){
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('published'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false),[videoDuration,setVideoDuration]=useState('');
- const wide=useWideScreen();
+ const wideScreen=useWideScreen();
  // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
  const shell=useDesktopApp();
  const [shellOpen,setShellOpen]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
+ // Оформление студии — только автору на широком экране. Слушателю страница
+ // канала показывается одинаково и в браузере на ПК, и в приложении.
+ const wide=wideScreen&&author;
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
  const [liveNow,setLiveNow]=useState<Data['live']>(null),[liveError,setLiveError]=useState(false);
  const liveStatus=liveNow;
