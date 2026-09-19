@@ -363,6 +363,15 @@ try{
     .map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width/r.height*100)/100;}));
    const wrong=tiles.filter(r=>Math.abs(r-0.8)>0.05);
    if(!tiles.length)problems.push('слушатель '+w+': карточек разделов нет');
+   // Описание канала стоит в правой колонке, а не поверх фотографии. Оно не
+   // зависит от числа публикаций — в отличие от списка свежего, который на
+   // канале с одним выпуском пуст, и колонка оставалась голой.
+   const intro=await g.evaluate(()=>{const side=document.querySelector('.side-intro'),
+    over=document.querySelector('.scene-intro');
+    return {side:!!side&&getComputedStyle(side).display!=='none'&&side.textContent.trim().length>10,
+     over:!!over&&getComputedStyle(over).display!=='none'};});
+   if(!intro.side)problems.push('слушатель '+w+': описания канала нет в правой колонке');
+   if(intro.over)problems.push('слушатель '+w+': описание канала осталось и поверх кадра — показано дважды');
    else if(wrong.length)problems.push('слушатель '+w+': карточки разделов не 4:5 — '+wrong.join(', '));
    else{
     if(two.sideLeft<two.sceneRight)problems.push('слушатель '+w+': правая колонка налезает на кадр ('+two.sideLeft+' < '+two.sceneRight+')');

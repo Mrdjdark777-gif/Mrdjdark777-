@@ -1534,6 +1534,9 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    главную за сгиб: 1780 вместо 844. Правило стоит перед медиазапросом —
    вес одинаковый, спор решает порядок. */
 .fresh-list{display:none}
+/* Описание канала в правой колонке — только на мониторе: на телефоне оно
+   уже есть поверх кадра, и второе такое же выталкивало бы главную за сгиб. */
+.side-intro{display:none}
 
 @media(min-width:1024px){
  /* Подвал поднимается к содержимому. Колонка страницы тянулась на всю высоту
@@ -1541,6 +1544,10 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
     сквозь пустоту, ради одной строки. */
  .is-listener .listener-main{min-height:0}
  .is-listener .immersion{min-height:0}
+
+ .side-intro{display:block;margin:0 0 2px;font-size:14.5px;line-height:1.6;color:#b9bec6}
+ /* Описание переехало в колонку — поверх фотографии оно теперь лишнее. */
+ .is-listener .scene-intro{display:none}
 
  /* Свежие выпуски: то, чем правая колонка заполняется по мере роста канала. */
  .fresh-list{display:grid;gap:8px;margin-top:2px}
