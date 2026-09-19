@@ -466,7 +466,11 @@ try{
   const hint=/'editor\.coverNote'|"editor\.coverNote"/.test(ru)?ru.split(/["']editor\.coverNote["']\s*:\s*/)[1].split('\n')[0]:'';
   if(!/4:5/.test(doc)||!/1080\s*[×x]\s*1350/.test(doc))problems.push('памятка docs/COVERS-RU.md больше не называет 4:5 / 1080×1350');
   if(!/4:5/.test(hint))problems.push('подсказка в редакторе не называет 4:5: '+hint.slice(0,80));
-  if(!/1080×1350/.test(hint))problems.push('подсказка в редакторе не называет 1080×1350');}
+  if(!/1080×1350/.test(hint))problems.push('подсказка в редакторе не называет 1080×1350');
+  // Картинка круга покоя квадратная — это сказано и в памятке, и в студии.
+  const calm=/["']settings\.calmNote["']\s*:\s*/.test(ru)?ru.split(/["']settings\.calmNote["']\s*:\s*/)[1].split('\n')[0]:'';
+  if(!/1:1/.test(doc)||!/1080\s*[×x]\s*1080/.test(doc))problems.push('памятка не называет 1:1 / 1080×1080 для круга покоя');
+  if(!/1080×1080/.test(calm))problems.push('подсказка про круг покоя не называет 1080×1080: '+calm.slice(0,70));}
 
  // Редактор видео. Предпросмотр нужен, чтобы убедиться, что ссылка та, но
  // запускаться сам он не должен: человек пришёл править карточку, а не

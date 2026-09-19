@@ -16,8 +16,8 @@ import {Artwork} from './artwork';
 /** Сколько колец рисуем вокруг знака эфира. */
 const RINGS=8;
 
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[]}:{
- title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmArt=false}:{
+ title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmArt?:boolean;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
 }){
  const {t}=useT();
@@ -51,7 +51,8 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
      style={{'--ring':String(i),'--ring-energy':energy.toFixed(3)} as React.CSSProperties}/>;
    })}
    <div className="live-orb">
-    <Artwork src={cover}/>
+    {/* В покое в круге стоит своя картинка автора, если он её загрузил. */}
+    <Artwork src={calm&&calmArt?'/api/cover?id=calm':cover}/>
     <span className="live-orb-shade" aria-hidden="true"/>
     <span className="live-orb-copy" role="status">
      {onAirLabelVisible(stage)&&<span className="live-orb-dot" aria-hidden="true"/>}

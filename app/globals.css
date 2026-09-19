@@ -1639,3 +1639,6 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .live-rings.is-calm .live-ring{animation:none}
  .breath-guide span{animation:none;opacity:0}
  .breath-guide span:first-child{opacity:1}}
+
+/* Картинка круга покоя квадратная: круг вырезается из её середины. */
+.calm-art-preview{aspect-ratio:1/1;max-width:180px}

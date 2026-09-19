@@ -656,6 +656,9 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.donationNote": "Plățile sunt procesate de serviciul ales. Aplicația nu păstrează datele cardurilor.",
 
   "settings.artTitle": "Fundalul notificărilor",
+  "settings.calmTitle": "Imaginea cercului de calm",
+  "settings.calmText": "Apare în cerc pe ecranul transmisiunii când nu e nicio transmisiune — sub ea merge cercul de respirație 4-4-4-4. Alege ceva la care îți e liniște să privești.",
+  "settings.calmNote": "Pătrat 1:1 — 1080×1080, JPEG. Cercul se decupează din mijloc, deci ține subiectul în centru. Până la 12 MB.",
 
   "settings.artText": "Imaginea apare în notificarea de redare în fundal — ca o copertă de album pe ecranul blocat. Bannerul canalului tău este potrivit.",
 

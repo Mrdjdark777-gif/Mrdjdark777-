@@ -23,6 +23,8 @@ export async function GET(req: Request) {
     const id = new URL(req.url).searchParams.get('id') ?? '';
     let key: string | null, isPublic: boolean;
     if (id === 'channel') { key = (await setting('channelArt')) || null; isPublic = true; }
+    // Картинка круга покоя: её видит любой, кто открыл экран эфира без эфира.
+    else if (id === 'calm') { key = (await setting('calmArt')) || null; isPublic = true; }
     // Обложка конкретного эфира: сам эфир публичный, значит и она тоже.
     else if (id.startsWith('live:')) {
       const b = await getDb().select().from(broadcasts).where(eq(broadcasts.id, id.slice(5))).get();
