@@ -357,6 +357,13 @@ try{
     return {sceneRight:Math.round(a.right),sideLeft:Math.round(b.left),
      sceneH:Math.round(a.height),viewport:innerHeight};});
    if(!two)problems.push('слушатель '+w+': на главной нет кадра или правой колонки');
+   // Карточки разделов держат ту же пропорцию 4:5, что и обложки: иначе
+   // вертикальную картинку 1080×1350 режет по высоте до полоски.
+   const tiles=await g.evaluate(()=>[...document.querySelectorAll('.section-tile')]
+    .map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width/r.height*100)/100;}));
+   const wrong=tiles.filter(r=>Math.abs(r-0.8)>0.05);
+   if(!tiles.length)problems.push('слушатель '+w+': карточек разделов нет');
+   else if(wrong.length)problems.push('слушатель '+w+': карточки разделов не 4:5 — '+wrong.join(', '));
    else{
     if(two.sideLeft<two.sceneRight)problems.push('слушатель '+w+': правая колонка налезает на кадр ('+two.sideLeft+' < '+two.sceneRight+')');
     if(two.sceneH>two.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+two.sceneH+'px при экране '+two.viewport);

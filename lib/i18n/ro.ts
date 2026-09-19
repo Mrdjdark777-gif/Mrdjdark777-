@@ -178,7 +178,6 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "header.support": "Susține",
   "app.download": "Descarcă aplicația",
-  "app.meta": "Android · {version} · {size} MB",
   "app.footerNote": "Server propriu, fișiere proprii. Fără reclame și urmărire.",
 
   "header.toStudio": "În studio",

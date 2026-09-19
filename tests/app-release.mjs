@@ -14,7 +14,7 @@ import {build} from 'esbuild';
 
 const root=path.resolve(import.meta.dirname,'..');
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/app-release.ts')],bundle:true,write:false,format:'esm',platform:'node'});
-const {APP_RELEASE,releaseSize}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
+const {APP_RELEASE}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 assert.match(APP_RELEASE.href,/^\/app\/[\w.-]+\.apk$/,'ссылка ведёт на файл в public/app');
 assert.match(APP_RELEASE.version,/^\d+\.\d+\.\d+$/);
@@ -41,6 +41,5 @@ assert.ok(bytes.includes(Buffer.from('com.truethrills.listener','utf16le')),'э�
 // байтах его нет. Проверять нечем и не нужно: сумма sha256 выше закрепляет
 // файл побайтово, то есть и манифест вместе с ним.
 
-assert.equal(releaseSize('ru'),'4,8','подпись под кнопкой считает размер из тех же байтов');
 
 console.log('PASS: сборка для Android на месте — сумма, размер, подпись и пакет сходятся со ссылкой на сайте.');

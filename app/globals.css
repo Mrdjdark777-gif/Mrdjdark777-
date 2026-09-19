@@ -1468,9 +1468,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .is-listener .immersion>.scene{margin:0;border-radius:18px;overflow:hidden;
   min-height:clamp(420px,52vh,620px);padding-top:0}
  .is-listener .scene-side{display:flex;flex-direction:column;gap:12px}
- /* Разделы встают стопкой: в узкой колонке три карточки в ряд нечитаемы. */
- .is-listener .section-tiles{grid-template-columns:minmax(0,1fr);gap:10px}
- .is-listener .section-tile{min-height:92px}
+ /* Разделы — три карточки в ряд той же пропорции 4:5, что и обложки. Стопкой
+    из широких плашек обложку резало по высоте до полоски: от вертикальной
+    картинки 1080×1350 оставалась середина, и по новой публикации было не
+    понять, что на ней. */
+ .is-listener .section-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ .is-listener .section-tile{min-height:0;aspect-ratio:4/5}
  /* Строки поддержки и приложения больше не тянутся во всю ширину страницы. */
  .is-listener .scene-side .support-strip{margin:0}
 }

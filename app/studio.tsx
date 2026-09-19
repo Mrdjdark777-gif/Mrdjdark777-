@@ -1,7 +1,7 @@
 'use client';
 import {LiveArchives} from '@/components/studio/live-archives';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Smartphone,Image as ImageIcon} from 'lucide-react';
+import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Image as ImageIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -29,7 +29,8 @@ import {NotificationSettings} from '@/components/studio/notification-settings';
 import {Slider} from '@/components/ui/slider';
 import {api,clock,parseClock,errorText,haptic,coverSrc} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
-import {APP_RELEASE,releaseSize} from '@/lib/app-release';
+import {APP_RELEASE} from '@/lib/app-release';
+import {AndroidMark} from '@/components/studio/android-mark';
 import {markSeen} from '@/lib/seen-posts';
 import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
@@ -65,9 +66,9 @@ export default function Studio(){
  // приложения и в окне студии на ПК предлагать его скачать незачем.
  const appLink=!shell&&!hasNativeClient()?(
   <a className="support-strip app-strip tt-pressable" href={APP_RELEASE.href} download>
-   <Smartphone size={19}/>
+   <AndroidMark/>
    <span className="support-strip-label">{t('app.download')}</span>
-   <span className="support-strip-note">{t('app.meta',{version:APP_RELEASE.version,size:releaseSize(tag)})}</span>
+   <span className="support-strip-note">{APP_RELEASE.version}</span>
    <ChevronRight size={18}/>
   </a>):null;
  // Оформление студии — только автору на широком экране. Слушателю страница
@@ -288,7 +289,7 @@ export default function Studio(){
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
- <a className="site-footer-app" href={APP_RELEASE.href} download><Smartphone size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
+ <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
  {!!heartLink&&<a className="site-footer-link" href={heartLink.url} target="_blank" rel="noopener noreferrer">{t('header.support')}</a>}
  <span className="site-footer-note">{t('app.footerNote')}</span>
 </footer>}

@@ -18,8 +18,3 @@ export const APP_RELEASE={
  sha256:'1064aee67da890226879bb735f746a779afb52ea3691801914de43b0efd5c526',
  builtAt:'2026-09-15',
 } as const;
-
-/** «4,8 МБ» — размер словами, для подписи под кнопкой. */
-export function releaseSize(locale='ru'){
- return new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(APP_RELEASE.bytes/1024/1024);
-}
