@@ -1454,3 +1454,23 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .site-footer-link:hover,.site-footer-app:hover{color:#8FEFE8}
  .site-footer-note{margin-left:auto;color:#6f737c}
 }
+
+/* Правая колонка главной. На телефоне обёртки как будто нет: её дети остаются
+   прямыми детьми .immersion и ведут себя ровно как раньше. */
+.scene-side{display:contents}
+
+@media(min-width:1024px){
+ /* Главная в две колонки: слева кадр, справа то, ради чего человек пришёл —
+    эфир или «Продолжить», разделы, поддержка и приложение. Прежде кадр
+    занимал экран по высоте, а всё остальное оказывалось под сгибом. */
+ .is-listener .immersion{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
+  gap:24px;align-items:start;min-height:0}
+ .is-listener .immersion>.scene{margin:0;border-radius:18px;overflow:hidden;
+  min-height:clamp(420px,52vh,620px);padding-top:0}
+ .is-listener .scene-side{display:flex;flex-direction:column;gap:12px}
+ /* Разделы встают стопкой: в узкой колонке три карточки в ряд нечитаемы. */
+ .is-listener .section-tiles{grid-template-columns:minmax(0,1fr);gap:10px}
+ .is-listener .section-tile{min-height:92px}
+ /* Строки поддержки и приложения больше не тянутся во всю ширину страницы. */
+ .is-listener .scene-side .support-strip{margin:0}
+}

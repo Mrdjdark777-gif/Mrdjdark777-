@@ -83,6 +83,12 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
 
+  {/* Всё, что не кадр, собрано в одну обёртку. На телефоне она прозрачна
+      (display:contents) и порядок блоков ровно тот же, что был. На мониторе
+      она становится правой колонкой рядом с кадром: сеткой это не собиралось
+      — правых блоков переменное число, и растянутый на все строки кадр
+      наплодил бы пустых строк с промежутками между ними. */}
+  <div className="scene-side">
   {/* Под кадром — одна строка, а не стопка. Идёт эфир — он и стоит здесь, он
       важнее и заканчивается; нет эфира — строка «Продолжить». Раньше сюда
       сходились обе сразу, и экран превращался в лестницу из плашек. */}
@@ -105,6 +111,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
 
   {support}
   {appLink}
+  </div>
 
   <Dialog open={!!menu} onOpenChange={open=>{if(!open)setMenu(null);}}>
    <DialogContent aria-describedby={undefined}>

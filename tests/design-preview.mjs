@@ -336,6 +336,18 @@ try{
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
    if(Math.abs(frame.headRight-frame.mainRight)>1)problems.push('слушатель '+w+': шапка не по колонке содержимого ('+frame.headRight+' против '+frame.mainRight+')');
+   // Главная в две колонки: кадр слева, всё остальное справа от него, а не
+   // под ним. Кадр больше не занимает экран по высоте.
+   const two=await g.evaluate(()=>{const sc=document.querySelector('.immersion>.scene'),
+    side=document.querySelector('.scene-side');
+    if(!sc||!side)return null;const a=sc.getBoundingClientRect(),b=side.getBoundingClientRect();
+    return {sceneRight:Math.round(a.right),sideLeft:Math.round(b.left),
+     sceneH:Math.round(a.height),viewport:innerHeight};});
+   if(!two)problems.push('слушатель '+w+': на главной нет кадра или правой колонки');
+   else{
+    if(two.sideLeft<two.sceneRight)problems.push('слушатель '+w+': правая колонка налезает на кадр ('+two.sideLeft+' < '+two.sceneRight+')');
+    if(two.sceneH>two.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+two.sceneH+'px при экране '+two.viewport);
+   }
   }
   await guest.close();}
 
