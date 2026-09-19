@@ -184,6 +184,17 @@ try{
  await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);await page.locator('.reader-scroll').waitFor();await page.waitForTimeout(300);await shot(page,'story');
  // Эфир, когда его нет, и настройки.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
+  // Подсказка дыхания: четыре слова на одном круге, и в каждый момент
+  // горит ровно одно — иначе за ней нельзя дышать.
+  {const guide=await page.evaluate(()=>{const g=document.querySelector('.breath-guide');
+    if(!g)return null;const spans=[...g.children];
+    return {count:spans.length,lit:spans.filter(s=>Number(getComputedStyle(s).opacity)>.5).length,
+     words:spans.map(s=>s.textContent.trim())};});
+   if(!guide)problems.push('эфир: без эфира нет подсказки дыхания');
+   else{
+    if(guide.count!==4)problems.push('эфир: в подсказке дыхания '+guide.count+' слова вместо четырёх');
+    if(guide.lit>1)problems.push('эфир: одновременно горит '+guide.lit+' слова подсказки');
+   }}
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
  // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
  const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Истории после заката',coverKey:await demoCover('tile-mountains.jpg')})});const startText=await start.text();assert.equal(start.status,200,startText);
@@ -201,7 +212,9 @@ try{
    if(stage.rings<6)problems.push('эфир: колец '+stage.rings+', нужно не меньше шести');
    if(!String(stage.rim).startsWith('exclude'))problems.push('эфир: у знака нет металлической кромки (mask-composite: '+stage.rim+')');
    if(stage.dot!=='live-blink')problems.push('эфир: красная точка не мигает ('+stage.dot+')');
-   if(stage.breath!=='live-breathe')problems.push('эфир: кольца не дышат без звука ('+stage.breath+')');}
+   // Без эфира круг ведёт квадратное дыхание, в эфире — обычное. Годится
+   // любое из двух; что кольцо действительно движется, проверяется ниже.
+   if(!['live-breathe','box-breathe'].includes(stage.breath))problems.push('эфир: кольца не дышат ('+stage.breath+')');}
   // Имя анимации ничего не доказывает: прежний вариант «дышал» одной
   // прозрачностью у почти невидимой линии, имя было на месте, а на экране не
   // происходило ничего. Поэтому мерим, что кольцо реально двигается.

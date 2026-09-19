@@ -24,6 +24,13 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  const stage=liveStage({onAir,joined,phase});
  const action=stageAction(stage);
  const pulsing=ringsPulsing(stage,false);
+ // Когда эфира нет, круг работает дыхательным ориентиром: 4 секунды вдох,
+ // 4 задержка, 4 выдох, 4 задержка — квадратное дыхание. Метод известен
+ // как средство снять острую тревогу за полторы-две минуты; лечением
+ // тревожного расстройства он не является, и обещать этого нельзя.
+ // Только когда эфира нет вовсе. При идущем эфире, даже неподключённом,
+ // вести дыхание неуместно: на экране написано «Мы в эфире».
+ const calm=stage==='offline'||stage==='ended';
  // Заголовок внутри круга — ровно то, что происходит сейчас.
  const heading=stage==='offline'?t('live.noBroadcast')
   :stage==='ended'?t('live.endedTitle')
@@ -32,7 +39,7 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   :t('live.weAreOnAir');
 
  return <section className="live-stage">
-  <div className={'live-rings'+(pulsing?' is-pulsing':'')}>
+  <div className={'live-rings'+(pulsing?' is-pulsing':'')+(calm?' is-calm':'')}>
    {/* Кольца-«дорожки». Внешние идут за низкими частотами, внутренние — за
        высокими: бас качает большие круги, голос и верх шевелят ближние к
        центру. Без звука все значения нулевые, и остаётся ровное дыхание. */}
@@ -52,6 +59,11 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
     </span>
    </div>
   </div>
+
+  {calm&&<p className="breath-guide" aria-hidden="true">
+   <span>{t('breath.in')}</span><span>{t('breath.hold')}</span><span>{t('breath.out')}</span><span>{t('breath.hold')}</span>
+  </p>}
+  {calm&&<p className="breath-note">{t('breath.note')}</p>}
 
   <h2 className="live-stage-name">{title}</h2>
   <p className="live-stage-sub">{status||note}</p>

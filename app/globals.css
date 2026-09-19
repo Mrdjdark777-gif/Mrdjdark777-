@@ -1599,3 +1599,43 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
   background:var(--surface);border-radius:14px;padding:11px 12px}
  .is-listener .scene-side .support-strip:hover{background:#1c2124}
 }
+
+/* ============================================================================
+   Квадратное дыхание, когда эфира нет.
+
+   4 счёта вдох, 4 задержка, 4 выдох, 4 задержка — цикл 16 секунд. Кольца
+   расходятся ровно на вдохе, стоят на задержке и сходятся на выдохе, поэтому
+   за ними можно дышать, не глядя на подписи. Подписи идут тем же таймингом и
+   не требуют ни одной строки кода: четыре слова, у каждого своя анимация на
+   том же 16-секундном круге.
+
+   Метод снимает острое напряжение; лечением тревожного расстройства он не
+   является, и текст рядом этого не обещает.
+   ========================================================================== */
+.live-rings.is-calm .live-ring{animation-name:box-breathe;animation-duration:16s;
+ animation-timing-function:ease-in-out;animation-delay:calc(var(--ring) * -.12s)}
+@keyframes box-breathe{
+ 0%{transform:scale(1);opacity:.42}
+ 25%{transform:scale(1.11);opacity:1}
+ 50%{transform:scale(1.11);opacity:1}
+ 75%{transform:scale(1);opacity:.42}
+ 100%{transform:scale(1);opacity:.42}}
+
+.breath-guide{position:relative;display:grid;place-items:center;height:20px;
+ margin:2px 0 0;font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal)}
+.breath-guide span{grid-area:1/1;opacity:0;animation:box-word 16s linear infinite}
+.breath-guide span:nth-child(2){animation-delay:4s}
+.breath-guide span:nth-child(3){animation-delay:8s}
+.breath-guide span:nth-child(4){animation-delay:12s}
+/* Слово горит свою четверть круга и гаснет между четвертями, чтобы смена
+   читалась как отсчёт, а не как мигание. */
+@keyframes box-word{
+ 0%{opacity:0}2%{opacity:1}23%{opacity:1}25%{opacity:0}100%{opacity:0}}
+
+.breath-note{margin:6px auto 0;max-width:34ch;text-align:center;
+ font-size:12.5px;line-height:1.6;color:#8d919c}
+
+@media(prefers-reduced-motion:reduce){
+ .live-rings.is-calm .live-ring{animation:none}
+ .breath-guide span{animation:none;opacity:0}
+ .breath-guide span:first-child{opacity:1}}
