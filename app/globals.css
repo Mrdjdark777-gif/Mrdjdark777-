@@ -870,17 +870,37 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .live-stage{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%}
 .live-rings{position:relative;display:grid;place-items:center;
  width:min(74vw,290px);height:min(74vw,290px);margin:6px 0 2px}
-.live-ring{position:absolute;border-radius:50%;border:1px solid rgba(111,231,222,.22)}
-.live-ring:nth-child(1){inset:0}
-.live-ring:nth-child(2){inset:7%;border-color:rgba(111,231,222,.15)}
-.live-ring:nth-child(3){inset:14%;border-color:rgba(111,231,222,.1)}
-.live-rings.is-pulsing .live-ring{animation:live-breathe 2.4s ease-in-out infinite}
-.live-rings.is-pulsing .live-ring:nth-child(2){animation-delay:.3s}
-.live-rings.is-pulsing .live-ring:nth-child(3){animation-delay:.6s}
+/* Кольца-«дорожки» вокруг знака эфира. Положение каждого считается из его
+   номера --ring, поэтому число колец меняется в разметке, а не здесь.
+   --ring-energy приходит из спектра эфира: 0 без звука, до 1 на громком
+   месте. Дыхание идёт всегда, энергия добавляется к нему сверху — так круг
+   живой и до начала эфира, а под музыку начинает качать. */
+.live-ring{position:absolute;border-radius:50%;
+ inset:calc(var(--ring) * 3.4%);
+ border:1px solid rgba(111,231,222,calc(.24 - var(--ring) * .022 + var(--ring-energy,0) * .5));
+ transform:scale(calc(1 + var(--ring-energy,0) * .05));
+ transition:transform 90ms linear,border-color 140ms linear;
+ animation:live-breathe 3.6s ease-in-out infinite;
+ animation-delay:calc(var(--ring) * -.28s)}
+.live-rings.is-pulsing .live-ring{animation-duration:2.4s}
+@media(prefers-reduced-motion:reduce){.live-ring{animation:none}}
 @keyframes live-breathe{0%,100%{opacity:.5}50%{opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
+/* Металлическая кромка знака эфира — та же, что у значков в студии на ПК, но
+   не шейдером: там это WebGL-контекст на каждый круг, а здесь круг один и
+   смотрят на него с телефона. Кольцо сделано коническим градиентом с маской
+   по центру; крутится поворотом всего слоя, а не переменной угла, — поворот
+   понимают все браузеры, а @property ещё не везде. */
+.live-orb::after{content:'';position:absolute;inset:0;border-radius:50%;padding:3px;
+ background:conic-gradient(#5b6672,#cfd6dd,#6f7c88,#eef2f5,#59636e,#b9c2cb,#8e99a4,#5b6672);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ mask-composite:exclude;
+ animation:metal-turn 16s linear infinite;pointer-events:none}
+@keyframes metal-turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.live-orb::after{animation:none}}
 .live-orb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .live-orb-shade{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(18,22,25,.25),rgba(18,22,25,.82))}
 .live-orb-copy{position:relative;display:flex;align-items:center;gap:10px;padding:10px 18px;text-align:center;

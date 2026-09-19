@@ -13,8 +13,11 @@ import {Artwork} from './artwork';
  *
  * Донат виден во всех состояниях эфира, включая offline и ended.
  */
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support}:{
- title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;
+/** Сколько колец рисуем вокруг знака эфира. */
+const RINGS=8;
+
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[]}:{
+ title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
 }){
  const {t}=useT();
@@ -30,7 +33,16 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
 
  return <section className="live-stage">
   <div className={'live-rings'+(pulsing?' is-pulsing':'')}>
-   <span className="live-ring" aria-hidden="true"/><span className="live-ring" aria-hidden="true"/><span className="live-ring" aria-hidden="true"/>
+   {/* Кольца-«дорожки». Внешние идут за низкими частотами, внутренние — за
+       высокими: бас качает большие круги, голос и верх шевелят ближние к
+       центру. Без звука все значения нулевые, и остаётся ровное дыхание. */}
+   {Array.from({length:RINGS},(_,i)=>{
+    const from=Math.floor(i/RINGS*levels.length),to=Math.max(from+1,Math.floor((i+1)/RINGS*levels.length));
+    const band=levels.slice(from,to);
+    const energy=band.length?band.reduce((a,b)=>a+b,0)/band.length:0;
+    return <span key={i} className="live-ring" aria-hidden="true"
+     style={{'--ring':String(i),'--ring-energy':energy.toFixed(3)} as React.CSSProperties}/>;
+   })}
    <div className="live-orb">
     <Artwork src={cover}/>
     <span className="live-orb-shade" aria-hidden="true"/>

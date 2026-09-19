@@ -192,6 +192,16 @@ try{
  // состояние приходит опросом, и раньше снимок заставал ещё пустой экран.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);
  await page.waitForFunction(()=>!!document.querySelector('.live-orb-dot'),null,{timeout:10000}).catch(()=>{});
+  // Круг эфира: много колец, металлическая кромка и мигающая точка. Колец
+  // должно быть именно много — из одного-двух «пластинка» не читается.
+  {const stage=await page.evaluate(()=>({rings:document.querySelectorAll('.live-ring').length,
+    rim:document.querySelector('.live-orb')?getComputedStyle(document.querySelector('.live-orb'),'::after').maskComposite:'нет',
+    dot:document.querySelector('.live-orb-dot')?getComputedStyle(document.querySelector('.live-orb-dot')).animationName:'нет',
+    breath:document.querySelector('.live-ring')?getComputedStyle(document.querySelector('.live-ring')).animationName:'нет'}));
+   if(stage.rings<6)problems.push('эфир: колец '+stage.rings+', нужно не меньше шести');
+   if(!String(stage.rim).startsWith('exclude'))problems.push('эфир: у знака нет металлической кромки (mask-composite: '+stage.rim+')');
+   if(stage.dot!=='live-blink')problems.push('эфир: красная точка не мигает ('+stage.dot+')');
+   if(stage.breath!=='live-breathe')problems.push('эфир: кольца не дышат без звука ('+stage.breath+')');}
  await page.waitForTimeout(300);await shot(page,'live');
  const {id:liveId}=JSON.parse(startText);await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'stop',id:liveId})});
  // Pending, then transient network failure, then success must recover while
