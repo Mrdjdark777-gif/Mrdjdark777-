@@ -378,8 +378,8 @@ try{
     autoplayAttr:!!document.querySelector('.editor-dialog .video-frame video')?.autoplay};});
   if(!box.frame)problems.push('редактор видео: предпросмотра нет');
   else if(!box.actions)problems.push('редактор видео: не найдены кнопки сохранения');
-  else if(box.frame.bottom>box.actions.top&&box.frame.right>box.actions.left&&box.frame.left<box.actions.right)
-   problems.push('редактор видео: предпросмотр ('+JSON.stringify(box.frame)+') накрывает кнопки ('+JSON.stringify(box.actions)+')');
+  else if(box.frame.top<box.actions.bottom)
+   problems.push('редактор видео: предпросмотр ('+JSON.stringify(box.frame)+') не ниже кнопок ('+JSON.stringify(box.actions)+')');
   if(/autoplay=1/.test(box.src)||box.autoplayAttr)problems.push('редактор видео: предпросмотр запускается сам');
   await ed.screenshot({path:'outputs/ui/design-pc-video-editor.png'});
   await ed.close();}

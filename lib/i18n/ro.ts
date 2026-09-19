@@ -617,6 +617,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "editor.draftSaved": "Ciornă salvată",
 
   "editor.previewTitle": "Previzualizare",
+  "editor.previewLabel": "Așa va vedea clipul ascultătorul",
 
   "reading.eyebrow": "TRUE THRILLS / POVESTE",
 

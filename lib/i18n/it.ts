@@ -378,6 +378,7 @@ export const it: Record<keyof typeof ru, string> = {
   'editor.publishedToast': 'Pubblicato',
   'editor.draftSaved': 'Bozza salvata',
   'editor.previewTitle': 'Anteprima',
+  'editor.previewLabel': "Così l'ascoltatore vedrà il video",
 
   'reading.eyebrow': 'TRUE THRILLS / RACCONTO',
   'watching.eyebrow': 'TRUE THRILLS / VIDEO',

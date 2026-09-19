@@ -617,6 +617,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "editor.draftSaved": "Чернетку збережено",
 
   "editor.previewTitle": "Попередній перегляд",
+  "editor.previewLabel": "Так ролик побачить слухач",
 
   "reading.eyebrow": "TRUE THRILLS / ІСТОРІЯ",
 

@@ -377,6 +377,7 @@ export const ru = {
   'editor.publishedToast': 'Опубликовано',
   'editor.draftSaved': 'Черновик сохранён',
   'editor.previewTitle': 'Предпросмотр',
+  'editor.previewLabel': "Так ролик увидит слушатель",
 
   'reading.eyebrow': 'TRUE THRILLS / ИСТОРИЯ',
   'watching.eyebrow': 'TRUE THRILLS / ВИДЕО',
