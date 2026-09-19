@@ -1374,7 +1374,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    логотипа. Ограничиваем шапку той же колонкой. */
 @media(min-width:1024px){
  .listener-main{margin-inline:auto}
- .is-immersive .top-header{max-width:1450px;margin-inline:auto;
+ /* width:100% обязателен: у флекс-элемента margin-inline:auto отменяет
+    растягивание, и шапка схлопывалась по содержимому — знак канала с кнопками
+    собирались кучкой посреди экрана. Ширину задаём сами, а margin уже центрует
+    эту ширину. Правило общее для всех разделов, не только для главной:
+    иначе на подкастах шапка растянута, а содержимое под ней — нет. */
+ .is-listener .top-header{width:100%;max-width:1450px;margin-inline:auto;
   padding-left:calc(44px + env(safe-area-inset-left));
   padding-right:calc(44px + env(safe-area-inset-right))}
 }
@@ -1390,4 +1395,62 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 @media(min-width:1024px){
  .app-strip{display:flex}
  .app-strip .support-strip-note{margin-left:auto;padding-right:10px;white-space:nowrap}
+}
+
+/* ============================================================================
+   Каркас сайта на компьютере (от 1024px, только страница канала).
+
+   На телефоне раскладка правильная: панель разделов внизу под большим пальцем,
+   а шапка на главной прозрачная и лежит поверх кадра. На мониторе обе вещи
+   неверны — указатель ходит вверху, а кадр во весь экран прячет всё
+   остальное. Здесь страница собирается как страница: шапка, под ней разделы,
+   затем содержимое, внизу подвал.
+   ========================================================================== */
+/* Подвал — часть настольного каркаса: на телефоне его место занимает панель
+   разделов, и лишний блок только отодвигал бы содержимое за сгиб. Правило
+   стоит перед медиазапросом: вес у них одинаковый, и спор решает порядок. */
+.site-footer{display:none}
+
+@media(min-width:1024px){
+ /* Порядок в колонке: шапка, разделы, содержимое. В разметке панель разделов
+    идёт последней, потому что на телефоне она внизу; переставляем порядком,
+    а не разметкой — телефон должен остаться нетронутым. */
+ .is-listener .top-header{order:-2}
+ .is-listener .bottom-nav{order:-1}
+ .is-listener .listener-main{order:0}
+ .is-listener .site-footer{order:1}
+
+ /* Панель разделов — обычная строка наверху, а не плавающая пилюля. */
+ .is-listener .bottom-nav{
+  position:static;transform:none;left:auto;right:auto;bottom:auto;
+  width:100%;max-width:none;border-radius:0;border-inline:none;
+  display:flex;justify-content:center;gap:4px;
+  padding:0 24px 12px;background:none;box-shadow:none}
+ .is-listener .bottom-nav-item{flex:0 0 auto;flex-direction:row;gap:9px;
+  padding:9px 16px;min-height:0;border-radius:11px}
+ .is-listener .bottom-nav-item svg,.is-listener .bottom-nav-home img{width:19px;height:19px}
+ .is-listener .bottom-nav-item>span{font-size:14px}
+ .is-listener .bottom-nav-item:hover{background:rgba(255,255,255,.05)}
+ .is-listener .bottom-nav-item[data-active=true]{background:rgba(111,231,222,.12);color:var(--teal)}
+ /* Отступ снизу освобождал место под плавающую панель — её там больше нет. */
+ .is-listener .listener-main{padding-bottom:40px}
+
+ /* Шапка на главной возвращается в поток. Прозрачная шапка поверх кадра —
+    приём для телефона, где кадр и есть весь экран. */
+ .is-immersive .top-header{position:static;padding-top:18px}
+ .is-immersive .listener-main{padding-top:0!important}
+ .is-immersive .immersion>.scene{padding-top:0}
+
+ .site-footer{display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  width:100%;max-width:1450px;margin:0 auto;
+  padding:26px calc(44px + env(safe-area-inset-right)) 34px calc(44px + env(safe-area-inset-left));
+  border-top:1px solid var(--line);font-size:13px;color:#8d919c}
+ .site-footer-brand{display:flex;align-items:center;gap:10px;
+  font-family:var(--font-display),var(--font-display-fallback);
+  font-weight:800;letter-spacing:.06em;font-size:14px;color:#e8ebec}
+ .site-footer-brand img{border-radius:50%;object-fit:cover}
+ .site-footer-app{display:inline-flex;align-items:center;gap:8px;color:var(--teal)}
+ .site-footer-app span{color:#8d919c;font-family:ui-monospace,monospace;font-size:12px}
+ .site-footer-link:hover,.site-footer-app:hover{color:#8FEFE8}
+ .site-footer-note{margin-left:auto;color:#6f737c}
 }

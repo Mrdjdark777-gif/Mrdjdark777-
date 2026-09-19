@@ -299,7 +299,7 @@ try{
   for(const w of [1280,1600,2560]){
    const g=await guest.newPage();await g.setViewportSize({width:w,height:Math.round(w*0.56)});
    await g.goto(base+'/?mode=listen');await settle(g);await g.waitForTimeout(300);
-   await g.screenshot({path:'outputs/ui/guest-'+w+'.png',fullPage:false});
+   await g.screenshot({path:'outputs/ui/guest-'+w+'.png',fullPage:true});
    const m=await g.evaluate(()=>({w:document.documentElement.scrollWidth,iw:innerWidth,
     h:document.documentElement.scrollHeight,ih:innerHeight,
     shaders:document.querySelectorAll('.shader-container-exploded').length,
@@ -320,6 +320,22 @@ try{
     return {href:a.getAttribute('href'),status:r.status,type:r.headers.get('content-type')};});
    if(!app)problems.push('слушатель '+w+': на главной нет ссылки на приложение');
    else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
+   // Каркас страницы: разделы строкой наверху, а не плавающей пилюлей внизу,
+   // и подвал в конце. Порядок задан свойством order — в разметке панель
+   // идёт последней, ради телефона.
+   const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),
+    main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),
+    head=document.querySelector('.top-header');
+    const top=el=>el?Math.round(el.getBoundingClientRect().top+scrollY):null;
+    return {navFixed:nav?getComputedStyle(nav).position:'нет',nav:top(nav),main:top(main),
+     foot:top(foot),head:top(head),footShown:!!foot&&getComputedStyle(foot).display!=='none',
+     headRight:head?Math.round(head.getBoundingClientRect().right):0,
+     mainRight:main?Math.round(main.getBoundingClientRect().right):0};});
+   if(frame.navFixed==='fixed')problems.push('слушатель '+w+': панель разделов всё ещё плавающая');
+   if(!(frame.head<frame.nav&&frame.nav<frame.main))problems.push('слушатель '+w+': порядок каркаса '+JSON.stringify(frame));
+   if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
+   else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
+   if(Math.abs(frame.headRight-frame.mainRight)>1)problems.push('слушатель '+w+': шапка не по колонке содержимого ('+frame.headRight+' против '+frame.mainRight+')');
   }
   await guest.close();}
 

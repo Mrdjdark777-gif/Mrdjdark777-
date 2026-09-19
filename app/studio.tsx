@@ -286,7 +286,13 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
- {data&&!data.needsSetup&&<nav className="bottom-nav">
+ {!author&&data&&!data.needsSetup&&<footer className="site-footer">
+ <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
+ <a className="site-footer-app" href={APP_RELEASE.href} download><Smartphone size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
+ {!!heartLink&&<a className="site-footer-link" href={heartLink.url} target="_blank" rel="noopener noreferrer">{t('header.support')}</a>}
+ <span className="site-footer-note">{t('app.footerNote')}</span>
+</footer>}
+{data&&!data.needsSetup&&<nav className="bottom-nav">
  <button className="bottom-nav-item bottom-nav-podcasts tt-pressable" data-active={view==='podcasts'} aria-label={t('nav.podcasts')} onClick={()=>{haptic();goto('podcasts');}}>{liveStatus&&<span className="bottom-nav-dot"/>}{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<Headphones size={18} color="#6FE7DE"/>}/>:<Headphones size={22}/>}<span>{t('nav.podcasts')}</span></button>
  <button className="bottom-nav-item bottom-nav-videos tt-pressable" data-active={view==='videos'} aria-label={t('nav.videos')} onClick={()=>{haptic();goto('videos');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<Video size={18} color="#6FE7DE"/>}/>:<Video size={22}/>}<span>{t('nav.videos')}</span></button>
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>}/>:<img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/>}<span>{t('nav.home')}</span></button>

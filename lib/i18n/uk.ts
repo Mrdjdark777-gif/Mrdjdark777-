@@ -179,6 +179,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "header.support": "Підтримати",
   "app.download": "Завантажити застосунок",
   "app.meta": "Android · {version} · {size} МБ",
+  "app.footerNote": "Власний сервер, власні файли. Без реклами та стеження.",
 
   "header.toStudio": "У студію",
 
