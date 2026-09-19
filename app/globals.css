@@ -1663,7 +1663,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-rings.is-calm .live-orb-shade{
  background:radial-gradient(circle at 50% 45%,rgba(18,22,25,0),rgba(18,22,25,.14) 62%,rgba(18,22,25,.6))}
 .live-rings.is-calm .live-orb-copy{background:rgba(10,14,16,.32);
- -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+ -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
 .live-rings.is-calm .live-orb-copy strong{color:#dfe4e7}
 
 /* ----------------------------------------------------------------------------
