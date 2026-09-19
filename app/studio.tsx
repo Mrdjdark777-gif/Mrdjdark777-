@@ -11,7 +11,6 @@ import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress} from '@/lib/listening-progress';
 import {HomeSceneView} from '@/components/studio/home-scene-view';
-import {LiveSpectrum} from '@/components/studio/live-spectrum';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
@@ -270,7 +269,6 @@ export default function Studio(){
   elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>!v)} archiveOpen={archiveOpen}
   archive={<div className="live-archive-list">{liveArchives.length===0?<p className="live-archive-empty">{t('live.archiveEmpty')}</p>:liveArchives.map(p=><button type="button" key={p.id} className="live-archive-row tt-pressable" onClick={()=>{haptic();openPost(p);}}><Play size={14} fill="currentColor"/><span className="live-archive-row-copy"><strong>{p.title}</strong><span>{new Date(p.createdAt).toLocaleDateString(tag)}{p.duration>0?' · '+clock(p.duration):''}</span></span></button>)}</div>}
   support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}/>
- {live.listening&&<LiveSpectrum levels={live.levels} active={live.listening}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  {live.joined&&<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>}
  {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}

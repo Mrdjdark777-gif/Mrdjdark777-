@@ -106,7 +106,7 @@ body {
    нет анимации — движение задаёт сам звук. transition сглаживает шаг опроса. */
 /* Мягкое свечение общим фоном, а не тенью на каждом из 64 лучей: 64 тени
    заметно грузят телефон, а выглядит это одинаково. */
-@media(prefers-reduced-motion:reduce){.live-spectrum>span{transition:none}}.live-console .listener-link-actions{width:100%}.live-main-panel .signal-console .clip-notice{text-align:left}.settings-grid:has(>section:only-child){grid-template-columns:minmax(0,750px)}@media(max-width:767px){.record-device-area{padding:20px 17px}.live-console{padding:21px 17px!important}.session-status{padding:15px 12px;gap:10px;flex-wrap:wrap}.session-status strong{font-size:18px}.session-status .live-timer{font-size:20px}.preflight-actions>button,.listener-playback-actions>button{flex:1;min-width:140px}.mic-toggles{gap:20px}.mic-toggles label{font-size:14px}.signal-head{font-size:12px}.signal-head strong{font-size:12px}}
+.live-console .listener-link-actions{width:100%}.live-main-panel .signal-console .clip-notice{text-align:left}.settings-grid:has(>section:only-child){grid-template-columns:minmax(0,750px)}@media(max-width:767px){.record-device-area{padding:20px 17px}.live-console{padding:21px 17px!important}.session-status{padding:15px 12px;gap:10px;flex-wrap:wrap}.session-status strong{font-size:18px}.session-status .live-timer{font-size:20px}.preflight-actions>button,.listener-playback-actions>button{flex:1;min-width:140px}.mic-toggles{gap:20px}.mic-toggles label{font-size:14px}.signal-head{font-size:12px}.signal-head strong{font-size:12px}}
 
 .onair-notice{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}.onair-notice:hover{border-color:#f39a7f}.onair-notice:focus-visible{outline:3px solid #ffb69c;outline-offset:4px}.onair-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}.onair-notice .primary-button{pointer-events:none}.listener-main .listener-playback-actions{flex-direction:column}.listener-main .listener-playback-actions>.primary-button{width:100%;min-height:54px;font-size:17px}.listener-main .listener-playback-actions>.quiet-button{min-height:44px;flex:none}.listener-main .session-status span{font-size:14px}.listener-main .live-info p{font-size:16px}.listener-main .live-console{gap:18px}@media(max-width:767px){.listener-main .listener-playback-actions>button{flex:none}.onair-notice .primary-button{min-height:50px}.listener-main .page-heading{margin-bottom:20px}}
 
@@ -404,11 +404,8 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .live-disc.is-live::before{animation:disc-breathe 3.2s ease-in-out infinite}
 .live-disc-art{position:relative;display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#121619;box-shadow:0 18px 40px -18px rgba(0,0,0,.9)}
 @keyframes disc-breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
-/* Спектр в строку: 64 столбика, которые прыгают на месте в такт звуку. */
-.live-spectrum{display:flex;align-items:center;justify-content:space-between;gap:2px;width:100%;max-width:340px;height:56px}
-.live-spectrum>span{flex:1;min-width:0;border-radius:2px;background:linear-gradient(#8FEFE8,#54D9C6);transition:height .07s linear}
 @media(prefers-reduced-motion:reduce){.live-disc.is-live::before{animation:none}}
-@media(max-width:767px){.live-spectrum{height:48px}.live-disc{--disc-size:min(206px,54vw)}}
+@media(max-width:767px){.live-disc{--disc-size:min(206px,54vw)}}
 
 /* ============================================================================
    Редизайн 2026-09 (макеты владельца, TrueThrills-Design-Preview.html).
@@ -583,7 +580,6 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .listener-main .live-disc::before{inset:-18px;border-radius:40px}
 .listener-main .live-disc-art{border-radius:28px;box-shadow:0 22px 44px -18px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.06)}
 .listener-main .live-stage-title{font-size:26px;font-weight:800}
-.listener-main .live-spectrum{max-width:320px;height:44px}
 .listener-main .live-elapsed strong{font-size:24px}
 .listener-main .listener-volume{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:4px 0}
 .listener-main .listener-volume>label{margin:0;gap:4px;font-size:13px;color:var(--teal)}
@@ -879,8 +875,14 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  /* Начальный отступ 4%: на пике размаха внешнее кольцо приходит примерно
     к краю своей области и не наезжает на название под кругом. */
  inset:calc(4% + var(--ring) * 3.1%);
+ /* Толщина, цвет и свечение идут за энергией звука. Она нулевая, пока звука
+    нет, поэтому правило общее и не зависит от состояния экрана: полоса
+    спектра убрана, и удар должен читаться по самим кольцам. Переход в 90 мс
+    короче шага замера, так что кольцо успевает за долей, но не дёргается. */
  border:1px solid rgba(111,231,222,calc(.42 - var(--ring) * .028 + var(--ring-energy,0) * .5));
- transition:border-color 140ms linear;
+ border-width:calc(1px + var(--ring-energy,0) * 2.2px);
+ box-shadow:0 0 calc(var(--ring-energy,0) * 18px) rgba(111,231,222,calc(var(--ring-energy,0) * .45));
+ transition:border-color 90ms linear,border-width 90ms linear,box-shadow 90ms linear;
  animation:live-breathe 3.6s ease-in-out infinite;
  animation-delay:calc(var(--ring) * -.28s)}
 .live-rings.is-pulsing .live-ring{animation-duration:2.4s}
@@ -891,8 +893,8 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    .live-ring — анимация перебила бы его своим transform, и кольца перестали
    бы отзываться на звук. */
 @keyframes live-breathe{
- 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .09));opacity:.45}
- 50%{transform:scale(calc(1.09 + var(--ring-energy,0) * .09));opacity:1}}
+ 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .26));opacity:.45}
+ 50%{transform:scale(calc(1.09 + var(--ring-energy,0) * .26));opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
@@ -936,7 +938,6 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .live-archive-copy strong{font-size:15px;font-weight:600}
 .live-archive-copy span{font-size:12px;line-height:1.35;color:#a4a5aa}
 .live-archive-card>svg{color:var(--muted);flex:none}
-.live-stage+.live-spectrum{margin-top:14px}
 .live-leave{align-self:center;display:inline-flex;align-items:center;gap:8px;min-height:44px}
 .live-stage-support-missing{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 @media(prefers-reduced-motion:reduce){.live-rings.is-pulsing .live-ring,.live-orb-dot{animation:none;opacity:.8}}
@@ -1655,8 +1656,11 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    лампа.
    -------------------------------------------------------------------------- */
 /* Лампа набрана тем же широким шрифтом, что и знак канала в шапке: на студии
-   это табло, а не заголовок, и засечки здесь выглядят как чужая цитата. */
-.live-orb-copy{letter-spacing:.2em}
+   это табло, а не заголовок, и засечки здесь выглядят как чужая цитата.
+   Тонкая светлая кромка и тень делают из неё табличку, лежащую на картинке,
+   а не текст, висящий в воздухе. */
+.live-orb-copy{letter-spacing:.2em;border:1px solid rgba(255,255,255,.16);
+ box-shadow:0 12px 30px -14px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.09)}
 .live-orb-copy strong{font-family:var(--font-ui);font-weight:700;
  font-size:clamp(19px,5.2vw,25px)}
 .live-orb-copy.is-live strong{color:#ffd9d1}

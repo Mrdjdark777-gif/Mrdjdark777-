@@ -303,6 +303,32 @@ try{
     return {a,b:getComputedStyle(ring).transform};});
    if(!moved)problems.push('эфир: колец нет');
    else if(moved.a===moved.b)problems.push('эфир: кольцо не двигается — transform не меняется ('+moved.a+')');}
+  // Полосу спектра под экраном убрали, и кольца остались единственным
+  // индикатором звука — значит удар обязан быть виден по ним. Анимацию
+  // останавливаем, иначе два замера отличались бы просто из-за дыхания, и
+  // сравниваем один и тот же кадр при тишине и на пике.
+  {const beat=await page.evaluate(async()=>{
+    const ring=document.querySelector('.live-ring');if(!ring)return null;
+    ring.style.animationPlayState='paused';
+    // Толщина и свечение переходят за 90 мс, поэтому читать их сразу после
+    // смены переменной нельзя: computed style вернул бы прежнее значение.
+    const read=async v=>{ring.style.setProperty('--ring-energy',v);
+     await new Promise(r=>setTimeout(r,200));const cs=getComputedStyle(ring);
+     return {m:cs.transform,w:parseFloat(cs.borderTopWidth),shadow:cs.boxShadow};};
+    const quiet=await read('0'),loud=await read('1');
+    ring.style.removeProperty('--ring-energy');ring.style.animationPlayState='';
+    const scale=s=>{const m=s.m.match(/matrix\(([^,]+)/);return m?Number(m[1]):0;};
+    const blur=s=>{const m=s.shadow.match(/(\d+(?:\.\d+)?)px\s+(\d+(?:\.\d+)?)px\s+(\d+(?:\.\d+)?)px/);return m?Number(m[3]):0;};
+    return {quiet:scale(quiet),loud:scale(loud),thin:quiet.w,thick:loud.w,dim:blur(quiet),glow:blur(loud)};});
+   if(!beat)problems.push('эфир: колец нет');
+   else{
+    const grew=beat.quiet?beat.loud/beat.quiet-1:0;
+    if(grew<0.15)problems.push('эфир: кольцо почти не отзывается на звук — размах вырос на '+Math.round(grew*100)+'%');
+    if(beat.thick<beat.thin+1)problems.push('эфир: линия кольца не толстеет на удар ('+beat.thin+' → '+beat.thick+')');
+    if(beat.glow<beat.dim+6)problems.push('эфир: кольцо не светится на удар (размытие '+beat.dim+' → '+beat.glow+')');
+   }}
+  // Полосы спектра на экране быть не должно: она дублировала кольца.
+  if(await page.locator('.live-spectrum').count())problems.push('эфир: полоса спектра осталась на экране');
   // TT_CAPTURE_MOTION=1 — покадровая съёмка круга эфира. Нужна, чтобы показать
   // владельцу движение: на обычном снимке дыхание колец увидеть нельзя. По
   // умолчанию выключена, каждый кадр это отдельный screenshot.
