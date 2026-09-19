@@ -298,6 +298,19 @@ try{
  {const guest=await browser.newContext({viewport:{width:1366,height:900},deviceScaleFactor:1});
   for(const w of [1280,1600,2560]){
    const g=await guest.newPage();await g.setViewportSize({width:w,height:Math.round(w*0.56)});
+   // Раздел снимаем тем же заходом: каталог на мониторе владелец видит не реже
+   // главной, а проверялся он только на телефоне.
+   await g.goto(base+'/?mode=listen&view=podcasts');await settle(g);await g.waitForTimeout(300);
+   await g.screenshot({path:'outputs/ui/guest-catalog-'+w+'.png',fullPage:true});
+   // Каталог сеткой: одной колонкой карточка выпуска пустовала справа на две
+   // трети. И подвал на странице должен быть один — их было два подряд.
+   const cat=await g.evaluate(()=>{const cards=[...document.querySelectorAll('.post-card')];
+    const tops=new Set(cards.map(c=>Math.round(c.getBoundingClientRect().top)));
+    return {cards:cards.length,rows:tops.size,
+     feet:[...document.querySelectorAll('.site-footer,.listener-main .content-footer')]
+      .filter(f=>getComputedStyle(f).display!=='none').length};});
+   if(cat.cards>1&&cat.rows===cat.cards)problems.push('слушатель '+w+': каталог идёт одной колонкой ('+cat.cards+' карточек в '+cat.rows+' рядах)');
+   if(cat.feet!==1)problems.push('слушатель '+w+': подвалов на странице '+cat.feet+', должен быть один');
    await g.goto(base+'/?mode=listen');await settle(g);await g.waitForTimeout(300);
    await g.screenshot({path:'outputs/ui/guest-'+w+'.png',fullPage:true});
    const m=await g.evaluate(()=>({w:document.documentElement.scrollWidth,iw:innerWidth,

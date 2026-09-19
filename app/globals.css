@@ -1501,3 +1501,22 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    картинки, а строки остаются предсказуемой высоты. */
 .main-content:not(.listener-main) .post-cover-image{position:static;inset:auto;
  width:auto;height:auto;max-height:190px;max-width:240px;object-fit:contain}
+
+@media(min-width:1024px){
+ /* Каталог сеткой. Одной колонкой во всю ширину карточка выпуска пустовала
+    справа на две трети, и три выпуска растягивались на целый экран. */
+ .listener-main .post-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .listener-main .post-card{height:100%}
+ .listener-main .post-cover{width:128px;min-height:0;align-self:stretch}
+
+ /* Подвал в конце списка и подвал сайта шли подряд, друг под другом. Оставляем
+    один — тот, что относится ко всей странице. */
+ .listener-main .content-footer{display:none}
+
+ /* Строка разделов уже стоит наверху страницы; её повтор внутри каталога
+    ничего не добавляет и отодвигает сами выпуски вниз. */
+ .listener-main .voice-columns{display:none}
+}
+@media(min-width:1440px){
+ .listener-main .post-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
