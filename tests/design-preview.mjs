@@ -200,6 +200,18 @@ try{
   if(!s.замок)problems.push('раздел «'+view+'»: колонка в окно не включена');
   if(s.прокручивается!=='auto')problems.push('раздел «'+view+'»: содержимое не прокручивается само ('+s.прокручивается+')');
  }
+ // Обложка в списке у слушателя занимает всю высоту карточки: иначе под ней
+ // остаётся дыра, потому что текст почти всегда выше.
+ {await page.goto(base+'/?mode=listen&view=videos');await settle(page);await page.waitForTimeout(250);
+  const cover=await page.evaluate(()=>{const card=document.querySelector('.post-card'),c=document.querySelector('.post-cover');
+   if(!card||!c)return null;const a=card.getBoundingClientRect(),b=c.getBoundingClientRect();
+   const img=c.querySelector('img');
+   return{зазор:Math.round(a.height-b.height),режим:img?getComputedStyle(img).objectFit:'нет картинки'};});
+  if(!cover)problems.push('видео у слушателя: карточки нет');
+  else{
+   if(cover.зазор>2)problems.push('видео у слушателя: обложка ниже карточки на '+cover.зазор+'px');
+   if(cover.режим!=='cover')problems.push('видео у слушателя: обложка не заполняет рамку (object-fit: '+cover.режим+')');
+  }}
  await page.goto(base+'/?mode=listen');await settle(page);
 
  // Свёрнутый плеер на главной.
