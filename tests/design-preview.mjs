@@ -88,7 +88,14 @@ try{
  browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
  const shot=async(page,name)=>page.screenshot({path:'outputs/ui/design-'+name+'.png',fullPage:false});
  const settle=async(page)=>{await page.waitForFunction(()=>!document.querySelector('.splash'));await page.waitForTimeout(250);};
- const metrics=page=>page.evaluate(()=>({scrollW:document.documentElement.scrollWidth,innerW:innerWidth,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
+ // Страница у слушателя больше не прокручивается сама: прокручивается
+ // содержимое раздела. Поэтому «сгиб» считается по той области, которая
+ // действительно прокручивается, иначе проверки стали бы пустыми.
+ const metrics=page=>page.evaluate(()=>{
+  const main=document.querySelector('.main-content');
+  const inner=main?main.scrollHeight-main.clientHeight:0;
+  return{scrollW:document.documentElement.scrollWidth,innerW:innerWidth,
+   scrollH:document.documentElement.scrollHeight+Math.max(0,inner),innerH:innerHeight};});
  const phone=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
  phone.setDefaultTimeout(15000);
  const page=await phone.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -180,6 +187,21 @@ try{
  }
  await page.setViewportSize({width:390,height:844});
 
+ // Сама страница у слушателя не прокручивается ни в одном разделе: колонка
+ // ровно в окно, прокручивается только содержимое раздела. Короткий список
+ // не даёт прокрутки вовсе — уходит «резиновое» подёргивание.
+ for(const view of ['home','podcasts','videos','stories','settings']){
+  await page.goto(base+'/?mode=listen&view='+view);await settle(page);await page.waitForTimeout(250);
+  const s=await page.evaluate(()=>{const main=document.querySelector('.main-content');
+   return{страница:document.documentElement.scrollHeight-innerHeight,
+    замок:document.body.classList.contains('tt-shell-locked'),
+    прокручивается:main?getComputedStyle(main).overflowY:'нет'};});
+  if(s.страница>1)problems.push('раздел «'+view+'»: прокручивается вся страница на '+s.страница+'px');
+  if(!s.замок)problems.push('раздел «'+view+'»: колонка в окно не включена');
+  if(s.прокручивается!=='auto')problems.push('раздел «'+view+'»: содержимое не прокручивается само ('+s.прокручивается+')');
+ }
+ await page.goto(base+'/?mode=listen');await settle(page);
+
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
@@ -269,7 +291,8 @@ try{
    const fit=await page.evaluate(()=>{
     const last=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
     const nav=document.querySelector('.bottom-nav');
-    return {over:document.documentElement.scrollHeight-innerHeight,
+    const main=document.querySelector('.main-content');
+    return {over:Math.max(document.documentElement.scrollHeight-innerHeight,main?main.scrollHeight-main.clientHeight:0),
      locked:document.body.classList.contains('tt-live-locked'),
      tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0,
      footer:(()=>{const f=document.querySelector('.content-footer');
@@ -409,7 +432,8 @@ try{
   // не должно быть и здесь.
   for(const [w,h] of [[412,915],[390,760]]){
    await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
-   const over=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight);
+   const over=await page.evaluate(()=>{const main=document.querySelector('.main-content');
+    return Math.max(document.documentElement.scrollHeight-innerHeight,main?main.scrollHeight-main.clientHeight:0);});
    if(over>1)problems.push('эфир идёт, '+w+'x'+h+': страница длиннее экрана на '+over+'px');}
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   // Полосы спектра на экране быть не должно: она дублировала кольца.

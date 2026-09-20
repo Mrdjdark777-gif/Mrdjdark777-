@@ -65,14 +65,17 @@ export default function Studio(){
  const [shellOpen,setShellOpen]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
- // Экран эфира не прокручивается: там нечего прокручивать, а «резиновая»
- // прокрутка на пару десятков пикселей раздражает. Сам расчёт высоты делает
- // CSS — здесь только признак того, что мы на этом экране.
+ // У слушателя страница не прокручивается сама: приложение становится
+ // колонкой высотой в окно, а прокручивается только содержимое раздела. Так
+ // исчезает «резиновая» прокрутка на пару десятков пикселей там, где всё и
+ // так помещается, а длинные списки прокручиваются как прежде. Расчёт высоты
+ // делает CSS — здесь только признаки экрана.
  useEffect(()=>{
-  const live=!author&&view==='live';
-  document.body.classList.toggle('tt-live-locked',live);
-  return()=>document.body.classList.remove('tt-live-locked');
- },[author,view]);
+  const listener=!author&&!!data&&!data.needsSetup;
+  document.body.classList.toggle('tt-shell-locked',listener);
+  document.body.classList.toggle('tt-live-locked',listener&&view==='live');
+  return()=>{document.body.classList.remove('tt-shell-locked');document.body.classList.remove('tt-live-locked');};
+ },[author,view,data]);
  // Ссылку на приложение показываем только в браузере: внутри самого
  // приложения и в окне студии на ПК предлагать его скачать незачем.
  const appLink=!shell&&!hasNativeClient()?(

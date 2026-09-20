@@ -1845,24 +1845,36 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    JavaScript и промахивалась — на телефоне владельца круг схлопнулся до
    минимума, а подпись прилипла к карточкам вместо низа экрана. */
 @media(max-width:1023px){
- body.tt-live-locked{overflow:hidden;overscroll-behavior:none}
- /* Колонка живёт на .app-shell: шапка, экран и навигация лежат внутри неё,
+ /* Страница целиком не прокручивается ни в одном разделе: прокручивается
+    только содержимое раздела. Там, где всё помещается (эфир, главная, пустой
+    список), прокрутки нет вовсе и «резиновое» подёргивание исчезает; длинный
+    список прокручивается внутри себя, а шапка и навигация стоят на месте.
+
+    Колонка живёт на .app-shell: шапка, экран и навигация лежат внутри неё,
     а #tt-app — просто обёртка. Отступ снизу держит место под плавающую
     навигацию, её собственная высота чуть больше переменной. */
- body.tt-live-locked #tt-app{height:100svh;display:flex;flex-direction:column}
- body.tt-live-locked .app-shell{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+ body.tt-shell-locked{overflow:hidden;overscroll-behavior:none}
+ body.tt-shell-locked #tt-app{height:100svh;display:flex;flex-direction:column}
+ body.tt-shell-locked .app-shell{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
   padding-bottom:calc(var(--bottom-nav-h) + 14px + env(safe-area-inset-bottom))}
- body.tt-live-locked .listener-main[data-view=live]{flex:1 1 auto;min-height:0!important;
-  height:auto!important;padding-bottom:10px!important;overflow:hidden}
- body.tt-live-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
- body.tt-live-locked .listener-main[data-view=live] .live-main-panel,
- body.tt-live-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
+ body.tt-shell-locked .listener-main{flex:1 1 auto;min-height:0!important;height:auto!important;
+  overflow-y:auto;overscroll-behavior:contain;
+  padding-bottom:10px!important}
+ /* Мини-панель плеера висит над навигацией и закрывала бы конец списка —
+    пока она на экране, раздел оставляет под неё место: её высота 66 px плюс
+    небольшой зазор. */
+ body.tt-shell-locked:has(.podcast-player.is-mini) .listener-main{padding-bottom:78px!important}
+ /* На экране эфира прокручивать нечего: круг подстраивается под высоту. */
+ body.tt-live-locked .listener-main[data-view=live]{overflow:hidden}
+ body.tt-shell-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
+ body.tt-shell-locked .listener-main[data-view=live] .live-main-panel,
+ body.tt-shell-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
  /* Подпись с копирайтом прижата к низу экрана, а не к карточкам. */
- body.tt-live-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:auto}
+ body.tt-shell-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:auto}
  /* Круг забирает остаток высоты, но остаётся кругом: без ограничения по
     высоте гибкий элемент вытягивался, ширину ему резал max-width, и вместо
     круга получался овал. */
- body.tt-live-locked .listener-main[data-view=live] .live-rings{
+ body.tt-shell-locked .listener-main[data-view=live] .live-rings{
   flex:1 1 auto;align-self:center;min-height:118px;width:auto;height:auto;aspect-ratio:1;
   max-width:min(74vw,290px);max-height:min(74vw,290px)}
 }
