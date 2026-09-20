@@ -1993,7 +1993,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-archives>.archive-search>svg{flex:none;color:var(--muted)}
 .live-archives>.archive-search input{flex:1;min-width:0;border:none;background:none;
  font-size:13px;color:inherit;outline:none;padding:0}
-.live-archives article>.archive-cover{flex:none;width:48px;height:60px;border-radius:8px;
+.live-archives article>.archive-cover{flex:none;width:64px;height:80px;border-radius:10px;
  overflow:hidden;display:grid;place-items:center;background:var(--surface-2)}
 .live-archives article>.archive-cover img{width:100%;height:100%;object-fit:contain}
 .live-archives .archive-copy{gap:2px}
@@ -2004,7 +2004,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-archives .archive-meta{font-size:11.5px}
 @media(min-width:1100px){
  .main-content:not(.listener-main) .live-archives article{padding:7px 0;gap:10px}
- .main-content:not(.listener-main) .live-archives article>.archive-cover{width:56px;height:70px}
+ .main-content:not(.listener-main) .live-archives article>.archive-cover{width:88px;height:110px}
  .main-content:not(.listener-main) .archive-actions,
  .main-content:not(.listener-main) .archive-ask{gap:12px}
  .main-content:not(.listener-main) .archive-actions button,
@@ -2063,3 +2063,16 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .listener-main .live-archive-card,
 .listener-main .live-stage>.support-strip,
 .listener-main .live-stage>.live-stage-support-missing{flex:none}
+
+/* ----------------------------------------------------------------------------
+   Края прокрутки растворяются.
+
+   Содержимое упиралось в шапку и в панель навигации резаной кромкой: кольца
+   круга и подписи карточек обрывались по прямой линии. Маска гасит несколько
+   пикселей у обоих краёв, и при прокрутке содержимое уходит под шапку плавно.
+   -------------------------------------------------------------------------- */
+@media(max-width:1023px){
+ body.tt-shell-locked .listener-main{
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 20px,#000 calc(100% - 26px),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 20px,#000 calc(100% - 26px),transparent 100%)}
+}

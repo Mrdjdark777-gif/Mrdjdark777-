@@ -62,6 +62,11 @@ try{
   return {w:Math.round(r.width),h:Math.round(r.height)};});
  assert.equal(ring.w,ring.h,'круг должен остаться кругом: '+ring.w+'×'+ring.h);
  assert.ok(ring.w>=280,'круг во время эфира уменьшился до '+ring.w+'px');
+ // Края прокрутки растворяются, а не обрываются линией под шапкой.
+ const edge=await page.evaluate(()=>{const m=document.querySelector('.listener-main');if(!m)return '';
+  const st=getComputedStyle(m);return st.maskImage&&st.maskImage!=='none'?st.maskImage:st.webkitMaskImage||'';});
+ assert.ok(/linear-gradient/.test(edge),'у прокрутки нет мягких краёв: '+(edge||'маски нет'));
+ assert.ok(/transparent|rgba\(0, 0, 0, 0\)/.test(edge),'маска краёв не гасит содержимое: '+edge);
  // Низкий экран: колонка переполнена, и соседи начинают давить. Именно так
  // описание однажды и срезало — по половине строки.
  await page.setViewportSize({width:390,height:520});
@@ -72,5 +77,5 @@ try{
  const tightLines=tight.client/tight.line;
  assert.ok(tightLines>=1,'на низком экране описание сжали до '+tight.client+'px при строке '+tight.line+'px');
  assert.ok(Math.abs(tightLines-Math.round(tightLines))<0.25,'на низком экране описание срезано по половине строки: '+tight.client+'px при строке '+tight.line+'px');
- console.log('PASS: описание эфира стоит под названием, не сжимается соседями и не режется по половине строки даже на низком экране; имя канала в шапке целиком, круг в эфире полного размера');
+ console.log('PASS: описание эфира стоит под названием, не сжимается соседями и не режется по половине строки даже на низком экране; имя канала в шапке целиком, круг в эфире полного размера, края прокрутки растворяются');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

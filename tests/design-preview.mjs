@@ -213,6 +213,14 @@ try{
  {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(300);
   const names=await page.evaluate(()=>[...document.querySelectorAll('.post-title')].map(e=>e.textContent.trim()));
   if(names.includes('Истории после заката'))problems.push('запись эфира попала в каталог подкастов: '+names.join(', '));
+  // Главная тоже не должна знать про запись эфира: она становилась и обложкой
+  // плитки «Подкасты», и поводом для значка «новое».
+  await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
+  const homeText=await page.evaluate(()=>document.querySelector('.main-content')?.innerText||'');
+  if(homeText.includes('Истории после заката'))problems.push('запись эфира попала на главную слушателя');
+  const tileArt=await page.evaluate(()=>[...document.querySelectorAll('img')].map(i=>i.getAttribute('src')||'').join(' '));
+  if(tileArt.includes(archived.id))problems.push('обложка записи эфира стала картинкой раздела на главной');
+  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(200);
   if(await page.locator('.catalog-scope').count())problems.push('в каталоге остался переключатель записей эфиров');
   await page.goto(base+'/?mode=listen&view=live');await settle(page);await page.waitForTimeout(250);
   await page.locator('.live-archive-card').click();await page.waitForTimeout(400);

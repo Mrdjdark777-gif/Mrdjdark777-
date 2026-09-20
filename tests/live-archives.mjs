@@ -55,7 +55,8 @@ try{
   const r=el.getBoundingClientRect();const img=el.querySelector('img');const i=img&&img.getBoundingClientRect();
   return {w:Math.round(r.width),h:Math.round(r.height),fit:img?getComputedStyle(img).objectFit:'',iw:i?Math.round(i.width):0};});
  assert.ok(art,'у записи должна быть обложка');
- assert.ok(art.w<=60,'обложка растянулась на '+art.w+'px вместо миниатюры');
+ assert.ok(art.w<=140,'обложка растянулась на '+art.w+'px вместо миниатюры');
+ assert.ok(art.w>=80,'обложка в студии меньше пригодного размера: '+art.w+'px');
  assert.ok(art.h>art.w,'обложка должна быть вертикальной 4:5, а не квадратом: '+art.w+'×'+art.h);
  assert.equal(art.fit,'contain','обложку нельзя обрезать: object-fit '+art.fit);
  // Описание эфира видно в строке, а состояние не отсылает в подкасты.
@@ -64,7 +65,7 @@ try{
  assert.ok(!/подкаст/i.test(meta),'состояние записи не должно отсылать в подкасты: '+meta);
  // Панель занимает строку, а не половину экрана.
  const panel=await page.evaluate(()=>Math.round(document.querySelector('.live-archives').getBoundingClientRect().height));
- assert.ok(panel<=170,'панель записей раздулась до '+panel+'px на одну запись');
+ assert.ok(panel<=230,'панель записей раздулась до '+panel+'px на одну запись');
  // Удаление спрашивает подтверждение, а не срабатывает с первого нажатия.
  await page.locator('.archive-actions .archive-danger').click();await page.waitForTimeout(300);
  assert.equal(await page.locator('.archive-ask').count(),1,'удаление должно спрашивать подтверждение');
