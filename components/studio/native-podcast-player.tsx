@@ -7,7 +7,7 @@ import {PlayerChrome} from './player-chrome';
 import {presentation} from '@/lib/player-presentation';
 import {useT} from '@/components/i18n-provider';
 export type NativePlayerState={id:string;active:boolean;playing:boolean;loading:boolean;position:number;duration:number;rate:number;sleepUntil:number;playbackError?:string};
-export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,supportUrl,next,onNext,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
+export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,supportUrl,onShare,next,onNext,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;onShare?:()=>void;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
  const {t}=useT(),id=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const [now,setNow]=useState(0);
  const [state,setState]=useState<NativePlayerState>({id,active:false,playing:false,loading:true,position:0,duration:duration*1000,rate:1,sleepUntil:0}),[message,setMessage]=useState('');
@@ -29,5 +29,5 @@ export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,su
   act={{toggle:()=>void command(state.playing?'pause':'play'),seekBy:s=>void command('seek',{position:Math.max(0,Math.min(state.duration,state.position+s*1000))}),
    seekTo:s=>void command('seek',{position:Math.max(0,Math.min(state.duration,s*1000))}),setRate:rate=>void command('rate',{rate}),
    setSleep:value=>void command('sleep',{minutes:value==='active'?remaining:Number(value)}),
-   close:()=>{void nativeCall('player.stop').catch(()=>{});onClose();},openNext:onNext}}/>;
+   close:()=>{void nativeCall('player.stop').catch(()=>{});onClose();},openNext:onNext,share:onShare}}/>;
 }

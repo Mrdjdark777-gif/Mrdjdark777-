@@ -25,7 +25,7 @@ export const it: Record<keyof typeof ru, string> = {
   "liveArchive.play": "Ascolta",
   "liveArchive.stop": "Ferma",
   "liveArchive.remove": "Elimina registrazione",
-  "liveArchive.removeAsk": "Eliminare la registrazione? La puntata nei podcast resta.",
+  "liveArchive.removeAsk": "Eliminare la registrazione della diretta? Sparisce per sempre dall’archivio.",
   "liveArchive.removeYes": "Elimina",
   "liveArchive.removeNo": "Annulla",
   "liveArchive.removed": "Registrazione eliminata",
@@ -35,9 +35,7 @@ export const it: Record<keyof typeof ru, string> = {
   "liveArchive.retryAction": "Riprova elaborazione",
 
   "liveArchive.failed": "Elaborazione non riuscita. I frammenti ricevuti sono conservati.",
-
-  "liveArchive.ready": "Registrazione disponibile nei podcast",
-
+  "liveArchive.ready": "Nell’archivio delle dirette",
   "liveArchive.processingState": "Preparazione della registrazione",
 
   "liveArchive.closing": "Chiusura della registrazione",
@@ -45,9 +43,8 @@ export const it: Record<keyof typeof ru, string> = {
   "liveArchive.receivingState": "Registrazione in corso",
 
   "liveArchive.title": "Registrazioni delle dirette",
-
-  "liveArchive.ended": "Diretta terminata. La registrazione apparirà nei podcast dopo l’elaborazione.",
-
+  "liveArchive.search": "Cerca tra le registrazioni",
+  "liveArchive.ended": "Diretta conclusa. La registrazione comparirà nell’archivio dopo l’elaborazione.",
   "liveArchive.buffering": "Connessione all’audio del server…",
 
   "liveArchive.processing": "Diretta terminata. Il server prepara la registrazione: puoi spegnere il PC.",
@@ -186,6 +183,14 @@ export const it: Record<keyof typeof ru, string> = {
   'home.writeStory': 'Scrivi\nun racconto',
   'home.startLive': 'Avvia\nla diretta',
   'home.shareChannel': 'Condividi\nil canale',
+  "share.action": "Condividi",
+  "share.title": "Condividi",
+  "share.copy": "Copia",
+  "share.copied": "Copiato",
+  "share.linkAria": "Link",
+  "share.channel": "Canale True Thrills",
+  "share.live": "Diretta",
+  "share.failed": "Condivisione non riuscita",
   'home.watchVideos': 'Guarda\ni video',
   'home.listenPodcasts': 'Ascolta\ni podcast',
   'home.readStories': 'Leggi\ni racconti',
@@ -218,7 +223,7 @@ export const it: Record<keyof typeof ru, string> = {
   'live.coverField': 'Copertina della diretta',
   'live.coverUpload': 'Carica copertina',
   'live.coverChange': 'Scegline un’altra',
-  'live.coverNote': "Copertina verticale 4:5 — 1080×1350. Diventa la copertina dell’episodio nei podcast. Senza di essa lo sfondo della diretta sarà l’immagine del canale dalle impostazioni, e sulla scheda il logo.",
+  "live.coverNote": "Copertina verticale 4:5 — 1080×1350. Diventa la copertina della registrazione. Senza di essa lo sfondo della diretta è l’immagine del canale dalle impostazioni e sulla card il logo.",
   'live.titlePlaceholder': 'Di cosa parli oggi?',
   'live.titleRequired': 'Indica il titolo della diretta',
   'live.micOff': 'MICROFONO SPENTO',
@@ -277,7 +282,7 @@ export const it: Record<keyof typeof ru, string> = {
   "live.authorTip3": "Attendi l’invio degli ultimi secondi dopo la diretta. Poi puoi spegnere il PC.",
   'live.pilotTitle': 'Trasmissione di prova',
   "live.pilotText": "La diretta può essere ascoltata da un massimo di 50 persone alla volta. L’audio passa dal server con un breve ritardo.",
-  "live.pilotNoRecord": "La diretta viene salvata sul server e pubblicata nei podcast dopo l’elaborazione.",
+  "live.pilotNoRecord": "La diretta si salva sul server e dopo l’elaborazione compare nell’archivio delle dirette.",
   "live.otherNetwork": "Controlla internet e riprova a collegarti.",
 
   'studio.panelTitle': 'REGISTRAZIONE PODCAST',

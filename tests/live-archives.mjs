@@ -49,6 +49,22 @@ try{
  assert.equal(await page.locator('.archive-actions button:has-text("Прослушать")').count(),1,'у готовой записи должна быть кнопка прослушивания');
  assert.equal(await page.locator('.archive-actions a:has-text("Скачать")').count(),1,'скачивание должно остаться');
  assert.equal(await page.locator('.archive-actions .archive-danger').count(),1,'у записи должна быть кнопка удаления');
+ // Обложка — картинка в пропорции 4:5, а не растянутая на всю строку полоса:
+ // общее правило для span однажды уже победило её собственное flex:none.
+ const art=await page.evaluate(()=>{const el=document.querySelector('.live-archives .archive-cover');if(!el)return null;
+  const r=el.getBoundingClientRect();const img=el.querySelector('img');const i=img&&img.getBoundingClientRect();
+  return {w:Math.round(r.width),h:Math.round(r.height),fit:img?getComputedStyle(img).objectFit:'',iw:i?Math.round(i.width):0};});
+ assert.ok(art,'у записи должна быть обложка');
+ assert.ok(art.w<=60,'обложка растянулась на '+art.w+'px вместо миниатюры');
+ assert.ok(art.h>art.w,'обложка должна быть вертикальной 4:5, а не квадратом: '+art.w+'×'+art.h);
+ assert.equal(art.fit,'contain','обложку нельзя обрезать: object-fit '+art.fit);
+ // Описание эфира видно в строке, а состояние не отсылает в подкасты.
+ assert.equal(await page.locator('.archive-about').first().innerText(),'Тест','в строке должно быть описание эфира');
+ const meta=await page.locator('.archive-meta').first().innerText();
+ assert.ok(!/подкаст/i.test(meta),'состояние записи не должно отсылать в подкасты: '+meta);
+ // Панель занимает строку, а не половину экрана.
+ const panel=await page.evaluate(()=>Math.round(document.querySelector('.live-archives').getBoundingClientRect().height));
+ assert.ok(panel<=170,'панель записей раздулась до '+panel+'px на одну запись');
  // Удаление спрашивает подтверждение, а не срабатывает с первого нажатия.
  await page.locator('.archive-actions .archive-danger').click();await page.waitForTimeout(300);
  assert.equal(await page.locator('.archive-ask').count(),1,'удаление должно спрашивать подтверждение');
@@ -63,5 +79,5 @@ try{
  assert.ok(library.items.some(p=>p.id===postId),'выпуск в подкастах должен остаться после удаления записи');
  const gone=await fetch(base+'/api/live-stream?id='+id+'&remove=1',{method:'POST',headers:{cookie,origin:base}});
  assert.equal(gone.status,400,'повторное удаление той же записи должно отвечать ошибкой, а не молчанием');
- console.log('PASS: записи эфиров — прослушивание, скачивание и удаление с подтверждением; выпуск в подкастах остаётся');
+ console.log('PASS: записи эфиров — обложка 4:5 без обрезки, описание в строке, компактная панель, прослушивание, скачивание и удаление с подтверждением; выпуск в подкастах остаётся');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

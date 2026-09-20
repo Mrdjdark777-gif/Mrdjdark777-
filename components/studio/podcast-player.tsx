@@ -9,9 +9,9 @@ import {presentation} from '@/lib/player-presentation';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
 import {useT} from '@/components/i18n-provider';
 
-type Props={src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void};
+type Props={src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;onShare?:()=>void;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void};
 
-function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archived,supportUrl,next,onNext,audioRef,autoplay=true,expanded=true,onExpand=()=>{},onClose}:Props){
+function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archived,supportUrl,onShare,next,onNext,audioRef,autoplay=true,expanded=true,onExpand=()=>{},onClose}:Props){
  const postId=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const restored=useRef(false),lastSaved=useRef(0);
  const [rate,setRate]=useState(1),[sleep,setSleep]=useState(0),[isRepairing,setIsRepairing]=useState(false);
@@ -65,7 +65,7 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archi
    sleepOptions:[{value:0,label:t('player.sleepOff')},...[15,30,60].map(value=>({value,label:value+' '+t('player.minutes')}))]}}
   act={{toggle:()=>{if(playing){wanted.current=false;local.current?.pause();}else{wanted.current=true;void play();}},
    seekBy:s=>seek((local.current?.currentTime??0)+s),seekTo:s=>{scrubbing.current=false;seek(s);},scrub:s=>{scrubbing.current=true;setPosition(s);},
-   setRate:value=>{setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();},setSleep:value=>setSleep(Number(value)),close:onClose,openNext:onNext}}>
+   setRate:value=>{setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();},setSleep:value=>setSleep(Number(value)),close:onClose,openNext:onNext,share:onShare}}>
   {audio}
  </PlayerChrome>;
 }

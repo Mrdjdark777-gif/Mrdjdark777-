@@ -294,7 +294,7 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
 .live-archives { margin: 0 0 20px; padding: 18px; background: #111719; border: 1px solid #29423e; border-radius: 16px; }
 .live-archives summary { cursor: pointer; font-weight: 700; }
 .live-archives article { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #29423e; }
-.live-archives article span { flex: 1 1 220px; color: #b5c5c2; }
+.live-archives article>.archive-copy { flex: 1 1 220px; color: #b5c5c2; }
 .live-archives article a, .live-archives article button { color: #54d8bf; }
 @media (max-width: 520px) { .donation-card { flex-wrap: wrap; } .donation-card .support-copy { flex: 1 1 150px; } }
 
@@ -1953,3 +1953,85 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .archive-copy{display:flex;flex-direction:column;gap:3px;flex:1 1 220px;min-width:0}
 .archive-copy strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .archive-meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ----------------------------------------------------------------------------
+   Круг во время прослушивания.
+
+   Когда слушатель подключился, на экране появляются часы, кнопка, громкость и
+   «выйти из эфира» — четыре блока сверх спокойного состояния. Круг забирал
+   остаток высоты и падал на свой минимум в 118px, то есть становился вдвое
+   меньше прежнего. Освобождаем высоту там, где она не несёт смысла, и
+   поднимаем нижнюю границу круга.
+   -------------------------------------------------------------------------- */
+/* «Вы слушаете прямой эфир» повторяет часы с подписью «В ЭФИРЕ» рядом. */
+.listener-main .live-stage.is-live .live-stage-sub{display:none}
+/* Описание не режется по половине строки: своя высота, две строки. */
+.listener-main .live-stage-about{flex:none}
+.listener-main .live-stage.is-live .live-stage-about{-webkit-line-clamp:2;font-size:12.5px}
+/* Карточки архива и поддержки во время эфира — одна строка вместо двух. */
+.listener-main .live-stage.is-live .live-archive-copy>span,
+.listener-main .live-stage.is-live .support-strip .support-strip-copy>span{display:none}
+@media(max-width:1023px){
+ body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .live-rings{min-height:188px}
+ /* Предохранитель: на низком экране лучше короткая прокрутка, чем срезанный
+    низ. В покое экран по-прежнему не прокручивается. */
+ body.tt-live-locked .listener-main[data-view=live]:has(.live-stage.is-live){overflow-y:auto}
+}
+
+/* ----------------------------------------------------------------------------
+   Список записей эфиров в студии.
+
+   Обложку растягивало общее правило «.live-archives article span», которое по
+   весу било её собственное flex:none, — картинка расплывалась на всю строку и
+   обрезалась. Теперь у каждой части строки своё правило, пропорция обложки
+   честная 4:5, и панель занимает высоту одной строки, а не половину экрана.
+   -------------------------------------------------------------------------- */
+.live-archives article{gap:12px;padding:9px 0}
+.live-archives article:last-of-type{border-bottom:none;padding-bottom:2px}
+.live-archives>.archive-search{display:flex;align-items:center;gap:8px;margin:10px 0 2px;
+ padding:0 12px;min-height:38px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.live-archives>.archive-search>svg{flex:none;color:var(--muted)}
+.live-archives>.archive-search input{flex:1;min-width:0;border:none;background:none;
+ font-size:13px;color:inherit;outline:none;padding:0}
+.live-archives article>.archive-cover{flex:none;width:40px;height:50px;border-radius:8px;
+ overflow:hidden;display:grid;place-items:center;background:var(--surface-2)}
+.live-archives article>.archive-cover img{width:100%;height:100%;object-fit:contain}
+.live-archives .archive-copy{gap:2px}
+.live-archives .archive-copy>strong{font-size:14px}
+/* Описание — одна строка: в списке важно видеть много записей, а не текст. */
+.archive-about{font-size:12px;line-height:1.35;color:#9aa0a6;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-archives .archive-meta{font-size:11.5px}
+@media(min-width:1100px){
+ .main-content:not(.listener-main) .live-archives article{padding:7px 0;gap:10px}
+ .main-content:not(.listener-main) .live-archives article>.archive-cover{width:32px;height:40px}
+ .main-content:not(.listener-main) .archive-actions,
+ .main-content:not(.listener-main) .archive-ask{gap:12px}
+ .main-content:not(.listener-main) .archive-actions button,
+ .main-content:not(.listener-main) .archive-actions a{font-size:12.5px}
+}
+
+/* ----------------------------------------------------------------------------
+   Окно «Поделиться» на ПК.
+
+   На телефоне лист даёт система, здесь его нет — рисуем сами: ряд площадок и
+   строка с адресом, как это привычно по YouTube. Значки фирменных цветов,
+   иначе шесть одинаковых бирюзовых кружков не читаются как разные приложения.
+   -------------------------------------------------------------------------- */
+.share-dialog{max-width:440px}
+.share-targets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px}
+.share-target{display:flex;flex-direction:column;align-items:center;gap:8px;
+ padding:14px 6px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);
+ font-size:12px;color:inherit;text-decoration:none;transition:border-color .15s,background .15s}
+.share-target:hover{border-color:var(--teal);background:#1b2124}
+.share-target>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.share-link{display:flex;align-items:center;gap:10px;margin-top:16px}
+.share-link input{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--line);
+ border-radius:10px;background:var(--surface-2);color:var(--muted);font-size:13px}
+.share-link .primary-button{flex:none;min-height:44px;gap:7px}
+@media(max-width:480px){
+ .share-targets{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .share-target{padding:12px 4px;font-size:11.5px}
+ .share-link{flex-direction:column;align-items:stretch}
+ .share-link .primary-button{width:100%}
+}

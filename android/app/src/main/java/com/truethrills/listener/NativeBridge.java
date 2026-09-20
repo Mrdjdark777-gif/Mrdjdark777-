@@ -40,6 +40,18 @@ final class NativeBridge {
             } catch (Exception ignored) {}
         });
     }
+    /** Системный лист «Поделиться»: те же приложения, что и в любом другом месте телефона. */
+    private void share(JSONObject args) {
+        String url = args.optString("url"), title = args.optString("title");
+        if (url.isEmpty()) return;
+        android.net.Uri uri = android.net.Uri.parse(url);
+        String scheme = uri.getScheme();
+        if (!"https".equals(scheme) || !"truethrills.com".equals(uri.getHost())) return;
+        Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, title.isEmpty() ? url : title + "\n" + url);
+        if (!title.isEmpty()) send.putExtra(Intent.EXTRA_SUBJECT, title);
+        activity.startActivity(Intent.createChooser(send, title.isEmpty() ? null : title));
+    }
     private JSONObject error(String message) { try { return new JSONObject().put("error", message != null && message.startsWith("#err.") ? message : "#err.request"); } catch (Exception e) { return new JSONObject(); } }
     private JSONObject state() throws Exception {
         SharedPreferences p = PushClient.prefs(activity); boolean permitted = PushService.allowed(activity), subscribed = p.contains("id"), muted = p.getBoolean("muted", false);
@@ -53,6 +65,7 @@ final class NativeBridge {
             activity.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName())); reply.accept(new JSONObject()); return;
         }
         if (method.equals("ui.haptic")) { haptic(); reply.accept(new JSONObject()); return; }
+        if (method.equals("ui.share")) { share(args); reply.accept(new JSONObject()); return; }
         Runnable task = () -> network.execute(() -> {
             try {
                 SharedPreferences p = PushClient.prefs(activity);

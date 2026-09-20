@@ -900,6 +900,23 @@ try{
  check(pult.mic.top-pult.title.bottom<=140,`под названием эфира пустая полоса ${pult.mic.top-pult.title.bottom}px до источника звука`);
  check(pult.mic.top<pult.wave.top,'источник звука оказался ниже проверки голоса');
  check(pult.cover.left>pult.title.left,'обложка эфира ушла из правой колонки');}
+ // «Поделиться» на ПК открывает своё окно: системного листа здесь нет.
+ await studio.goto(base+'/');await settle(studio);
+ const shareBtn=studio.getByRole('button',{name:'Поделиться',exact:true}).first();
+ check(await shareBtn.count()>0,'на главной студии нет кнопки «Поделиться»');
+ if(await shareBtn.count()){
+  await shareBtn.click();await studio.waitForTimeout(500);
+  const sheet=await studio.evaluate(()=>{const el=document.querySelector('.share-dialog');if(!el)return null;
+   return {targets:el.querySelectorAll('.share-target').length,link:el.querySelector('.share-link input')?.value||'',
+    copy:!!el.querySelector('.share-link .primary-button')};});
+  check(!!sheet,'окно «Поделиться» не открылось');
+  if(sheet){
+   check(sheet.targets===6,'в окне «Поделиться» площадок '+sheet.targets+' вместо шести');
+   check(/^https?:\/\/.+mode=listen/.test(sheet.link),'в окне «Поделиться» нет ссылки на канал: '+sheet.link);
+   check(sheet.copy,'в окне «Поделиться» нет кнопки копирования');
+  }
+  await studio.keyboard.press('Escape');await studio.waitForTimeout(300);
+ }
  // Ссылки на площадки и кнопка поддержки живут в настройках: на главной
  // автору нужны действия, а не редактирование ссылок.
  // Идём так же, как автор: по кнопке в навигации, а не по адресу. Настройки

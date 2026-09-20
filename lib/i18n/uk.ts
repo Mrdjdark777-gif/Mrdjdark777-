@@ -25,7 +25,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "liveArchive.play": "Прослухати",
   "liveArchive.stop": "Зупинити",
   "liveArchive.remove": "Видалити запис",
-  "liveArchive.removeAsk": "Видалити запис ефіру? Випуск у подкастах залишиться.",
+  "liveArchive.removeAsk": "Видалити запис ефіру? З архіву він зникне назавжди.",
   "liveArchive.removeYes": "Видалити",
   "liveArchive.removeNo": "Скасувати",
   "liveArchive.removed": "Запис видалено",
@@ -35,9 +35,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "liveArchive.retryAction": "Повторити обробку",
 
   "liveArchive.failed": "Не вдалося обробити запис. Отримані фрагменти збережено.",
-
-  "liveArchive.ready": "Запис доступний у подкастах",
-
+  "liveArchive.ready": "В архіві ефірів",
   "liveArchive.processingState": "Готуємо запис",
 
   "liveArchive.closing": "Завершуємо запис",
@@ -45,9 +43,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "liveArchive.receivingState": "Ефір записується",
 
   "liveArchive.title": "Записи ефірів",
-
-  "liveArchive.ended": "Ефір завершено. Запис з'явиться в подкастах після обробки.",
-
+  "liveArchive.search": "Пошук за записами",
+  "liveArchive.ended": "Ефір завершено. Запис з’явиться в архіві ефірів після обробки.",
   "liveArchive.buffering": "Під'єднуємо звук із сервера…",
 
   "liveArchive.processing": "Ефір завершено. Сервер готує запис — ПК можна вимкнути.",
@@ -250,6 +247,14 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.startLive": "Почати\nефір",
 
   "home.shareChannel": "Поділитися\nканалом",
+  "share.action": "Поділитися",
+  "share.title": "Поділитися",
+  "share.copy": "Копіювати",
+  "share.copied": "Скопійовано",
+  "share.linkAria": "Посилання",
+  "share.channel": "Канал True Thrills",
+  "share.live": "Прямий ефір",
+  "share.failed": "Не вдалося поділитися",
 
   "home.watchVideos": "Дивитися\nвідео",
 
@@ -310,9 +315,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "live.coverUpload": "Завантажити обкладинку",
 
   "live.coverChange": "Вибрати іншу",
-
-  "live.coverNote": "Вертикальна обкладинка 4:5 — 1080×1350. Стає обкладинкою випуску в подкастах. Без неї фоном ефіру буде картинка каналу з налаштувань, а на картці — логотип.",
-
+  "live.coverNote": "Вертикальна обкладинка 4:5 — 1080×1350. Стає обкладинкою запису ефіру. Без неї тлом ефіру буде картинка каналу з налаштувань, а на картці — логотип.",
   "live.titlePlaceholder": "Про що сьогодні розкажеш?",
 
   "live.titleRequired": "Вкажи назву ефіру",
@@ -416,9 +419,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "live.pilotTitle": "Тестова трансляція",
 
   "live.pilotText": "Ефір одночасно чують до 50 слухачів. Звук іде через сервер із невеликою затримкою.",
-
-  "live.pilotNoRecord": "Ефір зберігається на сервері й автоматично з'являється в подкастах після обробки.",
-
+  "live.pilotNoRecord": "Ефір зберігається на сервері й після обробки з’являється в архіві ефірів.",
   "live.otherNetwork": "Перевір інтернет і спробуй під'єднатися знову.",
 
   "studio.panelTitle": "ЗАПИС ПОДКАСТА",

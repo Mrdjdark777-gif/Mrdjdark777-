@@ -25,7 +25,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "liveArchive.play": "Ascultă",
   "liveArchive.stop": "Oprește",
   "liveArchive.remove": "Șterge înregistrarea",
-  "liveArchive.removeAsk": "Ștergi înregistrarea? Episodul din podcasturi rămâne.",
+  "liveArchive.removeAsk": "Ștergi înregistrarea transmisiunii? Dispare definitiv din arhivă.",
   "liveArchive.removeYes": "Șterge",
   "liveArchive.removeNo": "Anulează",
   "liveArchive.removed": "Înregistrare ștearsă",
@@ -35,9 +35,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "liveArchive.retryAction": "Reia procesarea",
 
   "liveArchive.failed": "Înregistrarea nu a putut fi procesată. Fragmentele primite au fost salvate.",
-
-  "liveArchive.ready": "Înregistrarea este disponibilă la podcasturi",
-
+  "liveArchive.ready": "În arhiva transmisiunilor",
   "liveArchive.processingState": "Pregătim înregistrarea",
 
   "liveArchive.closing": "Închidem înregistrarea",
@@ -45,9 +43,8 @@ export const ro: Record<keyof typeof ru, string> = {
   "liveArchive.receivingState": "Emisiunea se înregistrează",
 
   "liveArchive.title": "Înregistrările emisiunilor",
-
-  "liveArchive.ended": "Emisiunea s-a încheiat. Înregistrarea va apărea la podcasturi după procesare.",
-
+  "liveArchive.search": "Caută în înregistrări",
+  "liveArchive.ended": "Transmisiunea s-a încheiat. Înregistrarea apare în arhivă după procesare.",
   "liveArchive.buffering": "Conectăm sunetul de pe server…",
 
   "liveArchive.processing": "Emisiunea s-a încheiat. Serverul pregătește înregistrarea — poți opri PC-ul.",
@@ -250,6 +247,14 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.startLive": "Pornește\nemisiunea",
 
   "home.shareChannel": "Distribuie\ncanalul",
+  "share.action": "Distribuie",
+  "share.title": "Distribuie",
+  "share.copy": "Copiază",
+  "share.copied": "Copiat",
+  "share.linkAria": "Link",
+  "share.channel": "Canalul True Thrills",
+  "share.live": "Transmisiune live",
+  "share.failed": "Nu s-a putut distribui",
 
   "home.watchVideos": "Vezi\nvideo",
 
@@ -310,9 +315,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "live.coverUpload": "Încarcă o copertă",
 
   "live.coverChange": "Alege alta",
-
-  "live.coverNote": "Copertă verticală 4:5 — 1080×1350. Devine coperta episodului din podcasturi. Fără ea, fundalul transmisiunii va fi imaginea canalului din setări, iar pe card — logoul.",
-
+  "live.coverNote": "Copertă verticală 4:5 — 1080×1350. Devine coperta înregistrării. Fără ea, fundalul transmisiunii este imaginea canalului din setări, iar pe card — logoul.",
   "live.titlePlaceholder": "Despre ce povestești azi?",
 
   "live.titleRequired": "Scrie titlul emisiunii",
@@ -416,9 +419,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "live.pilotTitle": "Transmisiune de probă",
 
   "live.pilotText": "Emisiunea poate fi ascultată de până la 50 de persoane în același timp. Sunetul trece prin server cu o mică întârziere.",
-
-  "live.pilotNoRecord": "Emisiunea se salvează pe server și apare automat la podcasturi după procesare.",
-
+  "live.pilotNoRecord": "Transmisiunea se salvează pe server și apare în arhivă după procesare.",
   "live.otherNetwork": "Verifică internetul și încearcă să te conectezi din nou.",
 
   "studio.panelTitle": "ÎNREGISTRARE PODCAST",

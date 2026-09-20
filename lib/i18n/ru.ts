@@ -24,7 +24,7 @@ export const ru = {
   "liveArchive.play": "Прослушать",
   "liveArchive.stop": "Остановить",
   "liveArchive.remove": "Удалить запись",
-  "liveArchive.removeAsk": "Удалить запись эфира? Выпуск в подкастах останется.",
+  "liveArchive.removeAsk": "Удалить запись эфира? Из архива она исчезнет насовсем.",
   "liveArchive.removeYes": "Удалить",
   "liveArchive.removeNo": "Отмена",
   "liveArchive.removed": "Запись удалена",
@@ -34,9 +34,7 @@ export const ru = {
   "liveArchive.retryAction": "Повторить обработку",
 
   "liveArchive.failed": "Не удалось обработать запись. Полученные фрагменты сохранены.",
-
-  "liveArchive.ready": "Запись доступна в подкастах",
-
+  "liveArchive.ready": "В архиве эфиров",
   "liveArchive.processingState": "Готовим запись",
 
   "liveArchive.closing": "Завершаем запись",
@@ -44,9 +42,8 @@ export const ru = {
   "liveArchive.receivingState": "Эфир записывается",
 
   "liveArchive.title": "Записи эфиров",
-
-  "liveArchive.ended": "Эфир завершён. Запись появится в подкастах после обработки.",
-
+  "liveArchive.search": "Поиск по записям",
+  "liveArchive.ended": "Эфир завершён. Запись появится в архиве эфиров после обработки.",
   "liveArchive.buffering": "Подключаем звук с сервера…",
 
   "liveArchive.processing": "Эфир завершён. Сервер готовит запись — ПК можно выключить.",
@@ -185,6 +182,14 @@ export const ru = {
   'home.writeStory': 'Написать\nисторию',
   'home.startLive': 'Начать\nэфир',
   'home.shareChannel': 'Поделиться\nканалом',
+  "share.action": "Поделиться",
+  "share.title": "Поделиться",
+  "share.copy": "Копировать",
+  "share.copied": "Скопировано",
+  "share.linkAria": "Ссылка",
+  "share.channel": "Канал True Thrills",
+  "share.live": "Прямой эфир",
+  "share.failed": "Не получилось поделиться",
   'home.watchVideos': 'Смотреть\nвидео',
   'home.listenPodcasts': 'Слушать\nподкасты',
   'home.readStories': 'Читать\nистории',
@@ -217,7 +222,7 @@ export const ru = {
   'live.coverField': 'Обложка эфира',
   'live.coverUpload': 'Загрузить обложку',
   'live.coverChange': 'Выбрать другую',
-  'live.coverNote': "Вертикальная обложка 4:5 — 1080×1350. Становится обложкой выпуска в подкастах. Без неё фоном эфира будет картинка канала из настроек, а на карточке — логотип.",
+  "live.coverNote": "Вертикальная обложка 4:5 — 1080×1350. Становится обложкой записи эфира. Без неё фоном эфира будет картинка канала из настроек, а на карточке — логотип.",
   'live.titlePlaceholder': 'О чём сегодня расскажешь?',
   'live.titleRequired': 'Укажите название эфира',
   'live.micOff': 'МИКРОФОН ВЫКЛЮЧЕН',
@@ -276,7 +281,7 @@ export const ru = {
   "live.authorTip3": "После завершения дождись передачи последних секунд. Затем ПК можно выключить.",
   'live.pilotTitle': 'Тестовая трансляция',
   "live.pilotText": "Эфир одновременно слышат до 50 слушателей. Звук идёт через сервер с небольшой задержкой.",
-  "live.pilotNoRecord": "Эфир сохраняется на сервере и автоматически появляется в подкастах после обработки.",
+  "live.pilotNoRecord": "Эфир сохраняется на сервере и после обработки появляется в архиве эфиров.",
   "live.otherNetwork": "Проверь интернет и попробуй подключиться снова.",
 
   'studio.panelTitle': 'ЗАПИСЬ ПОДКАСТА',

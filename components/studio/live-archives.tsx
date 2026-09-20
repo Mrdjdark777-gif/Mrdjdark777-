@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Play,Pause,Download,Trash2,RotateCcw,Pencil} from 'lucide-react';
+import {Play,Pause,Download,Trash2,RotateCcw,Pencil,Search} from 'lucide-react';
 import {api,clock,errorText} from '@/lib/client';
 import {Artwork} from './artwork';
 import {useT} from '@/components/i18n-provider';
@@ -11,14 +11,14 @@ import {toast} from 'sonner';
  * удалить — нет: список копился, в том числе записями, чьи выпуски автор уже
  * удалил из библиотеки, и разобрать его было нечем.
  *
- * Удаление убирает саму запись и её рабочие файлы. Выпуск в подкастах — другая
- * сущность: он остаётся, и удалять его автор идёт в библиотеку. Прослушать
- * можно только то, у чего этот выпуск ещё есть, — играем именно его звук.
+ * Удаление убирает саму запись и её рабочие файлы вместе с выпуском, на котором
+ * она держится: эфир живёт только здесь, в подкасты он не попадает. Прослушать
+ * можно то, у чего этот выпуск ещё есть, — играем именно его звук.
  */
 type Row={id:string;title:string;state:string;postId:string|null;createdAt:number;duration:number;cover:boolean;description:string};
 export function LiveArchives({onEdit}:{onEdit?:(postId:string)=>void}){
  const {t}=useT(),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState('');
- const [playing,setPlaying]=useState(''),[asking,setAsking]=useState('');
+ const [playing,setPlaying]=useState(''),[asking,setAsking]=useState(''),[query,setQuery]=useState('');
  const audio=useRef<HTMLAudioElement|null>(null);
  useEffect(()=>{let alive=true;const poll=()=>api<{recordings:Row[]}>('live-stream?list=1').then(d=>{if(alive){setRows(d.recordings);setError('');}}).catch(e=>{if(alive)setError(errorText(e));});void poll();const timer=setInterval(()=>void poll(),5000);return()=>{alive=false;clearInterval(timer);};},[]);
  useEffect(()=>()=>{audio.current?.pause();audio.current=null;},[]);
@@ -42,10 +42,17 @@ export function LiveArchives({onEdit}:{onEdit?:(postId:string)=>void}){
   void el.play().catch(()=>{setPlaying('');toast.error(t('player.tapInPlayer'));});
  }
  const labels:Record<string,string>={receiving:t('liveArchive.receivingState'),closing:t('liveArchive.closing'),processing:t('liveArchive.processingState'),ready:t('liveArchive.ready'),failed:t('liveArchive.failed')};
+ // Поиск живёт внутри раскрытой панели — как и у слушателя в архиве эфиров.
+ const needle=query.trim().toLowerCase();
+ const shown=needle?rows.filter(r=>(r.title+' '+r.description).toLowerCase().includes(needle)):rows;
  return <details className="live-archives"><summary>{t('liveArchive.title')}</summary>
   {error&&<p role="alert">{error}</p>}
+  {rows.length>1&&<label className="archive-search"><Search size={15}/>
+   <input type="search" value={query} placeholder={t('liveArchive.search')} aria-label={t('liveArchive.search')} onChange={e=>setQuery(e.target.value)}/>
+  </label>}
   {!rows.length&&<p>{t('liveArchive.empty')}</p>}
-  {rows.map(row=><article key={row.id}>
+  {rows.length>0&&!shown.length&&<p>{t('catalog.nothingFound')}</p>}
+  {shown.map(row=><article key={row.id}>
    {/* Обложка, название и длительность — то же, что видит слушатель. */}
    <span className="archive-cover">
     <Artwork src={row.cover?'/api/cover?id='+encodeURIComponent(row.postId??'')+'&v='+row.id:undefined}
@@ -53,6 +60,8 @@ export function LiveArchives({onEdit}:{onEdit?:(postId:string)=>void}){
    </span>
    <span className="archive-copy">
     <strong>{row.title}</strong>
+    {/* Описание эфира — то же, что слушатель видит у записи. */}
+    {row.description&&<span className="archive-about">{row.description}</span>}
     <span className="archive-meta">{labels[row.state]||row.state}{row.duration>0?' · '+clock(row.duration):''}</span>
    </span>
    {asking===row.id

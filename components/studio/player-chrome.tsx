@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
-import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight} from 'lucide-react';
+import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight,Share2} from 'lucide-react';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
 import {Slider} from '@/components/ui/slider';
@@ -36,7 +36,7 @@ export type PlayerView={
 };
 export type PlayerActions={
  toggle:()=>void;seekBy:(seconds:number)=>void;seekTo:(seconds:number)=>void;scrub?:(seconds:number)=>void;
- setRate:(rate:number)=>void;setSleep:(value:string)=>void;close:()=>void;openNext?:(id:string)=>void;
+ setRate:(rate:number)=>void;setSleep:(value:string)=>void;close:()=>void;openNext?:(id:string)=>void;share?:()=>void;
 };
 const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
@@ -177,6 +177,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   </div>
 
   {menu&&<div ref={menuRef} className="player-menu" role="menu">
+   {act.share&&<button type="button" role="menuitem" onClick={()=>{setMenu(false);act.share!();}}><Share2 size={17}/>{t('share.action')}</button>}
    {view.supportUrl&&<a role="menuitem" href={view.supportUrl} target="_blank" rel="noopener noreferrer" onClick={()=>setMenu(false)}><Heart size={17}/>{t('header.support')}</a>}
    <button type="button" role="menuitem" onClick={()=>{setMenu(false);act.close();}}><X size={17}/>{t('player.close')}</button>
   </div>}
