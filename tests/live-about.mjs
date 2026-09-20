@@ -51,6 +51,17 @@ try{
  assert.ok(lines>=1,'описание сжали до '+box.about.client+'px при строке '+box.about.line+'px');
  assert.ok(Math.abs(lines-Math.round(lines))<0.25,'описание обрезано по половине строки: '+box.about.client+'px при строке '+box.about.line+'px');
  assert.ok(box.about.client>=box.about.line*2-1,'описание должно показывать хотя бы две строки, а показывает '+box.about.client+'px');
+ // Имя канала в шапке помещается целиком: прокрутить шапку нельзя, а кнопок
+ // в ней стало четыре — «Поделиться» появилась рядом с поиском и настройками.
+ const head=await page.evaluate(()=>{const el=document.querySelector('.wordmark');if(!el)return null;
+  return {text:el.textContent.trim(),scroll:el.scrollWidth,client:el.clientWidth};});
+ assert.ok(head,'в шапке должно быть имя канала');
+ assert.ok(head.scroll<=head.client+1,'имя канала обрезано: нужно '+head.scroll+'px, есть '+head.client+'px');
+ // Круг один и тот же во всех состояниях: в эфире и в покое.
+ const ring=await page.evaluate(()=>{const el=document.querySelector('.live-rings');const r=el.getBoundingClientRect();
+  return {w:Math.round(r.width),h:Math.round(r.height)};});
+ assert.equal(ring.w,ring.h,'круг должен остаться кругом: '+ring.w+'×'+ring.h);
+ assert.ok(ring.w>=280,'круг во время эфира уменьшился до '+ring.w+'px');
  // Низкий экран: колонка переполнена, и соседи начинают давить. Именно так
  // описание однажды и срезало — по половине строки.
  await page.setViewportSize({width:390,height:520});
@@ -61,5 +72,5 @@ try{
  const tightLines=tight.client/tight.line;
  assert.ok(tightLines>=1,'на низком экране описание сжали до '+tight.client+'px при строке '+tight.line+'px');
  assert.ok(Math.abs(tightLines-Math.round(tightLines))<0.25,'на низком экране описание срезано по половине строки: '+tight.client+'px при строке '+tight.line+'px');
- console.log('PASS: описание эфира стоит под названием, не сжимается соседями и не режется по половине строки даже на низком экране');
+ console.log('PASS: описание эфира стоит под названием, не сжимается соседями и не режется по половине строки даже на низком экране; имя канала в шапке целиком, круг в эфире полного размера');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

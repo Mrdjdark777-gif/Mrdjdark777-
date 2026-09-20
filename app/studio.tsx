@@ -83,8 +83,7 @@ export default function Studio(){
  useEffect(()=>{
   const listener=!author&&!!data&&!data.needsSetup;
   document.body.classList.toggle('tt-shell-locked',listener);
-  document.body.classList.toggle('tt-live-locked',listener&&view==='live');
-  return()=>{document.body.classList.remove('tt-shell-locked');document.body.classList.remove('tt-live-locked');};
+    return()=>{document.body.classList.remove('tt-shell-locked');};
  },[author,view,data]);
  // Ссылку на приложение показываем только в браузере: внутри самого
  // приложения и в окне студии на ПК предлагать его скачать незачем.
@@ -248,7 +247,6 @@ export default function Studio(){
       <button role="menuitem" onClick={()=>{setShellOpen(false);sendDesktopCommand('about');}}>{t('shell.about')}</button>
      </div></>}
    </div>}
-   {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('catalog.search')} title={t('catalog.search')} onClick={()=>{haptic();goto('podcasts');setTimeout(()=>document.querySelector<HTMLInputElement>('.catalog-search input')?.focus(),120);}}><Search size={20}/></button>}
    {!author&&!!heartLink&&<a className="support-button" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span>{t('header.support')}</span></a>}
    {/* Поделиться каналом — там же, где поиск и настройки: слушателю больше негде. */}
    {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('share.action')} title={t('share.action')} onClick={()=>{haptic();void share('/?mode=listen&view=home',t('share.channel'));}}><Share2 size={19}/></button>}

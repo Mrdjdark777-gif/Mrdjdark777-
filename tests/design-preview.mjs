@@ -355,6 +355,7 @@ try{
   // нельзя.
   // Закрытый экран эфира обязан помещаться целиком: прокрутки здесь быть не
   // должно даже когда адресная строка браузера съедает часть высоты.
+  const ringSizes=[];
   for(const [w,h] of [[412,915],[390,760]]){
    await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
    const fit=await page.evaluate(()=>{
@@ -362,7 +363,9 @@ try{
     const nav=document.querySelector('.bottom-nav');
     const main=document.querySelector('.main-content');
     return {over:Math.max(document.documentElement.scrollHeight-innerHeight,main?main.scrollHeight-main.clientHeight:0),
-     locked:document.body.classList.contains('tt-live-locked'),
+     hidden:(()=>{const m=document.querySelector('.listener-main');
+      return !!m&&getComputedStyle(m).overflowY==='hidden';})(),
+     ring:(()=>{const r=document.querySelector('.live-rings').getBoundingClientRect();return Math.round(r.width);})(),
      tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0,
      footer:(()=>{const f=document.querySelector('.content-footer');
       return !!f&&getComputedStyle(f).display!=='none'&&f.getBoundingClientRect().height>0;})(),
@@ -370,17 +373,20 @@ try{
       return f&&n?Math.round(n.getBoundingClientRect().top-f.getBoundingClientRect().bottom):0;})(),
      oval:(()=>{const r=document.querySelector('.live-rings').getBoundingClientRect();
       return Math.round(Math.abs(r.width-r.height));})()};});
-   if(fit.over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+fit.over+'px');
-   if(!fit.locked)problems.push('эфир '+w+'x'+h+': прокрутка не заблокирована');
-   // Прокрутки нет — значит нижняя плашка обязана быть видна, а не уехать
-   // под панель навигации.
-   if(fit.tail>0)problems.push('эфир '+w+'x'+h+': нижняя плашка уходит под навигацию на '+fit.tail+'px');
+   // Экран эфира больше не подгоняется под высоту телефона: круг обязан быть
+   // одного размера всегда, а лишнюю высоту забирает прокрутка. Значит
+   // запрещено другое — спрятать переполнение и сделать низ недоступным.
+   if(fit.over>1&&fit.hidden)problems.push('эфир '+w+'x'+h+': низ на '+fit.over+'px недоступен — прокрутка запрещена');
+   if(fit.over<=1&&fit.tail>0)problems.push('эфир '+w+'x'+h+': нижняя плашка уходит под навигацию на '+fit.tail+'px');
    // Подпись с копирайтом остаётся на месте: прокрутку убрал не она.
    if(!fit.footer)problems.push('эфир '+w+'x'+h+': пропала строка с копирайтом');
    // Подпись стоит у низа экрана, а не прилипает к карточкам, и круг остаётся
    // кругом: гибкая высота легко превращает его в овал.
    if(fit.footerGap>90)problems.push('эфир '+w+'x'+h+': подпись оторвана от низа на '+fit.footerGap+'px');
    if(fit.oval>2)problems.push('эфир '+w+'x'+h+': круг стал овалом, разница сторон '+fit.oval+'px');
+   // Круг одного размера на всех высотах: резиновый круг и был причиной того,
+   // что в эфире он становился вдвое меньше, чем в покое.
+   ringSizes.push(w+'x'+h+':'+fit.ring);
    // Симметрия: архив и поддержка — одна плашка по размеру.
    const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
      b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
@@ -391,6 +397,7 @@ try{
     if(pair.dh>1)problems.push('эфир '+w+'x'+h+': архив и поддержка разной высоты, разница '+pair.dh+'px');
     if(pair.dw>1)problems.push('эфир '+w+'x'+h+': архив и поддержка разной ширины, разница '+pair.dw+'px');
    }}
+  console.log('Круг эфира:',ringSizes.join(', '));
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   // Поиск по записям живёт внутри раскрытого архива и нигде больше.
   if(await page.locator('.live-archive-search').count())problems.push('поиск по архиву виден, когда архив закрыт');
@@ -503,7 +510,9 @@ try{
    await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
    const over=await page.evaluate(()=>{const main=document.querySelector('.main-content');
     return Math.max(document.documentElement.scrollHeight-innerHeight,main?main.scrollHeight-main.clientHeight:0);});
-   if(over>1)problems.push('эфир идёт, '+w+'x'+h+': страница длиннее экрана на '+over+'px');}
+   if(over>1&&await page.evaluate(()=>{const m=document.querySelector('.listener-main');
+    return !!m&&getComputedStyle(m).overflowY==='hidden';}))
+    problems.push('эфир идёт, '+w+'x'+h+': низ на '+over+'px недоступен — прокрутка запрещена');}
   await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   // Полосы спектра на экране быть не должно: она дублировала кольца.
   if(await page.locator('.live-spectrum').count())problems.push('эфир: полоса спектра осталась на экране');

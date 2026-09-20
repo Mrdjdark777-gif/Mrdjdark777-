@@ -1803,14 +1803,14 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    статус, часы, кнопка и громкость. Круг и промежутки ужимаются, чтобы экран
    по-прежнему помещался целиком и не появлялась прокрутка. */
 .listener-main .live-stage.is-live{gap:12px}
-.listener-main .live-stage.is-live .live-rings{width:min(56vw,224px);height:min(56vw,224px);margin:2px 0 0}
+
 .listener-main .live-stage.is-live .live-stage-name{font-size:clamp(20px,5.4vw,25px)}
 .listener-main .live-stage.is-live .live-stage-sub{font-size:13px}
 
 /* На низком экране эфир ужимается сильнее: содержимого там больше всего. */
 @media(max-height:700px){
  .listener-main .live-stage.is-live{gap:8px}
- .listener-main .live-stage.is-live .live-rings{width:min(46vw,176px);height:min(46vw,176px)}
+
  .listener-main .live-stage.is-live .live-stage-sub{display:none}
 }
 
@@ -1852,18 +1852,17 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
     небольшой зазор. */
  body.tt-shell-locked:has(.podcast-player.is-mini) .listener-main{padding-bottom:78px!important}
  /* На экране эфира прокручивать нечего: круг подстраивается под высоту. */
- body.tt-live-locked .listener-main[data-view=live]{overflow:hidden}
  body.tt-shell-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
  body.tt-shell-locked .listener-main[data-view=live] .live-main-panel,
  body.tt-shell-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
  /* Подпись с копирайтом прижата к низу экрана, а не к карточкам. */
  body.tt-shell-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:auto}
- /* Круг забирает остаток высоты, но остаётся кругом: без ограничения по
-    высоте гибкий элемент вытягивался, ширину ему резал max-width, и вместо
-    круга получался овал. */
+ /* Круг один и тот же во всех состояниях. Гибкая высота делала его большим в
+    покое и вдвое меньше во время эфира: размер зависел от того, сколько под
+    ним кнопок. Задаём прямо, а лишнюю высоту забирает прокрутка. */
  body.tt-shell-locked .listener-main[data-view=live] .live-rings{
-  flex:1 1 auto;align-self:center;min-height:118px;width:auto;height:auto;aspect-ratio:1;
-  max-width:min(74vw,290px);max-height:min(74vw,290px)}
+  flex:none;align-self:center;width:min(76vw,300px);height:min(76vw,300px);
+  min-height:0;max-width:none;max-height:none;aspect-ratio:1}
 }
 
 /* Мини-панель плеера закрывается смахиванием в сторону. Палец ведёт её за
@@ -1967,16 +1966,17 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .listener-main .live-stage.is-live .live-stage-sub{display:none}
 /* Описание не режется по половине строки: своя высота, две строки. */
 .listener-main .live-stage-about{flex:none}
-.listener-main .live-stage.is-live .live-stage-about{-webkit-line-clamp:2;font-size:12.5px}
-/* Карточки архива и поддержки во время эфира — одна строка вместо двух. */
-.listener-main .live-stage.is-live .live-archive-copy>span,
-.listener-main .live-stage.is-live .support-strip .support-strip-copy>span{display:none}
+.listener-main .live-stage.is-live .live-stage-about{-webkit-line-clamp:3;font-size:12.5px}
+/* Во время эфира экран прокручивается. Подгонять всё под высоту телефона
+   значило резать то, что человеку нужно: круг, подписи кнопок и выход. Круг
+   держит полный размер, подписи на месте, а низ достаётся прокруткой.
+   В покое экран по-прежнему помещается целиком и не прокручивается. */
 @media(max-width:1023px){
- body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .live-rings{min-height:188px}
- /* Предохранитель: на низком экране лучше короткая прокрутка, чем срезанный
-    низ. В покое экран по-прежнему не прокручивается. */
- body.tt-live-locked .listener-main[data-view=live]:has(.live-stage.is-live){overflow-y:auto}
+ body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .live-layout{flex:none}
+ body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .content-footer{margin-top:20px}
 }
+/* Выход из эфира стоит отдельной строкой, а не прилипает к карточке над ним. */
+.listener-main .live-leave{margin-top:14px}
 
 /* ----------------------------------------------------------------------------
    Список записей эфиров в студии.
@@ -1993,7 +1993,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-archives>.archive-search>svg{flex:none;color:var(--muted)}
 .live-archives>.archive-search input{flex:1;min-width:0;border:none;background:none;
  font-size:13px;color:inherit;outline:none;padding:0}
-.live-archives article>.archive-cover{flex:none;width:40px;height:50px;border-radius:8px;
+.live-archives article>.archive-cover{flex:none;width:48px;height:60px;border-radius:8px;
  overflow:hidden;display:grid;place-items:center;background:var(--surface-2)}
 .live-archives article>.archive-cover img{width:100%;height:100%;object-fit:contain}
 .live-archives .archive-copy{gap:2px}
@@ -2004,7 +2004,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-archives .archive-meta{font-size:11.5px}
 @media(min-width:1100px){
  .main-content:not(.listener-main) .live-archives article{padding:7px 0;gap:10px}
- .main-content:not(.listener-main) .live-archives article>.archive-cover{width:32px;height:40px}
+ .main-content:not(.listener-main) .live-archives article>.archive-cover{width:56px;height:70px}
  .main-content:not(.listener-main) .archive-actions,
  .main-content:not(.listener-main) .archive-ask{gap:12px}
  .main-content:not(.listener-main) .archive-actions button,
@@ -2035,3 +2035,31 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .share-link{flex-direction:column;align-items:stretch}
  .share-link .primary-button{width:100%}
 }
+
+/* ----------------------------------------------------------------------------
+   Имя канала в шапке помещается целиком.
+
+   С появлением «Поделиться» в шапке стало четыре кнопки, и на телефоне имя
+   канала начало обрезаться многоточием. Прокрутить шапку нельзя, значит имя
+   должно влезать: ужимаем кнопки и разрядку букв, а не само имя.
+   -------------------------------------------------------------------------- */
+@media(max-width:480px){
+ .is-listener .top-header{gap:8px}
+ .is-listener .top-header-actions{gap:2px}
+ .is-listener .top-header-actions .quiet-button,
+ .is-listener .top-header-actions .support-button{width:36px;height:36px}
+ .is-listener .top-header-brand{font-size:15px;letter-spacing:.09em;gap:8px}
+ .is-listener .top-header-brand img{width:32px;height:32px}
+}
+@media(max-width:379px){
+ .is-listener .top-header-actions .quiet-button,
+ .is-listener .top-header-actions .support-button{width:32px;height:32px}
+ .is-listener .top-header-brand{font-size:13px;letter-spacing:.05em}
+}
+
+/* Архив и поддержка — одна плашка по размеру в любом состоянии. Пока экран
+   подгонялся под высоту, соседи отбирали у них высоту по-разному, и на низком
+   экране плашки расходились на два десятка пикселей. */
+.listener-main .live-archive-card,
+.listener-main .live-stage>.support-strip,
+.listener-main .live-stage>.live-stage-support-missing{flex:none}
