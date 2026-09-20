@@ -54,7 +54,7 @@ export default function Studio(){
  const [coverUrl,setCoverUrl]=useState('');
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
- const [archiveOpen,setArchiveOpen]=useState(false);
+ const [archiveOpen,setArchiveOpen]=useState(false),[archiveQuery,setArchiveQuery]=useState('');
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('published'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false),[videoDuration,setVideoDuration]=useState(''),[calmFile,setCalmFile]=useState<File|null>(null),[calmPreview,setCalmPreview]=useState(''),[calmMissing,setCalmMissing]=useState(false);
  // Картинка круга покоя живёт под одним адресом, поэтому в ссылку идёт версия:
  // иначе браузер и WebView показывают прежнюю, пока не истечёт их кэш.
@@ -186,6 +186,8 @@ export default function Studio(){
  // Записи эфиров живут в разделе «Эфир»: это не подкасты, а то, что осталось
  // от прямых включений.
  const liveArchives=visible.filter(p=>p.kind==='podcast'&&isLiveArchive(p.audioKey)).sort((a,b)=>b.createdAt-a.createdAt);
+ const archiveNeedle=archiveQuery.trim().toLowerCase();
+ const archiveShown=archiveNeedle?liveArchives.filter(p=>p.title.toLowerCase().includes(archiveNeedle)):liveArchives;
  const needle=query.trim().toLowerCase();
  const listed=visible.filter(p=>p.kind===listKind&&(!archiveOnly||isLiveArchive(p.audioKey))&&(!needle||(p.title+' '+p.description).toLowerCase().includes(needle))).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
  const socialRow=data?.links?.length?<div className="social-row">{data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;return <a key={l.kind+l.url} className="social-chip" href={l.url} target="_blank" rel="noopener noreferrer"><Icon size={16}/>{t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
@@ -266,8 +268,13 @@ export default function Studio(){
  </>:<>
  <LiveStageView levels={live.levels} calmSrc={calmSrc} title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
   cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
-  elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>!v)} archiveOpen={archiveOpen}
-  archive={<div className="live-archive-list">{liveArchives.length===0?<p className="live-archive-empty">{t('live.archiveEmpty')}</p>:liveArchives.map(p=><button type="button" key={p.id} className="live-archive-row tt-pressable" onClick={()=>{haptic();openPost(p);}}><Play size={14} fill="currentColor"/><span className="live-archive-row-copy"><strong>{p.title}</strong><span>{new Date(p.createdAt).toLocaleDateString(tag)}{p.duration>0?' · '+clock(p.duration):''}</span></span></button>)}</div>}
+  elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>{if(v)setArchiveQuery('');return !v;})} archiveOpen={archiveOpen}
+  archive={<div className="live-archive-list">
+   {/* Поиск живёт внутри раскрытого архива: в закрытом виде искать негде. */}
+   {liveArchives.length>0&&<label className="live-archive-search"><Search size={16}/><input type="search" value={archiveQuery} placeholder={t('live.archiveSearch')} aria-label={t('live.archiveSearch')} onChange={e=>setArchiveQuery(e.target.value)}/></label>}
+   {archiveShown.length===0?<p className="live-archive-empty">{liveArchives.length?t('catalog.nothingFound'):t('live.archiveEmpty')}</p>
+    :archiveShown.map(p=><button type="button" key={p.id} className="live-archive-row tt-pressable" onClick={()=>{haptic();openPost(p);}}><Play size={14} fill="currentColor"/><span className="live-archive-row-copy"><strong>{p.title}</strong><span>{new Date(p.createdAt).toLocaleDateString(tag)}{p.duration>0?' · '+clock(p.duration):''}</span></span></button>)}
+  </div>}
   support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('donate.supportLive')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}/>
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  {live.joined&&<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>}

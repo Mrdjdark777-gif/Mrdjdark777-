@@ -1736,3 +1736,47 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-archive-row-copy span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .live-archive-empty{margin:0;padding:12px;font-size:13px;line-height:1.5;color:var(--muted);text-align:center}
+
+/* ----------------------------------------------------------------------------
+   Экран эфира: без прокрутки, плашки одного размера, поиск в архиве.
+
+   Прокрутка бралась из подписи с копирайтом: её убирали только на низких
+   экранах, а на обычном телефоне она вместе с адресной строкой браузера
+   выталкивала страницу за край. На экране эфира она не нужна вовсе.
+
+   Строка поддержки была ниже и уже карточки архива — теперь у них общая
+   геометрия: та же высота, те же поля, тот же значок в плитке.
+   -------------------------------------------------------------------------- */
+.listener-main[data-view=live] .content-footer{display:none}
+.live-stage>.support-strip,.live-stage>.live-stage-support-missing{
+ display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:12px 14px;
+ border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.live-stage>.support-strip>svg:first-child{width:42px;height:42px;flex:none;padding:10px;
+ border-radius:12px;background:var(--teal-dark,#123330);color:var(--teal);box-sizing:border-box}
+.live-stage>.support-strip .support-strip-label{font-size:15px;font-weight:600}
+
+/* Поиск виден только в раскрытом архиве: в закрытом искать негде. Список
+   держит свою высоту сам, чтобы раскрытие не растягивало страницу. */
+.live-archive-list{max-height:46vh;overflow:auto}
+.live-archive-search{display:flex;align-items:center;gap:10px;padding:0 12px;
+ border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.live-archive-search>svg{flex:none;color:var(--muted)}
+.live-archive-search input{border:none;background:none;padding:11px 0;font-size:14px;min-height:44px}
+.live-archive-search input:focus{box-shadow:none;border:none}
+
+/* Низкие экраны: тот же экран эфира должен помещаться целиком и там. Круг
+   уменьшается, промежутки сжимаются, плашки становятся ниже — порядок и
+   состав не меняются. */
+@media(max-height:700px){
+ .listener-main .live-stage{gap:10px}
+ .listener-main .live-rings{width:min(56vw,212px);height:min(56vw,212px);margin:2px 0 0}
+ .listener-main .breath-note{font-size:12px;line-height:1.45;max-width:30ch;margin-top:2px}
+ .listener-main .live-stage>.support-strip,
+ .listener-main .live-stage>.live-stage-support-missing,
+ .listener-main .live-archive-card{min-height:64px;padding:10px 12px}
+ .listener-main .live-archive-icon{width:36px;height:36px}
+ /* Подпись карточки архива на узком экране переносилась и делала её выше
+    строки поддержки — симметрия важнее второй строки целиком. */
+ .listener-main .live-archive-copy span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .listener-main .live-stage>.support-strip>svg:first-child{width:36px;height:36px;padding:8px}
+}

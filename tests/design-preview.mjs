@@ -262,7 +262,27 @@ try{
   // «Архив эфиров» раскрывается здесь же. Прежде кнопка уводила в «Подкасты»:
   // запись эфира и подготовленный выпуск — разные вещи, и вкладку менять
   // нельзя.
+  // Закрытый экран эфира обязан помещаться целиком: прокрутки здесь быть не
+  // должно даже когда адресная строка браузера съедает часть высоты.
+  for(const [w,h] of [[412,915],[390,760]]){
+   await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
+   const over=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight);
+   if(over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+over+'px');
+   // Симметрия: архив и поддержка — одна плашка по размеру.
+   const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
+     b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
+    if(!a||!b)return null;const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
+    return {dh:Math.round(Math.abs(ra.height-rb.height)),dw:Math.round(Math.abs(ra.width-rb.width))};});
+   if(!pair)problems.push('эфир '+w+'x'+h+': нет карточки архива или строки поддержки');
+   else{
+    if(pair.dh>1)problems.push('эфир '+w+'x'+h+': архив и поддержка разной высоты, разница '+pair.dh+'px');
+    if(pair.dw>1)problems.push('эфир '+w+'x'+h+': архив и поддержка разной ширины, разница '+pair.dw+'px');
+   }}
+  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
+  // Поиск по записям живёт внутри раскрытого архива и нигде больше.
+  if(await page.locator('.live-archive-search').count())problems.push('поиск по архиву виден, когда архив закрыт');
   {await page.locator('.live-archive-card').click();await page.waitForTimeout(250);
+   if(!await page.locator('.live-archive-search').count())problems.push('в раскрытом архиве нет поиска');
    const opened=await page.evaluate(()=>({view:document.querySelector('.main-content')?.dataset.view,
     rows:document.querySelectorAll('.live-archive-row').length,
     first:document.querySelector('.live-archive-row strong')?.textContent.trim()||''}));
