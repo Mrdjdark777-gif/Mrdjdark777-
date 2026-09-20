@@ -153,6 +153,152 @@ static void setFullscreen(HWND h,bool on){
  if(menu)CheckMenuItem(menu,106,MF_BYCOMMAND|(on?MF_CHECKED:MF_UNCHECKED));
 }
 
+// ---------------------------------------------------------------------------
+// Окно «О приложении» в стиле самой студии.
+//
+// Раньше здесь стоял системный MessageBox: белое окно поверх тёмного
+// приложения — единственное светлое пятно, которое выдавало, что это оболочка
+// вокруг сайта. Рисуем своё: тёмный фон, бирюзовые заголовки разделов и одна
+// кнопка. Системное окно остаётся только как запасной путь, если страница не
+// загрузилась и нажать в ней нечего.
+// ---------------------------------------------------------------------------
+enum AboutLine{ABOUT_TITLE,ABOUT_SUB,ABOUT_RULE,ABOUT_HEAD,ABOUT_BODY,ABOUT_FOOT};
+struct AboutPart{AboutLine kind;const wchar_t* text;};
+static const AboutPart ABOUT[]={
+ {ABOUT_TITLE,L"True Thrills — студия"},
+ {ABOUT_SUB,L"Версия 0.9.2"},
+ {ABOUT_BODY,L"Рабочее место автора: подкасты, видео, истории и прямые эфиры. Слушатели открывают канал в приложении на Android или в браузере."},
+ {ABOUT_RULE,L""},
+ {ABOUT_HEAD,L"КАК УСТРОЕНО"},
+ {ABOUT_BODY,L"Окно приложения показывает твой сайт через Microsoft Edge WebView2. Сайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке. Во время эфира голос идёт с этого компьютера; запись, обработка и архив делаются на сервере и остаются доступны после того, как ПК выключен."},
+ {ABOUT_HEAD,L"ЗВУК"},
+ {ABOUT_BODY,L"Источник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или виртуальный кабель из FL Studio. Приложение не пересобирает твой тракт и ничего не включает в системе без спроса."},
+ {ABOUT_HEAD,L"ВХОД"},
+ {ABOUT_BODY,L"Нужен пароль автора. Слушателям учётная запись не нужна, и приложение её не создаёт: прогресс прослушивания хранится на устройстве человека."},
+ {ABOUT_HEAD,L"ПОДДЕРЖКА КАНАЛА"},
+ {ABOUT_BODY,L"Всё бесплатно. Только добровольные донаты через внешние сервисы — приложение не обрабатывает платежи и не хранит данные карт."},
+ {ABOUT_RULE,L""},
+ {ABOUT_FOOT,L"© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio."},
+};
+static const COLORREF ABOUT_BG=RGB(16,17,19),ABOUT_TEXT=RGB(228,228,232),ABOUT_MUTED=RGB(165,169,179),
+ ABOUT_ACCENT=RGB(111,231,222),ABOUT_LINE=RGB(42,44,49),ABOUT_INK=RGB(8,32,30);
+static int aboutScroll=0,aboutHeight=0,aboutView=0;
+static bool aboutHot=false;
+static HFONT aboutFont(int px,int weight,int scale){
+ return CreateFontW(-MulDiv(px,scale,96),0,0,0,weight,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
+  OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,VARIABLE_PITCH,L"Segoe UI");
+}
+static int aboutScale(HWND h){HDC dc=GetDC(h);int dpi=dc?GetDeviceCaps(dc,LOGPIXELSY):96;if(dc)ReleaseDC(h,dc);return dpi>0?dpi:96;}
+static RECT aboutButton(HWND h){
+ RECT r;GetClientRect(h,&r);int s=aboutScale(h);
+ int w=MulDiv(132,s,96),bh=MulDiv(42,s,96),pad=MulDiv(24,s,96);
+ RECT b={r.right-pad-w,r.bottom-pad-bh,r.right-pad,r.bottom-pad};return b;
+}
+// Одна раскладка на измерение и на рисование: иначе высота окна и то, что в
+// нём видно, разъезжаются на первом же изменении текста.
+static int aboutLayout(HDC dc,int width,int scale,int top,bool draw){
+ HFONT title=aboutFont(22,700,scale),sub=aboutFont(13,400,scale),head=aboutFont(12,700,scale),
+  body=aboutFont(14,400,scale),foot=aboutFont(12,400,scale);
+ int y=top;
+ for(const AboutPart& part:ABOUT){
+  if(part.kind==ABOUT_RULE){
+   y+=MulDiv(14,scale,96);
+   if(draw){HPEN pen=CreatePen(PS_SOLID,1,ABOUT_LINE);HGDIOBJ old=SelectObject(dc,pen);
+    MoveToEx(dc,MulDiv(28,scale,96),y,nullptr);LineTo(dc,MulDiv(28,scale,96)+width,y);SelectObject(dc,old);DeleteObject(pen);}
+   y+=MulDiv(14,scale,96);continue;
+  }
+  HFONT font=part.kind==ABOUT_TITLE?title:part.kind==ABOUT_SUB?sub:part.kind==ABOUT_HEAD?head:part.kind==ABOUT_FOOT?foot:body;
+  COLORREF colour=part.kind==ABOUT_HEAD?ABOUT_ACCENT:part.kind==ABOUT_TITLE?ABOUT_TEXT:part.kind==ABOUT_BODY?ABOUT_TEXT:ABOUT_MUTED;
+  if(part.kind==ABOUT_HEAD)y+=MulDiv(16,scale,96);
+  SelectObject(dc,font);
+  RECT r={MulDiv(28,scale,96),y,MulDiv(28,scale,96)+width,y+1};
+  DrawTextW(dc,part.text,-1,&r,DT_WORDBREAK|DT_CALCRECT|DT_EXPANDTABS);
+  if(draw){SetTextColor(dc,colour);DrawTextW(dc,part.text,-1,&r,DT_WORDBREAK|DT_EXPANDTABS);}
+  y=r.bottom+MulDiv(part.kind==ABOUT_TITLE?2:part.kind==ABOUT_HEAD?6:10,scale,96);
+ }
+ DeleteObject(title);DeleteObject(sub);DeleteObject(head);DeleteObject(body);DeleteObject(foot);
+ return y;
+}
+static LRESULT CALLBACK AboutProc(HWND h,UINT message,WPARAM w,LPARAM l){
+ switch(message){
+  case WM_ERASEBKGND:return 1;
+  case WM_MOUSEWHEEL:{
+   int hidden=aboutHeight-aboutView;if(hidden<=0)return 0;
+   aboutScroll-=GET_WHEEL_DELTA_WPARAM(w)/2;
+   if(aboutScroll<0)aboutScroll=0;if(aboutScroll>hidden)aboutScroll=hidden;
+   InvalidateRect(h,nullptr,FALSE);return 0;}
+  case WM_MOUSEMOVE:{
+   POINT p={(short)LOWORD(l),(short)HIWORD(l)};RECT b=aboutButton(h);bool hot=PtInRect(&b,p)!=0;
+   if(hot!=aboutHot){aboutHot=hot;InvalidateRect(h,&b,FALSE);}return 0;}
+  case WM_LBUTTONUP:{
+   POINT p={(short)LOWORD(l),(short)HIWORD(l)};RECT b=aboutButton(h);
+   if(PtInRect(&b,p))DestroyWindow(h);return 0;}
+  case WM_KEYDOWN:if(w==VK_ESCAPE||w==VK_RETURN||w==VK_SPACE){DestroyWindow(h);return 0;}break;
+  case WM_CLOSE:DestroyWindow(h);return 0;
+  case WM_PAINT:{
+   PAINTSTRUCT ps;HDC screen=BeginPaint(h,&ps);RECT client;GetClientRect(h,&client);
+   // Рисуем через буфер: без него длинный текст мерцает при каждой прокрутке.
+   HDC dc=CreateCompatibleDC(screen);HBITMAP bmp=CreateCompatibleBitmap(screen,client.right,client.bottom);
+   HGDIOBJ oldBmp=SelectObject(dc,bmp);
+   HBRUSH fill=CreateSolidBrush(ABOUT_BG);FillRect(dc,&client,fill);DeleteObject(fill);
+   SetBkMode(dc,TRANSPARENT);
+   int scale=aboutScale(h),pad=MulDiv(28,scale,96);
+   RECT b=aboutButton(h);
+   aboutView=b.top-MulDiv(16,scale,96)-pad;
+   aboutHeight=aboutLayout(dc,client.right-pad*2,scale,pad,false)-pad;
+   HRGN clip=CreateRectRgn(0,0,client.right,b.top-MulDiv(16,scale,96));SelectClipRgn(dc,clip);
+   aboutLayout(dc,client.right-pad*2,scale,pad-aboutScroll,true);
+   SelectClipRgn(dc,nullptr);DeleteObject(clip);
+   HBRUSH face=CreateSolidBrush(aboutHot?RGB(140,240,232):ABOUT_ACCENT);
+   HGDIOBJ oldBrush=SelectObject(dc,face),oldPen=SelectObject(dc,GetStockObject(NULL_PEN));
+   RoundRect(dc,b.left,b.top,b.right+1,b.bottom+1,MulDiv(14,scale,96),MulDiv(14,scale,96));
+   SelectObject(dc,oldBrush);SelectObject(dc,oldPen);DeleteObject(face);
+   HFONT label=aboutFont(14,600,scale);SelectObject(dc,label);SetTextColor(dc,ABOUT_INK);
+   DrawTextW(dc,L"Понятно",-1,&b,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+   BitBlt(screen,0,0,client.right,client.bottom,dc,0,0,SRCCOPY);
+   SelectObject(dc,oldBmp);DeleteObject(bmp);DeleteDC(dc);DeleteObject(label);
+   EndPaint(h,&ps);return 0;}
+ }return DefWindowProcW(h,message,w,l);
+}
+static void showAbout(HWND owner){
+ HINSTANCE instance=GetModuleHandleW(nullptr);
+ static bool registered=false;
+ if(!registered){
+  WNDCLASSEXW cls={sizeof(cls)};cls.lpfnWndProc=AboutProc;cls.hInstance=instance;
+  cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);cls.hbrBackground=nullptr;cls.lpszClassName=L"TrueThrills.About";
+  cls.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(1));cls.hIconSm=cls.hIcon;
+  if(!RegisterClassExW(&cls))return;registered=true;
+ }
+ aboutScroll=0;aboutHot=false;
+ // Высоту считаем по тексту и упираем в рабочую область экрана: если не
+ // помещается, окно прокручивается колесом, а не обрезает конец.
+ HDC probe=GetDC(owner);int scale=aboutScale(owner),pad=MulDiv(28,scale,96);
+ int width=MulDiv(560,scale,96),content=width-pad*2;
+ int text=aboutLayout(probe,content,scale,pad,false)-pad;
+ ReleaseDC(owner,probe);
+ int height=text+pad+MulDiv(42+16+24,scale,96);
+ RECT work={0,0,0,0};SystemParametersInfoW(SPI_GETWORKAREA,0,&work,0);
+ int maxHeight=(work.bottom-work.top)*9/10;if(height>maxHeight)height=maxHeight;
+ RECT frame={0,0,width,height};AdjustWindowRectEx(&frame,WS_POPUP|WS_CAPTION|WS_SYSMENU,FALSE,WS_EX_DLGMODALFRAME);
+ int fw=frame.right-frame.left,fh=frame.bottom-frame.top;
+ RECT host;GetWindowRect(owner,&host);
+ int x=host.left+((host.right-host.left)-fw)/2,y=host.top+((host.bottom-host.top)-fh)/2;
+ if(y<work.top)y=work.top;
+ HWND dialog=CreateWindowExW(WS_EX_DLGMODALFRAME,L"TrueThrills.About",L"О True Thrills",
+  WS_POPUP|WS_CAPTION|WS_SYSMENU,x,y,fw,fh,owner,nullptr,instance,nullptr);
+ if(!dialog)return;
+ darkTitleBar(dialog);
+ EnableWindow(owner,FALSE);
+ ShowWindow(dialog,SW_SHOW);UpdateWindow(dialog);SetFocus(dialog);
+ MSG msg;
+ while(IsWindow(dialog)){
+  BOOL got=GetMessageW(&msg,nullptr,0,0);
+  if(got<=0){if(got==0)PostQuitMessage((int)msg.wParam);break;}
+  TranslateMessage(&msg);DispatchMessageW(&msg);
+ }
+ EnableWindow(owner,TRUE);SetActiveWindow(owner);SetForegroundWindow(owner);
+}
+
 static LRESULT CALLBACK WindowProc(HWND h,UINT message,WPARAM w,LPARAM l){
  switch(message){
   case WM_SIZE:if(controller){RECT rect;GetClientRect(h,&rect);controller->put_Bounds(rect);}return 0;
@@ -169,7 +315,7 @@ static void runCommand(HWND h,WPARAM id){switch(id){
    case 102:if(webview&&confirmLeave()){activity(false);webview->Reload();}break;
    case 104:external(SITE);break;
    case 106:setFullscreen(h,!fullscreen);break;
-   case 105:MessageBoxW(h,L"True Thrills — студия\nВерсия 0.9.2\n\nРабочее место автора: подкасты, видео, истории и прямые эфиры.\nСлушатели открывают канал в приложении на Android или в браузере.\n\n— — —\n\nКАК УСТРОЕНО\nОкно приложения показывает твой сайт через Microsoft Edge WebView2.\nСайт, база и все файлы живут на твоём собственном сервере, а не в чужом облаке.\nВо время эфира голос идёт с этого компьютера; запись, обработка и архив\nделаются на сервере и остаются доступны после того, как ПК выключен.\n\nЗВУК\nИсточник выбирается в разделе «Эфир»: микрофон, аудиоинтерфейс или\nвиртуальный кабель из FL Studio. Приложение не пересобирает твой тракт\nи ничего не включает в системе без спроса.\n\nВХОД\nНужен пароль автора. Слушателям учётная запись не нужна, и приложение\nеё не создаёт: прогресс прослушивания хранится на устройстве человека.\n\nПОДДЕРЖКА КАНАЛА\nВсё бесплатно. Только добровольные донаты через внешние сервисы —\nприложение не обрабатывает платежи и не хранит данные карт.\n\n— — —\n\n© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio.",L"О True Thrills",MB_OK|MB_ICONINFORMATION);break;
+   case 105:showAbout(h);break;
   }}
 
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,LPWSTR,int show){
