@@ -66,23 +66,12 @@ export default function Studio(){
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  // Экран эфира не прокручивается: там нечего прокручивать, а «резиновая»
- // прокрутка на пару десятков пикселей раздражает. Свободную высоту считаем
- // сами — шапка и панель навигации у разных телефонов разной высоты, особенно
- // при крупном системном шрифте, и угадывать её в CSS нельзя. Круг забирает
- // остаток: он ужимается, пока всё остальное помещается целиком.
+ // прокрутка на пару десятков пикселей раздражает. Сам расчёт высоты делает
+ // CSS — здесь только признак того, что мы на этом экране.
  useEffect(()=>{
   const live=!author&&view==='live';
-  const root=document.documentElement;
-  const apply=()=>{
-   if(!live){root.style.removeProperty('--tt-live-space');return;}
-   const head=document.querySelector('.top-header')?.getBoundingClientRect().height??0;
-   const nav=document.querySelector('.bottom-nav')?.getBoundingClientRect().height??0;
-   root.style.setProperty('--tt-live-space',Math.max(320,Math.round(window.innerHeight-head-nav))+'px');
-  };
-  apply();
   document.body.classList.toggle('tt-live-locked',live);
-  window.addEventListener('resize',apply);
-  return()=>{window.removeEventListener('resize',apply);document.body.classList.remove('tt-live-locked');root.style.removeProperty('--tt-live-space');};
+  return()=>document.body.classList.remove('tt-live-locked');
  },[author,view]);
  // Ссылку на приложение показываем только в браузере: внутри самого
  // приложения и в окне студии на ПК предлагать его скачать незачем.

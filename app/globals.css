@@ -1837,17 +1837,32 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    карточки и кнопки помещаются целиком.
    -------------------------------------------------------------------------- */
 /* Только телефоны и планшеты: на мониторе высоты вдоволь, адресная строка
-   ничего не двигает, и круг там намеренно крупнее. */
+   ничего не двигает, и круг там намеренно крупнее.
+
+   Свободную высоту считает сам браузер, а не мы: приложение становится
+   колонкой высотой в окно, место под плавающую навигацию отдаётся отступом,
+   и экран эфира занимает ровно остаток. Прежняя версия мерила окно из
+   JavaScript и промахивалась — на телефоне владельца круг схлопнулся до
+   минимума, а подпись прилипла к карточкам вместо низа экрана. */
 @media(max-width:1023px){
  body.tt-live-locked{overflow:hidden;overscroll-behavior:none}
- body.tt-live-locked .listener-main[data-view=live]{
-  height:var(--tt-live-space)!important;min-height:0!important;overflow:hidden}
- /* Экран эфира забирает остаток высоты, а подпись с копирайтом остаётся
-    внизу: не height:100%, иначе она вылезла бы за фиксированную высоту. */
+ /* Колонка живёт на .app-shell: шапка, экран и навигация лежат внутри неё,
+    а #tt-app — просто обёртка. Отступ снизу держит место под плавающую
+    навигацию, её собственная высота чуть больше переменной. */
+ body.tt-live-locked #tt-app{height:100svh;display:flex;flex-direction:column}
+ body.tt-live-locked .app-shell{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  padding-bottom:calc(var(--bottom-nav-h) + 14px + env(safe-area-inset-bottom))}
+ body.tt-live-locked .listener-main[data-view=live]{flex:1 1 auto;min-height:0!important;
+  height:auto!important;padding-bottom:10px!important;overflow:hidden}
  body.tt-live-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
  body.tt-live-locked .listener-main[data-view=live] .live-main-panel,
  body.tt-live-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
- body.tt-live-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:6px}
+ /* Подпись с копирайтом прижата к низу экрана, а не к карточкам. */
+ body.tt-live-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:auto}
+ /* Круг забирает остаток высоты, но остаётся кругом: без ограничения по
+    высоте гибкий элемент вытягивался, ширину ему резал max-width, и вместо
+    круга получался овал. */
  body.tt-live-locked .listener-main[data-view=live] .live-rings{
-  flex:1 1 auto;min-height:118px;width:auto;height:auto;aspect-ratio:1;max-width:min(74vw,290px)}
+  flex:1 1 auto;align-self:center;min-height:118px;width:auto;height:auto;aspect-ratio:1;
+  max-width:min(74vw,290px);max-height:min(74vw,290px)}
 }

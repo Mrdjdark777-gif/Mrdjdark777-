@@ -273,7 +273,11 @@ try{
      locked:document.body.classList.contains('tt-live-locked'),
      tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0,
      footer:(()=>{const f=document.querySelector('.content-footer');
-      return !!f&&getComputedStyle(f).display!=='none'&&f.getBoundingClientRect().height>0;})()};});
+      return !!f&&getComputedStyle(f).display!=='none'&&f.getBoundingClientRect().height>0;})(),
+     footerGap:(()=>{const f=document.querySelector('.content-footer'),n=document.querySelector('.bottom-nav');
+      return f&&n?Math.round(n.getBoundingClientRect().top-f.getBoundingClientRect().bottom):0;})(),
+     oval:(()=>{const r=document.querySelector('.live-rings').getBoundingClientRect();
+      return Math.round(Math.abs(r.width-r.height));})()};});
    if(fit.over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+fit.over+'px');
    if(!fit.locked)problems.push('эфир '+w+'x'+h+': прокрутка не заблокирована');
    // Прокрутки нет — значит нижняя плашка обязана быть видна, а не уехать
@@ -281,6 +285,10 @@ try{
    if(fit.tail>0)problems.push('эфир '+w+'x'+h+': нижняя плашка уходит под навигацию на '+fit.tail+'px');
    // Подпись с копирайтом остаётся на месте: прокрутку убрал не она.
    if(!fit.footer)problems.push('эфир '+w+'x'+h+': пропала строка с копирайтом');
+   // Подпись стоит у низа экрана, а не прилипает к карточкам, и круг остаётся
+   // кругом: гибкая высота легко превращает его в овал.
+   if(fit.footerGap>90)problems.push('эфир '+w+'x'+h+': подпись оторвана от низа на '+fit.footerGap+'px');
+   if(fit.oval>2)problems.push('эфир '+w+'x'+h+': круг стал овалом, разница сторон '+fit.oval+'px');
    // Симметрия: архив и поддержка — одна плашка по размеру.
    const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
      b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
