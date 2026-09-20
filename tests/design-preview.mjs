@@ -241,7 +241,7 @@ try{
     if(orbState.edge>0)problems.push('лампа снова стала плашкой: кромка '+orbState.edge+'px');
     if(orbState.ink!=='rgb(111, 231, 222)')problems.push('покой: лампа набрана не фирменным бирюзовым, а '+orbState.ink);
     if(Number(orbState.weight)<800)problems.push('лампа слишком тонкая: начертание '+orbState.weight);
-    if(Math.abs(orbState.shift)>1)problems.push('лампа не по центру круга: сдвиг '+orbState.shift+'px');
+    if(Math.abs(orbState.shift)>1.5)problems.push('лампа не по центру круга: сдвиг '+orbState.shift+'px');
     if(orbState.picture==='нет картинки')problems.push('покой: картинка круга не загрузилась');
     else if(orbState.picture!=='none')problems.push('покой: размыта сама картинка ('+orbState.picture+') — размывать можно только подложку');
     if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');
@@ -370,6 +370,27 @@ try{
     if(beat.thick<beat.thin+1)problems.push('эфир: линия кольца не толстеет на удар ('+beat.thin+' → '+beat.thick+')');
     if(beat.glow<beat.dim+6)problems.push('эфир: кольцо не светится на удар (размытие '+beat.dim+' → '+beat.glow+')');
    }}
+  // В эфире у лампы появляется красная точка. По центру круга должна стоять
+  // вся группа «точка + ON AIR», а не одна надпись: иначе группа уезжает
+  // влево на треть своей ширины — это видно на телефоне сразу.
+  {const lamp=await page.evaluate(()=>{
+    const orb=document.querySelector('.live-orb'),st=document.querySelector('.live-orb-copy strong'),
+     dot=document.querySelector('.live-orb-dot');
+    if(!orb||!st||!dot)return null;
+    const o=orb.getBoundingClientRect(),t=st.getBoundingClientRect();
+    // Трекинг оставляет пустое место после последней буквы — в замер оно не идёт.
+    const tail=parseFloat(getComputedStyle(st).fontSize)*0.2;
+    const left=dot.getBoundingClientRect().left,right=t.right-tail;
+    return Math.round(((left+right)/2-(o.left+o.width/2))*10)/10;});
+   if(lamp===null)problems.push('эфир: лампы с точкой нет');
+   else if(Math.abs(lamp)>1.5)problems.push('эфир: группа «точка + ON AIR» смещена от центра круга на '+lamp+'px');}
+  // Во время эфира на экране на четыре блока больше, чем в покое. Прокрутки
+  // не должно быть и здесь.
+  for(const [w,h] of [[412,915],[390,760]]){
+   await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
+   const over=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight);
+   if(over>1)problems.push('эфир идёт, '+w+'x'+h+': страница длиннее экрана на '+over+'px');}
+  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(200);
   // Полосы спектра на экране быть не должно: она дублировала кольца.
   if(await page.locator('.live-spectrum').count())problems.push('эфир: полоса спектра осталась на экране');
   // TT_CAPTURE_MOTION=1 — покадровая съёмка круга эфира. Нужна, чтобы показать

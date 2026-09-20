@@ -1693,7 +1693,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    покоя не трогаем: он совпадает с кольцами вокруг круга, а два почти
    одинаковых бирюзовых рядом читались бы как ошибка. */
 .live-orb-copy.is-live strong{color:#FF9E5E}
-.live-orb-dot{position:absolute;left:12px;top:calc(50% - 5.5px)}
+/* Точка снова в потоке: когда она стояла отдельно слева, по центру круга
+   оказывалась только надпись, а вся группа «точка + ON AIR» уезжала влево на
+   треть своей ширины. Центрируется именно группа — так выглядит студийное
+   табло. Отрицательное поле справа снимает пустое место, которое трекинг
+   оставляет после последней буквы, иначе на него уезжает вся группа. */
+.live-orb-dot{position:static}
 .live-rings.is-calm .live-orb-shade{
  background:radial-gradient(circle at 50% 45%,rgba(18,22,25,0),rgba(18,22,25,.14) 62%,rgba(18,22,25,.6))}
 .live-rings.is-calm .live-orb-copy strong{color:var(--teal)}
@@ -1801,3 +1806,18 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .live-stage>.support-strip .support-strip-label{font-size:15px;font-weight:600;flex:none}
 .live-stage>.support-strip .support-strip-copy>span{font-size:12px;line-height:1.35;color:var(--muted);
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Во время эфира на экране на четыре блока больше, чем в покое: название,
+   статус, часы, кнопка и громкость. Круг и промежутки ужимаются, чтобы экран
+   по-прежнему помещался целиком и не появлялась прокрутка. */
+.listener-main .live-stage.is-live{gap:12px}
+.listener-main .live-stage.is-live .live-rings{width:min(56vw,224px);height:min(56vw,224px);margin:2px 0 0}
+.listener-main .live-stage.is-live .live-stage-name{font-size:clamp(20px,5.4vw,25px)}
+.listener-main .live-stage.is-live .live-stage-sub{font-size:13px}
+
+/* На низком экране эфир ужимается сильнее: содержимого там больше всего. */
+@media(max-height:700px){
+ .listener-main .live-stage.is-live{gap:8px}
+ .listener-main .live-stage.is-live .live-rings{width:min(46vw,176px);height:min(46vw,176px)}
+ .listener-main .live-stage.is-live .live-stage-sub{display:none}
+}

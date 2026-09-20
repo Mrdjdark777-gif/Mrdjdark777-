@@ -43,7 +43,10 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  // и подставлять туда название канала незачем: оно уже стоит в шапке.
  const name=stage==='ended'?t('live.endedTitle'):stage==='offline'?'':title;
 
- return <section className="live-stage">
+ // В эфире на экране появляется ещё четыре блока — название, статус, часы и
+ // кнопка с громкостью. Значит круг и промежутки должны стать меньше, иначе
+ // экран перестаёт помещаться целиком.
+ return <section className={'live-stage'+(calm?'':' is-live')}>
   <div className={'live-rings'+(pulsing?' is-pulsing':'')+(calm?' is-calm':'')}>
    {/* Кольца-«дорожки». Внешние идут за низкими частотами, внутренние — за
        высокими: бас качает большие круги, голос и верх шевелят ближние к
