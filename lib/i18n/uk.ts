@@ -60,6 +60,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "donate.free": "Усе безкоштовно і залишиться безкоштовним.",
 
   "donate.action": "Підтримати True Thrills",
+  "donate.supportLiveNote": "Сервер, техніка і жодної реклами",
   "donate.supportLive": "Підтримати ефір",
 
   "donate.boosty": "Boosty",

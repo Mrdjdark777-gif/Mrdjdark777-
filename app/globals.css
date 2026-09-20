@@ -431,7 +431,15 @@ body:has(.podcast-player) .main-content{padding-bottom:calc(var(--bottom-nav-h) 
  /* Раньше здесь стояло min-height:0, чтобы убрать лишнюю прокрутку от общего
     правила. Экран всё равно должен быть не ниже окна — иначе подвал подпирает
     короткий список вместо того, чтобы стоять внизу. */
- min-height:calc(100dvh - var(--bottom-nav-h))!important}
+ /* svh, а не dvh: dvh — это высота окна прямо сейчас, а она у Chrome на
+    Android меняется вместе с адресной строкой. Страница, свёрстанная под
+    dvh, при поднятой строке оказывается чуть выше окна — появляется та самая
+    паразитная прокрутка на пару десятков пикселей, которая ничего не
+    прокручивает. svh считает по самому маленькому окну, и страница помещается
+    в любом состоянии строки. dvh оставлен строкой выше как запасной для
+    старых браузеров. */
+ min-height:calc(100dvh - var(--bottom-nav-h))!important;
+ min-height:calc(100svh - var(--bottom-nav-h))!important}
 .listener-main .page-heading{margin:6px 0 12px;flex-direction:row;align-items:flex-end;justify-content:space-between;gap:14px}
 .listener-main .page-heading h1{width:max-content;max-width:100%;font-size:32px;font-weight:800;letter-spacing:-.035em;line-height:1.1;background:linear-gradient(90deg,#f4f3f1 55%,#8FEFE8);-webkit-background-clip:text;background-clip:text;color:transparent}
 .listener-main .heading-description{font-size:14px;color:#a3abaf;margin-top:8px}
@@ -880,8 +888,8 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
     спектра убрана, и удар должен читаться по самим кольцам. Переход в 90 мс
     короче шага замера, так что кольцо успевает за долей, но не дёргается. */
  border:1px solid rgba(111,231,222,calc(.42 - var(--ring) * .028 + var(--ring-energy,0) * .5));
- border-width:calc(1px + var(--ring-energy,0) * 2.2px);
- box-shadow:0 0 calc(var(--ring-energy,0) * 18px) rgba(111,231,222,calc(var(--ring-energy,0) * .45));
+ border-width:calc(1px + var(--ring-energy,0) * 1.2px);
+ box-shadow:0 0 calc(var(--ring-energy,0) * 11px) rgba(111,231,222,calc(var(--ring-energy,0) * .32));
  transition:border-color 90ms linear,border-width 90ms linear,box-shadow 90ms linear;
  animation:live-breathe 3.6s ease-in-out infinite;
  animation-delay:calc(var(--ring) * -.28s)}
@@ -892,9 +900,11 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
    Масштаб задан внутри кадров вместе с энергией звука: положи его в саму
    .live-ring — анимация перебила бы его своим transform, и кольца перестали
    бы отзываться на звук. */
+/* Размах реакции на звук: было .26 — кольца скакали на каждый удар и кадр
+   читался хаотично. .13 оставляет качание заметным, но спокойным. */
 @keyframes live-breathe{
- 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .26));opacity:.45}
- 50%{transform:scale(calc(1.09 + var(--ring-energy,0) * .26));opacity:1}}
+ 0%,100%{transform:scale(calc(1 + var(--ring-energy,0) * .13));opacity:.45}
+ 50%{transform:scale(calc(1.09 + var(--ring-energy,0) * .13));opacity:1}}
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
@@ -1780,3 +1790,14 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .listener-main .live-archive-copy span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .listener-main .live-stage>.support-strip>svg:first-child{width:36px;height:36px;padding:8px}
 }
+
+/* Громкость стоит сразу под кнопкой эфира и по ширине совпадает с ней. */
+.live-stage>.listener-volume{width:100%;margin:0}
+
+/* Строка поддержки на экране эфира повторяет карточку архива целиком:
+   значок в плитке, название и подпись под ним, стрелка. */
+.live-stage>.support-strip .support-strip-copy{display:flex;flex-direction:column;gap:2px;
+ flex:1;min-width:0;text-align:left}
+.live-stage>.support-strip .support-strip-label{font-size:15px;font-weight:600;flex:none}
+.live-stage>.support-strip .support-strip-copy>span{font-size:12px;line-height:1.35;color:var(--muted);
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

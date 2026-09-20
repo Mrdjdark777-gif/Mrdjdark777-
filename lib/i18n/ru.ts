@@ -59,6 +59,7 @@ export const ru = {
   "donate.free": "Всё бесплатно и останется бесплатным.",
 
   "donate.action": "Поддержать True Thrills",
+  "donate.supportLiveNote": "Сервер, техника и никакой рекламы",
   "donate.supportLive": "Поддержать эфир",
 
   "donate.boosty": "Boosty",

@@ -363,7 +363,10 @@ try{
    if(!beat)problems.push('эфир: колец нет');
    else{
     const grew=beat.quiet?beat.loud/beat.quiet-1:0;
-    if(grew<0.15)problems.push('эфир: кольцо почти не отзывается на звук — размах вырос на '+Math.round(grew*100)+'%');
+    // Порог ниже прежнего: размах намеренно уменьшен вдвое, кольца качаются
+    // спокойно, а не скачут на каждый удар.
+    if(grew<0.08)problems.push('эфир: кольцо почти не отзывается на звук — размах вырос на '+Math.round(grew*100)+'%');
+    if(grew>0.2)problems.push('эфир: кольцо скачет на звук слишком сильно — размах '+Math.round(grew*100)+'%');
     if(beat.thick<beat.thin+1)problems.push('эфир: линия кольца не толстеет на удар ('+beat.thin+' → '+beat.thick+')');
     if(beat.glow<beat.dim+6)problems.push('эфир: кольцо не светится на удар (размытие '+beat.dim+' → '+beat.glow+')');
    }}

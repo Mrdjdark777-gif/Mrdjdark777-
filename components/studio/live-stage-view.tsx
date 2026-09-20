@@ -16,10 +16,10 @@ import {Artwork} from './artwork';
 /** Сколько колец рисуем вокруг знака эфира. */
 const RINGS=8;
 
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive}:{
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive,volume}:{
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmSrc?:string;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
- archiveOpen?:boolean;archive?:React.ReactNode;
+ archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;
 }){
  const {t}=useT();
  const stage=liveStage({onAir,joined,phase});
@@ -82,6 +82,9 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
    {action==='busy'?<Loader2 className="spin" size={20}/>:action==='pause'?<Pause size={20} fill="currentColor"/>:<Play size={20} fill="currentColor"/>}
    {action==='busy'?t('live.connecting'):action==='pause'?t('live.stopListening'):t('live.listen')}
   </button>}
+  {/* Громкость идёт сразу за кнопкой: во время эфира ею пользуются чаще
+      всего, и искать её под карточками архива неправильно. */}
+  {volume}
 
   {/* Архив эфиров раскрывается здесь же. Уводить отсюда в подкасты нельзя:
       подкаст — подготовленный выпуск, запись эфира — другое, и человек
