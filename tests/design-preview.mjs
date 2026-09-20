@@ -215,6 +215,8 @@ try{
      backdrop:cs.backdropFilter||cs.webkitBackdropFilter||'none',
      picture:img?getComputedStyle(img).filter:'нет картинки',
      title:document.querySelector('.live-stage-name')?.textContent.trim()||'',
+     plate:cs.backgroundColor,edge:parseFloat(cs.borderTopWidth)||0,
+     fade:cs.maskImage||cs.webkitMaskImage||'none',
      sub:document.querySelector('.live-stage-sub')?.textContent.trim()||''};});
    if(!orbState)problems.push('эфир: круга покоя нет');
    else{
@@ -222,6 +224,12 @@ try{
     if(orbState.share>0.2)problems.push('покой: лампа занимает '+Math.round(orbState.share*100)+'% круга');
     if(orbState.centerAlpha>0.1)problems.push('покой: центр круга затемнён на '+orbState.centerAlpha);
     if(!/blur/.test(orbState.backdrop))problems.push('покой: под лампой нет размытия ('+orbState.backdrop+')');
+    // Обложку эфира автор рисует со своей доской под надпись. Ровная плашка
+    // с кромкой ложилась на неё второй табличкой, поэтому у лампы не должно
+    // быть ни фона, ни рамки — только размытие, растворённое маской.
+    if(!/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(orbState.plate))problems.push('лампа снова стала плашкой: фон '+orbState.plate);
+    if(orbState.edge>0)problems.push('лампа снова стала плашкой: кромка '+orbState.edge+'px');
+    if(orbState.fade==='none')problems.push('лампа: размытие не растворяется к краям — будет видно прямоугольником');
     if(orbState.picture==='нет картинки')problems.push('покой: картинка круга не загрузилась');
     else if(orbState.picture!=='none')problems.push('покой: размыта сама картинка ('+orbState.picture+') — размывать можно только подложку');
     if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');

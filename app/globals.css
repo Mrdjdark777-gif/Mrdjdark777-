@@ -1657,18 +1657,27 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    -------------------------------------------------------------------------- */
 /* Лампа набрана тем же широким шрифтом, что и знак канала в шапке: на студии
    это табло, а не заголовок, и засечки здесь выглядят как чужая цитата.
-   Тонкая светлая кромка и тень делают из неё табличку, лежащую на картинке,
-   а не текст, висящий в воздухе. */
-.live-orb-copy{letter-spacing:.2em;border:1px solid rgba(255,255,255,.16);
- box-shadow:0 12px 30px -14px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.09)}
+
+   Подложки как таковой у неё нет. Обложку эфира автор рисует с собственной
+   доской под надпись, и плашка с кромкой ложилась на эту доску второй
+   табличкой. Поэтому размытие и затемнение растворяются к краям маской:
+   середина под буквами глухая, край — прозрачный, и на любой картинке лампа
+   выглядит частью кадра. */
+.live-orb-copy{letter-spacing:.2em;border:none;background:none;box-shadow:none;
+ padding:16px 34px;border-radius:0;
+ -webkit-backdrop-filter:blur(22px) brightness(.55) saturate(.9);backdrop-filter:blur(22px) brightness(.55) saturate(.9);
+ -webkit-mask-image:radial-gradient(ellipse 72% 58% at 50% 50%,#000 0 62%,transparent 100%);
+ mask-image:radial-gradient(ellipse 72% 58% at 50% 50%,#000 0 62%,transparent 100%)}
 .live-orb-copy strong{font-family:var(--font-ui);font-weight:700;
  font-size:clamp(19px,5.2vw,25px)}
 .live-orb-copy.is-live strong{color:#ffd9d1}
 .live-rings.is-calm .live-orb-shade{
  background:radial-gradient(circle at 50% 45%,rgba(18,22,25,0),rgba(18,22,25,.14) 62%,rgba(18,22,25,.6))}
-.live-rings.is-calm .live-orb-copy{background:rgba(10,14,16,.32);
- -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
-.live-rings.is-calm .live-orb-copy strong{color:#dfe4e7}
+.live-rings.is-calm .live-orb-copy strong{color:#eef1f3}
+/* Затемнение растворяется к краям, поэтому под буквами оно слабее, чем у
+   плашки с ровным фоном. Тень у самих букв добивает контраст на светлой
+   обложке — там маски одной мало. */
+.live-orb-copy strong{text-shadow:0 2px 10px rgba(0,0,0,.9),0 0 26px rgba(0,0,0,.65)}
 
 /* ----------------------------------------------------------------------------
    Эфир на большом экране.
