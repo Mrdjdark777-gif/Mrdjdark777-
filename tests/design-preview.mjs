@@ -231,13 +231,14 @@ try{
     if(orbState.lamp!=='OFF AIR')problems.push('покой: лампа показывает «'+orbState.lamp+'», а не OFF AIR');
     if(orbState.share>0.2)problems.push('покой: лампа занимает '+Math.round(orbState.share*100)+'% круга');
     if(orbState.centerAlpha>0.1)problems.push('покой: центр круга затемнён на '+orbState.centerAlpha);
-    if(!/blur/.test(orbState.backdrop))problems.push('покой: под лампой нет размытия ('+orbState.backdrop+')');
+    // Никакой подложки: доску под надпись рисует сама обложка, а размытие
+    // мылило её дерево.
+    if(orbState.backdrop!=='none')problems.push('под лампой снова появилось размытие ('+orbState.backdrop+') — оно мылит доску на обложке');
     // Обложку эфира автор рисует со своей доской под надпись. Ровная плашка
     // с кромкой ложилась на неё второй табличкой, поэтому у лампы не должно
     // быть ни фона, ни рамки — только размытие, растворённое маской.
     if(!/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(orbState.plate))problems.push('лампа снова стала плашкой: фон '+orbState.plate);
     if(orbState.edge>0)problems.push('лампа снова стала плашкой: кромка '+orbState.edge+'px');
-    if(orbState.fade==='none')problems.push('лампа: размытие не растворяется к краям — будет видно прямоугольником');
     if(orbState.ink!=='rgb(111, 231, 222)')problems.push('покой: лампа набрана не фирменным бирюзовым, а '+orbState.ink);
     if(Number(orbState.weight)<800)problems.push('лампа слишком тонкая: начертание '+orbState.weight);
     if(Math.abs(orbState.shift)>1)problems.push('лампа не по центру круга: сдвиг '+orbState.shift+'px');
