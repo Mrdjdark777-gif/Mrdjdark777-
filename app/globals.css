@@ -1663,17 +1663,28 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    табличкой. Поэтому размытие и затемнение растворяются к краям маской:
    середина под буквами глухая, край — прозрачный, и на любой картинке лампа
    выглядит частью кадра. */
-.live-orb-copy{letter-spacing:.2em;border:none;background:none;box-shadow:none;
+.live-orb-copy{letter-spacing:0;border:none;background:none;box-shadow:none;
  padding:16px 34px;border-radius:0;
  -webkit-backdrop-filter:blur(22px) brightness(.55) saturate(.9);backdrop-filter:blur(22px) brightness(.55) saturate(.9);
  -webkit-mask-image:radial-gradient(ellipse 72% 58% at 50% 50%,#000 0 62%,transparent 100%);
  mask-image:radial-gradient(ellipse 72% 58% at 50% 50%,#000 0 62%,transparent 100%)}
 .live-orb-copy strong{font-family:var(--font-ui);font-weight:700;
  font-size:clamp(19px,5.2vw,25px)}
-.live-orb-copy.is-live strong{color:#ffd9d1}
+/* Цвета лампы — те же, что во всём приложении: в эфире тёплый сигнальный, в
+   покое фирменный бирюзовый. Белый был случайным цветом ниоткуда.
+
+   Точка вынесена из потока: пока она стояла слева обычным элементом, она
+   сдвигала надпись вправо от середины круга. Центрировать её по вертикали
+   приходится через top, а не transform, — transform занят миганием.
+
+   Трекинг оставляет пустое место после последней буквы, и строка кажется
+   сдвинутой влево ровно на него; отрицательное поле справа это снимает. */
+.live-orb-copy strong{font-weight:800;letter-spacing:.2em;margin-right:-.2em}
+.live-orb-copy.is-live strong{color:#FF8C7B}
+.live-orb-dot{position:absolute;left:12px;top:calc(50% - 5.5px)}
 .live-rings.is-calm .live-orb-shade{
  background:radial-gradient(circle at 50% 45%,rgba(18,22,25,0),rgba(18,22,25,.14) 62%,rgba(18,22,25,.6))}
-.live-rings.is-calm .live-orb-copy strong{color:#eef1f3}
+.live-rings.is-calm .live-orb-copy strong{color:var(--teal)}
 /* Затемнение растворяется к краям, поэтому под буквами оно слабее, чем у
    плашки с ровным фоном. Тень у самих букв добивает контраст на светлой
    обложке — там маски одной мало. */

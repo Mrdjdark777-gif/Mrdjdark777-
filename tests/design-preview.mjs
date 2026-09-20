@@ -216,6 +216,14 @@ try{
      picture:img?getComputedStyle(img).filter:'нет картинки',
      title:document.querySelector('.live-stage-name')?.textContent.trim()||'',
      plate:cs.backgroundColor,edge:parseFloat(cs.borderTopWidth)||0,
+     ink:getComputedStyle(copy.querySelector('strong')).color,
+     weight:getComputedStyle(copy.querySelector('strong')).fontWeight,
+     shift:Math.round((()=>{const t=copy.querySelector('strong').getBoundingClientRect();
+      // У строки с трекингом справа остаётся пустое место шириной в один
+      // интервал: его снимает отрицательное поле, и в замере его тоже надо
+      // вычесть, иначе «центр» коробки уедет вправо на половину интервала.
+      const em=parseFloat(getComputedStyle(copy.querySelector('strong')).fontSize)*0.2;
+      return (t.left+(t.width-em)/2)-(o.left+o.width/2);})()*100)/100,
      fade:cs.maskImage||cs.webkitMaskImage||'none',
      sub:document.querySelector('.live-stage-sub')?.textContent.trim()||''};});
    if(!orbState)problems.push('эфир: круга покоя нет');
@@ -230,6 +238,9 @@ try{
     if(!/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(orbState.plate))problems.push('лампа снова стала плашкой: фон '+orbState.plate);
     if(orbState.edge>0)problems.push('лампа снова стала плашкой: кромка '+orbState.edge+'px');
     if(orbState.fade==='none')problems.push('лампа: размытие не растворяется к краям — будет видно прямоугольником');
+    if(orbState.ink!=='rgb(111, 231, 222)')problems.push('покой: лампа набрана не фирменным бирюзовым, а '+orbState.ink);
+    if(Number(orbState.weight)<800)problems.push('лампа слишком тонкая: начертание '+orbState.weight);
+    if(Math.abs(orbState.shift)>1)problems.push('лампа не по центру круга: сдвиг '+orbState.shift+'px');
     if(orbState.picture==='нет картинки')problems.push('покой: картинка круга не загрузилась');
     else if(orbState.picture!=='none')problems.push('покой: размыта сама картинка ('+orbState.picture+') — размывать можно только подложку');
     if(orbState.title)problems.push('покой: под кругом лишний заголовок «'+orbState.title+'»');
