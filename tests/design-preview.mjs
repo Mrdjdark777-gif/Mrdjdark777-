@@ -886,6 +886,28 @@ try{
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
  const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);
+ // Пульт эфира: источник звука стоит под названием, а не проваливается вниз
+ // мимо обложки. Мерим по живой раскладке, а не по коду.
+ const pult=await studio.evaluate(()=>{
+  const box=s=>{const el=document.querySelector(s);if(!el)return null;const r=el.getBoundingClientRect();return {top:Math.round(r.top),bottom:Math.round(r.bottom),left:Math.round(r.left)};};
+  return {title:box('.live-console>label.field'),mic:box('.live-console>.mic-setup'),
+   cover:box('.live-console>div.field'),wave:box('.live-console>.signal-console')};
+ });
+ if(!(pult.title&&pult.mic&&pult.cover&&pult.wave))check(false,'пульт эфира: не нашлись название, источник звука, обложка или проверка голоса');
+ else{
+ console.log('Пульт эфира: разрыв под названием '+(pult.mic.top-pult.title.bottom)+'px, источник звука y='+pult.mic.top+', проверка голоса y='+pult.wave.top);
+ check(pult.mic.left===pult.title.left,`источник звука ушёл из колонки названия: ${pult.mic.left} вместо ${pult.title.left}`);
+ check(pult.mic.top-pult.title.bottom<=140,`под названием эфира пустая полоса ${pult.mic.top-pult.title.bottom}px до источника звука`);
+ check(pult.mic.top<pult.wave.top,'источник звука оказался ниже проверки голоса');
+ check(pult.cover.left>pult.title.left,'обложка эфира ушла из правой колонки');}
+ // Ссылки на площадки и кнопка поддержки живут в настройках: на главной
+ // автору нужны действия, а не редактирование ссылок.
+ const panels=async view=>{await studio.goto(base+'/?view='+view);await settle(studio);
+  return studio.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));};
+ const home=await panels('home'),settings=await panels('settings');
+ check(!home.includes('Твои площадки')&&!home.includes('Кнопка поддержки'),'на главной автора остались настройки ссылок: '+home.join(', '));
+ check(home.length>0,'с главной автора пропали все карточки настроек');
+ check(settings.includes('Твои площадки')&&settings.includes('Кнопка поддержки'),'в настройках пропали ссылки или кнопка поддержки: '+settings.join(', '));
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));

@@ -1252,11 +1252,16 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .live-console>.broadcast-summary,
  .main-content:not(.listener-main) .live-console>.stop-live-button,
  .main-content:not(.listener-main) .live-console>.quiet-button{grid-column:1/-1}
- .main-content:not(.listener-main) .live-console>.field:nth-of-type(1){grid-column:1}
- .main-content:not(.listener-main) .live-console>.field:nth-of-type(2){grid-column:2}
- .main-content:not(.listener-main) .live-console>.mic-setup{grid-column:1}
- .main-content:not(.listener-main) .live-console>.signal-console{grid-column:2}
- .main-content:not(.listener-main) .live-console>.audio-controls-panel{grid-column:2}
+ /* Ряды заданы явно: иначе «как поступает звук» падало на строку ниже обложки
+    и под названием эфира оставалась пустая полоса в полэкрана. Теперь слева
+    название и источник звука, справа описание, обложка и проверка голоса. */
+ .main-content:not(.listener-main) .live-console>.session-status{grid-row:1}
+ .main-content:not(.listener-main) .live-console>label.field:nth-of-type(1){grid-column:1;grid-row:2}
+ .main-content:not(.listener-main) .live-console>.mic-setup{grid-column:1;grid-row:3}
+ .main-content:not(.listener-main) .live-console>label.field:nth-of-type(2){grid-column:2;grid-row:2}
+ .main-content:not(.listener-main) .live-console>div.field{grid-column:2;grid-row:3}
+ .main-content:not(.listener-main) .live-console>.signal-console{grid-column:2;grid-row:4}
+ .main-content:not(.listener-main) .live-console>.audio-controls-panel{grid-column:2;grid-row:5}
 }
 @media(min-width:1100px){
  /* Последние сантиметры: на экране эфира заголовок без пояснения, карточка
