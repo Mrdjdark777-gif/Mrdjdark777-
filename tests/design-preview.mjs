@@ -910,9 +910,16 @@ try{
  await studio.getByRole('button',{name:'Настройки',exact:true}).first().click();await studio.waitForTimeout(400);
  const settings=await panelTitles();
  check(await studio.evaluate(()=>!!document.querySelector('.bottom-nav-settings[data-active=true]')),'кнопка «Настройки» не ведёт на страницу настроек');
- check(!home.includes('Твои площадки')&&!home.includes('Кнопка поддержки'),'на главной автора остались настройки ссылок: '+home.join(', '));
- check(home.length>0,'с главной автора пропали все карточки настроек');
- check(settings.includes('Твои площадки')&&settings.includes('Кнопка поддержки'),'в настройках пропали ссылки или кнопка поддержки: '+settings.join(', '));
+ // Каждая карточка живёт в одном месте: дублей между главной и настройками нет.
+ const onHome=['Картинка круга покоя'],inSettings=['Твои площадки','Кнопка поддержки','Фон уведомлений'];
+ for(const name of onHome){
+  check(home.includes(name),`на главной автора пропала карточка «${name}»: `+home.join(', '));
+  check(!settings.includes(name),`карточка «${name}» дублируется в настройках`);
+ }
+ for(const name of inSettings){
+  check(settings.includes(name),`в настройках пропала карточка «${name}»: `+settings.join(', '));
+  check(!home.includes(name),`карточка «${name}» осталась на главной автора`);
+ }
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
