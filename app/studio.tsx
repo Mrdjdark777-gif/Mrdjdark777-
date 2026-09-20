@@ -44,8 +44,6 @@ const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
 // Страницы записи больше нет: её открывали только из панели, а звуковой тракт
 // целиком живёт на экране эфира.
 const RETIRED_VIEWS:Record<string,string>={studio:'live'};
-// Настройки автора живут на главной студии, отдельной страницы у него нет.
-const AUTHOR_RETIRED:Record<string,string>={settings:'home'};
 // Цвета сняты пипеткой с логотипа и лежат так же, как на нём самом: закат
 // наверху, дорога и горы внизу. Раскладка частот при этом прежняя — бас внизу,
 // верхние частоты наверху, — поэтому шкала цвета идёт навстречу номеру полосы.
@@ -198,7 +196,7 @@ export default function Studio(){
  // «Всё начинается с голоса.» — последние два слова во всех четырёх языках
  // и есть смысловой акцент, их и подсвечиваем.
  const accent=(text:string)=>{const words=text.split(' ');if(words.length<3)return text;return <>{words.slice(0,-2).join(' ')+' '}<span className="accent">{words.slice(-2).join(' ')}</span></>;};
- const goto=(v:string)=>{setView((author?AUTHOR_RETIRED[v]:undefined)??RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setPlayerExpanded(false);};
+ const goto=(v:string)=>{setView(RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setPlayerExpanded(false);};
  const listKind=view==='podcasts'?'podcast':view==='videos'?'video':'story';
  const sectionOrder=visible.filter(p=>p.kind==='podcast'&&!isLiveArchive(p.audioKey)).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
  // Записи эфиров живут в разделе «Эфир»: это не подкасты, а то, что осталось
@@ -338,7 +336,7 @@ export default function Studio(){
  <button className="bottom-nav-item bottom-nav-home tt-pressable" data-active={view==='home'} aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>}/>:<img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/>}<span>{t('nav.home')}</span></button>
  <button className="bottom-nav-item bottom-nav-live tt-pressable" data-active={view==='live'} aria-label={t('nav.live')} onClick={()=>{haptic();goto('live');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<Radio size={18} color="#6FE7DE"/>}/>:<Radio size={22}/>}<span>{t('nav.live')}</span>{liveStatus&&<span className="bottom-nav-dot" aria-hidden="true"/>}</button>
  <button className="bottom-nav-item bottom-nav-stories tt-pressable" data-active={view==='stories'} aria-label={t('nav.stories')} onClick={()=>{haptic();goto('stories');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<BookOpen size={18} color="#6FE7DE"/>}/>:<BookOpen size={22}/>}<span>{t('nav.stories')}</span></button>
- {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" aria-label={t('header.settings')} onClick={()=>{haptic();goto('home');setTimeout(()=>document.querySelector('.settings-grid')?.scrollIntoView({behavior:'smooth',block:'start'}),120);}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<SlidersHorizontal size={18} color="#6FE7DE"/>}/>:<SlidersHorizontal size={22}/>}<span>{t('header.settings')}</span></button>}
+ {author&&<button className="bottom-nav-item bottom-nav-settings tt-pressable" data-active={view==='settings'} aria-label={t('header.settings')} onClick={()=>{haptic();goto('settings');}}>{wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<SlidersHorizontal size={18} color="#6FE7DE"/>}/>:<SlidersHorizontal size={22}/>}<span>{t('header.settings')}</span></button>}
  </nav>}
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>

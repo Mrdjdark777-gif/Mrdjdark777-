@@ -902,9 +902,14 @@ try{
  check(pult.cover.left>pult.title.left,'обложка эфира ушла из правой колонки');}
  // Ссылки на площадки и кнопка поддержки живут в настройках: на главной
  // автору нужны действия, а не редактирование ссылок.
- const panels=async view=>{await studio.goto(base+'/?view='+view);await settle(studio);
-  return studio.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));};
- const home=await panels('home'),settings=await panels('settings');
+ // Идём так же, как автор: по кнопке в навигации, а не по адресу. Настройки
+ // у него раньше вели на ту же главную, и «перенос в настройки» терял карточки.
+ const panelTitles=()=>studio.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));
+ await studio.goto(base+'/');await settle(studio);
+ const home=await panelTitles();
+ await studio.getByRole('button',{name:'Настройки',exact:true}).first().click();await studio.waitForTimeout(400);
+ const settings=await panelTitles();
+ check(await studio.evaluate(()=>!!document.querySelector('.bottom-nav-settings[data-active=true]')),'кнопка «Настройки» не ведёт на страницу настроек');
  check(!home.includes('Твои площадки')&&!home.includes('Кнопка поддержки'),'на главной автора остались настройки ссылок: '+home.join(', '));
  check(home.length>0,'с главной автора пропали все карточки настроек');
  check(settings.includes('Твои площадки')&&settings.includes('Кнопка поддержки'),'в настройках пропали ссылки или кнопка поддержки: '+settings.join(', '));
