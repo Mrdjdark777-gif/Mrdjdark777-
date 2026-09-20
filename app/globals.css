@@ -805,20 +805,13 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  display:grid;place-items:center;background:#08201E;color:var(--teal)}
 
 /* Три пронумерованных столбца, разделённые тонкими линиями, как на листе. */
-.voice-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
- border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.voice-column{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;
- padding:14px 10px;background:none;border:none;border-left:1px solid var(--line);color:#f4f3f1;text-align:left}
-.voice-column:first-child{border-left:none;padding-left:0}
-.voice-column>strong{font-size:15px;font-weight:700}
-.voice-column-icon{color:var(--teal)}
 
 /* Фильтр записей эфира: каталог остаётся доступным целиком. */
 .catalog-scope{display:flex;gap:6px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
 .catalog-scope button{min-height:38px;padding:0 14px;border:none;border-radius:999px;background:none;
  color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
 .catalog-scope button[data-active=true]{background:var(--teal);color:#08201E}
-@media(max-width:379px){.voice-column{padding:14px 6px}}
+@media(max-width:379px){}
 
 /* Инструменты каталога под редакционной частью занимают одну компактную строку. */
 .listener-main .catalog-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 14px}
@@ -1559,9 +1552,6 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
     один — тот, что относится ко всей странице. */
  .listener-main .content-footer{display:none}
 
- /* Строка разделов уже стоит наверху страницы; её повтор внутри каталога
-    ничего не добавляет и отодвигает сами выпуски вниз. */
- .listener-main .voice-columns{display:none}
 }
 @media(min-width:1440px){
  .listener-main .post-list{grid-template-columns:repeat(3,minmax(0,1fr))}

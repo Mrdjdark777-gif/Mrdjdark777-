@@ -1,5 +1,5 @@
 'use client';
-import {ArrowUpRight,Play,Headphones,Video,BookOpen} from 'lucide-react';
+import {ArrowUpRight,Play} from 'lucide-react';
 import {clock} from '@/lib/client';
 import {useT} from '@/components/i18n-provider';
 
@@ -12,13 +12,14 @@ import {useT} from '@/components/i18n-provider';
  * Карточка нового выпуска открывает реальную публикацию — самую свежую
  * опубликованную в разделе. Если публиковать нечего, карточки нет: ставить
  * вместо неё пример нельзя.
+ *
+ * Строки-ссылки на другие разделы здесь больше нет: те же три раздела стоят в
+ * нижней панели, и второй такой же ряд только загромождал экран.
  */
-const ICON={podcast:Headphones,video:Video,story:BookOpen} as const;
 export type VoiceEpisode={id:string;title:string;duration:number};
-export type VoiceColumn={kind:'podcast'|'video'|'story';label:string;go:()=>void};
 
-export function VoiceHeader({latest,onOpen,columns,haptic=()=>{}}:{
- latest:VoiceEpisode|null;onOpen:(episode:VoiceEpisode)=>void;columns:VoiceColumn[];haptic?:()=>void;
+export function VoiceHeader({latest,onOpen,haptic=()=>{}}:{
+ latest:VoiceEpisode|null;onOpen:(episode:VoiceEpisode)=>void;haptic?:()=>void;
 }){
  const {t}=useT();
  return <header className="voice-head">
@@ -33,13 +34,5 @@ export function VoiceHeader({latest,onOpen,columns,haptic=()=>{}}:{
    <span className="voice-card-meta">{t('post.listen')}{latest.duration>0?' · '+clock(latest.duration):''}</span>
    <span className="voice-card-play" aria-hidden="true"><Play size={20} fill="currentColor"/></span>
   </button>}
-
-  <div className="voice-columns">
-   {columns.map(column=>{const Icon=ICON[column.kind];
-    return <button key={column.kind} type="button" className="voice-column tt-pressable" onClick={()=>{haptic();column.go();}}>
-     <Icon size={22} className="voice-column-icon" aria-hidden="true"/>
-     <strong>{column.label}</strong>
-    </button>;})}
-  </div>
  </header>;
 }

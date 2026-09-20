@@ -117,7 +117,9 @@ try{
  // Узкий гротеск капсом и номера 01/02/03 владелец отверг, увидев их на живом
  // сайте: заголовки разделов набираются той же гарнитурой, что названия
  // выпусков. Проверка держит это решение, а не исходный лист.
- assert.equal(await page.locator('.voice-column-number').count(),0,'нумерация разделов убрана');
+ // Строка ссылок на разделы убрана из каталога: те же три раздела стоят в
+ // нижней панели, второй такой же ряд только загромождал экран.
+ assert.equal(await page.locator('.voice-columns').count(),0,'строки разделов в каталоге больше нет');
  assert.match(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).fontFamily),/Lora/,'заголовок раздела — редакционный serif');
  assert.equal(await page.locator('.voice-title').evaluate(el=>getComputedStyle(el).textTransform),'none','заголовок раздела не набирается капсом');
  await page.goto(base+'/?mode=listen&view=videos');await settle(page);await shot(page,'videos');
