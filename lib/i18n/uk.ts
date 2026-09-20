@@ -7,6 +7,7 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "err.liveRecorder": "Для передавання ефіру потрібен браузер із записом WebM/Opus. Онови Windows WebView2.",
 
+  "err.liveActive": "Ефір ще триває. Спочатку зупини його, потім видаляй запис.",
   "err.liveLimit": "Досягнуто ліміт ефіру: до 8 годин або 1 ГіБ вхідного звуку.",
 
   "err.liveSequence": "Порушено порядок передавання. Отриману частину збережено.",
@@ -21,6 +22,13 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "liveArchive.empty": "Тут з'являться записи твоїх ефірів.",
 
+  "liveArchive.play": "Прослухати",
+  "liveArchive.stop": "Зупинити",
+  "liveArchive.remove": "Видалити запис",
+  "liveArchive.removeAsk": "Видалити запис ефіру? Випуск у подкастах залишиться.",
+  "liveArchive.removeYes": "Видалити",
+  "liveArchive.removeNo": "Скасувати",
+  "liveArchive.removed": "Запис видалено",
   "liveArchive.download": "Завантажити запис",
 
   "liveArchive.retryAction": "Повторити обробку",

@@ -7,6 +7,7 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "err.liveRecorder": "Pentru transmisie ai nevoie de un browser cu înregistrare WebM/Opus. Actualizează Windows WebView2.",
 
+  "err.liveActive": "Transmisiunea este încă în desfășurare. Oprește-o înainte de a șterge înregistrarea.",
   "err.liveLimit": "Ai atins limita emisiunii: până la 8 ore sau 1 GiB de sunet primit.",
 
   "err.liveSequence": "Ordinea transmisiei a fost întreruptă. Partea primită a fost salvată.",
@@ -21,6 +22,13 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "liveArchive.empty": "Aici vor apărea înregistrările emisiunilor tale.",
 
+  "liveArchive.play": "Ascultă",
+  "liveArchive.stop": "Oprește",
+  "liveArchive.remove": "Șterge înregistrarea",
+  "liveArchive.removeAsk": "Ștergi înregistrarea? Episodul din podcasturi rămâne.",
+  "liveArchive.removeYes": "Șterge",
+  "liveArchive.removeNo": "Anulează",
+  "liveArchive.removed": "Înregistrare ștearsă",
   "liveArchive.download": "Descarcă înregistrarea",
 
   "liveArchive.retryAction": "Reia procesarea",

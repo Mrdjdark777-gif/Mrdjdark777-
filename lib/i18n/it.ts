@@ -7,6 +7,7 @@ export const it: Record<keyof typeof ru, string> = {
 
   "err.liveRecorder": "La diretta richiede WebM/Opus. Aggiorna Windows WebView2.",
 
+  "err.liveActive": "La diretta è ancora in corso. Fermala prima di eliminare la registrazione.",
   "err.liveLimit": "Limite raggiunto: 8 ore o 1 GiB di audio in ingresso.",
 
   "err.liveSequence": "Ordine di invio non valido. La parte ricevuta è conservata.",
@@ -21,6 +22,13 @@ export const it: Record<keyof typeof ru, string> = {
 
   "liveArchive.empty": "Le registrazioni delle tue dirette appariranno qui.",
 
+  "liveArchive.play": "Ascolta",
+  "liveArchive.stop": "Ferma",
+  "liveArchive.remove": "Elimina registrazione",
+  "liveArchive.removeAsk": "Eliminare la registrazione? La puntata nei podcast resta.",
+  "liveArchive.removeYes": "Elimina",
+  "liveArchive.removeNo": "Annulla",
+  "liveArchive.removed": "Registrazione eliminata",
   "liveArchive.download": "Scarica registrazione",
 
   "liveArchive.retryAction": "Riprova elaborazione",

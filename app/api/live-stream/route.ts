@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {existsSync,mkdirSync,readFileSync,renameSync,writeFileSync,statfsSync} from 'node:fs';
+import {existsSync,mkdirSync,readFileSync,renameSync,rmSync,writeFileSync,statfsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {eq,and,gt,desc} from 'drizzle-orm';
@@ -37,6 +37,18 @@ export async function GET(req:Request){try{
 export async function POST(req:Request){try{
  await requireOwner(req);const q=new URL(req.url).searchParams,id=q.get('id')||'';
  if(!liveId(id))throw new Error('#err.notFound');
+ // Удаление записи эфира. Убираем только саму запись и её рабочие файлы:
+ // выпуск в подкастах — отдельная сущность, его автор удаляет в библиотеке, и
+ // трогать его звук отсюда нельзя. Идущий эфир не удаляем: сначала остановить.
+ if(q.has('remove')){
+  const db=getDb();
+  const row=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();
+  if(!row)throw new Error('#err.notFound');
+  if(row.state==='receiving')throw new Error('#err.liveActive');
+  await db.delete(liveRecordings).where(eq(liveRecordings.id,id)).run();
+  rmSync(path.join(/*turbopackIgnore: true*/ liveRoot(),id),{recursive:true,force:true});
+  return result({ok:true});
+ }
  if(q.has('retry')){const db=getDb();const row=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();if(row?.state!=='failed'||!row.nextSequence)throw new Error('#err.liveSequence');await db.update(liveRecordings).set({state:'closing',error:null}).where(and(eq(liveRecordings.id,id),eq(liveRecordings.state,'failed')));return result({ok:true});}
  const seq=Number(q.get('seq'));if(!Number.isSafeInteger(seq)||seq<0||seq>=14400)throw new Error('#err.liveLimit');
  if(!req.body)throw new Error('#err.uploadEmpty');

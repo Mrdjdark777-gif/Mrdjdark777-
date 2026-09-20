@@ -1899,3 +1899,41 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .listener-main .voice-head{gap:16px;margin-bottom:16px}
 .listener-main .catalog-tools{margin:16px 0}
 .listener-main .post-list{gap:16px}
+
+/* ----------------------------------------------------------------------------
+   Студия, экран эфира: главное — крупнее.
+
+   Название эфира, загрузка обложки и проверка голоса — то, чем автор
+   пользуется перед каждым включением, и они были одного размера со
+   второстепенными подписями. Панель подготовки тоже стала шире: на мониторе
+   места вдоволь, а она жалась к половине экрана.
+   -------------------------------------------------------------------------- */
+@media(min-width:1100px){
+ .main-content:not(.listener-main) .live-layout{grid-template-columns:minmax(0,1fr) 340px;gap:28px}
+ .main-content:not(.listener-main) .live-main-panel{padding:28px 30px;gap:20px}
+ /* Название эфира */
+ .main-content:not(.listener-main) .live-main-panel>.field:first-of-type{font-size:15px}
+ .main-content:not(.listener-main) .live-main-panel>.field:first-of-type input{
+  min-height:56px;font-size:19px;padding:14px 18px}
+ /* Обложка эфира */
+ .main-content:not(.listener-main) .cover-picker .secondary-button{min-height:52px;font-size:15px}
+ .main-content:not(.listener-main) .live-cover-preview{max-width:180px}
+ /* Проверка голоса */
+ .main-content:not(.listener-main) .signal-console{padding:18px 20px}
+ .main-content:not(.listener-main) .signal-console .signal-label{font-size:13px}
+ .main-content:not(.listener-main) .signal-console .waveform{height:104px}
+ .main-content:not(.listener-main) .signal-head span{font-size:13px;letter-spacing:.12em}
+ .main-content:not(.listener-main) .signal-head strong{font-size:15px}
+ .main-content:not(.listener-main) .live-main-panel .primary-button,
+ .main-content:not(.listener-main) .live-main-panel .secondary-button{min-height:50px;font-size:15px}
+}
+
+/* Записи эфиров: у каждой строки свои действия — прослушать, скачать, удалить. */
+.live-archives article{gap:10px 14px}
+.live-archives article>strong{flex:1 1 220px;min-width:0}
+.archive-actions,.archive-ask{display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex:0 0 auto!important}
+.archive-actions button,.archive-actions a{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.archive-ask{color:#d7cfc9!important}
+.archive-ask button{color:#54d8bf;white-space:nowrap}
+.live-archives .archive-danger{color:#ff9e8e}
+.live-archives .archive-danger:disabled{opacity:.4}

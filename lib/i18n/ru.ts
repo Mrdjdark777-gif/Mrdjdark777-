@@ -6,6 +6,7 @@ export const ru = {
 
   "err.liveRecorder": "Для передачи эфира нужен браузер с записью WebM/Opus. Обнови Windows WebView2.",
 
+  "err.liveActive": "Эфир ещё идёт. Сначала останови его, потом удаляй запись.",
   "err.liveLimit": "Достигнут лимит эфира: до 8 часов или 1 ГиБ входящего звука.",
 
   "err.liveSequence": "Нарушен порядок передачи. Полученная часть сохранена.",
@@ -20,6 +21,13 @@ export const ru = {
 
   "liveArchive.empty": "Здесь появятся записи твоих эфиров.",
 
+  "liveArchive.play": "Прослушать",
+  "liveArchive.stop": "Остановить",
+  "liveArchive.remove": "Удалить запись",
+  "liveArchive.removeAsk": "Удалить запись эфира? Выпуск в подкастах останется.",
+  "liveArchive.removeYes": "Удалить",
+  "liveArchive.removeNo": "Отмена",
+  "liveArchive.removed": "Запись удалена",
   "liveArchive.download": "Скачать запись",
 
   "liveArchive.retryAction": "Повторить обработку",

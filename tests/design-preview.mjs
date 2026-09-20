@@ -826,6 +826,19 @@ try{
      const r=c?.getBoundingClientRect();return i&&r&&i.naturalWidth?Math.abs(r.width/r.height-i.naturalWidth/i.naturalHeight):null;});
     if(shape!==null&&shape>0.06)problems.push('видео: рамка обложки не совпала с картинкой, расхождение '+shape.toFixed(2));
    }
+   if(v==='live'){
+    // Три главных органа экрана эфира — название, загрузка обложки и проверка
+    // голоса — должны быть заметно крупнее второстепенных подписей: автор
+    // трогает их перед каждым включением.
+    const live=await fit.evaluate(()=>{const b=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();
+      return{h:Math.round(r.height),шрифт:Math.round(parseFloat(getComputedStyle(e).fontSize))};};
+     return{название:b('.live-main-panel>.field input'),обложка:b('.cover-picker .secondary-button'),
+      голос:b('.signal-console .waveform'),
+     };});
+    if(!live.название||live.название.h<54||live.название.шрифт<18)problems.push('студия, эфир: поле названия мелкое — '+JSON.stringify(live.название));
+    if(!live.обложка||live.обложка.h<48)problems.push('студия, эфир: кнопка обложки мелкая — '+JSON.stringify(live.обложка));
+    if(!live.голос||live.голос.h<90)problems.push('студия, эфир: проверка голоса мелкая — '+JSON.stringify(live.голос));
+   }
    if(v==='home'){
     const grid=await fit.evaluate(()=>{
      const box=el=>{const r=el.getBoundingClientRect();return [Math.round(r.left),Math.round(r.right)];};
