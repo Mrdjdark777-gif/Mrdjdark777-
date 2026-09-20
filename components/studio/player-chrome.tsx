@@ -8,6 +8,7 @@ import {clock,haptic} from '@/lib/client';
 import type {Presentation} from '@/lib/player-presentation';
 import {pushBackLayer,BACK_MENU,BACK_PLAYER} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
+import {swipeAxis,swipeCloses,swipeFade} from '@/lib/swipe';
 
 /**
  * Внешний вид плеера выпусков — один на оба плеера, веб и нативный. Сами они
@@ -41,6 +42,7 @@ const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
  const {t}=useT();
  const [menu,setMenu]=useState(false);
+ const [swipe,setSwipe]=useState({x:0});
  const moreRef=useRef<HTMLButtonElement>(null),menuRef=useRef<HTMLDivElement>(null);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
  const type=view.presentation==='type',archive=view.presentation==='archive';
@@ -73,7 +75,35 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  const toggle=<button className="podcast-toggle" aria-label={view.playing?t('player.pause'):t('player.play')} disabled={view.loading&&!view.playing&&!view.seekable} onClick={act.toggle}>{view.loading?<Loader2 className="spin" size={22}/>:view.playing?<Pause size={23} fill="currentColor"/>:<Play size={23} fill="currentColor"/>}</button>;
  const art=<Artwork className="podcast-player-logo" src={view.cover} fallback={<img className="podcast-player-logo" src="/brand/logo.png?v=0.4.1" alt=""/>}/>;
  const tactile=(event:React.MouseEvent<HTMLElement>)=>{if((event.target as Element).closest('button:not(:disabled),a[href]'))haptic();};
- if(!expanded)return <section className="podcast-player is-mini" onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
+ // Смахивание мини-панели в сторону закрывает плеер. Жест начинается только
+ // при заметно горизонтальном движении, иначе обычная прокрутка страницы
+ // пальцем поперёк панели утаскивала бы её за собой. Пороги и затухание
+ // считает lib/swipe — их проверяет отдельный тест, без браузера.
+ // Сдвиг хранится в ref, а не в состоянии: touchend может прийти раньше, чем
+ // React перерисует последний touchmove, и обработчик закрытия прочитал бы
+ // старое значение — жест «срабатывал» бы через раз.
+ const swipeFrom=useRef<{x:number;y:number;dx:number;axis:'horizontal'|'vertical'|'none'}|null>(null);
+ const swipeStart=(event:React.TouchEvent)=>{
+  const touch=event.touches[0];
+  swipeFrom.current={x:touch.clientX,y:touch.clientY,dx:0,axis:'none'};
+  setSwipe({x:0});
+ };
+ const swipeMove=(event:React.TouchEvent)=>{
+  const from=swipeFrom.current;if(!from)return;
+  const touch=event.touches[0],dx=touch.clientX-from.x,dy=touch.clientY-from.y;
+  if(from.axis==='none')from.axis=swipeAxis(dx,dy);
+  if(from.axis!=='horizontal')return;
+  from.dx=dx;setSwipe({x:dx});
+ };
+ const swipeEnd=()=>{
+  const from=swipeFrom.current;swipeFrom.current=null;
+  setSwipe({x:0});
+  if(from?.axis==='horizontal'&&swipeCloses(from.dx,window.innerWidth)){haptic();act.close();}
+ };
+ if(!expanded)return <section className={'podcast-player is-mini'+(swipe.x?' is-swiping':'')}
+  style={swipe.x?{transform:'translateX('+swipe.x+'px)',opacity:swipeFade(swipe.x,window.innerWidth)}:undefined}
+  onTouchStart={swipeStart} onTouchMove={swipeMove} onTouchEnd={swipeEnd} onTouchCancel={swipeEnd}
+  onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
   {children}
   <button type="button" className="mini-open" aria-label={t('player.expand')} onClick={()=>onExpand(true)}>{art}<span className="podcast-player-title"><strong>{view.title}</strong><span className="podcast-clock">{clock(view.position)} / {view.duration>0?clock(view.duration):'--:--'}</span></span></button>
   {toggle}

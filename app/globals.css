@@ -1866,3 +1866,9 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
   flex:1 1 auto;align-self:center;min-height:118px;width:auto;height:auto;aspect-ratio:1;
   max-width:min(74vw,290px);max-height:min(74vw,290px)}
 }
+
+/* Мини-панель плеера закрывается смахиванием в сторону. Палец ведёт её за
+   собой, отпущенная — возвращается на место или уезжает совсем. pan-y нужен,
+   чтобы горизонтальное движение доставалось жесту, а вертикальное — странице. */
+.podcast-player.is-mini{touch-action:pan-y;transition:transform 180ms ease,opacity 180ms ease}
+.podcast-player.is-mini.is-swiping{transition:none}
