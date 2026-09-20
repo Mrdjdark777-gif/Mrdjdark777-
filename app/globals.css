@@ -1821,3 +1821,25 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .listener-main .live-stage.is-live .live-rings{width:min(46vw,176px);height:min(46vw,176px)}
  .listener-main .live-stage.is-live .live-stage-sub{display:none}
 }
+
+/* ----------------------------------------------------------------------------
+   Экран эфира не прокручивается вовсе.
+
+   Высоту свободного места считает сам экран (--tt-live-space): шапка и панель
+   навигации у разных телефонов разной высоты, а при крупном системном шрифте
+   ещё и растут, поэтому вычесть их в CSS одним числом нельзя. Страница
+   фиксируется по этой высоте, а круг забирает остаток: он ужимается, пока
+   карточки и кнопки помещаются целиком.
+   -------------------------------------------------------------------------- */
+/* Только телефоны и планшеты: на мониторе высоты вдоволь, адресная строка
+   ничего не двигает, и круг там намеренно крупнее. */
+@media(max-width:1023px){
+ body.tt-live-locked{overflow:hidden;overscroll-behavior:none}
+ body.tt-live-locked .listener-main[data-view=live]{
+  height:var(--tt-live-space)!important;min-height:0!important;overflow:hidden}
+ body.tt-live-locked .listener-main[data-view=live] .live-layout,
+ body.tt-live-locked .listener-main[data-view=live] .live-main-panel,
+ body.tt-live-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
+ body.tt-live-locked .listener-main[data-view=live] .live-rings{
+  flex:1 1 auto;min-height:150px;width:auto;height:auto;aspect-ratio:1;max-width:min(74vw,290px)}
+}

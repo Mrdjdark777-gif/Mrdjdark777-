@@ -266,8 +266,17 @@ try{
   // должно даже когда адресная строка браузера съедает часть высоты.
   for(const [w,h] of [[412,915],[390,760]]){
    await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
-   const over=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight);
-   if(over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+over+'px');
+   const fit=await page.evaluate(()=>{
+    const last=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
+    const nav=document.querySelector('.bottom-nav');
+    return {over:document.documentElement.scrollHeight-innerHeight,
+     locked:document.body.classList.contains('tt-live-locked'),
+     tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0};});
+   if(fit.over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+fit.over+'px');
+   if(!fit.locked)problems.push('эфир '+w+'x'+h+': прокрутка не заблокирована');
+   // Прокрутки нет — значит нижняя плашка обязана быть видна, а не уехать
+   // под панель навигации.
+   if(fit.tail>0)problems.push('эфир '+w+'x'+h+': нижняя плашка уходит под навигацию на '+fit.tail+'px');
    // Симметрия: архив и поддержка — одна плашка по размеру.
    const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
      b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
