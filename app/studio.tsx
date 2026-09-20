@@ -30,7 +30,7 @@ import {api,clock,parseClock,errorText,haptic,coverSrc} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
 import {APP_RELEASE} from '@/lib/app-release';
 import {AndroidMark} from '@/components/studio/android-mark';
-import {markSeen} from '@/lib/seen-posts';
+import {markSeen,readSeen} from '@/lib/seen-posts';
 import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
 import {useT} from '@/components/i18n-provider';
@@ -55,6 +55,9 @@ export default function Studio(){
  const [discardText,setDiscardText]=useState(false);
  const [data,setData]=useState<Data|null>(null),[error,setError]=useState(''),[view,setView]=useState('home'),[audience,setAudience]=useState(false);
  const [archiveOpen,setArchiveOpen]=useState(false),[archiveQuery,setArchiveQuery]=useState('');
+ // Что слушатель уже открывал. Карточка нового выпуска после этого уходит:
+ // висеть «новым» тем, что уже слушали, она не должна.
+ const [seen,setSeen]=useState<string[]>([]);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[filter,setFilter]=useState('published'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[archiveOnly,setArchiveOnly]=useState(false),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false),[videoDuration,setVideoDuration]=useState(''),[calmFile,setCalmFile]=useState<File|null>(null),[calmPreview,setCalmPreview]=useState(''),[calmMissing,setCalmMissing]=useState(false);
  // Картинка круга покоя живёт под одним адресом, поэтому в ссылку идёт версия:
  // иначе браузер и WebView показывают прежнюю, пока не истечёт их кэш.
@@ -65,6 +68,9 @@ export default function Studio(){
  const [shellOpen,setShellOpen]=useState(false);
  const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
+ useEffect(()=>{const update=()=>setSeen(readSeen());update();
+  window.addEventListener('tt-seen',update);
+  return()=>window.removeEventListener('tt-seen',update);},[]);
  // У слушателя страница не прокручивается сама: приложение становится
  // колонкой высотой в окно, а прокручивается только содержимое раздела. Так
  // исчезает «резиновая» прокрутка на пару десятков пикселей там, где всё и
@@ -258,7 +264,7 @@ export default function Studio(){
   sections={[{kind:'podcast',label:t('nav.podcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),go:()=>goto('stories')}]}/>}
  {(view==='podcasts'||view==='stories'||view==='videos')&&<>
  {!author&&view==='podcasts'&&<VoiceHeader haptic={haptic}
-  latest={(()=>{const fresh=visible.filter(p=>p.kind==='podcast').sort((a,b)=>b.createdAt-a.createdAt)[0];return fresh?{id:fresh.id,title:fresh.title,duration:fresh.duration}:null;})()}
+  latest={(()=>{const fresh=visible.filter(p=>p.kind==='podcast'&&!seen.includes(p.id)).sort((a,b)=>b.createdAt-a.createdAt)[0];return fresh?{id:fresh.id,title:fresh.title,duration:fresh.duration}:null;})()}
   onOpen={episode=>{const post=(data?.items??[]).find(p=>p.id===episode.id);if(post)openPost(post);}}/>}
  {!author&&view==='podcasts'&&heartLink&&<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>}
  {!author&&<div className="catalog-tools"><label className="catalog-search"><Search size={18}/><input type="search" value={query} placeholder={t('catalog.search')} aria-label={t('catalog.search')} onChange={e=>setQuery(e.target.value)}/></label><select className="catalog-sort" aria-label={t('catalog.sortAria')} value={sort} onChange={e=>setSort(e.target.value as 'new'|'old')}><option value="new">{t('catalog.sortNew')}</option><option value="old">{t('catalog.sortOld')}</option></select>{view==='podcasts'&&<div className="catalog-scope" role="group" aria-label={t('nav.podcasts')}><button type="button" data-active={!archiveOnly} onClick={()=>{haptic();setArchiveOnly(false);}}>{t('catalog.allEpisodes')}</button><button type="button" data-active={archiveOnly} onClick={()=>{haptic();setArchiveOnly(true);}}>{t('catalog.onlyArchive')}</button></div>}</div>}

@@ -202,6 +202,34 @@ try{
   if(!s.замок)problems.push('раздел «'+view+'»: колонка в окно не включена');
   if(s.прокручивается!=='auto')problems.push('раздел «'+view+'»: содержимое не прокручивается само ('+s.прокручивается+')');
  }
+ // Карточка нового выпуска уходит, как только его открыли: висеть «новым»
+ // тем, что уже слушали, она не должна. И ритм каталога ровный — один и тот
+ // же промежуток между блоками, без «почти одинаковых» 14 и 18.
+ {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);
+  // Выпуски выше по сценарию уже открывались, а открытый выпуск карточкой
+  // «нового» больше не показывается — чистим отметку, иначе проверять нечего.
+  await page.evaluate(()=>{try{localStorage.removeItem('tt-seen-v1');}catch{}});
+  await page.reload();await settle(page);await page.waitForTimeout(300);
+  const gaps=()=>page.evaluate(()=>{
+   const sel=['.voice-headline','.voice-card','.listener-main .support-strip','.catalog-tools','.post-list'];
+   const out=[];let prev=null;
+   for(const s of sel){const e=document.querySelector(s);if(!e)continue;const r=e.getBoundingClientRect();
+    if(prev!==null)out.push(Math.round(r.top-prev));prev=r.bottom;}
+   return out;});
+  const rhythm=await gaps();
+  const bad=rhythm.filter(g=>Math.abs(g-16)>2);
+  if(bad.length)problems.push('каталог: промежутки между блоками разъехались — '+rhythm.join(', '));
+  if(await page.locator('.voice-card').count()){
+   const was=await page.locator('.voice-card-title').textContent();
+   await page.locator('.voice-card').click();await page.waitForTimeout(1200);
+   await page.evaluate(()=>{const c=document.querySelector('.player-collapse');if(c)c.click();});
+   await page.waitForTimeout(800);
+   // Выпуск, который уже открыли, «новым» больше не предлагается: карточка
+   // либо показывает следующий непрослушанный, либо исчезает совсем.
+   const now=await page.locator('.voice-card').count()?await page.locator('.voice-card-title').textContent():'';
+   if(now===was)problems.push('карточка нового выпуска предлагает тот же выпуск после прослушивания: «'+now+'»');
+  }else problems.push('каталог: карточки нового выпуска нет вовсе');
+  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
  // Обложка в списке у слушателя — наш стандарт 4:5 и целиком, без подрезки.
  // Место под неё подобрано так, чтобы при этой пропорции её высота совпадала
  // с высотой текста: иначе под обложкой остаётся дыра.
