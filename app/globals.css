@@ -1651,7 +1651,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .breath-guide span:first-child{opacity:1}}
 
 /* Картинка круга покоя квадратная: круг вырезается из её середины. */
-.calm-art-preview{aspect-ratio:1/1;max-width:180px}
+.calm-art-preview{aspect-ratio:1/1;max-width:132px}
 
 /* ----------------------------------------------------------------------------
    Круг — студийная лампа: ON AIR / OFF AIR.
@@ -1885,13 +1885,20 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .podcast-player.is-mini{touch-action:pan-y;transition:transform 180ms ease,opacity 180ms ease}
 .podcast-player.is-mini.is-swiping{transition:none}
 
-/* Обложка в списке у слушателя занимает всю высоту карточки. Прежде она
-   держала пропорцию 4:5 и висела вверху, а под ней оставалась дыра: текст
-   почти всегда выше. В студии автора всё наоборот — там обложка показывается
-   целиком, и правило это не трогает.
+/* Карточки настроек в студии выравниваются по высоте ряда. С align-items:start
+   каждая была своей высоты, и следующий ряд начинался с рваного уступа —
+   «Твои площадки» висели отдельно от остальных. */
+.main-content:not(.listener-main) .settings-grid{align-items:stretch}
+
+/* Обложка в списке у слушателя — наш стандарт 4:5 и целиком, без подрезки.
+   Колонка под неё шире прежней, чтобы при этой пропорции её высота совпадала
+   с высотой текста: раньше узкая колонка давала низкую обложку и под ней
+   оставалась дыра. Остаток высоты, если он есть, делится поровну сверху и
+   снизу — обложка стоит по центру карточки, а не висит вверху.
 
    Картинка растянута по рамке абсолютно, а не высотой в процентах: процент от
    родителя без заданной высоты превращается в auto, и карточка раздувалась бы
    по высоте самой картинки. */
-.listener-main .post-cover{align-self:stretch;aspect-ratio:auto;min-height:0}
-.listener-main .post-cover-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.listener-main .post-cover{align-self:center;aspect-ratio:4/5;width:150px;min-height:0;background:var(--surface-2)}
+.listener-main .post-cover-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+@media(max-width:767px){.listener-main .post-cover{width:138px}}
