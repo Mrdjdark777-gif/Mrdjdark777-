@@ -60,6 +60,10 @@ try{
  // Запись эфира: тот же настоящий файл под ключом, который даёт воркер эфира.
  // По нему видно S06 — круглую обложку с кольцом прогресса.
  const {copyFile}=await import('node:fs/promises');
+ // Ещё один настоящий выпуск подкаста — чтобы у типографического S04 был
+ // следующий: записи эфиров в цепочку «Далее» больше не входят.
+ await post({kind:'podcast',title:'Первый маршрут',description:'Ранний выпуск.',audioKey:await audioUpload(),duration:seconds,published:true,coverKey:await demoCover('tile-forest.jpg')});
+ await new Promise(resolve=>setTimeout(resolve,5));
  const archiveKey='audio/live-'+crypto.randomUUID();
  for(const suffix of ['','.meta.json'])await copyFile(path.join(env.STORAGE_DIR,key+suffix),path.join(env.STORAGE_DIR,archiveKey+suffix));
  const archived=await post({kind:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
@@ -148,9 +152,11 @@ try{
  await page.goto(base+'/?mode=listen&view=podcasts&post='+plain.id);await settle(page);await page.locator('.podcast-player.is-type').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>document.querySelector('.podcast-player audio')?.pause());await page.waitForTimeout(400);await shot(page,'player-type');
- assert.equal(await page.locator('.player-next').count(),1,'S04 has a real next episode');
- await page.locator('.player-next').click();await page.locator('.podcast-player.is-archive').waitFor();
- assert.equal(await page.locator('.player-title').innerText(),'Истории после заката','Next loads the next published episode');
+ // «Далее» идёт по выпускам подкаста. Записи эфиров в эту цепочку больше не
+ // входят: эфир и подкаст — разные разделы, и запись живёт в архиве эфиров.
+ assert.equal(await page.locator('.player-next').count(),1,'у выпуска есть следующий выпуск подкаста');
+ await page.locator('.player-next').click();await page.waitForTimeout(700);
+ assert.equal(await page.locator('.player-title').innerText(),'Первый маршрут','«Далее» открывает следующий выпуск подкаста, а не запись эфира');
  // Запись эфира: круглая обложка с кольцом прогресса.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+archived.id);await settle(page);await page.locator('.podcast-player.is-archive').waitFor();
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
@@ -202,6 +208,24 @@ try{
   if(!s.замок)problems.push('раздел «'+view+'»: колонка в окно не включена');
   if(s.прокручивается!=='auto')problems.push('раздел «'+view+'»: содержимое не прокручивается само ('+s.прокручивается+')');
  }
+ // Эфир и подкаст — разные разделы: запись эфира в каталоге подкастов не
+ // показывается ни слушателю, ни автору, и живёт только в архиве эфиров.
+ {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(300);
+  const names=await page.evaluate(()=>[...document.querySelectorAll('.post-title')].map(e=>e.textContent.trim()));
+  if(names.includes('Истории после заката'))problems.push('запись эфира попала в каталог подкастов: '+names.join(', '));
+  if(await page.locator('.catalog-scope').count())problems.push('в каталоге остался переключатель записей эфиров');
+  await page.goto(base+'/?mode=listen&view=live');await settle(page);await page.waitForTimeout(250);
+  await page.locator('.live-archive-card').click();await page.waitForTimeout(400);
+  const archive=await page.evaluate(()=>{const row=document.querySelector('.live-archive-row');
+   if(!row)return null;return{обложка:!!row.querySelector('.live-archive-art img'),
+    строка:row.textContent.trim(),длительность:/\d+:\d\d/.test(row.textContent)};});
+  if(!archive)problems.push('архив эфиров пуст, хотя запись есть');
+  else{
+   if(!archive.обложка)problems.push('в архиве эфиров нет обложки записи');
+   if(!archive.длительность)problems.push('в архиве эфиров не видно длительности: «'+archive.строка+'»');
+  }
+  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
+
  // Карточка нового выпуска уходит, как только его открыли: висеть «новым»
  // тем, что уже слушали, она не должна. И ритм каталога ровный — один и тот
  // же промежуток между блоками, без «почти одинаковых» 14 и 18.

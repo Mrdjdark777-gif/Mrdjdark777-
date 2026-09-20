@@ -1,0 +1,1 @@
+ALTER TABLE `broadcasts` ADD `description` text DEFAULT '' NOT NULL;

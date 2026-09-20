@@ -1,7 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Play,Pause,Download,Trash2,RotateCcw} from 'lucide-react';
-import {api,errorText} from '@/lib/client';
+import {Play,Pause,Download,Trash2,RotateCcw,Pencil} from 'lucide-react';
+import {api,clock,errorText} from '@/lib/client';
+import {Artwork} from './artwork';
 import {useT} from '@/components/i18n-provider';
 import {toast} from 'sonner';
 
@@ -14,8 +15,8 @@ import {toast} from 'sonner';
  * сущность: он остаётся, и удалять его автор идёт в библиотеку. Прослушать
  * можно только то, у чего этот выпуск ещё есть, — играем именно его звук.
  */
-type Row={id:string;title:string;state:string;postId:string|null};
-export function LiveArchives(){
+type Row={id:string;title:string;state:string;postId:string|null;createdAt:number;duration:number;cover:boolean;description:string};
+export function LiveArchives({onEdit}:{onEdit?:(postId:string)=>void}){
  const {t}=useT(),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState('');
  const [playing,setPlaying]=useState(''),[asking,setAsking]=useState('');
  const audio=useRef<HTMLAudioElement|null>(null);
@@ -45,8 +46,15 @@ export function LiveArchives(){
   {error&&<p role="alert">{error}</p>}
   {!rows.length&&<p>{t('liveArchive.empty')}</p>}
   {rows.map(row=><article key={row.id}>
-   <strong>{row.title}</strong>
-   <span role="status">{labels[row.state]||row.state}</span>
+   {/* Обложка, название и длительность — то же, что видит слушатель. */}
+   <span className="archive-cover">
+    <Artwork src={row.cover?'/api/cover?id='+encodeURIComponent(row.postId??'')+'&v='+row.id:undefined}
+     fallback={<img src="/brand/logo.png?v=0.4.1" width="40" height="40" alt=""/>} alt=""/>
+   </span>
+   <span className="archive-copy">
+    <strong>{row.title}</strong>
+    <span className="archive-meta">{labels[row.state]||row.state}{row.duration>0?' · '+clock(row.duration):''}</span>
+   </span>
    {asking===row.id
     ?<span className="archive-ask">{t('liveArchive.removeAsk')}
       <button type="button" className="archive-danger" disabled={busy===row.id} onClick={()=>void remove(row.id)}>{t('liveArchive.removeYes')}</button>
@@ -56,6 +64,7 @@ export function LiveArchives(){
       {row.state==='ready'&&row.postId&&<button type="button" onClick={()=>listen(row)} aria-label={playing===row.id?t('liveArchive.stop'):t('liveArchive.play')} title={playing===row.id?t('liveArchive.stop'):t('liveArchive.play')}>
        {playing===row.id?<Pause size={15}/>:<Play size={15}/>}{playing===row.id?t('liveArchive.stop'):t('liveArchive.play')}</button>}
       {row.state==='ready'&&row.postId&&<a href={'/api/audio?id='+row.postId} download={'True-Thrills-'+row.id+'.m4a'}><Download size={15}/>{t('liveArchive.download')}</a>}
+      {row.state==='ready'&&row.postId&&onEdit&&<button type="button" onClick={()=>onEdit(row.postId!)}><Pencil size={15}/>{t('liveArchive.edit')}</button>}
       {row.state==='failed'&&<button type="button" disabled={busy===row.id} onClick={()=>void retry(row.id)}><RotateCcw size={15}/>{t('liveArchive.retryAction')}</button>}
       <button type="button" className="archive-danger" disabled={busy===row.id||row.state==='receiving'} onClick={()=>setAsking(row.id)}
        aria-label={t('liveArchive.remove')} title={t('liveArchive.remove')}><Trash2 size={15}/>{t('liveArchive.remove')}</button>

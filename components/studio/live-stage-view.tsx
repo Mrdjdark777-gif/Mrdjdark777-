@@ -16,10 +16,10 @@ import {Artwork} from './artwork';
 /** Сколько колец рисуем вокруг знака эфира. */
 const RINGS=8;
 
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive,volume}:{
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive,volume,about=''}:{
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmSrc?:string;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
- archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;
+ archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;about?:string;
 }){
  const {t}=useT();
  const stage=liveStage({onAir,joined,phase});
@@ -78,6 +78,9 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   {/* Без эфира строка молчит: в круге горит OFF AIR, и человек стоит во
       вкладке «Эфир» — повторять это словами незачем. */}
   {(status||stage!=='offline')&&<p className="live-stage-sub">{status||note}</p>}
+  {/* О чём эфир — словами автора. Показываем, только когда эфир есть: у
+      отсутствующего эфира описания не бывает. */}
+  {about&&stage!=='offline'&&<p className="live-stage-about">{about}</p>}
   {elapsed&&stage==='playing'&&<p className="live-stage-clock"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></p>}
 
   {action!=='none'&&<button type="button" className="live-cta tt-pressable" disabled={action==='busy'}

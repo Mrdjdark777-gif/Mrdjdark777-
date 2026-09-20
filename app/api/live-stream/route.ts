@@ -10,7 +10,15 @@ import {liveId,liveRoot} from '@/lib/live-recording';
 export const runtime='nodejs';
 export async function GET(req:Request){try{
  const q=new URL(req.url).searchParams,id=q.get('id')||'',db=getDb();
- if(q.has('list')){await requireOwner(req);return result({recordings:await db.select().from(liveRecordings).orderBy(desc(liveRecordings.createdAt)).limit(25).all()});}
+ // Список записей для студии. К самой записи подтягиваем выпуск: автору нужны
+ // обложка, длительность и описание — то же, что видит слушатель в архиве.
+ if(q.has('list')){await requireOwner(req);
+  const rows=await db.select({id:liveRecordings.id,title:liveRecordings.title,state:liveRecordings.state,
+   postId:liveRecordings.postId,createdAt:liveRecordings.createdAt,
+   duration:posts.duration,cover:posts.coverKey,description:posts.description})
+   .from(liveRecordings).leftJoin(posts,eq(posts.id,liveRecordings.postId))
+   .orderBy(desc(liveRecordings.createdAt)).limit(25).all();
+  return result({recordings:rows.map(r=>({...r,cover:!!r.cover,duration:r.duration??0,description:r.description??''}))});}
  if(!liveId(id))return result({error:'#err.notFound'},404);
  const recording=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();
  if(!recording)return result({error:'#err.notFound'},404);

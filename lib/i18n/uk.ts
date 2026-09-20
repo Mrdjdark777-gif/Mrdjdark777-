@@ -29,6 +29,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "liveArchive.removeYes": "Видалити",
   "liveArchive.removeNo": "Скасувати",
   "liveArchive.removed": "Запис видалено",
+  "liveArchive.edit": "Змінити",
   "liveArchive.download": "Завантажити запис",
 
   "liveArchive.retryAction": "Повторити обробку",
@@ -175,8 +176,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "voice.headline": "Ближче до голосу",
   "voice.kicker": "Дикі, справжні, чесні історії",
   "voice.newEpisode": "новий епізод",
-  "catalog.allEpisodes": "Усі випуски",
-  "catalog.onlyArchive": "Записи ефірів",
   "catalog.sortOld": "Спочатку старі",
   "catalog.sortAria": "Порядок",
   "catalog.nothingFound": "Нічого не знайдено",
@@ -302,6 +301,8 @@ export const uk: Record<keyof typeof ru, string> = {
 
   "live.pickSource": "Перевір мікрофон і рівень — і в ефір.",
 
+  "live.noteField": "Опис ефіру",
+  "live.notePlaceholder": "Про що поговоримо. Слухач побачить це на екрані ефіру, а потім — в описі запису.",
   "live.titleField": "Назва ефіру",
 
   "live.coverField": "Обкладинка ефіру",

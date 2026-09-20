@@ -10,6 +10,9 @@ export const broadcasts = sqliteTable('broadcasts', {
   id: text('id').primaryKey(), title: text('title').notNull(), ownerId: text('owner_id').notNull(),
   heartbeat: integer('heartbeat').notNull(), active: integer('active').notNull().default(1),
   coverKey: text('cover_key'),
+  // Описание эфира: слушатель видит его на экране эфира, а после окончания оно
+  // переходит в описание записи — рассказывать, о чём был эфир, нужно один раз.
+  description: text('description').notNull().default(''),
 });
 export const peers = sqliteTable('peers', {
   id: text('id').primaryKey(), broadcastId: text('broadcast_id').notNull(), tokenHash: text('token_hash').notNull(),

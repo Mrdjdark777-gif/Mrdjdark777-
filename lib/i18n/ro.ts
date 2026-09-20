@@ -29,6 +29,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "liveArchive.removeYes": "Șterge",
   "liveArchive.removeNo": "Anulează",
   "liveArchive.removed": "Înregistrare ștearsă",
+  "liveArchive.edit": "Modifică",
   "liveArchive.download": "Descarcă înregistrarea",
 
   "liveArchive.retryAction": "Reia procesarea",
@@ -175,8 +176,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "voice.headline": "Mai aproape de voce",
   "voice.kicker": "Povești sălbatice, reale, oneste",
   "voice.newEpisode": "episod nou",
-  "catalog.allEpisodes": "Toate episoadele",
-  "catalog.onlyArchive": "Înregistrări live",
   "catalog.sortOld": "Întâi cele vechi",
   "catalog.sortAria": "Ordine",
   "catalog.nothingFound": "Nimic găsit",
@@ -302,6 +301,8 @@ export const ro: Record<keyof typeof ru, string> = {
 
   "live.pickSource": "Verifică microfonul și nivelul, apoi intră în direct.",
 
+  "live.noteField": "Descrierea transmisiunii",
+  "live.notePlaceholder": "Despre ce vei vorbi. Ascultătorul vede asta în direct, apoi în descrierea înregistrării.",
   "live.titleField": "Titlul emisiunii",
 
   "live.coverField": "Coperta emisiunii",

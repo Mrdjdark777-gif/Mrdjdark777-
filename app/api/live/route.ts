@@ -6,7 +6,7 @@ import { liveRecordings, broadcasts, peers } from '@/db/schema';
 import { bucket, failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
 export async function GET(req: Request){try{
   const q=new URL(req.url).searchParams,db=getDb();
-  if(q.has('status')){const live=await db.select({id:broadcasts.id,title:broadcasts.title,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,Date.now()-90000))).orderBy(desc(broadcasts.heartbeat)).get();return result({live:live?{id:live.id,title:live.title,startedAt:live.startedAt,cover:!!live.coverKey}:null});}
+  if(q.has('status')){const live=await db.select({id:broadcasts.id,title:broadcasts.title,description:broadcasts.description,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,Date.now()-90000))).orderBy(desc(broadcasts.heartbeat)).get();return result({live:live?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});}
   if(q.get('host')){await requireOwner(req);const b=await db.select().from(broadcasts).where(eq(broadcasts.id,q.get('host')!)).get();return result({active:!!b?.active,peers:await db.select({id:peers.id,offer:peers.offer,answer:peers.answer,heartbeat:peers.heartbeat}).from(peers).where(and(eq(peers.broadcastId,q.get('host')!),gt(peers.heartbeat,Date.now()-90000)))});}
   const p=await db.select().from(peers).where(eq(peers.id,q.get('peer')??'')).get();
   if(!p||p.tokenHash!==await hash(req.headers.get('x-peer-token')??''))return result({error:'#err.sessionGone'},404);
@@ -23,7 +23,7 @@ export async function POST(req: Request){try{
       await db.update(broadcasts).set({active:0});await db.delete(peers);
       const coverKey=String(d.coverKey??'').trim()||null;
       if(coverKey){if(!coverKey.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(coverKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
-      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),ownerId:userId(req)!,heartbeat:now,active:1,coverKey});if(d.transport==='hls')await db.insert(liveRecordings).values({id,ownerId:userId(req)!,title:String(d.title).slice(0,160),createdAt:now,updatedAt:now});enqueueNotice('live:'+id,1,{titleKey:'push.liveTitle',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
+      const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),description:String(d.description??'').slice(0,2000),ownerId:userId(req)!,heartbeat:now,active:1,coverKey});if(d.transport==='hls')await db.insert(liveRecordings).values({id,ownerId:userId(req)!,title:String(d.title).slice(0,160),createdAt:now,updatedAt:now});enqueueNotice('live:'+id,1,{titleKey:'push.liveTitle',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
     }
     // Причина нужна, когда эфир обрывает сама студия: у сервера в этом случае
     // нет ничего, кроме факта остановки, и «эфир прервался сам» оставался без
