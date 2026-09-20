@@ -628,8 +628,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
    зоны касания и не сами действия. */
 @media(max-height:700px){.listener-main .support-card{padding:10px 12px}
 .listener-main .support-copy>span{display:none}
-.listener-main[data-view=home] .content-footer,.listener-main[data-view=live] .content-footer{display:none}
-.listener-main[data-view=home] .home-social{padding:10px 12px;margin-bottom:10px}
+.listener-main[data-view=home] .content-footer,.listener-main[data-view=home] .home-social{padding:10px 12px;margin-bottom:10px}
 .listener-main[data-view=home] .home-social .social-caption{display:none}
 .listener-main .page-heading{margin:2px 0 8px}
 .listener-main .page-heading h1{font-size:28px}}
@@ -1677,6 +1676,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  -webkit-backdrop-filter:none;backdrop-filter:none}
 .live-orb-copy strong{font-family:var(--font-ui);font-weight:700;
  font-size:clamp(19px,5.2vw,25px)}
+/* Круг на телефоне ужимается под свободную высоту, поэтому лампа считается от
+   самого круга, а не от ширины экрана: иначе на низком экране надпись шире
+   круга. Строка выше остаётся запасной для браузеров без единиц контейнера. */
+.live-orb{container-type:size}
+.live-orb-copy{padding:5cqh 9cqw}
+.live-orb-copy strong{font-size:clamp(11px,11cqw,25px)}
 /* Цвета лампы — те же, что во всём приложении: в эфире тёплый сигнальный, в
    покое фирменный бирюзовый. Белый был случайным цветом ниоткуда.
 
@@ -1755,14 +1760,14 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 /* ----------------------------------------------------------------------------
    Экран эфира: без прокрутки, плашки одного размера, поиск в архиве.
 
-   Прокрутка бралась из подписи с копирайтом: её убирали только на низких
-   экранах, а на обычном телефоне она вместе с адресной строкой браузера
-   выталкивала страницу за край. На экране эфира она не нужна вовсе.
+   Прокрутки здесь нет вовсе: экран считает свободную высоту сам и
+   фиксируется по ней, а круг забирает остаток. Поэтому подпись с копирайтом
+   может спокойно оставаться на месте — она просто отнимает у круга свои
+   сорок пикселей.
 
    Строка поддержки была ниже и уже карточки архива — теперь у них общая
    геометрия: та же высота, те же поля, тот же значок в плитке.
    -------------------------------------------------------------------------- */
-.listener-main[data-view=live] .content-footer{display:none}
 .live-stage>.support-strip,.live-stage>.live-stage-support-missing{
  display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:12px 14px;
  border:1px solid var(--line);border-radius:16px;background:var(--surface)}
@@ -1837,9 +1842,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  body.tt-live-locked{overflow:hidden;overscroll-behavior:none}
  body.tt-live-locked .listener-main[data-view=live]{
   height:var(--tt-live-space)!important;min-height:0!important;overflow:hidden}
- body.tt-live-locked .listener-main[data-view=live] .live-layout,
+ /* Экран эфира забирает остаток высоты, а подпись с копирайтом остаётся
+    внизу: не height:100%, иначе она вылезла бы за фиксированную высоту. */
+ body.tt-live-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
  body.tt-live-locked .listener-main[data-view=live] .live-main-panel,
  body.tt-live-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
+ body.tt-live-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:6px}
  body.tt-live-locked .listener-main[data-view=live] .live-rings{
-  flex:1 1 auto;min-height:150px;width:auto;height:auto;aspect-ratio:1;max-width:min(74vw,290px)}
+  flex:1 1 auto;min-height:118px;width:auto;height:auto;aspect-ratio:1;max-width:min(74vw,290px)}
 }

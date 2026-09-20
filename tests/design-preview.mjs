@@ -271,12 +271,16 @@ try{
     const nav=document.querySelector('.bottom-nav');
     return {over:document.documentElement.scrollHeight-innerHeight,
      locked:document.body.classList.contains('tt-live-locked'),
-     tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0};});
+     tail:last&&nav?Math.round(last.getBoundingClientRect().bottom-nav.getBoundingClientRect().top):0,
+     footer:(()=>{const f=document.querySelector('.content-footer');
+      return !!f&&getComputedStyle(f).display!=='none'&&f.getBoundingClientRect().height>0;})()};});
    if(fit.over>1)problems.push('эфир '+w+'x'+h+': страница длиннее экрана на '+fit.over+'px');
    if(!fit.locked)problems.push('эфир '+w+'x'+h+': прокрутка не заблокирована');
    // Прокрутки нет — значит нижняя плашка обязана быть видна, а не уехать
    // под панель навигации.
    if(fit.tail>0)problems.push('эфир '+w+'x'+h+': нижняя плашка уходит под навигацию на '+fit.tail+'px');
+   // Подпись с копирайтом остаётся на месте: прокрутку убрал не она.
+   if(!fit.footer)problems.push('эфир '+w+'x'+h+': пропала строка с копирайтом');
    // Симметрия: архив и поддержка — одна плашка по размеру.
    const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
      b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
