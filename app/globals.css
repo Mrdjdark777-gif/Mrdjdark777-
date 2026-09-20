@@ -1677,7 +1677,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    Трекинг оставляет пустое место после последней буквы, и строка кажется
    сдвинутой влево ровно на него; отрицательное поле справа это снимает. */
 .live-orb-copy strong{font-weight:800;letter-spacing:.2em;margin-right:-.2em}
-.live-orb-copy.is-live strong{color:#FF8C7B}
+/* Цвет взят из самой обложки: угли костра и пламя фонаря дают #FF9E5E.
+   Прежний коралловый был единственным цветом на экране, которого в кадре
+   нет вовсе, и рядом с оранжевым огнём он отдавал розовым. Бирюзовый для
+   покоя не трогаем: он совпадает с кольцами вокруг круга, а два почти
+   одинаковых бирюзовых рядом читались бы как ошибка. */
+.live-orb-copy.is-live strong{color:#FF9E5E}
 .live-orb-dot{position:absolute;left:12px;top:calc(50% - 5.5px)}
 .live-rings.is-calm .live-orb-shade{
  background:radial-gradient(circle at 50% 45%,rgba(18,22,25,0),rgba(18,22,25,.14) 62%,rgba(18,22,25,.6))}
