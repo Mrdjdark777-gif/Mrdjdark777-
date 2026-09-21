@@ -2112,3 +2112,33 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .scene-strips .support-strip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
  .scene-strips .support-strip>svg:last-child{display:none}
 }
+
+/* ----------------------------------------------------------------------------
+   Лишние шесть пикселей прокрутки в студии.
+
+   Высота рабочей области считалась формулой «экран минус 64 пикселя шапки»,
+   а шапка студии на ПК высокая — 148. Разница вылезала за экран, и на каждой
+   странице появлялась короткая прокрутка «ни за чем». Оболочка и так флекс-
+   колонка ровно в высоту экрана: пусть рабочая область берёт остаток сама,
+   без угадывания чужих высот.
+   -------------------------------------------------------------------------- */
+@media(min-width:1024px){
+ .app-shell{min-height:100dvh}
+ .app-shell>.main-content{flex:1 1 auto;min-height:0!important}
+}
+
+/* Экран эфира в студии на мониторе 1080: пульт и список записей ужимаются,
+   чтобы страница помещалась целиком. На высоком мониторе всё остаётся
+   крупным — обложка записи там 88×110. */
+@media(min-width:1100px) and (max-height:1150px){
+ .main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}
+ .main-content:not(.listener-main) .live-archives{padding:8px 12px}
+ .main-content:not(.listener-main) .live-archives article{padding:5px 0}
+ .main-content:not(.listener-main) .live-archives article>.archive-cover{width:72px;height:90px}
+ .main-content:not(.listener-main) .live-console{gap:8px 14px;padding:10px!important}
+ .main-content:not(.listener-main) .signal-console{padding:8px 0}
+ .main-content:not(.listener-main) .signal-console .waveform{height:32px}
+ .main-content:not(.listener-main) .audio-controls-panel{gap:6px;padding:2px 0}
+ .main-content:not(.listener-main) .live-note-field textarea{min-height:64px}
+ .main-content:not(.listener-main) .live-main-panel{padding:12px 14px;gap:8px}
+}

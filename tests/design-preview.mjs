@@ -929,6 +929,18 @@ try{
  const studio=await desk.newPage();await studio.goto(base+'/');await settle(studio);await studio.screenshot({path:'outputs/ui/design-author-home.png',fullPage:true});
  await studio.getByRole('button',{name:'Эфир',exact:true}).first().click();await studio.waitForTimeout(600);await studio.screenshot({path:'outputs/ui/design-studio.png',fullPage:true});
  const sm=await metrics(studio);check(sm.scrollW<=sm.innerW,`студия переполняет ширину: ${sm.scrollW}>${sm.innerW}`);
+ // Прокрутка «ни за чем». Высота рабочей области однажды считалась формулой
+ // «экран минус 64 пикселя шапки», хотя шапка студии на ПК 148: на каждой
+ // странице оставалась короткая прокрутка. Меряем на настоящем мониторе.
+ {const tall=await desk.newPage();await tall.setViewportSize({width:1920,height:1080});
+  const over=[];
+  for(const v of ['home','live','podcasts','videos','stories','settings']){
+   await tall.goto(base+'/?view='+v);await settle(tall);await tall.waitForTimeout(400);
+   const n=await tall.evaluate(()=>document.documentElement.scrollHeight-innerHeight);
+   if(n>1)over.push(v+' +'+n+'px');
+  }
+  await tall.close();
+  check(over.length===0,'студия 1920×1080 прокручивается без нужды: '+over.join(', '));}
  // Пульт эфира: источник звука стоит под названием, а не проваливается вниз
  // мимо обложки. Мерим по живой раскладке, а не по коду.
  const pult=await studio.evaluate(()=>{

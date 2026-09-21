@@ -56,7 +56,13 @@ try{
   return {w:Math.round(r.width),h:Math.round(r.height),fit:img?getComputedStyle(img).objectFit:'',iw:i?Math.round(i.width):0};});
  assert.ok(art,'у записи должна быть обложка');
  assert.ok(art.w<=140,'обложка растянулась на '+art.w+'px вместо миниатюры');
- assert.ok(art.w>=80,'обложка в студии меньше пригодного размера: '+art.w+'px');
+ assert.ok(art.w>=70,'обложка в студии меньше пригодного размера: '+art.w+'px');
+ // На высоком мониторе обложка крупнее: ужимается она только там, где иначе
+ // страница эфира не помещается целиком.
+ await page.setViewportSize({width:1600,height:1300});await page.waitForTimeout(400);
+ const big=await page.evaluate(()=>Math.round(document.querySelector('.live-archives .archive-cover').getBoundingClientRect().width));
+ assert.ok(big>=85,'на высоком мониторе обложка записи должна быть крупнее, а она '+big+'px');
+ await page.setViewportSize({width:1600,height:1000});await page.waitForTimeout(400);
  assert.ok(art.h>art.w,'обложка должна быть вертикальной 4:5, а не квадратом: '+art.w+'×'+art.h);
  assert.equal(art.fit,'contain','обложку нельзя обрезать: object-fit '+art.fit);
  // Описание эфира видно в строке, а состояние не отсылает в подкасты.
