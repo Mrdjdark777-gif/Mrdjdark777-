@@ -1851,10 +1851,13 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
     пока она на экране, раздел оставляет под неё место: её высота 66 px плюс
     небольшой зазор. */
  body.tt-shell-locked:has(.podcast-player.is-mini) .listener-main{padding-bottom:78px!important}
- /* На экране эфира прокручивать нечего: круг подстраивается под высоту. */
- body.tt-shell-locked .listener-main[data-view=live] .live-layout{flex:1 1 auto;min-height:0}
+ /* Экран эфира растёт под своё содержимое, а не подгоняется под высоту окна.
+    Пока он тянулся в высоту окна, колонка ужимала всё подряд: описание,
+    карточки, строки архива и сам список открывались срезанными. Лишнюю
+    высоту забирает прокрутка. */
+ body.tt-shell-locked .listener-main[data-view=live] .live-layout{flex:none;min-height:0}
  body.tt-shell-locked .listener-main[data-view=live] .live-main-panel,
- body.tt-shell-locked .listener-main[data-view=live] .live-stage{height:100%;min-height:0}
+ body.tt-shell-locked .listener-main[data-view=live] .live-stage{height:auto;min-height:0}
  /* Подпись с копирайтом прижата к низу экрана, а не к карточкам. */
  body.tt-shell-locked .listener-main[data-view=live] .content-footer{flex:none;margin-top:auto}
  /* Круг один и тот же во всех состояниях. Гибкая высота делала его большим в
@@ -2149,3 +2152,8 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    человек бил по записи, а открывалась другая или ничего. */
 .live-archive-list>.live-archive-row{flex:none}
 .live-archive-art{overflow:hidden;flex:none}
+
+/* Сам список архива тоже не сжимается. Строкам это уже запрещено, а список —
+   такой же элемент колонки экрана эфира, и соседи ужимали его почти в ноль:
+   архив раскрывался пустой полоской, хотя записи в нём были. */
+.listener-main .live-archive-list{flex:none}

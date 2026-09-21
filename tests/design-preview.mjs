@@ -442,6 +442,35 @@ try{
     first:document.querySelector('.live-archive-row strong')?.textContent.trim()||''}));
    if(opened.view!=='live')problems.push('архив эфиров уводит из вкладки эфира в «'+opened.view+'»');
    if(!opened.rows)problems.push('архив эфиров раскрылся пустым, хотя запись эфира есть');
+   // Список не должен схлопываться: соседи по колонке однажды ужали его почти
+   // в ноль, и архив раскрывался пустой полоской при живых записях.
+   const box=await page.evaluate(()=>{const list=document.querySelector('.live-archive-list');
+    const row=document.querySelector('.live-archive-row');if(!list||!row)return null;
+    const lr=list.getBoundingClientRect(),rr=row.getBoundingClientRect();
+    return {h:Math.round(lr.height),row:Math.round(rr.height),hidden:Math.round(rr.bottom-lr.bottom)};});
+   if(!box)problems.push('в раскрытом архиве нет ни списка, ни строк');
+   else{
+    if(box.row<40)problems.push('строка записи сжата до '+box.row+'px');
+    if(box.h<box.row)problems.push('список архива схлопнулся до '+box.h+'px при строке '+box.row+'px');
+    if(box.hidden>1)problems.push('первая запись не помещается в раскрытый архив: срезано '+box.hidden+'px');
+   }
+   // Общее правило вместо починки по одному элементу: на экране эфира ничто
+   // не должно быть ужато ниже своего содержимого. Колонка сжимает всё, чему
+   // это не запрещено, и за сегодня так пострадали описание, карточки, строки
+   // архива и сам список. Ищем сразу всех: элемент, который не прокручивается
+   // и не обрезает текст нарочно, обязан вмещать своё содержимое.
+   const squeezed=await page.evaluate(()=>{
+    const bad=[];
+    for(const el of document.querySelectorAll('.listener-main[data-view=live] *')){
+     const st=getComputedStyle(el);
+     if(st.overflowY!=='visible')continue;
+     if(st.display==='none'||st.position==='absolute')continue;
+     const over=el.scrollHeight-el.clientHeight;
+     // Пара пикселей набегает на скруглении высоты строки — это не сжатие.
+     if(over>3)bad.push((el.className||el.tagName).toString().split(' ')[0]+' +'+over+'px');
+    }
+    return bad;});
+   if(squeezed.length)problems.push('на экране эфира содержимое не помещается в свои блоки: '+squeezed.join(', '));
    await shot(page,'live-archive');
    if(opened.rows){
     await page.locator('.live-archive-row').first().click();await page.waitForTimeout(400);
