@@ -394,6 +394,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "live.archiveNote": "Минулі випуски та спеціальні записи",
   "live.archiveSearch": "Пошук у записах",
   "live.archiveEmpty": "Записів поки немає — вони з'являться після першого ефіру.",
+  "live.archivePending": "Запис останнього ефіру готується — він з’явиться тут сам.",
 
   "live.mute": "Вимкнути звук",
 

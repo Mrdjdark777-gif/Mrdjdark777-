@@ -271,6 +271,7 @@ export const ru = {
   'live.archiveNote': 'Прошлые выпуски и специальные записи',
   'live.archiveSearch': 'Поиск по записям',
   'live.archiveEmpty': 'Записей пока нет — они появятся после первого эфира.',
+  "live.archivePending": "Запись последнего эфира готовится — она появится здесь сама.",
   'live.mute': 'Выключить звук',
   'live.unmute': 'Включить звук',
   'live.volumeAria': 'Громкость эфира',

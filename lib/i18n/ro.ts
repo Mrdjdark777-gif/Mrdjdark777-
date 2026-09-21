@@ -394,6 +394,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "live.archiveNote": "Episoade trecute și înregistrări speciale",
   "live.archiveSearch": "Caută în înregistrări",
   "live.archiveEmpty": "Încă nu există înregistrări — vor apărea după prima transmisiune.",
+  "live.archivePending": "Înregistrarea ultimei transmisiuni se pregătește — va apărea aici singură.",
 
   "live.mute": "Oprește sunetul",
 

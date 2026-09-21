@@ -39,7 +39,7 @@ import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type
 import {useT} from '@/components/i18n-provider';
 
 type Post={id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number};
-type Data={items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;calmArt?:string|null};
+type Data={archivePending?:boolean;items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;calmArt?:string|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
@@ -315,6 +315,10 @@ export default function Studio(){
   archive={<div className="live-archive-list">
    {/* Поиск живёт внутри раскрытого архива: в закрытом виде искать негде. */}
    {liveArchives.length>0&&<label className="live-archive-search"><Search size={16}/><input type="search" value={archiveQuery} placeholder={t('live.archiveSearch')} aria-label={t('live.archiveSearch')} onChange={e=>setArchiveQuery(e.target.value)}/></label>}
+   {/* Пока воркер сшивает последнюю запись, архив честно говорит об этом:
+       пустой список после только что законченного эфира читается как «записи
+       пропали». */}
+   {data.archivePending&&<p className="live-archive-empty">{t('live.archivePending')}</p>}
    {archiveShown.length===0?<p className="live-archive-empty">{liveArchives.length?t('catalog.nothingFound'):t('live.archiveEmpty')}</p>
     :archiveShown.map(p=><button type="button" key={p.id} className="live-archive-row tt-pressable" onClick={()=>{haptic();openPost(p);}}>
      <span className="live-archive-art"><Artwork src={coverSrc(p)} fallback={<img src="/brand/logo.png?v=0.4.1" width="44" height="44" alt=""/>} alt=""/></span>

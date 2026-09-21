@@ -272,6 +272,7 @@ export const it: Record<keyof typeof ru, string> = {
   'live.archiveNote': 'Puntate passate e registrazioni speciali',
   'live.archiveSearch': 'Cerca tra le registrazioni',
   'live.archiveEmpty': 'Ancora nessuna registrazione: appariranno dopo la prima diretta.',
+  "live.archivePending": "La registrazione dell’ultima diretta è in preparazione — comparirà qui da sola.",
   'live.mute': 'Disattiva l’audio',
   'live.unmute': 'Riattiva l’audio',
   'live.volumeAria': 'Volume della diretta',
