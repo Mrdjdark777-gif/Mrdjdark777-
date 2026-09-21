@@ -2142,3 +2142,10 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .main-content:not(.listener-main) .live-note-field textarea{min-height:64px}
  .main-content:not(.listener-main) .live-main-panel{padding:12px 14px;gap:8px}
 }
+
+/* Строки архива не сжимаются. Список ограничен по высоте и прокручивается, а
+   флекс-колонка всё равно ужимала строки под эту высоту: обложки вылезали за
+   свою строку, слипались в сплошную ленту и перехватывали нажатия у соседей —
+   человек бил по записи, а открывалась другая или ничего. */
+.live-archive-list>.live-archive-row{flex:none}
+.live-archive-art{overflow:hidden;flex:none}

@@ -18,7 +18,19 @@ export async function GET(req:Request){try{
    duration:posts.duration,cover:posts.coverKey,description:posts.description})
    .from(liveRecordings).leftJoin(posts,eq(posts.id,liveRecordings.postId))
    .orderBy(desc(liveRecordings.createdAt)).limit(25).all();
-  return result({recordings:rows.map(r=>({...r,cover:!!r.cover,duration:r.duration??0,description:r.description??''}))});}
+  // Записи, чья строка эфира уже удалена, но выпуск остался: слушатель их
+  // видит в архиве, а автор до сих пор нет — и удалить ему было нечем.
+  // Показываем их здесь же, рядом с обычными.
+  const known=new Set(rows.map(r=>r.postId).filter(Boolean) as string[]);
+  const orphans=(await db.select({id:posts.id,title:posts.title,createdAt:posts.createdAt,
+    duration:posts.duration,cover:posts.coverKey,description:posts.description,audioKey:posts.audioKey})
+    .from(posts).orderBy(desc(posts.createdAt)).limit(200).all())
+   .filter(p=>!!p.audioKey&&p.audioKey.startsWith('audio/live-')&&!known.has(p.id));
+  const all=[...rows.map(r=>({...r,cover:!!r.cover,duration:r.duration??0,description:r.description??''})),
+   ...orphans.map(p=>({id:p.id,title:p.title,state:'ready',postId:p.id,createdAt:p.createdAt,
+    duration:p.duration??0,cover:!!p.cover,description:p.description??''}))];
+  all.sort((a,b)=>b.createdAt-a.createdAt);
+  return result({recordings:all});}
  if(!liveId(id))return result({error:'#err.notFound'},404);
  const recording=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();
  if(!recording)return result({error:'#err.notFound'},404);
@@ -52,7 +64,11 @@ export async function POST(req:Request){try{
  // Идущий эфир не удаляем: сначала остановить.
  if(q.has('remove')){
   const db=getDb();
-  const row=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();
+  const row=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get()
+   // Осиротевшая запись: строки эфира уже нет, остался только выпуск. Для
+   // удаления этого достаточно — дальше код работает с postId.
+   ??await (async()=>{const p=await db.select().from(posts).where(eq(posts.id,id)).get();
+    return p&&p.audioKey&&p.audioKey.startsWith('audio/live-')?{id:p.id,state:'ready',postId:p.id}:undefined;})();
   if(!row)throw new Error('#err.notFound');
   if(row.state==='receiving')throw new Error('#err.liveActive');
   await db.delete(liveRecordings).where(eq(liveRecordings.id,id)).run();

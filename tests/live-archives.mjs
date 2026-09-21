@@ -72,6 +72,27 @@ try{
  // Панель занимает строку, а не половину экрана.
  const panel=await page.evaluate(()=>Math.round(document.querySelector('.live-archives').getBoundingClientRect().height));
  assert.ok(panel<=230,'панель записей раздулась до '+panel+'px на одну запись');
+ // Осиротевшая запись: выпуск в архиве есть, строки эфира уже нет. Автор
+ // обязан видеть её и мочь удалить — иначе она вечно висит у слушателя.
+ {const orphanKey='audio/live-'+crypto.randomUUID();
+  await copyFile(path.join(env.STORAGE_DIR,audioKey),path.join(env.STORAGE_DIR,orphanKey));
+  await copyFile(path.join(env.STORAGE_DIR,audioKey+'.meta.json'),path.join(env.STORAGE_DIR,orphanKey+'.meta.json')).catch(()=>{});
+  const made=await post({kind:'podcast',title:'Забытая запись',description:'Осталась без строки эфира',audioKey:orphanKey,duration:seconds,published:true});
+  assert.ok(!made.error,'не удалось создать осиротевшую запись: '+JSON.stringify(made));
+  const orphanId=(made.item||made.post||made).id;
+  assert.ok(orphanId,'у созданной записи нет идентификатора: '+JSON.stringify(made));
+  await page.reload();await page.waitForTimeout(1500);
+  await page.evaluate(()=>{const d=document.querySelector('.live-archives');if(d)d.open=true;});
+  await page.waitForTimeout(600);
+  const titles=await page.evaluate(()=>[...document.querySelectorAll('.live-archives .archive-copy strong')].map(e=>e.textContent.trim()));
+  assert.ok(titles.includes('Забытая запись'),'автор не видит запись, у которой осталась только публикация: '+titles.join(', '));
+  const gone=await fetch(base+'/api/live-stream?id='+orphanId+'&remove=1',{method:'POST',headers:{cookie,origin:base}});
+  assert.equal(gone.status,200,'осиротевшую запись должно быть можно удалить, а ответ '+gone.status);
+  const left=await fetch(base+'/api/library',{headers:{cookie}}).then(r=>r.json());
+  assert.ok(!left.items.some(p=>p.id===orphanId),'после удаления осиротевшая запись осталась в библиотеке');
+  await page.reload();await page.waitForTimeout(1500);
+  await page.evaluate(()=>{const d=document.querySelector('.live-archives');if(d)d.open=true;});
+  await page.waitForTimeout(600);}
  // Удаление спрашивает подтверждение, а не срабатывает с первого нажатия.
  await page.locator('.archive-actions .archive-danger').click();await page.waitForTimeout(300);
  assert.equal(await page.locator('.archive-ask').count(),1,'удаление должно спрашивать подтверждение');

@@ -1,6 +1,6 @@
 import {liveListenerLimit,requireRecordingCapacity} from '@/lib/live-recording';
 import {enqueueNotice,siteOrigin} from '@/lib/push';
-import { and, desc, eq, gt, lt } from 'drizzle-orm';
+import { and, desc, eq, gt, lt ,isNotNull} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { liveRecordings, broadcasts, peers } from '@/db/schema';
 import { bucket, failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
@@ -21,8 +21,16 @@ export async function POST(req: Request){try{
       if(!String(d.title??'').trim())throw new Error('#err.liveTitle');
       const current=await db.select().from(broadcasts).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,now-90000))).get();if(current)throw new Error('#err.liveBusy');
       await db.update(broadcasts).set({active:0});await db.delete(peers);
-      const coverKey=String(d.coverKey??'').trim()||null;
+      let coverKey=String(d.coverKey??'').trim()||null;
       if(coverKey){if(!coverKey.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(coverKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
+      // Обложку выбирают не каждый раз. Если её не приложили, берём ту, что
+      // была на прошлом эфире: иначе запись уходит в архив с логотипом вместо
+      // картинки, и автор узнаёт об этом уже после эфира.
+      if(!coverKey){
+       const last=await db.select({coverKey:broadcasts.coverKey}).from(broadcasts)
+        .where(isNotNull(broadcasts.coverKey)).orderBy(desc(broadcasts.heartbeat)).get();
+       if(last?.coverKey&&await bucket().head(last.coverKey))coverKey=last.coverKey;
+      }
       const id=crypto.randomUUID();await db.insert(broadcasts).values({id,title:String(d.title).slice(0,160),description:String(d.description??'').slice(0,2000),ownerId:userId(req)!,heartbeat:now,active:1,coverKey});if(d.transport==='hls')await db.insert(liveRecordings).values({id,ownerId:userId(req)!,title:String(d.title).slice(0,160),createdAt:now,updatedAt:now});enqueueNotice('live:'+id,1,{titleKey:'push.liveTitle',body:String(d.title).slice(0,160),url:'/?mode=listen&view=live&broadcast='+id,tag:'live:'+id},siteOrigin(req),120);return result({id});
     }
     // Причина нужна, когда эфир обрывает сама студия: у сервера в этом случае
