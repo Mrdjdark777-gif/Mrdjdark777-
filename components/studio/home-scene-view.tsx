@@ -4,7 +4,7 @@ import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal,
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
-import {dropProgress,readProgress} from '@/lib/listening-progress';
+import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
 import {clock,haptic,coverSrc} from '@/lib/client';
@@ -38,7 +38,8 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  // Прогресс, открытые и убранные карточки лежат в хранилище устройства,
  // поэтому читаются после первой отрисовки: на сервере localStorage нет.
  useEffect(()=>{
-  const update=()=>setDevice({progress:readProgress(),seen:readSeen(),hidden:readHidden().map(h=>h.id)});
+  const update=()=>{const off=readResumeHidden();
+   setDevice({progress:readProgress().filter(p=>!off.includes(p.id)),seen:readSeen(),hidden:readHidden().map(h=>h.id)});};
   const timer=setTimeout(update,0);
   for(const event of ['tt-progress','tt-seen','tt-hidden'])window.addEventListener(event,update);
   return()=>{clearTimeout(timer);for(const event of ['tt-progress','tt-seen','tt-hidden'])window.removeEventListener(event,update);};
@@ -111,7 +112,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    {/* Строку можно убрать: выпуск могли включить случайно или больше к нему не
        возвращаться, а деться от неё было некуда. */}
    <button type="button" className="resume-close tt-pressable" aria-label={t('home.continueHide')} title={t('home.continueHide')}
-    onClick={()=>{haptic();dropProgress(resume.post.id);}}><X size={17}/></button>
+    onClick={()=>{haptic();hideResume(resume.post.id);}}><X size={17}/></button>
   </div>:null}
 
   <div className="section-tiles">

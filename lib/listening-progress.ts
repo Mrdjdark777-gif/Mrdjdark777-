@@ -17,3 +17,23 @@ const same=(a:Progress|undefined,b:Progress)=>!!a&&a.id===b.id&&Math.round(a.pos
 export function dropProgress(id:string){if(!id)return;try{
   const left=readProgress().filter(p=>p.id!==id);
   localStorage.setItem(key,JSON.stringify(left));window.dispatchEvent(new Event('tt-progress'));}catch{}}
+
+// Убранная строка «Продолжить».
+//
+// Стереть отметку прослушивания мало: при запуске приложение спрашивает у
+// фонового плеера, что он держит, и записывает то же место обратно — строка
+// возвращалась после каждого перезапуска. Поэтому убранное запоминаем
+// отдельно, а снимаем отметку, когда человек сам открывает этот выпуск.
+const hiddenKey='tt-resume-hidden-v1';
+export function readResumeHidden():string[]{try{
+  const data=JSON.parse(localStorage.getItem(hiddenKey)||'[]');
+  return Array.isArray(data)?data.filter(id=>typeof id==='string'):[];}catch{return [];}}
+export function hideResume(id:string){if(!id)return;try{
+  const list=readResumeHidden();
+  if(!list.includes(id))localStorage.setItem(hiddenKey,JSON.stringify([id,...list].slice(0,50)));
+  window.dispatchEvent(new Event('tt-progress'));}catch{}}
+export function unhideResume(id:string){if(!id)return;try{
+  const list=readResumeHidden();
+  if(!list.includes(id))return;
+  localStorage.setItem(hiddenKey,JSON.stringify(list.filter(x=>x!==id)));
+  window.dispatchEvent(new Event('tt-progress'));}catch{}}

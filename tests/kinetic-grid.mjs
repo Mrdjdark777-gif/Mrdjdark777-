@@ -80,5 +80,19 @@ try{
  await page.mouse.up();
  assert.equal(onButton,calm1,'нажатие на кнопку подняло волну, хотя не должно');
 
- console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, молчит на кнопках и не перехватывает нажатия');
+ // Ведение пальцем по пустому месту тоже поднимает волну, а не только нажатие.
+ await page.mouse.move(empty.x,empty.y-200);
+ await page.mouse.down();
+ for(let i=0;i<6;i++){await page.mouse.move(empty.x+40*i,empty.y-200+12*i);await page.waitForTimeout(60);}
+ const dragged=await snap();
+ await page.mouse.up();
+ assert.notEqual(dragged,calm1,'ведение пальцем не подняло волну');
+ await page.waitForTimeout(2200);
+
+ // На главной сетки нет: там во весь кадр обложка, под ней её не видно.
+ await page.goto(base+'/?mode=listen&view=home');
+ await page.waitForTimeout(1800);
+ assert.equal(await page.locator('canvas.kinetic-grid').count(),0,'на главной сетка лишняя: под обложкой её не видно');
+
+ console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия и не рисуется на главной');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

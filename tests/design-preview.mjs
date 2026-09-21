@@ -262,6 +262,12 @@ try{
      if(await page.locator('.resume-row').count())problems.push('крестик не убрал строку «Продолжить»');
      await page.reload();await settle(page);await page.waitForTimeout(400);
      if(await page.locator('.resume-row').count())problems.push('строка «Продолжить» вернулась после перезагрузки');
+     // Настоящая причина возврата: при запуске приложение спрашивает у
+     // фонового плеера, что он держит, и записывает то же место обратно.
+     // Повторяем это руками — убранная строка всё равно не должна вернуться.
+     await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:10,duration:2300,updatedAt:Date.now()}]));},podcast.id);
+     await page.reload();await settle(page);await page.waitForTimeout(400);
+     if(await page.locator('.resume-row').count())problems.push('строка «Продолжить» вернулась, когда плеер записал место заново');
     }
    }}
   // Описание в карточке раскрывается по нажатию и сворачивается обратно.

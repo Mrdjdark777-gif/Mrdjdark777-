@@ -12,7 +12,7 @@ import {Toaster,toast} from 'sonner';
 import {useCapture} from '@/hooks/use-capture';
 import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
-import {saveProgress} from '@/lib/listening-progress';
+import {saveProgress,unhideResume} from '@/lib/listening-progress';
 import {HomeSceneView} from '@/components/studio/home-scene-view';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
@@ -200,7 +200,7 @@ export default function Studio(){
  function playPost(p:Post){live.leave();setPlayerAutoplay(true);setPlayerExpanded(true);setPlaying(p);setTimeout(()=>{player.current?.play().catch(()=>toast.info(t('player.tapInPlayer')));},50);}
  // Видео и подкаст не должны звучать одновременно, поэтому открытие видео
  // останавливает аудиоплеер и выходит из эфира.
- function openPost(p:Post){markSeen(p.id);if(p.kind==='podcast'){playPost(p);return;}if(p.kind==='video'){stopNativePlayer();player.current?.pause();setPlaying(null);live.leave();setWatching(p);return;}setReading(p);}
+ function openPost(p:Post){markSeen(p.id);unhideResume(p.id);if(p.kind==='podcast'){playPost(p);return;}if(p.kind==='video'){stopNativePlayer();player.current?.pause();setPlaying(null);live.leave();setWatching(p);return;}setReading(p);}
  useEffect(()=>{noticeHandler.current=async(raw:string)=>{const url=new URL(raw,location.origin);if(url.origin!==location.origin||url.pathname!=='/'||capture.recording||live.hosting)return;setAudience(true);setFilter('published');const v=url.searchParams.get('view');setView(LISTEN_VIEWS.includes(v??'')?v!:'home');
   if(url.searchParams.has('post')){const fresh=await load(),p=fresh?.items.find(p=>p.id===url.searchParams.get('post'));if(p)openPost(p);else toast.info(t('post.gone'));}
   if(url.searchParams.has('broadcast')){try{const r=await api<{live:Data['live']}>('live?status=1');setLiveNow(r.live);if(r.live?.id===url.searchParams.get('broadcast')){stopNativePlayer();player.current?.pause();setPlaying(null);void live.listen(r.live.id,r.live.title);}else toast.info(t('live.alreadyEnded'));}catch(e){toast.error(errorText(e));}}
@@ -354,9 +354,10 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
- {/* Фон-сетка — у слушателя. В студии фон не нужен: там работают, и лишний
-     слой под пультом эфира только мешает. */}
- {!author&&data&&!data.needsSetup&&<KineticGrid/>}
+ {/* Фон-сетка — у слушателя и не на главной: там во весь кадр лежит обложка,
+     под ней сетки не видно, а рисовать её впустую незачем. В студии фон не
+     нужен вовсе: там работают. */}
+ {!author&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
