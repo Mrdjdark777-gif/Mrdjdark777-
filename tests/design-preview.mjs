@@ -189,7 +189,7 @@ try{
  for(const [width,height] of [[390,844],[360,640]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(150);
   const m=await metrics(page);check(m.scrollH<=height+1,`главная с мини-плеером ${width}x${height}: ${m.scrollH}>${height}`);
-  const support=await page.locator('.support-strip:not(.app-strip)').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
+  const support=await page.locator('.support-strip:not(.app-strip):not(.archive-strip)').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
   check(support.y+support.height<=mini.y,`мини-плеер закрывает донат ${width}x${height}`);
   await shot(page,`mini-${width}`);
  }
@@ -220,6 +220,32 @@ try{
   if(homeText.includes('Истории после заката'))problems.push('запись эфира попала на главную слушателя');
   const tileArt=await page.evaluate(()=>[...document.querySelectorAll('img')].map(i=>i.getAttribute('src')||'').join(' '));
   if(tileArt.includes(archived.id))problems.push('обложка записи эфира стала картинкой раздела на главной');
+  // Архив эфиров открывается прямо с главной, а не только из вкладки эфира.
+  await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
+  const entry=page.locator('.scene-side .support-strip',{hasText:'Архив эфиров'}).first();
+  if(!await entry.count())problems.push('на главной слушателя нет входа в архив эфиров');
+  else{
+   await entry.click();await page.waitForTimeout(700);
+   const opened=await page.evaluate(()=>({view:document.querySelector('.main-content')?.getAttribute('data-view')||'',
+    rows:document.querySelectorAll('.live-archive-row').length}));
+   if(opened.view!=='live')problems.push('вход в архив с главной не открыл эфир: '+opened.view);
+   if(!opened.rows)problems.push('архив эфиров не раскрылся после перехода с главной');
+   // Обложка записи — вертикальная 4:5, а не квадратик размером с иконку.
+   const art=await page.evaluate(()=>{const el=document.querySelector('.live-archive-art');if(!el)return null;
+    const r=el.getBoundingClientRect();const img=el.querySelector('img');
+    return {w:Math.round(r.width),h:Math.round(r.height),img:!!img};});
+   if(!art||!art.img)problems.push('в карточке записи эфира нет обложки');
+   else{
+    if(art.w<48)problems.push('обложка записи в архиве мелкая: '+art.w+'px');
+    if(art.h<=art.w)problems.push('обложка записи должна быть вертикальной 4:5, а она '+art.w+'×'+art.h);
+   }
+   // Описание ждёт в плеере: в списке его нет, при открытии — есть.
+   const listText=await page.evaluate(()=>document.querySelector('.live-archive-list')?.innerText||'');
+   if(listText.includes('Специальный выпуск'))problems.push('описание записи попало в список архива');
+   await page.locator('.live-archive-row').first().click();await page.waitForTimeout(1200);
+   const note=await page.evaluate(()=>document.querySelector('.podcast-player .player-note')?.textContent?.trim()||'');
+   if(!note.startsWith('Специальный выпуск'))problems.push('при открытии записи эфира не видно её описания: '+(note||'пусто'));
+  }
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(200);
   if(await page.locator('.catalog-scope').count())problems.push('в каталоге остался переключатель записей эфиров');
   await page.goto(base+'/?mode=listen&view=live');await settle(page);await page.waitForTimeout(250);
@@ -584,7 +610,7 @@ try{
  // плитки и поддержка, — а площадки могут оказаться чуть ниже.
  for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
-  const bottom=await page.locator('.support-strip:not(.app-strip)').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
+  const bottom=await page.locator('.support-strip:not(.app-strip):not(.archive-strip)').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
   check(bottom<=640,`на 360×640 строка поддержки уходит за первый экран: ${bottom}>640`);
   const m=await metrics(page);
   check(m.scrollH<=m.innerH+140,`на 360×640 главная прокручивается больше чем на один блок: ${m.scrollH}>${m.innerH}`);

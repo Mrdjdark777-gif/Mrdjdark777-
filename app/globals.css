@@ -2076,3 +2076,39 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 20px,#000 calc(100% - 26px),transparent 100%);
   mask-image:linear-gradient(to bottom,transparent 0,#000 20px,#000 calc(100% - 26px),transparent 100%)}
 }
+
+/* ----------------------------------------------------------------------------
+   Карточка записи в архиве эфиров.
+
+   Строка с маленьким квадратиком читалась как список файлов. Запись эфира —
+   такая же вещь с обложкой, как выпуск в каталоге: даём обложке настоящую
+   пропорцию 4:5 и показываем дату с длительностью. Описание в списке не
+   нужно — оно ждёт в плеере, когда запись открыли.
+   -------------------------------------------------------------------------- */
+.live-archive-row{gap:14px;padding:10px;border-radius:16px;align-items:center}
+.live-archive-art{width:56px;height:70px;border-radius:12px}
+.live-archive-art img{object-fit:contain}
+.live-archive-row-copy{gap:5px;flex:1}
+.live-archive-row-copy strong{font-size:15.5px;line-height:1.25;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.live-archive-row-copy span{font-size:12.5px}
+.live-archive-list{gap:8px}
+@media(max-width:379px){
+ .live-archive-art{width:48px;height:60px}
+ .live-archive-row-copy strong{font-size:14.5px}
+}
+/* В студии тот же список, только плотнее: там рядом стоит пульт эфира. */
+.main-content:not(.listener-main) .live-archive-art{width:44px;height:55px}
+
+/* Вход в архив эфиров и плашка поддержки на главной. В столбик, а на низком
+   экране — в ряд: иначе нижняя из них уходит под мини-плеер. */
+.scene-strips{display:flex;flex-direction:column;gap:10px;width:100%}
+.scene-strips>*{margin:0}
+/* На телефоне всегда в ряд: в столбик нижняя плашка уходит под мини-плеер
+   и на низком экране, и на высоком. */
+@media(max-width:1023px){
+ .scene-strips{flex-direction:row;gap:8px}
+ .scene-strips>*{flex:1 1 0;min-width:0}
+ .scene-strips .support-strip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+ .scene-strips .support-strip>svg:last-child{display:none}
+}

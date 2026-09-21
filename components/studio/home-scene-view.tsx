@@ -26,9 +26,9 @@ const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>coverSrc(p);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,support,appLink,sections,pinned}:{
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,archive,support,appLink,sections,pinned}:{
  posts:T[];live:Live|null;onOpen:(post:T)=>void;onOpenLive:()=>void;liveAction:string;
- support:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
+ archive?:React.ReactNode;support:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
  sections:{kind:'podcast'|'video'|'story';label:string;go:()=>void}[];
 }){
  const {t}=useT();
@@ -131,7 +131,10 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     </button>;})}
   </section>}
 
-  {support}
+  {/* Архив эфиров — отдельный вход с главной: записи живут не в каталоге, и
+      добираться до них через вкладку эфира каждый раз незачем. На низком
+      экране две плашки встают в ряд, иначе нижняя уходит под мини-плеер. */}
+  <div className="scene-strips">{archive}{support}</div>
   {appLink}
   </div>
 

@@ -144,9 +144,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "meta.title": "True Thrills — студія та подкасти",
 
   "meta.description": "Подкасти, історії та прямі ефіри True Thrills.",
-
-  "nav.podcasts": "Подкасти",
-
+  "nav.podcasts": "Слухати",
   "nav.videos": "Відео",
 
   "nav.home": "Головна",
@@ -205,9 +203,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "heading.homeAuthor": "Що робимо сьогодні?",
 
   "heading.studio": "Усе починається з голосу.",
-
-  "heading.podcasts": "Подкасти",
-
+  "heading.podcasts": "Слухати",
   "heading.videos": "Відео",
 
   "heading.stories": "Історії",
@@ -221,9 +217,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "desc.studio": "Запиши. Розкажи. Дай почути.",
 
   "desc.podcastsAuthor": "Твої випуски — від чернетки до публікації.",
-
-  "desc.podcastsListener": "Усі опубліковані випуски True Thrills.",
-
+  "desc.podcastsListener": "Випуски, пісні та вірші True Thrills.",
   "desc.videosAuthor": "Посилання на твої відео — слухач дивиться їх просто тут.",
 
   "desc.videosListener": "Відео True Thrills — просто в застосунку.",
@@ -257,9 +251,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "share.failed": "Не вдалося поділитися",
 
   "home.watchVideos": "Дивитися\nвідео",
-
-  "home.listenPodcasts": "Слухати\nподкасти",
-
+  "home.listenPodcasts": "Слухати\nвипуски",
   "home.readStories": "Читати\nісторії",
 
   "home.liveNow": "Прямий\nефір",
@@ -508,9 +500,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "filter.drafts": "Чернетки",
 
   "empty.sectionEmpty": "У цьому розділі поки порожньо",
-
-  "empty.firstPodcast": "Тут з'явиться перший випуск",
-
+  "empty.firstPodcast": "Тут з’явиться перший запис",
   "empty.firstVideo": "Тут з'явиться перше відео",
 
   "empty.firstStory": "Тут з'явиться перша історія",
@@ -526,9 +516,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "empty.toStudio": "У студію",
 
   "empty.addVideo": "Додати відео",
-
-  "post.podcast": "ПОДКАСТ",
-
+  "post.podcast": "АУДІО",
   "post.video": "ВІДЕО",
 
   "post.story": "ІСТОРІЯ",

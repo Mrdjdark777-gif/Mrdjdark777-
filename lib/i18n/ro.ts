@@ -144,9 +144,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "meta.title": "True Thrills — studio și podcasturi",
 
   "meta.description": "Podcasturi, povești și emisiuni live True Thrills.",
-
-  "nav.podcasts": "Podcasturi",
-
+  "nav.podcasts": "Ascultă",
   "nav.videos": "Video",
 
   "nav.home": "Acasă",
@@ -205,9 +203,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "heading.homeAuthor": "Ce facem azi?",
 
   "heading.studio": "Totul începe cu vocea.",
-
-  "heading.podcasts": "Podcasturi",
-
+  "heading.podcasts": "Ascultă",
   "heading.videos": "Video",
 
   "heading.stories": "Povești",
@@ -221,9 +217,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "desc.studio": "Înregistrează. Povestește. Fă-te auzit.",
 
   "desc.podcastsAuthor": "Episoadele tale — de la ciornă la publicare.",
-
-  "desc.podcastsListener": "Toate episoadele publicate True Thrills.",
-
+  "desc.podcastsListener": "Episoade, cântece și versuri True Thrills.",
   "desc.videosAuthor": "Linkurile către videoclipurile tale — ascultătorul le vede chiar aici.",
 
   "desc.videosListener": "Videoclipurile True Thrills — direct în aplicație.",
@@ -257,9 +251,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "share.failed": "Nu s-a putut distribui",
 
   "home.watchVideos": "Vezi\nvideo",
-
-  "home.listenPodcasts": "Ascultă\npodcasturi",
-
+  "home.listenPodcasts": "Ascultă\nepisoadele",
   "home.readStories": "Citește\npovești",
 
   "home.liveNow": "Emisiune\nlive",
@@ -508,9 +500,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "filter.drafts": "Ciorne",
 
   "empty.sectionEmpty": "Secțiunea este încă goală",
-
-  "empty.firstPodcast": "Aici va apărea primul episod",
-
+  "empty.firstPodcast": "Aici va apărea prima înregistrare",
   "empty.firstVideo": "Aici va apărea primul videoclip",
 
   "empty.firstStory": "Aici va apărea prima poveste",
@@ -526,9 +516,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "empty.toStudio": "În studio",
 
   "empty.addVideo": "Adaugă video",
-
-  "post.podcast": "PODCAST",
-
+  "post.podcast": "AUDIO",
   "post.video": "VIDEO",
 
   "post.story": "POVESTE",
