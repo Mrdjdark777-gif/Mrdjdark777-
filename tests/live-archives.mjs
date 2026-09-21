@@ -86,8 +86,15 @@ try{
   await page.waitForTimeout(600);
   const titles=await page.evaluate(()=>[...document.querySelectorAll('.live-archives .archive-copy strong')].map(e=>e.textContent.trim()));
   assert.ok(titles.includes('Забытая запись'),'автор не видит запись, у которой осталась только публикация: '+titles.join(', '));
-  const gone=await fetch(base+'/api/live-stream?id='+orphanId+'&remove=1',{method:'POST',headers:{cookie,origin:base}});
-  assert.equal(gone.status,200,'осиротевшую запись должно быть можно удалить, а ответ '+gone.status);
+  // Удаляем так же, как автор: кнопкой в студии и подтверждением, а не
+  // запросом к серверу. Кнопка может слать не тот идентификатор — запрос
+  // этого не покажет.
+  const card=page.locator('.live-archives article').filter({hasText:'Забытая запись'}).first();
+  await card.locator('.archive-actions .archive-danger').click();await page.waitForTimeout(300);
+  assert.equal(await card.locator('.archive-ask').count(),1,'удаление забытой записи не спросило подтверждения');
+  await card.locator('.archive-ask .archive-danger').click();await page.waitForTimeout(1500);
+  const toast=await page.locator('[data-sonner-toast]').allInnerTexts().catch(()=>[]);
+  assert.ok(!toast.join(' ').toLowerCase().includes('не удалось'),'студия показала ошибку при удалении забытой записи: '+toast.join(' | '));
   const left=await fetch(base+'/api/library',{headers:{cookie}}).then(r=>r.json());
   assert.ok(!left.items.some(p=>p.id===orphanId),'после удаления осиротевшая запись осталась в библиотеке');
   await page.reload();await page.waitForTimeout(1500);
