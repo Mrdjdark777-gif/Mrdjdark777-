@@ -81,10 +81,15 @@ try{
  await page.evaluate(()=>{const d=document.querySelector('.live-archives');if(d)d.open=true;});
  await page.waitForTimeout(500);
  assert.equal(await page.locator('.live-archives article').count(),0,'после подтверждения запись должна исчезнуть');
- // Выпуск в подкастах — отдельная сущность и удаляться отсюда не должен.
+ // Запись эфира живёт только в архиве, поэтому удаление уносит и выпуск, на
+ // котором она держится: иначе автор удалял запись у себя, а у слушателя она
+ // оставалась в архиве эфиров.
  const library=await fetch(base+'/api/library',{headers:{cookie}}).then(r=>r.json());
- assert.ok(library.items.some(p=>p.id===postId),'выпуск в подкастах должен остаться после удаления записи');
+ assert.ok(!library.items.some(p=>p.id===postId),'после удаления записи её выпуск не должен оставаться в библиотеке');
+ // То же самое глазами слушателя: архив эфиров пуст.
+ const guest=await fetch(base+'/api/library').then(r=>r.json());
+ assert.ok(!(guest.items||[]).some(p=>p.id===postId),'удалённая запись осталась видна слушателю');
  const gone=await fetch(base+'/api/live-stream?id='+id+'&remove=1',{method:'POST',headers:{cookie,origin:base}});
  assert.equal(gone.status,400,'повторное удаление той же записи должно отвечать ошибкой, а не молчанием');
- console.log('PASS: записи эфиров — обложка 4:5 без обрезки, описание в строке, компактная панель, прослушивание, скачивание и удаление с подтверждением; выпуск в подкастах остаётся');
+ console.log('PASS: записи эфиров — обложка 4:5 без обрезки, описание в строке, компактная панель, прослушивание, скачивание и удаление с подтверждением, которое уносит и выпуск записи у слушателя');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}
