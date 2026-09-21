@@ -20,6 +20,7 @@ import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
+import {KineticGrid} from '@/components/ui/kinetic-grid';
 import {useWideScreen} from '@/hooks/use-wide-screen';
 import {sendDesktopCommand} from '@/lib/desktop-shell';
 import {useDesktopApp} from '@/hooks/use-desktop-app';
@@ -353,6 +354,9 @@ export default function Studio(){
  {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>All rights reserved</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
+ {/* Фон-сетка — у слушателя. В студии фон не нужен: там работают, и лишний
+     слой под пультом эфира только мешает. */}
+ {!author&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
