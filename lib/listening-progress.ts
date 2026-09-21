@@ -10,3 +10,10 @@ export function saveProgress(id:string,position:number,duration:number){if(!id||
   if(same(list[0],next))return;
   localStorage.setItem(key,JSON.stringify([next,...list.filter(p=>p.id!==id)].slice(0,100)));window.dispatchEvent(new Event('tt-progress'));}catch{}}
 const same=(a:Progress|undefined,b:Progress)=>!!a&&a.id===b.id&&Math.round(a.position)===Math.round(b.position)&&Math.round(a.duration)===Math.round(b.duration);
+
+// Убрать строку «Продолжить» для одной записи. Человек мог включить выпуск
+// случайно или уже не хотеть к нему возвращаться, а строка висела на главной
+// и убрать её было нечем.
+export function dropProgress(id:string){if(!id)return;try{
+  const left=readProgress().filter(p=>p.id!==id);
+  localStorage.setItem(key,JSON.stringify(left));window.dispatchEvent(new Event('tt-progress'));}catch{}}

@@ -2157,3 +2157,31 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    такой же элемент колонки экрана эфира, и соседи ужимали его почти в ноль:
    архив раскрывался пустой полоской, хотя записи в нём были. */
 .listener-main .live-archive-list{flex:none}
+
+/* Заголовок раздела и строка под ним стояли вплотную: между крупным
+   именем раздела и пояснением нужен воздух, иначе они читаются как одна
+   слипшаяся строка. */
+.listener-main .page-heading{gap:8px}
+.listener-main .heading-description{margin:6px 0 0}
+
+/* Строка «Продолжить» с крестиком. Крестик лежит поверх правого края строки,
+   а не внутри неё: кнопка внутри кнопки — недопустимая разметка, и нажатие
+   на крестик уходило бы самой строке. */
+.resume-wrap{position:relative;width:100%}
+.resume-wrap .resume-row{padding-right:52px}
+.resume-close{position:absolute;top:50%;right:6px;transform:translateY(-50%);
+ width:40px;height:40px;display:grid;place-items:center;border:none;background:none;
+ color:var(--muted);border-radius:50%}
+.resume-close:hover{color:#f4f3f1;background:rgba(255,255,255,.06)}
+
+/* Каталог без плашки доната: отступ снизу у блока над инструментами и отступ
+   сверху у самих инструментов складывались в двойной провал. */
+.listener-main .catalog-tools{margin-top:0}
+
+/* Описание раскрывается по нажатию. В списке и в плеере оно обрезано двумя
+   строками, и прочитать остаток было нечем: у карточки нет отдельной
+   страницы, а шторку плеера не потянуть. Повторное нажатие сворачивает. */
+.post-note,.player-note{cursor:pointer}
+.post-content>p.post-note.is-open,
+.player-note.is-open{-webkit-line-clamp:unset;display:block;overflow:visible}
+.player-note.is-open{max-width:44ch}

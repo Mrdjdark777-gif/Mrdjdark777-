@@ -116,6 +116,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "player.minutes": "min",
 
   "home.continue": "Continuă",
+  "home.continueHide": "Ascunde",
 
   "home.latest": "Ultima publicare",
 

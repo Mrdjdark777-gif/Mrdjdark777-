@@ -96,6 +96,7 @@ export const ru = {
 "player.sleepOff": "Выкл.",
 "player.minutes": "мин",
 "home.continue": "Продолжить",
+  "home.continueHide": "Убрать",
 "home.latest": "Последняя публикация",
 "home.hideCard": "Убрать с главной",
 "reader.size": "Размер текста",

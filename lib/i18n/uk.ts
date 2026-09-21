@@ -116,6 +116,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "player.minutes": "хв",
 
   "home.continue": "Продовжити",
+  "home.continueHide": "Прибрати",
 
   "home.latest": "Остання публікація",
 

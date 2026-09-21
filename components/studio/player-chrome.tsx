@@ -42,6 +42,8 @@ const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
  const {t}=useT();
  const [menu,setMenu]=useState(false);
+ // Описание в плеере обрезано двумя строками: нажатие раскрывает его целиком.
+ const [noteOpen,setNoteOpen]=useState(false);
  const [swipe,setSwipe]=useState({x:0});
  const moreRef=useRef<HTMLButtonElement>(null),menuRef=useRef<HTMLDivElement>(null);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
@@ -134,7 +136,9 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
    {type?<>
     <span className="player-tagline">{view.kindLabel}</span>
     <h2 className="player-title">{view.title}</h2>
-    {view.note&&<p className="player-note">{view.note}</p>}
+    {view.note&&<p className={'player-note'+(noteOpen?' is-open':'')} role="button" tabIndex={0}
+     onClick={()=>setNoteOpen(v=>!v)}
+     onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setNoteOpen(v=>!v);}}}>{view.note}</p>}
     <Waveform key={view.postId} postId={view.postId} progress={view.duration>0?view.position/view.duration:0}/>
    </>:<>
     {/* У записи эфира метка уже стоит в верхней панели: второй раз её не повторяем. */}
@@ -143,7 +147,9 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
      <span className="player-tagline">{view.kindLabel}{view.duration>0?' · '+clock(view.duration):''}</span>
     </div>}
     <h2 className="player-title">{view.title}</h2>
-    {view.note&&<p className="player-note">{view.note}</p>}
+    {view.note&&<p className={'player-note'+(noteOpen?' is-open':'')} role="button" tabIndex={0}
+     onClick={()=>setNoteOpen(v=>!v)}
+     onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setNoteOpen(v=>!v);}}}>{view.note}</p>}
    </>}
 
    <div className="podcast-timeline"><Slider aria-label={t('player.seekAria')} aria-valuetext={t('player.seekValue',{position:clock(view.position),duration:clock(view.duration)})} value={[Math.min(view.position,view.duration||0)]} min={0} max={view.duration||1} step={0.1} disabled={!view.seekable} onValueChange={v=>(act.scrub??act.seekTo)(v[0])} onValueCommit={v=>act.seekTo(v[0])}/><div className="podcast-times"><span>{clock(view.position)}</span><span>{total}</span></div></div>

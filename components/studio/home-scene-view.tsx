@@ -1,10 +1,10 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal} from 'lucide-react';
+import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
-import {readProgress} from '@/lib/listening-progress';
+import {dropProgress,readProgress} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
 import {clock,haptic,coverSrc} from '@/lib/client';
@@ -77,7 +77,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   <section className={'scene'+(heroCover?'':' scene-fallback')} {...press}>
    <Artwork className="scene-photo" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="scene-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/>
    <div className="scene-shade" aria-hidden="true"/>
-   <p className="scene-intro">{t('home.channelIntro')}</p>
    {hero?<>
     <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
     <div className="scene-copy">
@@ -104,10 +103,16 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   {live?<button type="button" className="live-strip tt-pressable" onClick={()=>{haptic();onOpenLive();}}>
    <span className="live-dot" aria-hidden="true"/><span className="live-strip-copy"><strong>{live.title}</strong><span>{t('live.authorOnAir')}</span></span>
    <span className="live-strip-action">{liveAction}<ChevronRight size={17}/></span>
-  </button>:resume?<button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
-   <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
-   <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span><ChevronRight size={18}/>
-  </button>:null}
+  </button>:resume?<div className="resume-wrap">
+   <button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
+    <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
+    <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span>
+   </button>
+   {/* Строку можно убрать: выпуск могли включить случайно или больше к нему не
+       возвращаться, а деться от неё было некуда. */}
+   <button type="button" className="resume-close tt-pressable" aria-label={t('home.continueHide')} title={t('home.continueHide')}
+    onClick={()=>{haptic();dropProgress(resume.post.id);}}><X size={17}/></button>
+  </div>:null}
 
   <div className="section-tiles">
    {sections.map(s=>{const Icon=ICON[s.kind],cover=tileCover(s.kind);

@@ -54,7 +54,7 @@ try{
  // в нём нечего.
  await post({action:'calmArt',key:await demoCover('tile-forest.jpg')});
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
- await post({kind:'video',title:'Наедине с горами',description:'Демонстрационное видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
+ await post({kind:'video',title:'Наедине с горами',description:'История о перевале, который проходят затемно, о ночёвке под скалой и о том, почему обратная дорога всегда кажется короче. Демонстрационное описание нарочно длинное: на нём проверяется раскрытие текста по нажатию.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
  // Второй выпуск специально без обложки иновее первого: по нему видно
  // типографический S04, и у него есть «Далее» — следующий в разделе.
  // Запись эфира: тот же настоящий файл под ключом, который даёт воркер эфира.
@@ -246,6 +246,54 @@ try{
    const note=await page.evaluate(()=>document.querySelector('.podcast-player .player-note')?.textContent?.trim()||'');
    if(!note.startsWith('Специальный выпуск'))problems.push('при открытии записи эфира не видно её описания: '+(note||'пусто'));
   }
+  // Подпись канала поверх кадра убрана: она ложилась на картинку и мешала.
+  await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
+  if(await page.locator('.scene-intro').count())problems.push('на главной осталась подпись поверх кадра');
+  // Строку «Продолжить» можно убрать крестиком: выпуск могли включить
+  // случайно, а деться от строки было некуда.
+  {await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:10,duration:2300,updatedAt:Date.now()}]));},podcast.id);
+   await page.reload();await settle(page);await page.waitForTimeout(400);
+   if(!await page.locator('.resume-row').count())problems.push('на главной нет строки «Продолжить», хотя отметка прослушивания есть');
+   else{
+    const close=page.locator('.resume-close');
+    if(!await close.count())problems.push('у строки «Продолжить» нет крестика');
+    else{
+     await close.click();await page.waitForTimeout(400);
+     if(await page.locator('.resume-row').count())problems.push('крестик не убрал строку «Продолжить»');
+     await page.reload();await settle(page);await page.waitForTimeout(400);
+     if(await page.locator('.resume-row').count())problems.push('строка «Продолжить» вернулась после перезагрузки');
+    }
+   }}
+  // Описание в карточке раскрывается по нажатию и сворачивается обратно.
+  {await page.goto(base+'/?mode=listen&view=videos');await settle(page);await page.waitForTimeout(300);
+   const note=page.locator('.post-note').first();
+   if(!await note.count())problems.push('в карточке видео нет описания');
+   else{
+    const height=()=>note.evaluate(e=>Math.round(e.getBoundingClientRect().height));
+    const shut=await height();
+    const full=await note.evaluate(e=>e.scrollHeight);
+    if(full<=shut+2)console.log('Описание видео умещается в две строки, раскрытие не проверить');
+    else{
+     await note.click();await page.waitForTimeout(300);
+     const open=await height();
+     if(open<=shut+2)problems.push('описание не раскрылось по нажатию: было '+shut+'px, стало '+open+'px');
+     await note.click();await page.waitForTimeout(300);
+     if(await height()>shut+2)problems.push('описание не свернулось обратно');
+    }
+   }}
+  // Плашка доната из каталога убрана: поддержать можно с главной, из шапки и
+  // с экрана эфира, а здесь она отодвигала сам каталог вниз.
+  for(const v of ['podcasts','videos','stories']){
+   await page.goto(base+'/?mode=listen&view='+v);await settle(page);await page.waitForTimeout(250);
+   if(await page.locator('.listener-main .support-strip').count())
+    problems.push('в каталоге «'+v+'» осталась плашка доната');
+   // Имя раздела и пояснение под ним не слипаются.
+   const head=await page.evaluate(()=>{const h=document.querySelector('.page-heading h1'),
+     d=document.querySelector('.heading-description');
+    if(!h||!d)return null;const hr=h.getBoundingClientRect(),dr=d.getBoundingClientRect();
+    return Math.round(dr.top-hr.bottom);});
+   if(head!==null&&head<5)problems.push('в разделе «'+v+'» пояснение прилипло к заголовку: '+head+'px');
+  }
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(200);
   if(await page.locator('.catalog-scope').count())problems.push('в каталоге остался переключатель записей эфиров');
   await page.goto(base+'/?mode=listen&view=live');await settle(page);await page.waitForTimeout(250);
@@ -269,7 +317,7 @@ try{
   await page.evaluate(()=>{try{localStorage.removeItem('tt-seen-v1');}catch{}});
   await page.reload();await settle(page);await page.waitForTimeout(300);
   const gaps=()=>page.evaluate(()=>{
-   const sel=['.voice-headline','.voice-card','.listener-main .support-strip','.catalog-tools','.post-list'];
+   const sel=['.voice-headline','.voice-card','.catalog-tools','.post-list'];
    const out=[];let prev=null;
    for(const s of sel){const e=document.querySelector(s);if(!e)continue;const r=e.getBoundingClientRect();
     if(prev!==null)out.push(Math.round(r.top-prev));prev=r.bottom;}
@@ -809,7 +857,9 @@ try{
    if(m.nav!=='fixed')problems.push('граница 1023: панель разделов не плавающая ('+m.nav+')');
    if(m.foot)problems.push('граница 1023: показан настольный подвал');
    if(m.side)problems.push('граница 1023: описание канала ушло в колонку раньше границы');
-   if(!m.over)problems.push('граница 1023: описание канала пропало с кадра');
+   // Подпись канала поверх кадра убрана: она ложилась на обложку. На мониторе
+   // остаётся только колонка справа, на телефоне подписи нет вовсе.
+   if(m.over)problems.push('граница 1023: подпись канала вернулась поверх кадра');
    if(m.w>m.iw+1)problems.push('граница 1023: переполнение по ширине');
    await edge.close();}
   await guest.close();}
