@@ -4,24 +4,15 @@ import type { ru} from './ru';
 export const ro: Record<keyof typeof ru, string> = {
 
   "err.liveUpload": "Sunetul emisiunii nu a putut fi trimis pe server.",
-
   "err.liveRecorder": "Pentru transmisie ai nevoie de un browser cu înregistrare WebM/Opus. Actualizează Windows WebView2.",
-
   "err.liveActive": "Transmisiunea este încă în desfășurare. Oprește-o înainte de a șterge înregistrarea.",
   "err.liveLimit": "Ai atins limita emisiunii: până la 8 ore sau 1 GiB de sunet primit.",
-
   "err.liveSequence": "Ordinea transmisiei a fost întreruptă. Partea primită a fost salvată.",
-
   "err.livePreparing": "Serverul pregătește sunetul emisiunii.",
-
   "err.liveDisk": "Pe server a rămas puțin spațiu liber. Eliberează spațiu înainte de emisiune.",
-
   "err.liveWorker": "Serviciul de emisiuni nu este pornit pe server. Rulează instalarea de întreținere 0.9.",
-
   "post.liveArchive": "Înregistrarea emisiunii",
-
   "liveArchive.empty": "Aici vor apărea înregistrările emisiunilor tale.",
-
   "liveArchive.play": "Ascultă",
   "liveArchive.stop": "Oprește",
   "liveArchive.remove": "Șterge înregistrarea",
@@ -31,142 +22,75 @@ export const ro: Record<keyof typeof ru, string> = {
   "liveArchive.removed": "Înregistrare ștearsă",
   "liveArchive.edit": "Modifică",
   "liveArchive.download": "Descarcă înregistrarea",
-
   "liveArchive.retryAction": "Reia procesarea",
-
   "liveArchive.failed": "Înregistrarea nu a putut fi procesată. Fragmentele primite au fost salvate.",
   "liveArchive.ready": "În arhiva transmisiunilor",
   "liveArchive.processingState": "Pregătim înregistrarea",
-
   "liveArchive.closing": "Închidem înregistrarea",
-
   "liveArchive.receivingState": "Emisiunea se înregistrează",
-
   "liveArchive.title": "Înregistrările emisiunilor",
   "liveArchive.search": "Caută în înregistrări",
   "liveArchive.ended": "Transmisiunea s-a încheiat. Înregistrarea apare în arhivă după procesare.",
   "liveArchive.buffering": "Conectăm sunetul de pe server…",
-
   "liveArchive.processing": "Emisiunea s-a încheiat. Serverul pregătește înregistrarea — poți opri PC-ul.",
-
   "liveArchive.partial": "Transmisia s-a întrerupt. Serverul salvează partea primită; sunetul netrimis se poate să se fi pierdut.",
-
   "liveArchive.retry": "Reluăm transmisia către server…",
-
   "liveArchive.receiving": "Sunetul se transmite pe server și se salvează",
-
   "liveArchive.saving": "Trimitem ultimele secunde… Nu închide aplicația.",
-
-  "donate.configure": "Adaugă un link",
-
   "donate.unavailable": "Susținerea nu e încă activată.",
-
-  "donate.setup": "Adaugă-ți linkul: butonul va apărea la ascultători pe pagina principală și în emisiune.",
-
   "donate.free": "Totul e gratuit și va rămâne gratuit.",
-
   "donate.action": "Susține True Thrills",
   "donate.supportLiveNote": "Server, echipament și zero reclame",
   "donate.supportLive": "Susține transmisiunea",
-
   "donate.boosty": "Boosty",
-
   "donate.paypal": "PayPal",
-
   "err.loginLimited": "Prea multe încercări. Așteaptă 10 minute.",
-
   "err.coverUrl": "Pentru copertă e nevoie de un link HTTPS.",
-
   "err.coverType": "Coperta trebuie să fie JPEG, PNG, WebP sau GIF",
-
   "err.coverSize": "Fișierul copertei — până la 12 MB",
-
   "err.coverEmpty": "Fișier de copertă gol",
-
   "err.coverUpload": "Coperta nu a putut fi încărcată",
-
   "err.coverNotFound": "Coperta încărcată nu a fost găsită",
-
   "editor.cover": "Copertă",
-
   "editor.coverUpload": "Încarcă o copertă",
-
   "editor.coverNote": "Copertă verticală 4:5 — 1080×1350, JPEG. Ține subiectul principal în pătratul central: în cercul playerului și în notificare se vede doar mijlocul. Alt raport nu se decupează, dar apare cu margini.",
-
   "editor.coverUrlPlaceholder": "sau lipește un link https://…",
-
   "editor.coverTooBig": "Fișierul copertei — până la 12 MB",
-
   "err.nativeUnavailable": "Actualizează aplicația și Android System WebView.",
-
   "err.notificationsBlocked": "Permite notificările din setările telefonului.",
-
   "err.playback": "Podcastul nu a putut fi redat. Verifică conexiunea și apasă redare.",
-
   "notif.blocked": "Telefonul blochează notificările True Thrills.",
-
   "notif.openSettings": "Setările telefonului",
-
   "player.rate": "Viteză",
-
   "player.sleep": "Cronometru de adormire",
-
   "player.sleepOff": "Oprit",
-
   "player.minutes": "min",
-
   "home.continue": "Continuă",
   "home.continueHide": "Ascunde",
-
-  "home.latest": "Ultima publicare",
-
-
   "home.hideCard": "Scoate de pe pagina principală",
   "reader.size": "Mărimea textului",
-
   "common.retry": "Încearcă din nou",
-
   "common.refresh": "Reîmprospătează",
   "shell.menu": "Acțiuni aplicație",
   "shell.browser": "Deschide în browser",
   "shell.fullscreen": "Mod ecran complet (F11)",
   "shell.about": "Despre aplicație",
-
   "common.cancel": "Anulează",
-
   "common.login": "Intră",
-
   "common.loading": "Încărcăm studioul…",
-
   "common.link": "Link",
-
-  "common.mb": "MB",
-
   "meta.title": "True Thrills — studio și podcasturi",
-
   "meta.description": "Podcasturi, povești și emisiuni live True Thrills.",
   "nav.podcasts": "Ascultă",
   "nav.videos": "Video",
-
   "nav.home": "Acasă",
-
   "nav.stories": "Povești",
-
   "nav.live": "Live",
-  "donate.stripNote": "Ajutăm poveștile să rămână independente",
   "home.channelIntro": "Povești despre oameni, natură sălbatică și despre ce contează cu adevărat.",
   "home.emptyTitle": "Aici va apărea primul episod",
   "home.emptyNote": "Autorul nu a publicat încă nimic.",
-  "home.sectionPodcasts": "Voci din locuri îndepărtate",
-  "home.sectionVideos": "Mai mult decât audio",
-  "home.sectionStories": "Oameni și trasee",
   "home.fresh": "nou",
   "home.freshList": "Recente",
-  "nav.library": "Bibliotecă",
-  "heading.homeListener": "Ce ascultăm?",
-  "home.eyebrow": "True Thrills / Acasă",
-  "home.cardMenu": "Acțiuni pentru card",
-  "home.liveRowNone": "Nicio emisiune acum",
   "catalog.search": "Caută după titlu și descriere",
   "catalog.sortNew": "Întâi cele noi",
   "voice.headline": "Mai aproape de voce",
@@ -177,71 +101,37 @@ export const ro: Record<keyof typeof ru, string> = {
   "catalog.nothingFound": "Nimic găsit",
   "player.expand": "Extinde playerul",
   "player.collapse": "Restrânge playerul",
-  "nav.studio": "Înregistrare",
-
   "header.settings": "Setări",
-
   "header.support": "Susține",
   "app.download": "Descarcă aplicația",
   "app.footerNote": "Server propriu, fișiere proprii. Fără reclame și urmărire.",
-
-  "header.toStudio": "În studio",
-
-  "header.asListener": "Ca ascultător",
-
   "header.logout": "Ieși",
-
   "setup.eyebrow": "TRUE THRILLS / PRIMA PORNIRE",
-
   "setup.title": "Studioul tău e gata\npentru prima înregistrare.",
-
   "setup.text": "Leagă studioul de contul tău. Doar tu vei putea publica episoade, scrie povești și porni emisiuni.",
-
   "setup.cta": "Deschide studioul meu",
-
   "setup.note": "Deocamdată aplicația este disponibilă doar ție. Accesul pentru public se activează separat.",
-
   "heading.homeAuthor": "Ce facem azi?",
-
   "heading.studio": "Totul începe cu vocea.",
   "heading.podcasts": "Ascultă",
   "heading.videos": "Video",
-
   "heading.stories": "Povești",
-
   "heading.live": "Emisiune live",
-
   "heading.settings": "Setări",
-
   "desc.homeAuthor": "Înregistrare, video, poveste sau live — începe cu ce contează.",
-
   "desc.studio": "Înregistrează. Povestește. Fă-te auzit.",
-
   "desc.podcastsAuthor": "Episoadele tale — de la ciornă la publicare.",
   "desc.podcastsListener": "Episoade, cântece și versuri True Thrills.",
   "desc.videosAuthor": "Linkurile către videoclipurile tale — ascultătorul le vede chiar aici.",
-
   "desc.videosListener": "Videoclipurile True Thrills — direct în aplicație.",
-
   "desc.storiesAuthor": "Locul poveștilor pe care vrei să le spui.",
-
   "desc.storiesListener": "Poveștile True Thrills în format text.",
-
   "desc.live": "Voce și ascultători. În timp real.",
-
   "desc.settingsAuthor": "Susținere, platforme și notificări.",
-
   "desc.settingsListener": "Notificări, platforme și susținerea autorului.",
-
-  "home.record": "Înregistrează\nun episod",
-
   "home.addVideo": "Adaugă\nvideo",
-
   "home.writeStory": "Scrie\no poveste",
-
   "home.startLive": "Pornește\nemisiunea",
-
-  "home.shareChannel": "Distribuie\ncanalul",
   "share.action": "Distribuie",
   "share.title": "Distribuie",
   "share.copy": "Copiază",
@@ -249,139 +139,53 @@ export const ro: Record<keyof typeof ru, string> = {
   "share.linkAria": "Link",
   "share.channel": "Canalul True Thrills",
   "share.live": "Transmisiune live",
-  "share.failed": "Nu s-a putut distribui",
-
-  "home.watchVideos": "Vezi\nvideo",
-  "home.listenPodcasts": "Ascultă\nepisoadele",
-  "home.readStories": "Citește\npovești",
-
-  "home.liveNow": "Emisiune\nlive",
-
-  "home.socialCaption": "Autorul pe alte platforme",
-
-  "support.setupTitle": "Butonul de susținere nu este conectat",
-
-  "support.setupText": "Adaugă un link de plată — va apărea la ascultători în antet și pe ecranul principal.",
-
   "live.youAreListening": "ASCULȚI EMISIUNEA",
-
   "live.authorOnAir": "AUTORUL ESTE ÎN DIRECT",
-
   "live.open": "Deschide emisiunea",
-
   "live.continueListening": "Continuă să asculți",
-
   "live.enableSound": "Pornește sunetul",
-
   "live.connecting": "Ne conectăm…",
-
   "live.backToLive": "Înapoi la emisiune",
-
   "live.listen": "Ascultă emisiunea",
-
   "live.refreshFailed": "Starea emisiunii nu a putut fi actualizată.",
-
   "live.micOnNote": "Microfon pornit · emisiunea continuă",
-
   "live.stop": "Încheie emisiunea",
-
   "live.stopped": "Emisiune încheiată",
-
   "live.alreadyEnded": "Această emisiune s-a încheiat deja",
-
   "live.running": "Emisiunea e în desfășurare",
-
   "live.starting": "Pornim emisiunea…",
-
   "live.preparing": "Pregătirea emisiunii",
-
   "live.micReady": "Microfonul e gata. Poți verifica vocea.",
-
   "live.pickSource": "Verifică microfonul și nivelul, apoi intră în direct.",
-
   "live.noteField": "Descrierea transmisiunii",
   "live.notePlaceholder": "Despre ce vei vorbi. Ascultătorul vede asta în direct, apoi în descrierea înregistrării.",
   "live.titleField": "Titlul emisiunii",
-
   "live.coverField": "Coperta emisiunii",
-
   "live.coverUpload": "Încarcă o copertă",
-
   "live.coverChange": "Alege alta",
   "live.coverNote": "Copertă verticală 4:5 — 1080×1350. Devine coperta înregistrării. Fără ea, fundalul transmisiunii este imaginea canalului din setări, iar pe card — logoul.",
   "live.titlePlaceholder": "Despre ce povestești azi?",
-
   "live.titleRequired": "Scrie titlul emisiunii",
-
   "live.micOff": "MICROFON OPRIT",
-
   "live.signalOnAir": "SEMNAL ÎN EMISIE",
-
   "live.voiceCheck": "PROBĂ DE VOCE",
-
   "live.listenersConnected": "ascultători conectați",
-
   "live.waitingFirst": "Așteptăm primul ascultător",
-
   "live.openListener": "Deschide vizualizarea ascultătorului",
-
-  "live.copyLink": "Copiază linkul",
-
   "live.connectingShort": "Conectăm…",
-
   "live.stopCheck": "Oprește proba",
-
   "live.checkMic": "Verifică microfonul",
-
   "live.start": "Pornește emisiunea",
-
   "live.stopFromOtherWindow": "Încheie emisiunea din altă fereastră",
-
-  "live.linkCopied": "Linkul ascultătorului a fost copiat",
-
-  "live.linkCopyFailed": "Linkul nu a putut fi copiat. Folosește butonul de deschidere a ascultătorului.",
-
   "live.micLost": "Microfonul s-a deconectat — emisiunea s-a încheiat",
-
-  "live.listeningNow": "Asculți emisiunea",
-
-  "live.paused": "În pauză",
-
-  "live.reconnecting": "Restabilim legătura",
-
-  "live.connectingState": "Conectare",
-
-  "live.needSound": "Trebuie să pornești sunetul",
-
-  "live.connectFailed": "Conectarea nu a reușit",
-
   "live.ended": "Emisiune încheiată",
-
-  "live.authorOnAirPlain": "Autorul e în direct",
-
-  "live.noneNow": "Acum nu e nicio emisiune",
-
   "live.tapToConnect": "Apasă «Ascultă emisiunea» ca să te conectezi.",
-
   "live.willAppearHere": "Când autorul pornește emisiunea, va apărea aici.",
-
   "live.pause": "Pauză",
-
   "live.resume": "Continuă să asculți",
-
-  "live.reconnectingShort": "Restabilim legătura…",
-
   "live.leave": "Ieși din emisiune",
-
-  "live.tryAgain": "Mai încearcă o dată",
-
   "live.volumeOff": "Volumul este oprit",
-
-  "live.playing": "Emisiunea e în desfășurare",
-
   "live.volume": "Volum",
-
-
   "live.onAirFor": "în direct",
   "live.weAreOnAir": "ON AIR",
   "live.noBroadcast": "OFF AIR",
@@ -396,597 +200,271 @@ export const ro: Record<keyof typeof ru, string> = {
   "live.archiveSearch": "Caută în înregistrări",
   "live.archiveEmpty": "Încă nu există înregistrări — vor apărea după prima transmisiune.",
   "live.archivePending": "Înregistrarea ultimei transmisiuni se pregătește — va apărea aici singură.",
-
-  "live.mute": "Oprește sunetul",
-
-  "live.unmute": "Pornește sunetul",
   "live.volumeAria": "Volumul emisiunii",
-
   "live.infoAuthor": "Controlul emisiunii",
-
   "live.authorTip1": "Verifică unda înainte de direct: proba nu se înregistrează și nu o aude nimeni.",
-
   "live.authorTip2": "Amplificarea și oprirea microfonului funcționează în timpul emisiunii.",
-
   "live.authorTip3": "După încheiere așteaptă trimiterea ultimelor secunde. Apoi poți opri PC-ul.",
-
   "live.pilotTitle": "Transmisiune de probă",
-
   "live.pilotText": "Emisiunea poate fi ascultată de până la 50 de persoane în același timp. Sunetul trece prin server cu o mică întârziere.",
   "live.pilotNoRecord": "Transmisiunea se salvează pe server și apare în arhivă după procesare.",
   "live.otherNetwork": "Verifică internetul și încearcă să te conectezi din nou.",
-
-  "studio.panelTitle": "ÎNREGISTRARE PODCAST",
-
-  "studio.paused": "PAUZĂ",
-
-  "studio.rec": "REC",
-
   "studio.ready": "GATA DE ÎNREGISTRARE",
-
-  "studio.waiting": "ÎN AȘTEPTARE",
-
-  "studio.levelAria": "Nivelul semnalului microfonului",
-
-  "studio.incomingSignal": "SEMNAL DE INTRARE",
-
-  "studio.noSignal": "FĂRĂ SEMNAL",
-
-  "studio.stopRecording": "Încheie înregistrarea",
-
-  "studio.continue": "Continuă",
-
-  "studio.pause": "Pauză",
-
-  "studio.newRecording": "Înregistrare nouă",
-
   "studio.startRecording": "Începe înregistrarea",
-
-  "studio.uploadAudio": "Încarcă audio",
-
-  "studio.checkTip": "Verifică unda și nivelul vocii înainte de înregistrare.",
-
-  "studio.connecting": "Conectare…",
-
-  "studio.disconnectInput": "Deconectează intrarea",
-
-  "studio.checkInput": "Verifică intrarea",
-
-  "studio.liveCardTitle": "Mai aproape de ascultători.",
-
-  "studio.liveCardText": "Intră în direct și spune povestea cu vocea ta.",
-
-  "studio.prepareLive": "Pregătește emisiunea",
-
-  "studio.pilotFootnote": "Ascultătorii se conectează din aplicație și de pe site",
-
-  "studio.quickStoryTitle": "Ai ceva de povestit?",
-
-  "studio.quickStoryText": "Creează o poveste în text.",
-
   "studio.writeStory": "Scrie o poveste",
-
-  "studio.lastRecording": "Ultima înregistrare",
-
-  "studio.localDraft": "Ciornă pe acest dispozitiv",
-
-  "studio.download": "Descarcă",
-
-  "studio.preparing": "Pregătim înregistrarea…",
-
-  "studio.publishEpisode": "Pregătește episodul",
-
   "studio.libraryTitle": "Biblioteca ta",
-
   "studio.librarySubtitle": "Conținutul care rămâne.",
-
-  "studio.supportTile": "Susținere",
-
-  "studio.donationSet": "Linkul este conectat",
-
-  "studio.donationMissing": "Adaugă un link pentru susținere",
-
-  "studio.monitorDaw": "Pentru monitorizarea FL Studio: căștile în Komplete, INPUT/HOST pe HOST; ascultarea CABLE Output — în Komplete 1/2.",
-
-  "studio.monitorMic": "Pentru monitorizarea vocii folosește căști și Direct Monitor de pe interfața audio.",
-
   "studio.uploadEpisode": "Încarcă un episod",
-
   "studio.newStory": "Scrie o poveste",
-
   "studio.ready0": "Studioul e gata",
-
-
   "filter.published": "Publicate",
-
   "filter.drafts": "Ciorne",
-
   "empty.sectionEmpty": "Secțiunea este încă goală",
   "empty.firstPodcast": "Aici va apărea prima înregistrare",
   "empty.firstVideo": "Aici va apărea primul videoclip",
-
   "empty.firstStory": "Aici va apărea prima poveste",
-
   "empty.listener": "Autorul nu a adăugat încă publicații în această secțiune.",
-
   "empty.podcastHint": "Înregistrează un podcast în studio sau încarcă un fișier audio gata făcut.",
-
   "empty.videoHint": "Adaugă un link de pe YouTube, Rutube, VK sau TikTok — se va reda chiar aici.",
-
   "empty.storyHint": "Scrie o poveste și publică-o pentru ascultători.",
-
-  "empty.toStudio": "În studio",
-
   "empty.addVideo": "Adaugă video",
   "post.podcast": "AUDIO",
   "post.video": "VIDEO",
-
   "post.story": "POVESTE",
-
   "post.published": "Publicat",
-
   "post.draft": "Ciornă",
-
   "post.listen": "Ascultă",
-
   "post.watch": "Vezi",
-
   "post.read": "Citește",
-
   "post.listenAria": "Ascultă {title}",
-
   "post.watchAria": "Vezi {title}",
-
   "post.readAria": "Citește {title}",
-
   "post.edit": "Editează",
-
   "post.unpublish": "Mută în ciorne",
-
   "post.publish": "Publică",
-
   "post.delete": "Șterge",
   "post.pin": "Fixează pe pagina principală",
   "post.unpin": "Elimină de pe pagina principală",
   "post.pinned": "Fixat pe pagina principală",
   "post.unpinned": "Eliminat de pe pagina principală",
-
   "post.defaultVideo": "Video True Thrills",
-
   "post.defaultPodcast": "Episod audio True Thrills",
-
   "post.movedToDrafts": "Mutat la ciorne",
-
   "post.publishedToast": "Publicat",
-
   "post.gone": "Publicarea nu mai este disponibilă",
-
   "editor.editing": "Editare",
-
   "editor.newStory": "Poveste nouă",
-
   "editor.newVideo": "Video nou",
-
   "editor.newPodcast": "Pregătește podcastul",
-
   "editor.storyHint": "Salvează ciorna sau publică povestea.",
-
   "editor.videoHint": "Lipește linkul videoclipului — ascultătorul îl va vedea în aplicație.",
-
   "editor.podcastHint": "Adaugă titlul și descrierea episodului.",
-
   "editor.title": "Titlu",
-
   "editor.titleStory": "Titlul poveștii",
-
   "editor.titleVideo": "Titlul videoclipului",
-
   "editor.titleEpisode": "Titlul episodului",
-
   "editor.description": "Descriere scurtă",
-
   "editor.descriptionPlaceholder": "Câteva cuvinte pentru ascultător",
-
   "editor.storyText": "Textul poveștii",
-
   "editor.storyPlaceholder": "Începe să povestești…",
-
   "editor.videoUrl": "Linkul videoclipului",
   "editor.videoDuration": "Durată",
   "editor.videoDurationPlaceholder": "mm:ss",
   "editor.videoDurationNote": "Aplicația nu știe durata clipului — clipul se află pe o platformă externă. Scrie-o tu și va apărea pe card. Poate rămâne gol.",
   "editor.badDuration": "Scrie durata ca mm:ss, de exemplu 12:30, sau h:mm:ss pentru un clip lung",
-
   "editor.videoNote": "YouTube, Rutube, VK Video, TikTok sau un link direct către un fișier MP4. Restul linkurilor se deschid pe platformă.",
-
   "editor.audioOfEpisode": "Audio episodului",
-
   "editor.audioReady": "{size} MB · gata de încărcat",
-
   "editor.audioMissing": "Nu e ales niciun fișier audio",
-
   "editor.toDrafts": "La ciorne",
-
   "editor.publish": "Publică",
-
   "editor.saving": "Salvăm…",
-
   "editor.needTitle": "Scrie un titlu",
-
   "editor.needStory": "Adaugă textul poveștii",
-
   "editor.needVideoUrl": "Adaugă linkul videoclipului",
-
   "editor.needAudio": "Întâi înregistrează sau încarcă audio",
-
   "editor.publishedToast": "Publicat",
-
   "editor.draftSaved": "Ciornă salvată",
-
   "editor.previewTitle": "Previzualizare",
   "editor.previewLabel": "Așa va vedea clipul ascultătorul",
-
   "reading.eyebrow": "TRUE THRILLS / POVESTE",
-
   "watching.eyebrow": "TRUE THRILLS / VIDEO",
-
   "confirm.deleteTitle": "Ștergi «{title}»?",
-
   "confirm.deleteText": "Publicarea și înregistrarea ei audio vor fi șterse. Acțiunea nu poate fi anulată.",
-
   "confirm.deleted": "Șters",
-
   "confirm.discardTitle": "Închizi fără să salvezi?",
-
   "confirm.discardText": "Modificările textului nu vor fi salvate.",
-
   "confirm.keepEditing": "Continuă editarea",
-
   "confirm.close": "Închide",
-
   "confirm.replaceTitle": "Începi o înregistrare nouă?",
-
   "confirm.replaceText": "Înregistrarea nouă va înlocui ciorna audio locală. Descarcă sau publică mai întâi înregistrarea anterioară, dacă îți trebuie.",
-
   "settings.supportTitle": "Butonul de susținere",
-
   "settings.supportText": "Adaugă linkurile Boosty și PayPal — butonul «Susține» va apărea în antet și pe ecranul principal al ascultătorului. Poți completa un serviciu sau pe amândouă.",
-
   "settings.saveDonation": "Salvează linkurile",
-
   "settings.donationSaved": "Link salvat",
-
   "settings.donationNote": "Plățile sunt procesate de serviciul ales. Aplicația nu păstrează datele cardurilor.",
-
   "settings.artTitle": "Fundalul notificărilor",
   "settings.calmTitle": "Imaginea cercului de calm",
   "settings.calmText": "Apare în cerc pe ecranul transmisiunii când nu e nicio transmisiune — sub ea merge cercul de respirație 4-4-4-4. Alege ceva la care îți e liniște să privești.",
   "settings.calmNote": "Pătrat 1:1 — 1080×1080, JPEG. Cercul se decupează din mijloc, deci ține subiectul în centru. Până la 12 MB.",
-
   "settings.artText": "Imaginea apare în notificarea de redare în fundal — ca o copertă de album pe ecranul blocat. Bannerul canalului tău este potrivit.",
-
   "settings.artUpload": "Încarcă o imagine",
   "settings.artRemove": "Șterge imaginea",
   "settings.artRemoved": "Imagine ștearsă",
-
   "settings.saveArt": "Salvează",
-
   "settings.artSaved": "Imagine salvată",
-
   "settings.artNote": "Banner orizontal 16:9 — 1920×1080, până la 12 MB. Ține centrul liniștit: peste el se desenează textele.",
-
   "settings.linksTitle": "Platformele tale",
-
   "settings.linksText": "Linkurile vor apărea pe ecranul principal al ascultătorului. Un câmp gol scoate platforma.",
-
   "settings.saveLinks": "Salvează linkurile",
-
   "settings.linksSaved": "Linkuri salvate",
-
   "settings.linksNote": "Se acceptă doar adrese HTTPS. Linkurile se deschid în aplicația externă a platformei.",
-
-  "settings.channelLinkCopied": "Linkul canalului a fost copiat",
-
-  "settings.channelLinkFailed": "Linkul nu a putut fi copiat.",
-
   "social.youtube": "YouTube",
-
   "social.tiktok": "TikTok",
-
   "social.instagram": "Instagram",
-
   "social.telegram": "Telegram",
-
   "social.vk": "VKontakte",
-
   "social.site": "Site sau altceva",
-
   "video.watchOnPlatform": "Vezi pe platformă",
-
   "notif.title": "Notificări pe acest dispozitiv",
-
   "notif.text": "Primește notificări despre emisiuni și publicări. Nu e nevoie de înregistrare.",
-
   "notif.optLive": "Începutul emisiunii",
-
   "notif.optPodcast": "Podcast sau video nou",
-
   "notif.optStory": "Poveste nouă",
-
   "notif.enable": "Pornește notificările",
-
   "notif.disable": "Oprește notificările",
-
   "notif.test": "Verifică livrarea",
-
   "notif.unsupported": "Pentru notificări deschide adresa securizată True Thrills (HTTPS) în Chrome pe Android.",
-
   "notif.note": "Notificările ajung și fără aplicația deschisă. Dacă nu ajung, verifică permisiunile și economisirea bateriei din setările Android.",
   "notif.enabled": "Notificările sunt pornite pe acest dispozitiv. Verifică livrarea.",
-
   "notif.disabled": "Notificările sunt oprite.",
-
   "notif.reEnable": "Pornește notificările din nou.",
-
   "notif.bridgeMissing": "Puntea pentru notificări nu este disponibilă.",
-
   "notif.permissionHint": "Permite notificările site-ului în Chrome și notificările Chrome în setările Android.",
-
   "notif.acceptedFull": "Serviciul a acceptat mesajul. Verifică bara de notificări. Dacă nu apare — verifică permisiunile Chrome și modul «Nu deranja».",
-
   "notif.accepted": "Serviciul a acceptat mesajul. Verifică bara de notificări.",
-
   "notif.startFailed": "Notificările nu au pornit. Actualizează aplicația.",
-
   "push.newPodcast": "Podcast nou True Thrills",
-
   "push.newVideo": "Video nou True Thrills",
-
   "push.newStory": "Poveste nouă True Thrills",
-
   "push.liveTitle": "True Thrills e în direct",
-
   "push.testTitle": "Verificarea notificărilor",
-
   "push.testBody": "Emisiunile și publicările noi vor ajunge aici.",
-
   "player.album": "Podcasturi",
-
   "player.aria": "Player: {title}",
-
   "player.close": "Închide playerul",
   "player.menu": "Meniul episodului",
   "player.sleepShort": "Cronometru",
   "player.waveformPending": "Forma de undă se pregătește",
   "player.next": "Următorul",
-
   "player.back15": "Înapoi 15 secunde",
-
   "player.forward15": "Înainte 15 secunde",
-
   "player.play": "Ascultă",
-
   "player.pause": "Pauză",
-
   "player.seekAria": "Derularea podcastului",
-
   "player.seekValue": "{position} din {duration}",
-
   "player.measuring": "Calculăm durata…",
-
   "player.tapToPlay": "Apasă «Ascultă» ca să pornești sunetul.",
-
   "player.seekFailed": "Derularea nu a reușit. Așteaptă să se încarce înregistrarea.",
-
   "player.preparingSeek": "Pregătim durata și derularea…",
-
   "player.loadFailed": "Podcastul nu a putut fi încărcat",
-
   "player.tooBig": "Înregistrarea depășește 80 MB",
-
   "player.unavailable": "Audio indisponibil. Încearcă să deschizi podcastul din nou.",
-
   "player.tapInPlayer": "Apasă redare în player",
-
   "input.howSound": "Cum intră sunetul",
-
   "input.mic": "Microfon / interfață audio",
-
   "input.daw": "Sunet din FL Studio",
-
   "input.dawHelp": "Sunetul vine de la dispozitivul de înregistrare implicit din Windows. În FL Studio trimite Master în CABLE Input, iar CABLE Output setează-l ca implicit în setările de sunet Windows. Vocea, muzica și efectele trec împreună, în stereo.",
   "input.micHelp": "Sunetul vine de la dispozitivul de înregistrare implicit din Windows. Dacă ai mai multe microfoane, alege-l pe cel potrivit în setările de sunet Windows.",
-
-
-
-
-
-
-
-
-
-
-
-
-
   "input.noSignal": "Fără semnal",
-
   "input.tooLoud": "Prea tare. Scade amplificarea ca să eviți distorsiunile.",
-
   "input.gain": "Amplificarea sunetului de intrare",
-
   "input.muteAll": "Oprește tot sunetul de intrare",
-
-
   "capture.noRecorder": "Browserul nu acceptă înregistrarea audio",
-
   "capture.needHttpsRecord": "Pentru înregistrare e nevoie de HTTPS. Deschide True Thrills pe adresa securizată.",
-
   "capture.needHttpsMic": "Microfonul e disponibil doar pe HTTPS. Deschide adresa securizată True Thrills.",
-
   "capture.unsupportedBrowser": "Înregistrarea nu este acceptată. Folosește Edge sau Chrome.",
-
   "capture.openInChrome": "Deschide aplicația în Edge sau Chrome și permite microfonul.",
-
   "capture.devicesUnavailable": "Dispozitivele audio nu sunt disponibile în acest browser.",
-
   "capture.allowMicWindow": "Permite accesul la microfon în fereastra aplicației.",
-
   "capture.allowMic": "Permite aplicației accesul la microfon.",
-
   "capture.micNotFound": "Microfonul nu a fost găsit. Verifică conectarea interfeței audio.",
-
   "capture.inputUnavailable": "Intrarea aleasă nu este disponibilă. Reîmprospătează lista dispozitivelor.",
-
   "capture.interfaceLost": "Interfața audio s-a deconectat",
-
   "capture.monoOnly": "Dispozitivul dă mono. Pentru stereo verifică sursa și setările Windows.",
-
   "capture.stoppedAtLimit": "Înregistrarea s-a oprit la 75 MB. Salvează episodul.",
-
   "capture.recordError": "Eroare de înregistrare. Salvează fragmentul disponibil.",
-
   "capture.draftNotSaved": "Ciorna nu s-a salvat pe dispozitiv. Descarcă înregistrarea înainte de a închide.",
-
   "capture.preparedPartly": "Înregistrarea inițială e salvată, dar pregătirea nu s-a terminat. ",
-
   "capture.tooBigUpload": "Maximum 80 MB pe înregistrare",
-
   "capture.emptyFile": "Fișierul audio este gol",
-
   "capture.uploadFailed": "Fișierul audio nu s-a încărcat",
-
   "audio.prepareFailed": "Audio nu a putut fi pregătit. Actualizează aplicația și încearcă din nou.",
-
   "audio.cancelled": "Anulat",
-
   "audio.tooBig": "Fișierul audio trebuie să aibă până la 80 MB",
-
   "audio.noTrack": "În fișier nu s-a găsit nicio pistă audio",
-
   "audio.singleTrack": "Pentru această înregistrare e nevoie de un fișier audio cu o singură pistă",
-
   "audio.noDuration": "Durata înregistrării nu a putut fi determinată",
-
   "audio.prepareRecordFailed": "Înregistrarea nu a putut fi pregătită",
-
   "audio.formatFailed": "Formatul înregistrării nu a putut fi citit",
-
   "liveHook.starting": "Pornim emisiunea…",
-
   "liveHook.startFailed": "Emisiunea nu a putut fi pornită",
-
   "liveHook.listening": "Asculți emisiunea în direct",
-
   "liveHook.tapToEnable": "Apasă «Pornește sunetul» ca să permiți redarea.",
-
   "liveHook.playFailed": "Sunetul nu a putut fi redat. Conectează-te din nou.",
-
   "liveHook.paused": "Ascultarea e în pauză",
-
   "liveHook.title": "Emisiune live",
-
   "login.title": "Intrare în studio",
-
   "login.password": "Parola autorului",
-
   "login.passwordPlaceholder": "Parolă",
-
   "login.busy": "Intrăm…",
-
   "login.failed": "Intrarea nu a reușit",
-
   "err.serverDown": "Serverul nu răspunde. Reîmprospătează pagina și verifică dacă ești autentificat.",
-
   "err.server": "Eroare de server",
-
   "err.generic": "Acțiunea nu a putut fi executată",
-
   "err.request": "Cererea nu a putut fi executată",
-
   "err.ownerOnly": "Acces doar pentru autor",
-
   "err.badOrigin": "Sursa cererii nu este permisă",
-
   "err.signIn": "Autentifică-te în cont",
-
   "err.studioClaimed": "Studioul este deja atribuit unui autor",
-
   "err.donationsUrl": "E nevoie de linkuri HTTPS către Boosty sau PayPal",
-
   "err.linksUrl": "E nevoie de linkuri HTTPS către platforme cunoscute",
-
   "err.titleLength": "Scrie un titlu de până la 160 de caractere",
-
   "err.badKind": "Tip de publicare greșit",
-
   "err.storyTooLong": "Povestea este prea lungă",
-
   "err.storyEmpty": "Adaugă textul poveștii",
-
   "err.videoUrl": "E nevoie de un link HTTPS către video (YouTube, Rutube, VK, TikTok sau un fișier)",
-
   "err.videoUrlLong": "Linkul videoclipului este prea lung",
-
   "err.audioMissing": "Adaugă o înregistrare audio",
-
   "err.audioNotFound": "Fișierul audio nu a fost găsit",
-
   "err.uploadSize": "Indică mărimea fișierului: de la 1 octet până la 80 MB",
-
   "err.uploadEmpty": "Fișier gol",
-
   "err.uploadMismatch": "Fișierul încărcat nu se potrivește ca mărime cu cea declarată",
-
   "err.uploadType": "Sunt acceptate MP3, WAV, M4A, WebM, OGG și FLAC",
-
   "err.badStorageKey": "Cheie de stocare nepermisă",
-
   "err.notFound": "Nu a fost găsit",
   "err.pinDraft": "Poate fi fixat doar ce este publicat.",
-
   "err.liveTitle": "Scrie titlul emisiunii",
-
   "err.liveBusy": "Altă emisiune este deja în desfășurare. Încheie-o mai întâi.",
-
   "err.liveGone": "Emisiunea s-a încheiat deja",
-
   "err.liveFull": "Emisiune plină, încercați puțin mai târziu",
-
   "err.badOffer": "Conectare incorectă",
-
   "err.badAnswer": "Răspuns incorect",
-
   "err.sessionGone": "Sesiunea nu a fost găsită",
-
   "err.badPassword": "Parolă greșită",
-
   "err.unknownAction": "Acțiune necunoscută",
-
   "err.badPreferences": "Setări incorecte",
-
   "err.deviceLimit": "S-a atins limita de dispozitive cu notificări.",
   "err.subscribeLimited": "Prea multe încercări de abonare. Încercați mai târziu.",
-
   "err.subscriptionMissing": "Abonamentul nu a fost găsit",
-
   "err.subscriptionOther": "Abonamentul aparține altui dispozitiv",
-
   "err.resubscribe": "Oprește și pornește din nou notificările pe acest dispozitiv.",
-
   "err.testTooSoon": "Reia verificarea peste 30 de secunde",
-
   "err.testRejected": "Serviciul nu a acceptat notificarea. Oprește și pornește notificările din nou.",
-
   "err.badSubscription": "Abonament incorect",
-
   "err.badSubscriptionKey": "Cheie de abonament incorectă",
-
   "err.badToken": "Token de notificări incorect",
-
   "err.pushUnsupported": "Notificările sunt acceptate în Chrome pe Android și în Firefox.",
-
   "err.fcmNotConfigured": "Notificările pentru Android nu sunt configurate pe server (FIREBASE_SERVICE_ACCOUNT_FILE).",
-
   "err.fcmToken": "Nu s-a putut obține tokenul de acces Firebase",
 };
