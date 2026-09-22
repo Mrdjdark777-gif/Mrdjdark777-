@@ -385,9 +385,23 @@ try {
   );
   assert.equal((await request('live', { action: 'heartbeat', id: liveRes.data.id })).status, 409);
 
-  // Обложка конкретного эфира: без неё 404, чужой ключ не принимается,
-  // свой отдаётся публично — слушателю она нужна до всякого входа.
-  assert.equal((await dispatch('cover', { search: '?id=live:' + liveRes.data.id })).status, 404);
+  // Обложка конкретного эфира: чужой ключ не принимается, своя отдаётся
+  // публично — слушателю она нужна до всякого входа.
+  //
+  // Своей обложки может не быть. Тогда отдаётся оформление канала, а не 404:
+  // на экране блокировки телефона пустая карточка выглядит поломкой. Раньше
+  // клиент ради этого всегда просил channel art, и собственная обложка эфира
+  // не показывалась никогда.
+  {
+   const fallback = await dispatch('cover', { search: '?id=live:' + liveRes.data.id });
+   assert.equal(fallback.status, 200, 'эфир без своей обложки должен получать картинку канала');
+   assert.equal(await fallback.text(), 'channl', 'подставилась не картинка канала');
+   // А если и оформления канала нет — отдавать нечего.
+   await request('library', { action: 'channelArt', key: '' });
+   assert.equal((await dispatch('cover', { search: '?id=live:' + liveRes.data.id })).status, 404,
+    'без обложки эфира и без оформления канала ответа быть не должно');
+   await request('library', { action: 'channelArt', key: artKey });
+  }
   assert.equal((await request('live', { action: 'start', title: 'Bad cover', coverKey: 'audio/not-a-cover' })).status, 400);
   const liveCover = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '4' }, body: new Blob(['live']).stream(), duplex: 'half' });
   const withArt = await request('live', { action: 'start', title: 'Cover live', coverKey: (await liveCover.json()).key });

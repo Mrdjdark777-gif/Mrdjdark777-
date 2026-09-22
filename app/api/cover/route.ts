@@ -28,7 +28,11 @@ export async function GET(req: Request) {
     // Обложка конкретного эфира: сам эфир публичный, значит и она тоже.
     else if (id.startsWith('live:')) {
       const b = await getDb().select().from(broadcasts).where(eq(broadcasts.id, id.slice(5))).get();
-      key = b?.coverKey ?? null; isPublic = true;
+      // Своей обложки у эфира может не быть. Тогда отдаём оформление канала,
+      // а не 404: на экране блокировки телефона пустая карточка выглядит
+      // поломкой. Раньше клиент ради этого всегда просил channel art, и
+      // собственная обложка эфира не показывалась никогда.
+      key = b?.coverKey ?? ((await setting('channelArt')) || null); isPublic = true;
     }
     else {
       const p = await getDb().select().from(posts).where(eq(posts.id, id)).get();

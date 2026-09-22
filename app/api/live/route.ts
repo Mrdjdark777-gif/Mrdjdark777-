@@ -46,10 +46,24 @@ export async function POST(req: Request){try{
   }
   if(d.action==='join'){
     const live=await db.select().from(broadcasts).where(eq(broadcasts.id,String(d.id))).get();if(!live?.active||live.heartbeat<now-90000)throw new Error('#err.liveGone');
-    const active=await db.select({id:peers.id}).from(peers).where(and(eq(peers.broadcastId,live.id),gt(peers.heartbeat,now-90000)));if(active.length>=liveListenerLimit())throw new Error('#err.liveFull');
     const hls=await db.select().from(liveRecordings).where(eq(liveRecordings.id,live.id)).get();
     const offer=hls?'hls':String(d.offer??'');if(offer.length>40000)throw new Error('#err.badOffer');const parsed=hls?{type:'offer',sdp:''}:JSON.parse(offer);if(parsed.type!=='offer'||typeof parsed.sdp!=='string')throw new Error('#err.badOffer');
-    const id=crypto.randomUUID(),token=crypto.randomUUID();await db.insert(peers).values({id,broadcastId:live.id,tokenHash:await hash(token),offer,heartbeat:now});return result({id,token});
+    const id=crypto.randomUUID(),token=crypto.randomUUID(),tokenHash=await hash(token);
+    // Счёт мест и занятие места — одна операция. Раздельно они пропускали
+    // больше слушателей, чем разрешено: несколько одновременных входов
+    // успевали посчитать свободные места до того, как первый из них его
+    // занял. Предел этот бережёт сервер, а не выручку, и прямую раздачу HLS
+    // он не ограничивает — см. lib/live-recording.ts.
+    const limit=liveListenerLimit();
+    const taken=db.transaction(tx=>{
+     const active=tx.select({id:peers.id}).from(peers)
+      .where(and(eq(peers.broadcastId,live.id),gt(peers.heartbeat,now-90000))).all();
+     if(active.length>=limit)return false;
+     tx.insert(peers).values({id,broadcastId:live.id,tokenHash,offer,heartbeat:now}).run();
+     return true;
+    });
+    if(!taken)throw new Error('#err.liveFull');
+    return result({id,token});
   }
   const p=await db.select().from(peers).where(eq(peers.id,String(d.peer))).get();if(!p||p.tokenHash!==await hash(String(d.token??'')))return result({error:'#err.sessionGone'},404);
   if(d.action==='leave')await db.delete(peers).where(eq(peers.id,p.id));else await db.update(peers).set({heartbeat:now}).where(eq(peers.id,p.id));return result({ok:true});

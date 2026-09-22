@@ -132,7 +132,13 @@ export function useLive(){
    native.current=!!state?.liveSupported;let attached=false,polling=false,errors=0;
    const attach=async()=>{
     if(attached||gen!==generation.current)return;attached=true;
-    if(native.current){await nativeCall('player.live',{id,title,peer:p.id,token:p.token,autoplay,cover:location.origin+'/api/cover?id=channel'});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
+    if(native.current){
+     // Своя обложка эфира важнее картинки канала: на экране блокировки
+     // человек видит именно её. Раньше здесь всегда стоял channel art, и
+     // карточка любого эфира выглядела одинаково. Если у эфира обложки нет,
+     // маршрут сам отдаёт 404, и остаётся общая картинка канала.
+     const cover=location.origin+'/api/cover?id=live:'+id;
+     await nativeCall('player.live',{id,title,peer:p.id,token:p.token,autoplay,cover});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
     const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;el.crossOrigin='anonymous';startMeter(el);
     el.onplaying=()=>{if(gen!==generation.current)return;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));};
     el.onpause=()=>{if(gen!==generation.current)return;setListening(false);setPhase('paused');setStatus(t('liveHook.paused'));};
