@@ -2,7 +2,7 @@
 
 Windows author studio and Android listener app. Podcasts, stories, external videos and server-delivered live audio, with voluntary donations only. Published content is available from the VPS while the author's PC is off; the PC is required during audio capture/broadcasting.
 
-Start: [START-HERE-RU.md](START-HERE-RU.md). Full project description in one document: [docs/PROJECT-BRIEF-RU.md](docs/PROJECT-BRIEF-RU.md). Current implementation and limits: [release 0.9](docs/RELEASE-0.9-RU.md). Deployment/PowerShell/backup: [operations](docs/OPERATIONS-0.9-RU.md). Continuation: [project context](docs/PROJECT-CONTEXT.md). For legal/diligence review: [rights](docs/RIGHTS-RU.md), [third-party licenses](docs/LICENSES-RU.md), [what personal data the system touches](docs/PRIVACY-DATA-RU.md).
+Receiving the project for review: [ЧИТАТЬ-ПЕРВЫМ.md](ЧИТАТЬ-ПЕРВЫМ.md) (split by audience: engineers / legal). Owner deployment checklist: [START-HERE-RU.md](START-HERE-RU.md). Full project description in one document: [docs/PROJECT-BRIEF-RU.md](docs/PROJECT-BRIEF-RU.md). Current implementation and limits: [release 0.9](docs/RELEASE-0.9-RU.md). Deployment/PowerShell/backup: [operations](docs/OPERATIONS-0.9-RU.md). Continuation: [project context](docs/PROJECT-CONTEXT.md). For legal/diligence review: [rights](docs/RIGHTS-RU.md), [third-party licenses](docs/LICENSES-RU.md), [what personal data the system touches](docs/PRIVACY-DATA-RU.md).
 
 Node 22, Next.js, SQLite/Drizzle, local audio storage. Android uses Media3 for podcasts and HLS live audio. A dedicated FFmpeg worker creates HLS and publishes finished M4A archives. Windows is a WebView2 author shell. Migration 0006 and the live worker are required for 0.9 broadcasting.
 
