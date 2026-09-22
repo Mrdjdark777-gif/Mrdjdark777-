@@ -36,16 +36,27 @@ final class PlayerBridge {
                     case "load": {
                         String id = args.getString("id");
                         if (!id.matches("[a-fA-F0-9-]{36}")) throw new Exception("#err.playback");
+                        // Место присылает страница, и её слово старше нашего.
+                        // Раньше без "position" подставлялось своё последнее
+                        // место, а уже заряженный выпуск не перематывался
+                        // вовсе — открытый из каталога он продолжался с
+                        // середины вопреки просьбе начать сначала. Молчание
+                        // страницы теперь значит только одно: экран пересоздан,
+                        // звук идёт, трогать его нельзя.
+                        long requested = args.has("position") ? Math.max(0, args.optLong("position", 0)) : -1;
                         MediaItem current = p.getCurrentMediaItem();
                         if (current == null || !id.equals(current.mediaId)) {
                             String title = args.optString("title", "True Thrills");
                             String cover = args.optString("cover", PushClient.BASE + "brand/logo.png");
                             MediaMetadata metadata = new MediaMetadata.Builder().setTitle(title.substring(0, Math.min(160, title.length())))
                                 .setArtist("True Thrills").setArtworkUri(Uri.parse(cover)).build();
-                            long position = args.has("position") ? args.optLong("position", 0) : id.equals(saved.getString("id", "")) ? saved.getLong("position", 0) : 0;
+                            long position = requested >= 0 ? requested : id.equals(saved.getString("id", "")) ? saved.getLong("position", 0) : 0;
                             p.setMediaItem(new MediaItem.Builder().setMediaId(id).setUri(PushClient.BASE + "api/audio?id=" + id).setMediaMetadata(metadata).build(), Math.max(0, position));
                             p.prepare(); p.setPlaybackSpeed(saved.getFloat("rate", 1));
-                        } else if (p.getPlaybackState() == Player.STATE_IDLE) p.prepare();
+                        } else {
+                            if (requested >= 0) p.seekTo(requested);
+                            if (p.getPlaybackState() == Player.STATE_IDLE) p.prepare();
+                        }
                         if (args.optBoolean("autoplay", true)) p.play();
                         break;
                     }

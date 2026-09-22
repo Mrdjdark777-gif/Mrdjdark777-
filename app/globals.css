@@ -2141,3 +2141,31 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 /* Площадки автора на главной — значками в один ряд. */
 .scene-side>.social-row{gap:8px;flex-wrap:wrap;margin:0}
 .scene-side>.social-row .social-chip{flex:1 1 auto;justify-content:center;min-height:44px}
+
+/* ============================================================================
+   Симметрия главной.
+
+   Три места расходились с осью экрана, и на глаз это читалось как перекос:
+   название в кадре было прижато влево и «ехало» при смене длины; подписи на
+   плитках разделов стояли в левом нижнем углу, хотя значок над ними — по
+   центру; кнопки площадок делили строку по своему тексту (flex-basis:auto),
+   поэтому шов между ними не совпадал ни с серединой экрана, ни с кнопкой
+   «Главная» в нижней панели — а она стоит ровно по оси.
+   ========================================================================== */
+
+/* Название в кадре: по центру всегда, какой бы длины оно ни было. */
+.scene-copy{align-items:center}
+.scene-title{text-align:center;align-self:center;margin-inline:auto}
+.scene-meta{text-align:center}
+.scene-action{align-self:stretch;width:100%}
+
+/* Подпись плитки — по центру окошка, под значком, который и так по центру. */
+.section-tile{justify-content:center;text-align:center}
+.section-tile-copy{align-items:center;text-align:center}
+.section-tile-copy .section-tile-new{align-self:center}
+
+/* Площадки: равные колонки, а не дележ по длине слова. Шов между кнопками
+   ложится на ось экрана, то есть на середину кнопки «Главная». */
+.scene-side>.social-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:0}
+.scene-side>.social-row .social-chip{flex:none;justify-content:center;min-height:44px;min-width:0}
+.scene-side>.social-row .social-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

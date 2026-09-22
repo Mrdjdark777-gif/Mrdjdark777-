@@ -42,11 +42,12 @@ const studio = read('app/studio.tsx');
 assert.match(studio, /setPlayerAutoplay\(state\.playing\)/, 'восстановление должно решать судьбу автозапуска по состоянию нативного плеера');
 assert.match(studio, /live\.listen\(state\.id\.slice\(5\),undefined,state\.playing\)/, 'восстановление эфира должно передавать autoplay, а не запускать всегда');
 assert.ok(!/if\(state\.active&&state\.playing\)setPlaying\(post\)/.test(studio), 'выпуск на паузе снова прячется с экрана');
-assert.match(studio, /if\(state\.active\)setPlaying\(post\)/, 'плеер выпуска должен показываться и на паузе');
-// Со второго места выпуск идёт только по просьбе строки «Продолжить»: из
-// каталога он всегда начинается сначала. Автозапуск при этом остаётся —
-// нажатие на выпуск по-прежнему играет.
-assert.match(studio, /function playPost\(p:Post,resume=false\)\{live\.leave\(\);setResumePlay\(resume\);setPlayerAutoplay\(true\)/, 'нажатие на выпуск должно включать автозапуск обратно и передавать плееру, с начала играть или с места');
+// Откуда играть, решает страница. Три случая, и они не должны слипаться:
+// из каталога — сначала, по строке «Продолжить» — с места, при пересоздании
+// экрана — не трогать вовсе.
+assert.match(studio, /function playPost\(p:Post,resume=false\)\{live\.leave\(\);setPlayFrom\(resume\?'resume':'begin'\);setPlayerAutoplay\(true\)/, 'нажатие на выпуск должно включать автозапуск обратно и говорить плееру, с начала играть или с места');
+assert.match(studio, /if\(state\.active\)\{setPlayFrom\('keep'\);setPlaying\(post\);\}/, 'плеер выпуска должен показываться и на паузе, а позицию при восстановлении экрана трогать нельзя: звук всё это время шёл');
+assert.match(studio, /key=\{playing\.id\+':'\+playFrom\}/, 'смена намерения должна пересоздавать плеер, иначе он останется со старым');
 assert.match(studio, /autoplay=\{playerAutoplay\}/, 'решение об автозапуске не доходит до плеера');
 
 for (const file of ['components/studio/podcast-player.tsx', 'components/studio/native-podcast-player.tsx']) {
@@ -57,4 +58,18 @@ for (const file of ['components/studio/podcast-player.tsx', 'components/studio/n
 assert.match(read('components/studio/podcast-player.tsx'), /el\.load\(\);if\(autoplay\)void play\(\);/, 'веб-плеер играет независимо от autoplay');
 assert.match(read('components/studio/native-podcast-player.tsx'), /'player\.load',\{id,title,autoplay/, 'нативный плеер не получает autoplay');
 
-console.log('PASS: эфир и выпуск на паузе переживают пересоздание экрана — показываются как есть и не запускаются сами; обычное нажатие по-прежнему играет');
+// Нативный плеер помнит своё последнее место сам. Пока страница молчала, он
+// это место и подставлял — выпуск, открытый из каталога, продолжался с
+// середины, и никакая правка в вебе этого не меняла. Здесь закреплено, что
+// слово страницы старше, и что уже заряженный выпуск всё-таки перематывается.
+const native = read('components/studio/native-podcast-player.tsx');
+assert.match(native, /from==='keep'\?undefined:from==='resume'\?Math\.max\(0,saved\?\.position\?\?0\)\*1000:0/, 'страница должна присылать место явно: 0 с начала, сохранённое по просьбе, ничего при пересоздании экрана');
+assert.match(native, /\.\.\.\(position===undefined\?\{\}:\{position\}\)/, 'position должен уходить нативному плееру');
+assert.ok(!/resume\?readProgress\(\)\.find\(p=>p\.id===id\):undefined\}\)/.test(native), 'место больше не читается только при resume');
+
+const load = bridge.slice(bridge.indexOf('case "load"'), bridge.indexOf('case "live"'));
+assert.match(load, /long requested = args\.has\("position"\) \? Math\.max\(0, args\.optLong\("position", 0\)\) : -1;/, 'мост должен отличать «страница прислала 0» от «страница промолчала»');
+assert.match(load, /long position = requested >= 0 \? requested : id\.equals\(saved\.getString\("id", ""\)\) \? saved\.getLong\("position", 0\) : 0;/, 'своё место мост вправе подставлять только когда страница промолчала');
+assert.match(load, /\} else \{\s*if \(requested >= 0\) p\.seekTo\(requested\);/, 'уже заряженный выпуск обязан перематываться на присланное место, иначе «сначала» ничего не делает');
+
+console.log('PASS: эфир и выпуск на паузе переживают пересоздание экрана — показываются как есть и не запускаются сами; обычное нажатие играет с начала, «Продолжить» — с места, а своё место мост подставляет только когда страница промолчала');

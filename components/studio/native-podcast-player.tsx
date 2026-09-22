@@ -6,8 +6,9 @@ import {errorText} from '@/lib/client';
 import {PlayerChrome} from './player-chrome';
 import {presentation} from '@/lib/player-presentation';
 import {useT} from '@/components/i18n-provider';
+import type {PlayFrom} from './play-from';
 export type NativePlayerState={id:string;active:boolean;playing:boolean;loading:boolean;position:number;duration:number;rate:number;sleepUntil:number;playbackError?:string};
-export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,supportUrl,onShare,resume=false,next,onNext,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;onShare?:()=>void;resume?:boolean;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
+export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,supportUrl,onShare,from='begin',next,onNext,autoplay=true,expanded=true,onExpand=()=>{},onClose}:{src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;onShare?:()=>void;from?:PlayFrom;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef?:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void}){
  const {t}=useT(),id=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const [now,setNow]=useState(0);
  const [state,setState]=useState<NativePlayerState>({id,active:false,playing:false,loading:true,position:0,duration:duration*1000,rate:1,sleepUntil:0}),[message,setMessage]=useState('');
@@ -20,12 +21,16 @@ export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,su
   let started=false;
   const receive=(next:NativePlayerState)=>{if(!active||next.id!==id)return;setState(next);setNow(Date.now());
    if(started)saveProgress(id,next.position/1000,next.duration/1000);else started=true;};
-  // С места — только по просьбе со строки «Продолжить».
-  const progress=resume?readProgress().find(p=>p.id===id):undefined;
-  void nativeCall<NativePlayerState>('player.load',{id,title,autoplay,...(cover?{cover:new URL(cover,location.origin).toString()}:{}),...(progress?{position:progress.position*1000}:{})}).then(receive).catch(e=>{if(active)setMessage(errorText(e));});
+  // Место решает страница и присылает его явно. Нативный плеер помнит своё
+  // последнее место сам, и пока веб молчал, он это место и подставлял: выпуск,
+  // открытый из каталога, продолжался с середины. Молчим только при 'keep' —
+  // там экран пересоздали, а звук всё это время шёл, и трогать его нельзя.
+  const saved=from==='resume'?readProgress().find(p=>p.id===id):undefined;
+  const position=from==='keep'?undefined:from==='resume'?Math.max(0,saved?.position??0)*1000:0;
+  void nativeCall<NativePlayerState>('player.load',{id,title,autoplay,...(cover?{cover:new URL(cover,location.origin).toString()}:{}),...(position===undefined?{}:{position})}).then(receive).catch(e=>{if(active)setMessage(errorText(e));});
   const poll=async()=>{if(inFlight||document.hidden)return;inFlight=true;try{receive(await nativeCall<NativePlayerState>('player.state'));}catch(e){if(active)setMessage(errorText(e));}finally{inFlight=false;}};
   const timer=setInterval(()=>void poll(),1000);return()=>{active=false;clearInterval(timer);};
- },[id,title,cover,autoplay,resume]);
+ },[id,title,cover,autoplay,from]);
  const remaining=state.sleepUntil>0?Math.max(1,Math.ceil((state.sleepUntil-now)/60000)):0;
  return <PlayerChrome expanded={expanded} onExpand={onExpand}
   view={{title,cover,note,supportUrl,postId:id,next,presentation:presentation({archived,cover}),kindLabel:archived?t('post.liveArchive'):t('post.podcast'),

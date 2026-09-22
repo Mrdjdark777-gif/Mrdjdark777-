@@ -276,6 +276,32 @@ try{
   {await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
    if(await page.locator('.scene-copy .scene-meta').count())problems.push('под названием главного поста осталась длительность');
    if(!await page.locator('.scene-side .social-row .social-chip').count())problems.push('на главной нет быстрых ссылок на площадки автора');
+   // Симметрия. Три места расходились с осью экрана: название в кадре стояло
+   // слева и ехало при смене длины, подписи плиток лежали в левом нижнем
+   // углу под центрованным значком, а кнопки площадок делили строку по длине
+   // своего текста — шов между ними не совпадал с кнопкой «Главная».
+   // Меряем в браузере, а не на глаз, и с запасом в один пиксель на округление.
+   {const sym=await page.evaluate(()=>{
+     const mid=el=>{const r=el.getBoundingClientRect();return r.left+r.width/2;};
+     const out={};
+     const copy=document.querySelector('.scene-copy'),title=document.querySelector('.scene-title');
+     if(copy&&title)out.title=Math.abs(mid(title)-mid(copy));
+     out.tiles=[...document.querySelectorAll('.section-tile')].map(tile=>{
+      const label=tile.querySelector('.section-tile-copy');
+      return label?Math.abs(mid(label)-mid(tile)):0;});
+     const chips=[...document.querySelectorAll('.scene-side .social-row .social-chip')];
+     const home=document.querySelector('.bottom-nav-home');
+     if(chips.length===2&&home){
+      const a=chips[0].getBoundingClientRect(),b=chips[1].getBoundingClientRect();
+      out.seam=Math.abs((a.right+b.left)/2-mid(home));
+      out.widths=Math.abs(a.width-b.width);
+     }
+     return out;});
+    if(sym.title>1)problems.push('название в кадре не по центру: смещение '+Math.round(sym.title)+'px');
+    const tile=(sym.tiles||[]).findIndex(d=>d>1);
+    if(tile>=0)problems.push('подпись плитки '+(tile+1)+' не по центру окошка: смещение '+Math.round(sym.tiles[tile])+'px');
+    if(sym.seam>1)problems.push('шов между кнопками площадок не совпадает с кнопкой «Главная»: смещение '+Math.round(sym.seam)+'px');
+    if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');}
    await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
    const cards=await page.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));
    if(cards.some(c=>/площадк/i.test(c)))problems.push('в настройках слушателя осталась карточка площадок: '+cards.join(', '));
