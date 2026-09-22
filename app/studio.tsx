@@ -362,7 +362,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills · Дмитрий Паюл</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
+ {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills · Dumitru Paiul</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
  {/* Фон-сетка — у слушателя и не на главной: там во весь кадр лежит обложка,
