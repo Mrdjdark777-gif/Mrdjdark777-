@@ -14,7 +14,12 @@ export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,su
  async function command(method:string,args:Record<string,unknown>={}){try{setState(await nativeCall<NativePlayerState>('player.'+method,args));setMessage('');}catch(e){setMessage(errorText(e));}}
  useEffect(()=>{
   let active=true,inFlight=false;
-  const receive=(next:NativePlayerState)=>{if(!active||next.id!==id)return;setState(next);setNow(Date.now());saveProgress(id,next.position/1000,next.duration/1000);};
+  // Первый ответ — эхо загрузки: плеер ещё не встал на нужное место и отдаёт
+  // ноль. Записывать его как «остановился в начале» нельзя, иначе сохранённое
+  // место стиралось каждым открытием выпуска.
+  let started=false;
+  const receive=(next:NativePlayerState)=>{if(!active||next.id!==id)return;setState(next);setNow(Date.now());
+   if(started)saveProgress(id,next.position/1000,next.duration/1000);else started=true;};
   // С места — только по просьбе со строки «Продолжить».
   const progress=resume?readProgress().find(p=>p.id===id):undefined;
   void nativeCall<NativePlayerState>('player.load',{id,title,autoplay,...(cover?{cover:new URL(cover,location.origin).toString()}:{}),...(progress?{position:progress.position*1000}:{})}).then(receive).catch(e=>{if(active)setMessage(errorText(e));});

@@ -152,7 +152,10 @@ export default function Studio(){
   setPlayerAutoplay(state.playing);
   if(state.active&&state.id.startsWith('live:')){setView('live');void live.listen(state.id.slice(5),undefined,state.playing);return;}
   const post=d.items.find(p=>p.id===state.id&&p.kind==='podcast');
-  if(post){saveProgress(post.id,state.position/1000,state.duration/1000);if(state.active)setPlaying(post);}
+  // Фоновый плеер при запуске может ответить нулём, если он уже остановлен.
+  // Записывать такой ответ нельзя: он стирал место остановки при каждом
+  // открытии приложения.
+  if(post){if(state.active||state.position>0)saveProgress(post.id,state.position/1000,state.duration/1000);if(state.active)setPlaying(post);}
  }).catch(()=>{});}});const timer=setInterval(()=>void load(),15000);const resume=()=>{if(document.visibilityState==='visible')void load();};document.addEventListener('visibilitychange',resume);window.addEventListener('focus',resume);return()=>{clearInterval(timer);document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume);};
  // eslint-disable-next-line react-hooks/exhaustive-deps -- live читается один раз при восстановлении нативного плеера; в зависимостях он перезапускал бы синхронизацию на каждый кадр эфира.
  },[load]);

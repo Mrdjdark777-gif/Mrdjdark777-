@@ -97,7 +97,11 @@ export async function POST(req: Request){try{
   }
   const id=d.id?String(d.id):crypto.randomUUID();
   const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,coverKey,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
-  if(d.id)await db.update(posts).set(values).where(eq(posts.id,id));else await db.insert(posts).values({id,...values,createdAt:Date.now()});
+  // Правка несуществующего выпуска раньше проходила молча: update менял ноль
+  // строк, маршрут отвечал «сохранено», а студия закрывала окно и теряла
+  // набранный текст. Теперь такой id — ошибка, и правка остаётся на экране.
+  if(d.id){if(!await db.update(posts).set(values).where(eq(posts.id,id)).returning().get())throw new Error('#err.notFound');}
+  else await db.insert(posts).values({id,...values,createdAt:Date.now()});
   if(values.published)notifyPost({id,...values},req);return result({id});
 }catch(e){return failure(e);}}
 

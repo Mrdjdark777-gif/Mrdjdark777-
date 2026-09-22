@@ -43,7 +43,10 @@ assert.match(studio, /setPlayerAutoplay\(state\.playing\)/, 'восстанов�
 assert.match(studio, /live\.listen\(state\.id\.slice\(5\),undefined,state\.playing\)/, 'восстановление эфира должно передавать autoplay, а не запускать всегда');
 assert.ok(!/if\(state\.active&&state\.playing\)setPlaying\(post\)/.test(studio), 'выпуск на паузе снова прячется с экрана');
 assert.match(studio, /if\(state\.active\)setPlaying\(post\)/, 'плеер выпуска должен показываться и на паузе');
-assert.match(studio, /function playPost\(p:Post\)\{live\.leave\(\);setPlayerAutoplay\(true\)/, 'нажатие на выпуск должно включать автозапуск обратно');
+// Со второго места выпуск идёт только по просьбе строки «Продолжить»: из
+// каталога он всегда начинается сначала. Автозапуск при этом остаётся —
+// нажатие на выпуск по-прежнему играет.
+assert.match(studio, /function playPost\(p:Post,resume=false\)\{live\.leave\(\);setResumePlay\(resume\);setPlayerAutoplay\(true\)/, 'нажатие на выпуск должно включать автозапуск обратно и передавать плееру, с начала играть или с места');
 assert.match(studio, /autoplay=\{playerAutoplay\}/, 'решение об автозапуске не доходит до плеера');
 
 for (const file of ['components/studio/podcast-player.tsx', 'components/studio/native-podcast-player.tsx']) {

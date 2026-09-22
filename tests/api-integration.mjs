@@ -332,6 +332,12 @@ try {
   r = await dispatch('audio', { search: '?id=' + p.data.id });
   assert.equal(r.status, 404);
 
+  // Правка выпуска, которого уже нет: раньше update менял ноль строк, а
+  // маршрут отвечал «сохранено» — студия закрывала окно и теряла набранное.
+  const ghost = await request('library', { id: p.data.id, kind: 'story', title: 'Призрак', body: 'текст' });
+  assert.equal(ghost.status, 400, 'правка удалённого выпуска не должна проходить молча');
+  assert.equal(ghost.data.error, '#err.notFound');
+
 
   const {createECDH,randomBytes,hkdfSync,createDecipheriv}=await import('node:crypto');
   const client=createECDH('prime256v1');client.generateKeys();const subscription={endpoint:'https://fcm.googleapis.com/fcm/send/test',keys:{p256dh:client.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')}};
