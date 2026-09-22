@@ -13,16 +13,17 @@ import {useEffect,useRef} from 'react';
  * экране, сетка тянется за ним.
  */
 const CELL=58;              // шаг сетки
-const TOUCH_RADIUS=200;     // докуда тянется сетка за пальцем
-const TOUCH_PULL=14;        // насколько тянется
-const TOUCH_EASE=.14;       // с какой ленцой сетка догоняет палец
-const RIPPLE_LIFE=1450;     // мс жизни волны
-const RIPPLE_SPEED=360;     // px/с — скорость фронта
-const RIPPLE_WIDTH=105;     // толщина фронта: шире — мягче
+const TOUCH_RADIUS=260;     // докуда тянется сетка за пальцем
+const TOUCH_PULL=22;        // насколько тянется
+const TOUCH_EASE=.08;       // с какой ленцой сетка догоняет палец
+const RELEASE=850;          // мс: отпустил палец — сетка отходит не рывком
+const RIPPLE_LIFE=2100;     // мс жизни волны
+const RIPPLE_SPEED=250;     // px/с — скорость фронта
+const RIPPLE_WIDTH=120;     // толщина фронта: шире — мягче
 const RIPPLE_PUSH=22;       // размах прогиба
-const TRAIL_PUSH=9;         // волна от ведения пальцем — тише нажатия
-const TRAIL_EVERY=70;       // мс между волнами следа
-const TRAIL_STEP=26;        // и не чаще, чем раз в столько пикселей пути
+const TRAIL_PUSH=11;        // волна от ведения пальцем — тише нажатия
+const TRAIL_EVERY=110;      // мс между волнами следа
+const TRAIL_STEP=34;        // и не чаще, чем раз в столько пикселей пути
 const LINE=[111,231,222] as const;   // бирюзовый канала
 const REST_ALPHA=.055;      // сетка в покое: видно, что она есть, и не больше
 const LIVE_ALPHA=.42;       // сетка под волной
@@ -36,7 +37,10 @@ export function KineticGrid(){
  const pointer=useRef<Pointer>({x:-9999,y:-9999,down:false});
  // Сглаженный палец: сетка тянется за ним с ленцой, а не прыгает по точкам.
  const eased=useRef({x:-9999,y:-9999});
- const trail=useRef({at:0,x:0,y:0,scroll:0,scrolled:false});
+ const trail=useRef({at:0,x:0,y:0});
+ // Сила притяжения к пальцу: 1 пока палец на экране, дальше плавно к нулю.
+ const grip=useRef(0);
+ const lifted=useRef(0);
  const raf=useRef(0);
  const size=useRef({w:0,h:0});
 
@@ -82,12 +86,12 @@ export function KineticGrid(){
     const angle=Math.atan2(oy,ox);
     dx+=Math.cos(angle)*force;dy+=Math.sin(angle)*force;
    }
-   const p=pointer.current,e=eased.current;
-   if(p.down){
+   const e=eased.current,hold=grip.current;
+   if(hold>.001&&e.x>-9000){
     const ox=x-e.x,oy=y-e.y,dist=Math.hypot(ox,oy);
     if(dist<TOUCH_RADIUS&&dist>1){
      const t=1-dist/TOUCH_RADIUS;
-     const pull=t*t*(3-2*t)*TOUCH_PULL;
+     const pull=t*t*(3-2*t)*TOUCH_PULL*hold;
      const angle=Math.atan2(oy,ox);
      dx-=Math.cos(angle)*pull;dy-=Math.sin(angle)*pull;
     }
@@ -145,49 +149,61 @@ export function KineticGrid(){
    if(p.down){
     if(e.x<-9000){e.x=p.x;e.y=p.y;}
     e.x+=(p.x-e.x)*TOUCH_EASE;e.y+=(p.y-e.y)*TOUCH_EASE;
+    grip.current=1;
+   }else if(grip.current>0){
+    // Палец убрали — сетка отпускает его не рывком, а за RELEASE миллисекунд.
+    const gone=(now-lifted.current)/RELEASE;
+    const t=Math.min(1,Math.max(0,gone));
+    grip.current=1-t*t*(3-2*t);
+    e.x+=(p.x-e.x)*TOUCH_EASE;e.y+=(p.y-e.y)*TOUCH_EASE;
    }
    draw(now);
-   const settling=p.down||Math.hypot(e.x-p.x,e.y-p.y)>.5;
-   if(ripples.current.length||settling)raf.current=requestAnimationFrame(tick);
-   else{raf.current=0;eased.current={x:-9999,y:-9999};draw(now);}
+   if(ripples.current.length||p.down||grip.current>.001)raf.current=requestAnimationFrame(tick);
+   else{raf.current=0;grip.current=0;eased.current={x:-9999,y:-9999};draw(now);}
   };
   const wake=()=>{if(!raf.current)raf.current=requestAnimationFrame(tick);};
 
   // Волну запускает только пустое место: нажатия на кнопки, ссылки, поля и
   // карточки остаются нажатиями, а не превращаются в фейерверк.
   const interactive='button,a,input,select,textarea,label,[role="button"],[data-slot="slider"]';
-  const scrollTop=()=>document.querySelector('.main-content')?.scrollTop??0;
   const onDown=(e:PointerEvent)=>{
    const target=e.target as HTMLElement|null;
    if(!target||target.closest(interactive))return;
    pointer.current={x:e.clientX,y:e.clientY,down:true};
    eased.current={x:e.clientX,y:e.clientY};
-   trail.current={at:performance.now(),x:e.clientX,y:e.clientY,scroll:scrollTop(),scrolled:false};
-   if(!calm.matches){ripples.current.push({x:e.clientX,y:e.clientY,born:performance.now(),push:RIPPLE_PUSH});wake();}
-  };
-  const onMove=(e:PointerEvent)=>{
-   const p=pointer.current;
-   if(!p.down)return;
-   p.x=e.clientX;p.y=e.clientY;
-   if(calm.matches)return;
-   const t=trail.current;
-   // Если человек листает список, волны за пальцем не пускаем: кадры нужнее
-   // самой прокрутке, а рябь под уезжающими карточками только мешает.
-   if(Math.abs(scrollTop()-t.scroll)>2)t.scrolled=true;
-   if(t.scrolled)return;
-   const now=performance.now();
-   if(now-t.at<TRAIL_EVERY||Math.hypot(e.clientX-t.x,e.clientY-t.y)<TRAIL_STEP)return;
-   t.at=now;t.x=e.clientX;t.y=e.clientY;
-   ripples.current.push({x:e.clientX,y:e.clientY,born:now,push:TRAIL_PUSH});
+   grip.current=1;
+   trail.current={at:performance.now(),x:e.clientX,y:e.clientY};
+   if(!calm.matches)ripples.current.push({x:e.clientX,y:e.clientY,born:performance.now(),push:RIPPLE_PUSH});
    wake();
   };
-  const onUp=()=>{pointer.current.down=false;trail.current.scrolled=false;wake();};
-  const onHide=()=>{if(document.hidden){cancelAnimationFrame(raf.current);raf.current=0;ripples.current=[];pointer.current.down=false;draw(performance.now());}};
+  /**
+   * Ведение пальцем. Слушаем и указатель, и касание: на телефоне при прокрутке
+   * браузер забирает жест себе и указатель обрывается — тогда остаются только
+   * события касания, а след за пальцем должен идти всё равно.
+   */
+  const track=(x:number,y:number)=>{
+   const p=pointer.current;
+   p.x=x;p.y=y;
+   if(!p.down){p.down=true;if(eased.current.x<-9000)eased.current={x,y};}
+   grip.current=1;
+   if(calm.matches){wake();return;}
+   const t=trail.current,now=performance.now();
+   if(now-t.at<TRAIL_EVERY||Math.hypot(x-t.x,y-t.y)<TRAIL_STEP){wake();return;}
+   t.at=now;t.x=x;t.y=y;
+   ripples.current.push({x,y,born:now,push:TRAIL_PUSH});
+   wake();
+  };
+  const onMove=(e:PointerEvent)=>{if(pointer.current.down)track(e.clientX,e.clientY);};
+  const onTouch=(e:TouchEvent)=>{const t=e.touches[0];if(t)track(t.clientX,t.clientY);};
+  const onUp=()=>{if(!pointer.current.down)return;pointer.current.down=false;lifted.current=performance.now();wake();};
+  const onHide=()=>{if(document.hidden){cancelAnimationFrame(raf.current);raf.current=0;ripples.current=[];pointer.current.down=false;grip.current=0;eased.current={x:-9999,y:-9999};draw(performance.now());}};
 
   resize();
   window.addEventListener('resize',resize);
   window.addEventListener('pointerdown',onDown,{passive:true});
   window.addEventListener('pointermove',onMove,{passive:true});
+  window.addEventListener('touchmove',onTouch,{passive:true});
+  window.addEventListener('touchend',onUp,{passive:true});
   window.addEventListener('pointerup',onUp,{passive:true});
   window.addEventListener('pointercancel',onUp,{passive:true});
   document.addEventListener('visibilitychange',onHide);
@@ -196,6 +212,8 @@ export function KineticGrid(){
    window.removeEventListener('resize',resize);
    window.removeEventListener('pointerdown',onDown);
    window.removeEventListener('pointermove',onMove);
+   window.removeEventListener('touchmove',onTouch);
+   window.removeEventListener('touchend',onUp);
    window.removeEventListener('pointerup',onUp);
    window.removeEventListener('pointercancel',onUp);
    document.removeEventListener('visibilitychange',onHide);

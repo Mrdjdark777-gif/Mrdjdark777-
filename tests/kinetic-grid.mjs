@@ -85,9 +85,32 @@ try{
  await page.mouse.down();
  for(let i=0;i<6;i++){await page.mouse.move(empty.x+40*i,empty.y-200+12*i);await page.waitForTimeout(60);}
  const dragged=await snap();
- await page.mouse.up();
  assert.notEqual(dragged,calm1,'ведение пальцем не подняло волну');
- await page.waitForTimeout(2200);
+ // Палец убрали — сетка отпускает его плавно, а не гаснет в тот же кадр.
+ await page.mouse.up();
+ await page.waitForTimeout(90);
+ const justAfter=await snap();
+ assert.notEqual(justAfter,calm1,'после отрыва пальца сетка гаснет мгновенно');
+ await page.waitForTimeout(3200);
+
+ // То же самое пальцем по списку, который прокручивается: браузер забирает
+ // жест себе, указатель обрывается, и след раньше пропадал совсем.
+ await page.touchscreen.tap(empty.x,empty.y-300);
+ await page.waitForTimeout(3200);
+ const beforeSwipe=await snap();
+ await page.evaluate(()=>{const m=document.querySelector('.main-content');if(m)m.scrollTop=0;});
+ const swipe=await page.evaluate(async()=>{
+  const fire=(type,x,y)=>{const t=new Touch({identifier:1,target:document.body,clientX:x,clientY:y});
+   document.body.dispatchEvent(new TouchEvent(type,{touches:type==='touchend'?[]:[t],changedTouches:[t],bubbles:true}));};
+  fire('touchstart',40,600);
+  for(let i=0;i<8;i++){fire('touchmove',40+i*30,600-i*40);await new Promise(r=>setTimeout(r,40));}
+  fire('touchend',280,300);
+  return true;});
+ assert.ok(swipe);
+ await page.waitForTimeout(120);
+ const afterSwipe=await snap();
+ assert.notEqual(afterSwipe,beforeSwipe,'ведение пальцем при прокрутке не поднимает волну');
+ await page.waitForTimeout(3200);
 
  // На главной сетки нет: там во весь кадр обложка, под ней её не видно.
  await page.goto(base+'/?mode=listen&view=home');
