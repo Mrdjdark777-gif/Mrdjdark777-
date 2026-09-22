@@ -283,12 +283,25 @@ try{
    // Меряем в браузере, а не на глаз, и с запасом в один пиксель на округление.
    {const sym=await page.evaluate(()=>{
      const mid=el=>{const r=el.getBoundingClientRect();return r.left+r.width/2;};
+     // Мерить коробку мало: при text-align:left блок остаётся во всю ширину,
+     // его центр совпадает с центром контейнера, а буквы стоят слева. Поэтому
+     // берём прямоугольник самого текста через Range — он обводит строки, а не
+     // блок, — и заодно спрашиваем вычисленный text-align, чтобы проверка не
+     // зависела от того, какой длины оказалось название в этот раз.
+     const textMid=el=>{const r=document.createRange();r.selectNodeContents(el);
+      const box=r.getBoundingClientRect();return box.width?box.left+box.width/2:null;};
      const out={};
      const copy=document.querySelector('.scene-copy'),title=document.querySelector('.scene-title');
-     if(copy&&title)out.title=Math.abs(mid(title)-mid(copy));
+     if(copy&&title){
+      out.titleAlign=getComputedStyle(title).textAlign;
+      const m=textMid(title);
+      out.title=m===null?0:Math.abs(m-mid(copy));
+     }
      out.tiles=[...document.querySelectorAll('.section-tile')].map(tile=>{
-      const label=tile.querySelector('.section-tile-copy');
-      return label?Math.abs(mid(label)-mid(tile)):0;});
+      const label=tile.querySelector('.section-tile-copy strong');
+      if(!label)return {shift:0,align:'center'};
+      const m=textMid(label);
+      return {shift:m===null?0:Math.abs(m-mid(tile)),align:getComputedStyle(label).textAlign};});
      const chips=[...document.querySelectorAll('.scene-side .social-row .social-chip')];
      const home=document.querySelector('.bottom-nav-home');
      if(chips.length===2&&home){
@@ -297,9 +310,12 @@ try{
       out.widths=Math.abs(a.width-b.width);
      }
      return out;});
-    if(sym.title>1)problems.push('название в кадре не по центру: смещение '+Math.round(sym.title)+'px');
-    const tile=(sym.tiles||[]).findIndex(d=>d>1);
-    if(tile>=0)problems.push('подпись плитки '+(tile+1)+' не по центру окошка: смещение '+Math.round(sym.tiles[tile])+'px');
+    if(sym.titleAlign!=='center')problems.push('название в кадре набрано не по центру: text-align='+sym.titleAlign);
+    if(sym.title>1)problems.push('название в кадре смещено с оси кадра на '+Math.round(sym.title)+'px');
+    const tiles=sym.tiles||[];
+    const skew=tiles.findIndex(t=>t.shift>1),lean=tiles.findIndex(t=>t.align!=='center');
+    if(lean>=0)problems.push('подпись плитки '+(lean+1)+' набрана не по центру: text-align='+tiles[lean].align);
+    if(skew>=0)problems.push('подпись плитки '+(skew+1)+' смещена от середины окошка на '+Math.round(tiles[skew].shift)+'px');
     if(sym.seam>1)problems.push('шов между кнопками площадок не совпадает с кнопкой «Главная»: смещение '+Math.round(sym.seam)+'px');
     if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');}
    await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
