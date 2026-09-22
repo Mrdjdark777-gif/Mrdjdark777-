@@ -5,8 +5,10 @@ import path from 'node:path';
 import {eq,and,gt,desc} from 'drizzle-orm';
 import {getDb} from '@/db';
 import {broadcasts,liveRecordings,posts,peers} from '@/db/schema';
-import {bucket,failure,requireOwner,result,owner,hash} from '@/lib/server';
+import {failure,requireOwner,result,owner,hash} from '@/lib/server';
+import {unlinkIfUnused} from '@/lib/media-unlink';
 import {liveId,liveRoot} from '@/lib/live-recording';
+import {LIVE_BUSY_STATES} from '@/lib/live-states.mjs';
 export const runtime='nodejs';
 export async function GET(req:Request){try{
  const q=new URL(req.url).searchParams,id=q.get('id')||'',db=getDb();
@@ -70,20 +72,22 @@ export async function POST(req:Request){try{
    ??await (async()=>{const p=await db.select().from(posts).where(eq(posts.id,id)).get();
     return p&&p.audioKey&&p.audioKey.startsWith('audio/live-')?{id:p.id,state:'ready',postId:p.id}:undefined;})();
   if(!row)throw new Error('#err.notFound');
-  if(row.state==='receiving')throw new Error('#err.liveActive');
+  // Занятые состояния — все три, а не одно. Пока эфир принимается, сшивается
+  // или перекодируется, воркер держит рабочий каталог открытым: удаление в
+  // этот момент возвращало 200 и сносило каталог прямо из-под FFmpeg.
+  if(LIVE_BUSY_STATES.includes(row.state))throw new Error('#err.liveActive');
   await db.delete(liveRecordings).where(eq(liveRecordings.id,id)).run();
   rmSync(path.join(/*turbopackIgnore: true*/ liveRoot(),id),{recursive:true,force:true});
   if(row.postId){
    const post=await db.select().from(posts).where(eq(posts.id,row.postId)).get();
    if(post){
+    // Сначала снимаем ссылку, потом решаем судьбу файла: обложка этого
+    // архива может быть той же, что у соседнего эфира. Ссылки других эфиров
+    // больше не обнуляются — это ломало их обложки ради прохождения
+    // проверки копии.
     await db.delete(posts).where(eq(posts.id,post.id));
-    if(post.audioKey)await bucket().delete(post.audioKey);
-    // Обложка выпуска и обложка эфира — один файл: снимаем ссылку до
-    // удаления, иначе в базе остаётся указатель в пустоту.
-    if(post.coverKey){
-     await db.update(broadcasts).set({coverKey:null}).where(eq(broadcasts.coverKey,post.coverKey));
-     await bucket().delete(post.coverKey);
-    }
+    await unlinkIfUnused(post.audioKey);
+    await unlinkIfUnused(post.coverKey);
    }
   }
   return result({ok:true});

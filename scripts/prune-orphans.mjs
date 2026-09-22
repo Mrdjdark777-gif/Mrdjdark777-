@@ -15,6 +15,8 @@
 import Database from 'better-sqlite3';
 import {readdir, stat, rm, access} from 'node:fs/promises';
 import path from 'node:path';
+import { referencedMediaKeys } from '../lib/media-refs.mjs';
+import { LIVE_BUSY_STATES } from '../lib/live-states.mjs';
 
 const argv = process.argv.slice(2);
 const apply = argv.includes('--delete');
@@ -61,18 +63,14 @@ try {
  // --- 2. Файлы, на которые никто не ссылается -------------------------------
  // Обложка эфира, который удаляется здесь же, тоже становится ничьей — иначе
  // пришлось бы гонять скрипт дважды.
- const used = new Set();
- for (const p of db.prepare('SELECT audio_key, cover_key FROM posts').all()) {
-  if (p.audio_key) used.add(p.audio_key);
-  if (p.cover_key) used.add(p.cover_key);
- }
- for (const b of db.prepare('SELECT id, cover_key FROM broadcasts').all()) if (b.cover_key && !doomed.has(b.id)) used.add(b.cover_key);
- const art = db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();
- if (art?.value) used.add(art.value);
+ // Ссылки собирает lib/media-refs.mjs, а не этот скрипт: раньше он знал про
+ // channelArt и не знал про calmArt, и картинка круга покоя удалялась как
+ // ничья, хотя на неё ссылалась настройка.
+ const used = referencedMediaKeys(db, {skipBroadcasts: doomed});
 
  // Пока эфир принимается или обрабатывается, воркер вот-вот положит в
  // хранилище готовую запись. Файлы в это время не трогаем совсем.
- const busy = db.prepare("SELECT COUNT(*) AS n FROM live_recordings WHERE state IN ('receiving','closing','processing')").get().n;
+ const busy = db.prepare('SELECT COUNT(*) AS n FROM live_recordings WHERE state IN (' + LIVE_BUSY_STATES.map(() => '?').join(',') + ')').get(...LIVE_BUSY_STATES).n;
  const orphans = [];
  let young = 0;
  if (!busy) for (const folder of ['audio', 'cover']) {
@@ -108,14 +106,10 @@ try {
   removeRow(dead.map(r => r.id));
   // Ссылки перечитываются перед самым удалением: пока шёл отчёт, публикация
   // могла сохраниться, и файл уже не ничей.
-  const linked = new Set();
-  for (const row of db.prepare('SELECT audio_key, cover_key FROM posts').all()) {
-   if (row.audio_key) linked.add(row.audio_key);
-   if (row.cover_key) linked.add(row.cover_key);
-  }
-  for (const row of db.prepare('SELECT cover_key FROM broadcasts').all()) if (row.cover_key) linked.add(row.cover_key);
-  const fresh = db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();
-  if (fresh?.value) linked.add(fresh.value);
+  // Повторная проверка перед самим удалением — тем же сборщиком. Здесь он
+  // читает базу заново: между списком и удалением автор мог загрузить файл
+  // и сослаться на него.
+  const linked = referencedMediaKeys(db);
   let removed = 0, spared = 0, freedNow = 0;
   for (const o of orphans) {
    if (linked.has(o.key)) { spared++; continue; }

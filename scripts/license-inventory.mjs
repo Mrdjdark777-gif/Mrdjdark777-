@@ -3,9 +3,13 @@
  * Опись сторонних пакетов и их лицензий.
  *
  * Нужна не для красоты: юристу и покупателю важно знать, что именно уезжает
- * вместе с продуктом и на каких условиях. Руками такой список устаревает за
- * неделю, поэтому он собирается из node_modules, а tests/licenses.mjs роняет
- * прогон, если сохранённая опись разошлась с установленными пакетами.
+ * вместе с продуктом и на каких условиях.
+ *
+ * Источник — package-lock.json, а не node_modules. Разница не косметическая:
+ * опись, собранная из установленного каталога, зафиксировала 43 версии,
+ * которых нет в lock, и пакет playwright, поставленный когда-то с --no-save.
+ * Lock — это то, что действительно приедет к другому человеку по npm ci.
+ * tests/licenses.mjs роняет прогон, если опись разошлась с lock.
  *
  * Колонка «поставка» отделяет то, что уходит на сервер и в приложение, от
  * инструментов разработки: к ним требования лицензий другие, потому что их
@@ -14,51 +18,40 @@
  *   node scripts/license-inventory.mjs            # напечатать
  *   node scripts/license-inventory.mjs --write    # обновить docs/third-party-licenses.csv
  */
-import {readFileSync,readdirSync,existsSync,writeFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
+import {readFileSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
 
 const root=path.resolve(import.meta.dirname,'..');
 
-function licenseOf(p){
- if(typeof p.license==='string')return p.license;
- if(p.license&&typeof p.license.type==='string')return p.license.type;
- if(Array.isArray(p.licenses))return p.licenses.map(l=>l.type||l).join(' OR ');
- return 'НЕ УКАЗАНА';
-}
-
-/** Все установленные пакеты, включая вложенные копии разных версий. */
-export function installed(){
+/** Все пакеты из lock-файла: именно они приедут по npm ci. */
+export function packagesFromLock(){
+ const lock=JSON.parse(readFileSync(path.join(root,'package-lock.json'),'utf8'));
  const found=new Map();
- const walk=dir=>{
-  let entries;try{entries=readdirSync(dir,{withFileTypes:true});}catch{return;}
-  for(const entry of entries){
-   if(!entry.isDirectory())continue;
-   const full=path.join(dir,entry.name);
-   if(entry.name.startsWith('@')){walk(full);continue;}
-   const manifest=path.join(full,'package.json');
-   if(existsSync(manifest)){
-    try{const p=JSON.parse(readFileSync(manifest,'utf8'));
-     if(p.name&&p.version)found.set(p.name+'@'+p.version,licenseOf(p));}catch{}
-   }
-   const nested=path.join(full,'node_modules');
-   if(existsSync(nested))walk(nested);
-  }
- };
- walk(path.join(root,'node_modules'));
+ for(const [key,meta] of Object.entries(lock.packages??{})){
+  if(!key.startsWith('node_modules/'))continue;
+  // Вложенные копии записаны как a/node_modules/b — имя это последний отрезок.
+  const name=key.slice(key.lastIndexOf('node_modules/')+'node_modules/'.length);
+  if(!meta.version)continue;
+  found.set(name+'@'+meta.version,typeof meta.license==='string'?meta.license
+   :Array.isArray(meta.license)?meta.license.join(' OR '):'НЕ УКАЗАНА');
+ }
  return found;
 }
 
-/** Имена пакетов, которые остаются после npm ci --omit=dev, то есть уезжают в поставку. */
+/** Имена пакетов без dev:true — то, что уезжает на сервер и в приложение. */
 export function shipped(){
- try{
-  const out=execFileSync('npm',['ls','--omit=dev','--all','--parseable'],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','ignore']});
-  return new Set(out.split('\n').filter(Boolean).map(line=>line.split('node_modules/').pop()).filter(Boolean));
- }catch{return new Set();}
+ const lock=JSON.parse(readFileSync(path.join(root,'package-lock.json'),'utf8'));
+ const names=new Set();
+ for(const [key,meta] of Object.entries(lock.packages??{})){
+  if(!key.startsWith('node_modules/'))continue;
+  if(meta.dev||meta.devOptional)continue;
+  names.add(key.slice(key.lastIndexOf('node_modules/')+'node_modules/'.length));
+ }
+ return names;
 }
 
 export function inventory(){
- const all=installed(),prod=shipped();
+ const all=packagesFromLock(),prod=shipped();
  return [...all].map(([id,license])=>{
   const name=id.slice(0,id.lastIndexOf('@'));
   return {name,version:id.slice(id.lastIndexOf('@')+1),license,shipped:prod.has(name)};

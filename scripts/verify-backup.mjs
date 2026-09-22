@@ -24,6 +24,7 @@ import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {readFile,lstat,realpath} from 'node:fs/promises';
 import path from 'node:path';
+import { MEDIA_SETTING_KEYS } from '../lib/media-refs.mjs';
 const folder=process.argv[2];if(!folder||!path.isAbsolute(folder))throw new Error('Supply an absolute backup directory.');
 // Сколько выпусков со звуком было в живой базе на момент копирования. Без этой
 // сверки бэкап пустой базы проходит проверку молча — печатает «0» и выглядит
@@ -83,11 +84,20 @@ try{
  const covers=[];
  if(hasColumn('posts','cover_key'))for(const row of db.prepare('SELECT id,cover_key FROM posts WHERE cover_key IS NOT NULL').all())covers.push([row.cover_key,'post '+row.id]);
  if(hasTable('broadcasts')&&hasColumn('broadcasts','cover_key'))for(const row of db.prepare('SELECT id,cover_key FROM broadcasts WHERE cover_key IS NOT NULL').all())covers.push([row.cover_key,'broadcast '+row.id]);
- if(hasTable('settings')){const art=db.prepare("SELECT value FROM settings WHERE key = 'channelArt'").get();if(art?.value)covers.push([art.value,'channel art']);}
+ // Настройки с картинками перечислены в lib/media-refs.mjs. Раньше здесь
+ // стоял только channelArt, и копия без картинки круга покоя проходила
+ // проверку с бодрым «всё цело» — потеря обнаружилась бы при восстановлении.
+ if(hasTable('settings'))for(const key of MEDIA_SETTING_KEYS){
+  const row=db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  if(row?.value)covers.push([row.value,'setting '+key]);
+ }
  // Обложка выпуска — содержимое; обложка эфира и оформление канала — ссылки,
  // которые могут пережить свой файл (удалённый архив уносит обложку с собой).
  for(const [key,owner] of covers){
-  const soft=owner==='channel art'||owner.startsWith('broadcast ');
+  // Обложка выпуска — содержимое, её пропажа это повреждение. Обложка эфира
+  // и картинки настроек — ссылки, которые могут пережить свой файл, но
+  // пропажу всё равно нужно назвать вслух, а не молча зачесть как успех.
+  const soft=owner.startsWith('setting ')||owner.startsWith('broadcast ');
   const state=await checkFile(key,owner,'cover',soft);
   if(state===true)checked++;else if(state===false)legacy++;
  }

@@ -38,22 +38,22 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/TrueThrills-Server.ps1'), [ref]$tokens, [ref]$errors)
           if ($errors.Count) { $errors | Format-List; exit 1 }
       - run: npm run lint
-      # Раньше здесь стоял перечень проверок, и он разошёлся с package.json:
-      # из двадцати шести проверок CI гонял одиннадцать, а про остальные знал
-      # только «npm test». Теперь список один — в package.json, а
-      # tests/suite-complete.mjs следит, что ни один файл не остался без
-      # запуска. «npm test» сам собирает проект, отдельный build не нужен.
+      # Список проверок один — в package.json, а tests/suite-complete.mjs
+      # следит, что ни один файл не остался без запуска. «npm test» сам
+      # собирает проект, отдельный build не нужен и браузер ему не нужен.
       - run: npm test
-      # Этим нужен браузер или поднятый сервер, поэтому они идут отдельно.
+      # Этому нужен поднятый сервер и настоящий FFmpeg.
       - run: node tests/live-archive-integration.mjs
-      - name: Install browser test tools
-        run: |
-          npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install chrome
-      - run: node tests/browser-integration.mjs
+      # Браузер ставится ДО браузерных проверок. Раньше установка стояла после
+      # «npm test», а сами проверки были внутри него: на чистой машине прогон
+      # падал на первой из них, потому что playwright ещё не был установлен.
+      # Теперь playwright — закреплённая devDependency и приезжает с npm ci,
+      # здесь остаётся только сам браузер.
+      - run: npx playwright install chrome
+      - run: npm run test:browser
       # Экраны нового дизайна на production-сборке: снимки в артефакт, главная
       # без переполнения и без прокрутки на трёх телефонах.
-      - run: node tests/design-preview.mjs
+      - run: npm run test:design
       - uses: actions/upload-artifact@v4
         if: always()
         with:

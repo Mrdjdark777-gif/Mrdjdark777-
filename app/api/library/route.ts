@@ -3,6 +3,8 @@ import { desc, eq ,inArray} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, liveRecordings, posts, settings } from '@/db/schema';
 import { bucket, failure, originCheck, owner, requireOwner, result, setting, userId } from '@/lib/server';
+import { unlinkIfUnused } from '@/lib/media-unlink';
+import { LIVE_BUSY_STATES } from '@/lib/live-states.mjs';
 import { parseDonations, parseLinks, parseVideo } from '@/lib/video';
 export async function GET(req: Request){try{
   const isOwner=await owner(req),db=getDb();
@@ -12,7 +14,7 @@ export async function GET(req: Request){try{
   // сшивает и перекодирует. Пока это идёт, слушателю честнее сказать «запись
   // готовится», чем показывать пустой архив, будто записей не было вовсе.
   const pending=await db.select({id:liveRecordings.id}).from(liveRecordings)
-    .where(inArray(liveRecordings.state,['receiving','closing','processing'])).get();
+    .where(inArray(liveRecordings.state,[...LIVE_BUSY_STATES])).get();
   return result({archivePending:!!pending,items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
@@ -66,13 +68,13 @@ export async function POST(req: Request){try{
   if(d.action==='delete'){
     const p=await db.select().from(posts).where(eq(posts.id,String(d.id))).get();
     if(p){
+      // Сначала снимаем ссылку, потом решаем судьбу файла. Обложка бывает
+      // общей у нескольких архивов — при старте эфира переиспользуется
+      // обложка предыдущего, — и безусловное удаление файла оставляло
+      // соседний выпуск с ключом, по которому приходит 404.
       await db.delete(posts).where(eq(posts.id,p.id));
-      if(p.audioKey)await bucket().delete(p.audioKey);
-      // Обложка выпуска-архива и обложка эфира — один и тот же файл: воркер
-      // переносит её на выпуск при публикации. Снять ссылку нужно до удаления
-      // файла, иначе в базе остаётся указатель в пустоту — на нём спотыкалась
-      // проверка бэкапа, а уборка молча уносила и сам эфир.
-      if(p.coverKey){await db.update(broadcasts).set({coverKey:null}).where(eq(broadcasts.coverKey,p.coverKey));await bucket().delete(p.coverKey);}
+      await unlinkIfUnused(p.audioKey);
+      await unlinkIfUnused(p.coverKey);
     }return result({ok:true});
   }
   if(d.action==='visibility'){const p=await db.update(posts).set({published:d.published?1:0}).where(eq(posts.id,String(d.id))).returning().get();if(p?.published)notifyPost(p,req);return result({ok:true});}
