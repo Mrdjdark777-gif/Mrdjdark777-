@@ -1,4 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { settings } from '@/db/schema';
 
 /**
  * Single-owner session auth for the self-hosted deployment. Replaces the
@@ -10,6 +13,35 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 const COOKIE_NAME = 'tt_session';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const OWNER_ID = 'owner';
+const EPOCH_KEY = 'sessionEpoch';
+
+/**
+ * Номер поколения сессий.
+ *
+ * Cookie подписана и живёт до своего срока; серверной записи о ней нет.
+ * Поэтому украденная копия оставалась годной даже после смены
+ * ADMIN_PASSWORD — пароль на неё не влияет вовсе. Номер поколения входит в
+ * подпись: увеличил — все выданные ранее cookie разом перестают подходить.
+ */
+function epoch(): number {
+  try {
+    const row = getDb().select({ value: settings.value }).from(settings).where(eq(settings.key, EPOCH_KEY)).get();
+    const value = Number(row?.value ?? 0);
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  } catch {
+    // База может быть ещё не создана (первый запуск, миграции). Отсутствие
+    // записи — это поколение 0, а не повод не пустить владельца.
+    return 0;
+  }
+}
+
+/** Отозвать все выданные сессии: следующее поколение не подходит ни одной старой cookie. */
+export function revokeAllSessions(): number {
+  const next = epoch() + 1;
+  getDb().insert(settings).values({ key: EPOCH_KEY, value: String(next) })
+    .onConflictDoUpdate({ target: settings.key, set: { value: String(next) } }).run();
+  return next;
+}
 
 function secret() {
   const value = process.env.SESSION_SECRET;
@@ -41,7 +73,7 @@ function isSecureRequest(req: Request): boolean {
 
 export function createSessionCookie(req: Request): string {
   const expires = Date.now() + SESSION_TTL_MS;
-  const payload = `${OWNER_ID}.${expires}`;
+  const payload = `${OWNER_ID}.${expires}.${epoch()}`;
   const token = `${payload}.${sign(payload)}`;
   const secure = isSecureRequest(req) ? ' Secure;' : '';
   return `${COOKIE_NAME}=${token}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`;
@@ -63,11 +95,13 @@ function readCookie(req: Request): string | null {
 
 function verifyToken(token: string): boolean {
   const parts = token.split('.');
-  if (parts.length !== 3) return false;
-  const [id, expires, signature] = parts;
+  if (parts.length !== 4) return false;
+  const [id, expires, generation, signature] = parts;
   if (id !== OWNER_ID) return false;
   if (!Number.isFinite(Number(expires)) || Date.now() > Number(expires)) return false;
-  const expected = sign(`${id}.${expires}`);
+  // Поколение старше текущего — cookie отозвана.
+  if (Number(generation) !== epoch()) return false;
+  const expected = sign(`${id}.${expires}.${generation}`);
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);

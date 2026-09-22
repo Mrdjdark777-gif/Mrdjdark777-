@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     if (!Number.isSafeInteger(size) || size <= 0 || size > MAX) throw new Error('#err.coverSize');
     if (!req.body) throw new Error('#err.coverEmpty');
     const key = 'cover/' + crypto.randomUUID();
-    const stored = await bucket().put(key, req.body, { httpMetadata: { contentType: mime }, customMetadata: { owner: userId(req)! } });
+    const stored = await bucket().put(key, req.body, { httpMetadata: { contentType: mime }, customMetadata: { owner: userId(req)! }, maxBytes: MAX });
     if (stored.size !== size) { await bucket().delete(key); throw new Error('#err.uploadMismatch'); }
     return result({ key });
   } catch (e) { return failure(e); }
@@ -43,7 +43,13 @@ export async function GET(req: Request) {
     // под одним адресом и меняются — закэшированное на сутки изображение
     // возвращалось даже после замены, пока кэш не истечёт.
     const single = id === 'channel' || id === 'calm';
-    const h = new Headers({ 'Cache-Control': single ? 'no-store' : 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+    // Черновик виден только автору, и его обложка не должна оседать в общих
+    // кэшах: прежний `public, max-age=86400` разрешал прокси или CDN отдать
+    // её кому угодно, кто спросит тот же адрес. Ответ приватный — значит и
+    // политика кэша приватная.
+    const cache = single ? 'no-store' : isPublic ? 'public, max-age=86400' : 'private, no-store';
+    const h = new Headers({ 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' });
+    if (!isPublic) h.set('Vary', 'Cookie');
     obj.writeHttpMetadata(h); h.set('ETag', obj.httpEtag); h.set('Content-Length', String(obj.size));
     return new Response(obj.body, { headers: h });
   } catch (e) { return failure(e); }

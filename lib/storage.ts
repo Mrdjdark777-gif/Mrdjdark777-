@@ -87,25 +87,41 @@ class LocalBucket {
   async put(
     key: string,
     body: ReadableStream<Uint8Array>,
-    opts: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> } = {},
+    opts: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string>; maxBytes?: number } = {},
   ) {
     const path = dataPath(key);
     await mkdir(dirname(path), { recursive: true });
     const node = Readable.fromWeb(body as NodeWebReadableStream<Uint8Array>);
     let size = 0;
     const digest = createHash('sha256');
-    node.on('data', (chunk: Buffer) => {
-      size += chunk.length;
-      digest.update(chunk);
-    });
+    const limit = opts.maxBytes ?? Infinity;
     const { createWriteStream } = await import('node:fs');
-    await new Promise<void>((resolvePromise, reject) => {
-      const out = createWriteStream(path);
-      node.pipe(out);
-      out.on('finish', resolvePromise);
-      out.on('error', reject);
-      node.on('error', reject);
-    });
+    try {
+      await new Promise<void>((resolvePromise, reject) => {
+        const out = createWriteStream(path);
+        // Предел проверяется по ходу чтения, а не после. Раньше весь поток
+        // сначала оседал на диск и только потом сверялся заявленный размер:
+        // отправитель мог соврать в заголовке и занять место чем угодно.
+        node.on('data', (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > limit) {
+            node.destroy(new Error('#err.uploadSize'));
+            out.destroy();
+            return;
+          }
+          digest.update(chunk);
+        });
+        node.pipe(out);
+        out.on('finish', resolvePromise);
+        out.on('error', reject);
+        node.on('error', reject);
+      });
+    } catch (e) {
+      // Оборванная или слишком большая загрузка не должна оставлять мусор.
+      await rm(path, { force: true }).catch(() => {});
+      await rm(metaPath(key), { force: true }).catch(() => {});
+      throw e;
+    }
     const sha256 = digest.digest('hex');
     const meta: Meta = {
       contentType: opts.httpMetadata?.contentType ?? 'application/octet-stream',

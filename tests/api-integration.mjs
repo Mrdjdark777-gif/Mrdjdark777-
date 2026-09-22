@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
+import {existsSync,readdirSync} from 'node:fs';
 
 // Offline regression test for the self-hosted (Node/better-sqlite3/local
 // filesystem) API routes. Route handlers are framework-agnostic (plain Web
@@ -38,6 +39,7 @@ await build({
       export * as notifications from '${root}/app/api/notifications/route.ts';
       export * as push from '${root}/lib/push.ts';
       export * as liveRecording from '${root}/lib/live-recording.ts';
+      export * as storage from '${root}/lib/storage.ts';
       export * as dicts from '${root}/lib/i18n/index.ts';
       export {getDb} from '${root}/db/index.ts';
     `,
@@ -51,12 +53,12 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, dicts, getDb } = await import(outfile);
+const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, dicts, getDb } = await import(outfile);
 const liveLimit = liveRecording.liveListenerLimit;
 const routes = { library, audio, cover, live, notifications, login, ice };
 
 const ORIGIN = 'https://true-thrills.test';
-const ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
+let ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
 
 async function dispatch(pathname, init) {
   const route = routes[pathname];
@@ -117,6 +119,19 @@ try {
   assert.equal((await request('library', { kind: 'story', title: '' })).data.error, '#err.titleLength');
   assert.equal((await request('library', { kind: 'story', title: 'X' }, false)).data.error, '#err.ownerOnly');
   assert.equal((await request('library', { action: 'donations', links: [{ kind: 'boosty', url: 'javascript:alert(1)' }] })).status, 400);
+  // Вид площадки без проверки её домена ничего не значил: под видом PayPal
+  // сохранялся любой HTTPS-адрес, и кнопка поддержки вела куда угодно.
+  assert.equal((await request('library', { action: 'donations', links: [{ kind: 'paypal', url: 'https://unrelated.invalid/pay' }] })).status, 400,
+   'под видом PayPal сохранился чужой домен');
+  // Похожий домен — не тот же домен: совпадать должен сам домен или его
+  // поддомен, а не хвост строки.
+  assert.equal((await request('library', { action: 'donations', links: [{ kind: 'paypal', url: 'https://paypal.com.attacker.example/pay' }] })).status, 400,
+   'домен-двойник принят за PayPal');
+  assert.equal((await request('library', { action: 'links', links: [{ kind: 'telegram', url: 'https://example.invalid/chat' }] })).status, 400,
+   'под видом Telegram сохранился чужой домен');
+  // «Мой сайт» — это любой адрес по смыслу, и ограничивать его нечем.
+  assert.equal((await request('library', { action: 'links', links: [{ kind: 'site', url: 'https://truethrills.com' }] })).status, 200,
+   'собственный сайт должен сохраняться с любым доменом');
   assert.equal(
     (await request('library', {
       action: 'donations',
@@ -128,6 +143,46 @@ try {
     { kind: 'boosty', url: 'https://boosty.to/truethrills' },
     { kind: 'paypal', url: 'https://paypal.me/truethrills' },
   ]);
+
+  // Cookie подписана и живёт до срока, серверной записи о ней нет: снятая
+  // копия оставалась годной даже после смены ADMIN_PASSWORD, потому что
+  // пароль на подпись не влияет. Теперь в подпись входит поколение сессий.
+  {
+   const stolen = ownerCookie;
+   const revoked = await dispatch('login', { method: 'POST', headers: { cookie: stolen, 'Content-Type': 'application/json', origin: 'https://truethrills.test', host: 'truethrills.test' }, body: JSON.stringify({ action: 'revokeAll' }) });
+   assert.equal(revoked.status, 200, '«выйти на всех устройствах» не сработало');
+   const fresh = revoked.headers.get('set-cookie').split(';')[0];
+   assert.notEqual(fresh, stolen, 'после отзыва выдана та же самая cookie');
+   assert.equal(auth.sessionUserId(new Request('https://truethrills.test/', { headers: { cookie: stolen } })), null,
+    'старая cookie осталась годной после отзыва всех сессий');
+   assert.equal(auth.sessionUserId(new Request('https://truethrills.test/', { headers: { cookie: fresh } })), 'owner',
+    'свежая cookie не работает после отзыва');
+   ownerCookie = fresh;
+  }
+
+  // Заявленный размер — это слова отправителя. Раньше им верили: весь поток
+  // сначала писался на диск и только потом сверялся размер, поэтому соврав в
+  // заголовке можно было занять место чем угодно. Теперь чтение обрывается
+  // на превышении, а недописанный файл не остаётся в хранилище.
+  //
+  // Проверять это через маршрут бессмысленно: там есть вторая сверка размера
+  // после записи, и она вернёт ошибку в любом случае — прогон пройдёт и без
+  // защиты. Поэтому спрашиваем само хранилище.
+  {
+   const coverDir = path.join(process.env.STORAGE_DIR, 'cover');
+   const count = () => existsSync(coverDir) ? readdirSync(coverDir).length : 0;
+   const before = count();
+   const big = Buffer.alloc(3 * 1024 * 1024, 7);
+   await assert.rejects(
+    () => storage.localBucket().put('cover/over-limit', new Blob([big]).stream(), {maxBytes: 64 * 1024}),
+    'хранилище приняло поток больше предела: чтение не обрывается по ходу',
+   );
+   assert.equal(count(), before,
+    'оборванная загрузка оставила файл в хранилище');
+   // Предел не мешает обычной загрузке.
+   await storage.localBucket().put('cover/under-limit', new Blob([Buffer.alloc(1024, 1)]).stream(), {maxBytes: 64 * 1024});
+   assert.ok(existsSync(path.join(process.env.STORAGE_DIR, 'cover/under-limit')), 'нормальная загрузка не сохранилась');
+  }
 
   // Видео: сохраняется только ссылка, файл на сервер не попадает.
   assert.equal((await request('library', { kind: 'video', title: 'No link' })).status, 400);
@@ -236,6 +291,11 @@ try {
   // при публикации. Удаление выпуска стирало файл и оставляло строку эфира
   // указывать в пустоту — на этом 14 сентября встало обновление сервера,
   // потому что проверка бэкапа требует каждый файл, названный в базе.
+  //
+  // Первое решение обнуляло обложку у эфира. Оно закрывало проверку копии, но
+  // ломало сам эфир: картинка у него пропадала без всякой на то причины.
+  // Теперь файл просто не удаляется, пока на него ссылается хоть кто-то, —
+  // и строка эфира остаётся верной.
   {
    const db = getDb().$client;
    const shared = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '5' }, body: new Blob(['live!']).stream(), duplex: 'half' });
@@ -245,8 +305,17 @@ try {
    assert.equal(archive.status, 200);
    db.prepare("INSERT INTO broadcasts(id,title,owner_id,heartbeat,active,cover_key) VALUES(?,?,?,?,0,?)").run(archive.data.id, 'Архив эфира', 'owner', Date.now() - 7200000, sharedKey);
    await request('library', { action: 'delete', id: archive.data.id });
-   assert.equal(db.prepare('SELECT cover_key FROM broadcasts WHERE id=?').get(archive.data.id).cover_key, null, 'после удаления выпуска эфир не должен ссылаться на стёртый файл');
+   assert.equal(db.prepare('SELECT cover_key FROM broadcasts WHERE id=?').get(archive.data.id).cover_key, sharedKey,
+    'эфир потерял свою обложку из-за удаления чужого выпуска');
+   assert.equal((await dispatch('cover', { search: '?id=live:' + archive.data.id })).status, 200,
+    'файл обложки удалён, хотя на него ещё ссылается эфир');
+   // Когда исчезает последняя ссылка, файл всё-таки уходит: иначе хранилище
+   // копило бы мусор, а уборка ради этого и написана.
    db.prepare('DELETE FROM broadcasts WHERE id=?').run(archive.data.id);
+   const second = await request('library', { kind: 'podcast', title: 'Ещё архив', audioKey: key, coverKey: sharedKey, published: true });
+   assert.equal(second.status, 200);
+   await request('library', { action: 'delete', id: second.data.id });
+   assert.equal(existsSync(path.join(process.env.STORAGE_DIR, sharedKey)), false, 'файл остался в хранилище, хотя ссылок на него больше нет');
   }
 
   assert.equal((await dispatch('cover', { search: '?id=channel' })).status, 404);
@@ -450,6 +519,14 @@ try {
    const rotated=await request('notifications',{action:'subscribe',kind:'fcm',token:'b'.repeat(152),previousId:fcmSub.data.id,preferences:7,locale:'it'},false,{'x-push-token':fcmSub.data.token});assert.equal(rotated.status,200);
    assert.equal(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(fcmSub.data.id),undefined);
    const foreign=await request('notifications',{action:'subscribe',kind:'fcm',token:'c'.repeat(152),previousId:rotated.data.id,preferences:7},false,{'x-push-token':'x'.repeat(43)});assert.notEqual(foreign.status,200);assert.ok(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(rotated.data.id));
+   // Сервер сам удаляет подписку, когда FCM отвечает «токен недействителен».
+   // Устройство об этом не знает и при следующей смене токена всё равно
+   // присылает previousId. Раньше маршрут отвечал 400 #err.subscriptionOther,
+   // и уведомления нельзя было восстановить ничем, кроме переустановки.
+   getDb().$client.prepare('DELETE FROM push_subscriptions WHERE id=?').run(rotated.data.id);
+   const revived=await request('notifications',{action:'subscribe',kind:'fcm',token:'d'.repeat(152),previousId:rotated.data.id,preferences:7,locale:'it'},false,{'x-push-token':fcmSub.data.token});
+   assert.equal(revived.status,200,'после удаления старой строки регистрация должна восстанавливаться, а не упираться в 400');
+   assert.ok(getDb().$client.prepare('SELECT id FROM push_subscriptions WHERE id=?').get(revived.data.id),'новая подписка не сохранилась');
    assert.equal((await request('library',{kind:'story',title:'Unsafe cover',body:'x',coverUrl:'javascript:alert(1)'})).status,400);
    fcmSendStatus=404;
    const post2=await request('library',{kind:'story',title:'FCM story 2',body:'Body',published:true});

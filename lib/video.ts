@@ -37,33 +37,57 @@ export function parseVideo(raw: string): Video | null {
   return link('link', '');
 }
 
+/**
+ * `hosts` — домены, которым ссылка этой площадки обязана принадлежать.
+ *
+ * Раньше проверялся только вид площадки, но не адрес: под видом PayPal
+ * сохранялся любой HTTPS-домен, и кнопка «поддержать» вела куда угодно.
+ * Совпадение — точный домен или его поддомен, поэтому
+ * `paypal.com.attacker.example` не проходит.
+ *
+ * У «site» списка нет намеренно: это и есть «мой сайт», любой адрес.
+ */
 export const SOCIALS = [
-  { kind: 'youtube', labelKey: 'social.youtube' },
-  { kind: 'tiktok', labelKey: 'social.tiktok' },
-  { kind: 'instagram', labelKey: 'social.instagram' },
-  { kind: 'telegram', labelKey: 'social.telegram' },
-  { kind: 'vk', labelKey: 'social.vk' },
-  { kind: 'site', labelKey: 'social.site' },
+  { kind: 'youtube', labelKey: 'social.youtube', hosts: ['youtube.com', 'youtu.be'] },
+  { kind: 'tiktok', labelKey: 'social.tiktok', hosts: ['tiktok.com'] },
+  { kind: 'instagram', labelKey: 'social.instagram', hosts: ['instagram.com', 'instagr.am'] },
+  { kind: 'telegram', labelKey: 'social.telegram', hosts: ['t.me', 'telegram.me', 'telegram.org'] },
+  { kind: 'vk', labelKey: 'social.vk', hosts: ['vk.com', 'vk.ru', 'vkvideo.ru'] },
+  { kind: 'site', labelKey: 'social.site', hosts: null },
 ] as const;
 export type SocialKind = (typeof SOCIALS)[number]['kind'];
 export type SocialLink = { kind: SocialKind; url: string };
 
 export const DONATIONS = [
-  { kind: 'boosty', labelKey: 'donate.boosty' },
-  { kind: 'paypal', labelKey: 'donate.paypal' },
+  { kind: 'boosty', labelKey: 'donate.boosty', hosts: ['boosty.to'] },
+  { kind: 'paypal', labelKey: 'donate.paypal', hosts: ['paypal.com', 'paypal.me'] },
 ] as const;
 export type DonationKind = (typeof DONATIONS)[number]['kind'];
 export type DonationLink = { kind: DonationKind; url: string };
 
-/** Общий разбор списка «площадка → ссылка»: HTTPS, без логина/пароля в URL, только известные ключи. */
-function parseKindUrlList<K extends string>(raw: string, kinds: readonly K[]): { kind: K; url: string }[] {
+/**
+ * Принадлежит ли адрес одному из доменов площадки.
+ *
+ * Точное совпадение или поддомен. Именно поддомен, а не «оканчивается на»:
+ * иначе `paypal.com.attacker.example` считался бы адресом PayPal.
+ */
+export function hostAllowed(host: string, hosts: readonly string[] | null) {
+  if (!hosts) return true;
+  const value = host.replace(/^(www|m)\./, '').toLowerCase();
+  return hosts.some(allowed => value === allowed || value.endsWith('.' + allowed));
+}
+
+/** Общий разбор списка «площадка → ссылка»: HTTPS, без логина/пароля в URL, только известные ключи и их домены. */
+function parseKindUrlList<K extends string>(raw: string, entries: readonly {kind: K; hosts: readonly string[] | null}[]): { kind: K; url: string }[] {
   let list: unknown;
   try { list = JSON.parse(raw || '[]'); } catch { return []; }
   if (!Array.isArray(list)) return [];
   return list.flatMap(item => {
     if (!item || typeof item !== 'object') return [];
     const { kind, url } = item as Record<string, unknown>;
-    if (typeof kind !== 'string' || typeof url !== 'string' || !(kinds as readonly string[]).includes(kind)) return [];
+    if (typeof kind !== 'string' || typeof url !== 'string') return [];
+    const entry = entries.find(e => e.kind === kind);
+    if (!entry) return [];
     // «tiktok.com/@name» — это то, что человек копирует из адресной строки,
     // и молча выбрасывать такую ссылку нельзя. Схему дописываем только когда
     // её нет вовсе: явный http:// (или что-то вроде javascript:) остаётся как
@@ -71,15 +95,21 @@ function parseKindUrlList<K extends string>(raw: string, kinds: readonly K[]): {
     const typed = url.trim();
     const value = !typed || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(typed) ? typed : 'https://' + typed;
     if (!value) return [];
-    try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password) return []; } catch { return []; }
+    try {
+      const u = new URL(value);
+      if (u.protocol !== 'https:' || u.username || u.password) return [];
+      // Вид площадки без проверки её домена ничего не значил: «paypal» можно
+      // было сохранить с адресом чужого сайта, и кнопка поддержки вела туда.
+      if (!hostAllowed(u.hostname, entry.hosts)) return [];
+    } catch { return []; }
     return [{ kind: kind as K, url: value }];
   }).slice(0, 8);
 }
 
 export function parseLinks(raw: string): SocialLink[] {
-  return parseKindUrlList(raw, SOCIALS.map(s => s.kind));
+  return parseKindUrlList(raw, SOCIALS);
 }
 
 export function parseDonations(raw: string): DonationLink[] {
-  return parseKindUrlList(raw, DONATIONS.map(d => d.kind));
+  return parseKindUrlList(raw, DONATIONS);
 }

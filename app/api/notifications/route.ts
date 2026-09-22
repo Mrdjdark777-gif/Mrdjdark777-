@@ -31,8 +31,16 @@ export async function POST(req:Request){try{
   const token=prior?null:newDeviceToken(),manageHash=prior?.manage_hash??tokenHash(token!);
   const saved=db().transaction(()=>{
    if(kind==='fcm'&&typeof d.previousId==='string'&&d.previousId&&d.previousId!==id){
-    const removed=db().prepare("DELETE FROM push_subscriptions WHERE id=? AND manage_hash=? AND kind='fcm'").run(d.previousId,device(req));
-    if(!removed.changes)throw new Error('#err.subscriptionOther');
+    // Устройство просит перенести регистрацию со старого токена на новый.
+    // Отказывать можно только в одном случае: строка есть и принадлежит
+    // другому устройству. Если строки уже нет — а сервер удаляет её сам,
+    // когда FCM отвечает «токен недействителен», — переносить попросту
+    // нечего, и это не ошибка. Раньше здесь отказывали и в этом случае:
+    // после смены токена уведомления не восстанавливались вообще никак,
+    // кроме переустановки приложения.
+    const previous=db().prepare("SELECT manage_hash FROM push_subscriptions WHERE id=? AND kind='fcm'").get(d.previousId) as {manage_hash:string}|undefined;
+    if(previous&&previous.manage_hash!==device(req))throw new Error('#err.subscriptionOther');
+    if(previous)db().prepare('DELETE FROM push_subscriptions WHERE id=? AND manage_hash=?').run(d.previousId,device(req));
    }
    const row=db().prepare(`INSERT INTO push_subscriptions(id,manage_hash,subscription,kind,locale,preferences,created_at)
    SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM push_subscriptions WHERE id=?) OR (SELECT COUNT(*) FROM push_subscriptions)<?

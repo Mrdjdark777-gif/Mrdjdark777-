@@ -9,7 +9,7 @@ export async function POST(req: Request){try{
   const size=Number(req.headers.get('x-upload-size')??req.headers.get('content-length'));
   if(!Number.isSafeInteger(size)||size<=0||size>MAX)throw new Error('#err.uploadSize');if(!req.body)throw new Error('#err.uploadEmpty');
   const key='audio/'+crypto.randomUUID();
-  const stored=await bucket().put(key,req.body,{httpMetadata:{contentType:mime},customMetadata:{owner:userId(req)!}});
+  const stored=await bucket().put(key,req.body,{httpMetadata:{contentType:mime},customMetadata:{owner:userId(req)!},maxBytes:MAX});
   if(stored.size!==size){await bucket().delete(key);throw new Error('#err.uploadMismatch');}
   return result({key});
 }catch(e){return failure(e);}}
