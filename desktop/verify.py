@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate PE architecture, GUI entrypoint, resources, and installer payload integrity."""
-import pathlib,struct,sys,hashlib
+import pathlib,re,struct,sys,hashlib
 folder=pathlib.Path(sys.argv[1]).resolve()
 def u16(b,o):return struct.unpack_from('<H',b,o)[0]
 def u32(b,o):return struct.unpack_from('<I',b,o)[0]
@@ -26,7 +26,13 @@ def inspect(p):
  visit(0);assert any(k[0]==14 for k in resources),'Missing app icon'
  manifest=next(v for k,v in resources.items() if k[:2]==(24,1));assert b'level="asInvoker"' in manifest
  return b,resources
-app,ar=inspect(folder/'TrueThrills.exe');setup,sr=inspect(folder/'TrueThrills-Setup-0.9.0.exe')
+# Имя установщика собирается из версии в client.rc — так же, как в build.py.
+# Зашитая строка здесь уже отставала от ресурсов на две версии.
+_rc=(pathlib.Path(__file__).resolve().parent/'client.rc').read_text()
+_m=re.search(r'^FILEVERSION\s+(\d+),(\d+),(\d+)',_rc,re.M)
+if not _m:raise SystemExit('client.rc: не найдена строка FILEVERSION')
+SETUP_NAME='TrueThrills-Setup-'+'.'.join(_m.groups())+'.exe'
+app,ar=inspect(folder/'TrueThrills.exe');setup,sr=inspect(folder/SETUP_NAME)
 for id,name in [(100,'TrueThrills.exe'),(101,'WebView2Loader.dll'),(102,'WebView2-LICENSE.txt')]:
  data=next(v for k,v in sr.items() if k[:2]==(10,id));assert data==(folder/name).read_bytes(),name
 print('PASS: Windows x64 PE, GUI subsystem, executable entrypoint, icon, user-level manifest, and exact embedded installer payloads.')

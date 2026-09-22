@@ -28,4 +28,17 @@ assert.equal(sendDesktopCommand('about',broken),false,'ошибка моста �
 const client=await readFile('desktop/client.cpp','utf8');
 for(const message of sent)assert.ok(client.includes('L"'+message+'"'),'окно не разбирает '+message);
 
-console.log('PASS: мост к приложению на ПК — определение окна, четыре команды, их разбор в оконной части и устойчивость к сбою моста.');
+// Версия установщика живёт в client.rc и больше нигде. Зашитая строка уже
+// отставала на две версии: ресурсы объявляли 0.9.2, а человек ставил файл с
+// 0.9.0 в названии — и заметить это можно было только глазами.
+const rc=await readFile('desktop/client.rc','utf8');
+const version=/^FILEVERSION\s+(\d+),(\d+),(\d+)/m.exec(rc);
+assert.ok(version,'client.rc: нет строки FILEVERSION');
+for(const file of ['desktop/build.py','desktop/verify.py']){
+ const text=await readFile(file,'utf8');
+ assert.equal(/TrueThrills-Setup-[0-9][0-9.]*\.exe/.test(text),false,
+  file+': имя установщика зашито строкой — оно обязано собираться из FILEVERSION в client.rc');
+ assert.match(text,/FILEVERSION/,file+': версия не читается из client.rc');
+}
+
+console.log('PASS: мост к приложению на ПК — определение окна, четыре команды, их разбор в оконной части, устойчивость к сбою моста и версия установщика из одного места.');
