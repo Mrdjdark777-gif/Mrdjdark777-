@@ -270,6 +270,49 @@ try{
      if(await page.locator('.resume-row').count())problems.push('строка «Продолжить» вернулась, когда плеер записал место заново');
     }
    }}
+  // Главный пост на главной — только обложка и название: длительность и
+  // описание человек увидит, когда откроет. И площадки автора теперь здесь,
+  // значками, а не в настройках.
+  {await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
+   if(await page.locator('.scene-copy .scene-meta').count())problems.push('под названием главного поста осталась длительность');
+   if(!await page.locator('.scene-side .social-row .social-chip').count())problems.push('на главной нет быстрых ссылок на площадки автора');
+   await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
+   const cards=await page.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));
+   if(cards.some(c=>/площадк/i.test(c)))problems.push('в настройках слушателя осталась карточка площадок: '+cards.join(', '));
+   if(cards.some(c=>/поддерж/i.test(c)))problems.push('в настройках слушателя осталась карточка поддержки: '+cards.join(', '));
+   // Поддержать по-прежнему можно: сердечко в шапке открывает выбор площадки.
+   await page.locator('.support-button').click();await page.waitForTimeout(400);
+   const choices=await page.locator('.donate-dialog .donate-choice').count();
+   if(!choices)problems.push('сердечко не открыло выбор площадки поддержки');
+   if(!await page.locator('.donate-note').count())problems.push('в окне поддержки нет пояснения, зачем эти ссылки');
+   await page.keyboard.press('Escape');await page.waitForTimeout(250);}
+  // Из каталога выпуск начинается сначала, даже если место остановки записано:
+  // человек выбрал его заново, а не вернулся к нему. С места продолжает только
+  // строка «Продолжить» на главной.
+  {await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:60,duration:90,updatedAt:Date.now()}]));localStorage.removeItem('tt-resume-hidden-v1');},podcast.id);
+   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(400);
+   await page.locator('.post-title',{hasText:'По ту сторону тишины'}).first().click();
+   await page.locator('.podcast-player').waitFor({timeout:8000});
+   await page.waitForTimeout(1200);
+   const from=await page.evaluate(()=>{const a=document.querySelector('audio');return a?Math.round(a.currentTime):-1;});
+   if(from>8)problems.push('выпуск из каталога пошёл с места остановки: '+from+'с');
+   await page.evaluate(()=>{const a=document.querySelector('audio');if(a)a.pause();});
+   // Прослушивание с начала честно перезаписывает место остановки на ноль.
+   // Кладём отметку заново уже на главной и перезагружаем: пока плеер на
+   // экране, он продолжает записывать своё время и затирает подставленное.
+   await page.goto(base+'/?mode=listen&view=home');await settle(page);
+   await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:60,duration:90,updatedAt:Date.now()}]));localStorage.removeItem('tt-resume-hidden-v1');},podcast.id);
+   await page.reload();await settle(page);await page.waitForTimeout(500);
+   const row=page.locator('.resume-row');
+   if(!await row.count())problems.push('строки «Продолжить» нет, хотя место остановки записано');
+   else{
+    await row.click();
+    await page.locator('.podcast-player').waitFor({timeout:8000});
+    await page.waitForTimeout(1500);
+    const back=await page.evaluate(()=>{const a=document.querySelector('audio');return a?Math.round(a.currentTime):-1;});
+    if(back<40)problems.push('строка «Продолжить» не вернула к месту остановки: '+back+'с');
+    await page.evaluate(()=>{const a=document.querySelector('audio');if(a)a.pause();});
+   }}
   // Описание в карточке раскрывается по нажатию и сворачивается обратно.
   {await page.goto(base+'/?mode=listen&view=videos');await settle(page);await page.waitForTimeout(300);
    const note=page.locator('.post-note').first();

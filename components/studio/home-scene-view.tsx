@@ -26,9 +26,9 @@ const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>coverSrc(p);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,archive,support,appLink,sections,pinned}:{
- posts:T[];live:Live|null;onOpen:(post:T)=>void;onOpenLive:()=>void;liveAction:string;
- archive?:React.ReactNode;support:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,archive,support,links,appLink,sections,pinned}:{
+ posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;liveAction:string;
+ archive?:React.ReactNode;support:React.ReactNode;links?:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
  sections:{kind:'podcast'|'video'|'story';label:string;go:()=>void}[];
 }){
  const {t}=useT();
@@ -66,7 +66,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  };
  const heroCover=hero?coverOf(hero):'';
  const heroAction=hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
- const heroMeta=hero?(hero.kind==='podcast'?(hero.duration>0?clock(hero.duration):t('post.podcast')):hero.kind==='video'?t('post.video'):t('post.story')):'';
  const press=hero?{
   onPointerDown:(e:React.PointerEvent)=>{if(e.button!==0)return;held.current=false;if(hold.current)clearTimeout(hold.current);hold.current=setTimeout(()=>{held.current=true;haptic();setMenu({id:hero.id,title:hero.title});},HOLD_MS);},
   onPointerUp:()=>{if(hold.current)clearTimeout(hold.current);},
@@ -82,7 +81,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
     <div className="scene-copy">
      <h2 className="scene-title">{hero.title}</h2>
-     {heroMeta&&<span className="scene-meta">{heroMeta}</span>}
      <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
@@ -105,7 +103,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    <span className="live-dot" aria-hidden="true"/><span className="live-strip-copy"><strong>{live.title}</strong><span>{t('live.authorOnAir')}</span></span>
    <span className="live-strip-action">{liveAction}<ChevronRight size={17}/></span>
   </button>:resume?<div className="resume-wrap">
-   <button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post);}}>
+   <button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post,true);}}>
     <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
     <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span>
    </button>
@@ -141,6 +139,9 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
       добираться до них через вкладку эфира каждый раз незачем. На низком
       экране две плашки встают в ряд, иначе нижняя уходит под мини-плеер. */}
   <div className="scene-strips">{archive}{support}</div>
+  {/* Площадки автора — значками и сразу на главной. В настройках им не место:
+      туда идут за настройками, а не за ссылками. */}
+  {links}
   {appLink}
   </div>
 

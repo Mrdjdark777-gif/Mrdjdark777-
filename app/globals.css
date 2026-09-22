@@ -2199,3 +2199,19 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    детей оболочки ломало и заставку в студии, и шапку на главной, где она
    лежит поверх кадра, а не в потоке. */
 .is-listener>.main-content{position:relative;z-index:1}
+
+/* Окно выбора площадки поддержки. Открывается сердечком в шапке: в настройках
+   просьбам о поддержке не место, а одна зашитая ссылка прятала вторую
+   площадку — человек про неё просто не знал. */
+.donate-dialog{max-width:360px}
+.donate-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
+.donate-choices:has(>:only-child){grid-template-columns:minmax(0,1fr)}
+.donate-choice{display:flex;flex-direction:column;align-items:center;gap:10px;
+ padding:18px 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);
+ color:inherit;text-decoration:none;font-size:14px;font-weight:600;
+ transition:border-color .15s,background .15s}
+.donate-choice:hover{border-color:var(--teal);background:#1b2124}
+.donate-note{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--muted);text-align:center}
+/* Площадки автора на главной — значками в один ряд. */
+.scene-side>.social-row{gap:8px;flex-wrap:wrap;margin:0}
+.scene-side>.social-row .social-chip{flex:1 1 auto;justify-content:center;min-height:44px}
