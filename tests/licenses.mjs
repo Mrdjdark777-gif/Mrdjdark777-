@@ -39,4 +39,26 @@ assert.deepEqual(unreviewed.map(r=>r.name+' ('+r.license+')'),[],
 const missing=rows.filter(r=>r.license==='НЕ УКАЗАНА'&&r.shipped);
 assert.deepEqual(missing.map(r=>r.name),[],'в поставке есть пакеты без указанной лицензии — так отдавать продукт нельзя');
 
-console.log('PASS: опись лицензий совпадает с установленным ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет');
+// Правообладатель назван в четырёх местах, и разойтись они не должны: файл
+// лицензии, манифест, подвал сайта и окно «О приложении» в студии на ПК.
+// Последнее — нативный код, и про него забывают первым.
+const HOLDER='Дмитрий Паюл';
+const places=[
+ ['LICENSE','файл лицензии'],
+ ['package.json','манифест проекта'],
+ ['app/studio.tsx','подвал сайта'],
+ ['desktop/client.cpp','окно «О приложении» в студии на ПК'],
+];
+for(const [file,what] of places){
+ const text=readFileSync(path.join(root,file),'utf8');
+ assert.ok(text.includes(HOLDER),'правообладатель не назван: '+what+' ('+file+')');
+}
+const manifest=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8'));
+assert.equal(manifest.license,'UNLICENSED','поле license в package.json должно отражать закрытую лицензию');
+assert.equal(manifest.author,HOLDER,'поле author в package.json разошлось с правообладателем');
+assert.equal(manifest.private,true,'private:true защищает от случайной публикации пакета в реестр');
+// Подвал переводится, а не висит по-английски в четырёхъязычном интерфейсе.
+assert.ok(readFileSync(path.join(root,'app','studio.tsx'),'utf8').includes("t('footer.rights')"),
+ 'строка прав в подвале должна браться из словаря, а не быть зашита');
+
+console.log('PASS: опись лицензий совпадает с установленным ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех четырёх местах');

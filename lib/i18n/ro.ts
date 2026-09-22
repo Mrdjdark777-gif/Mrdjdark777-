@@ -104,6 +104,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "header.settings": "Setări",
   "header.support": "Susține",
   "app.download": "Descarcă aplicația",
+  "footer.rights": "Toate drepturile rezervate",
   "app.footerNote": "Server propriu, fișiere proprii. Fără reclame și urmărire.",
   "header.logout": "Ieși",
   "setup.eyebrow": "TRUE THRILLS / PRIMA PORNIRE",

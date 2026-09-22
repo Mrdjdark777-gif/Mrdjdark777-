@@ -134,6 +134,7 @@ export const ru = {
   'header.settings': 'Настройки',
   "header.support": "Поддержать",
   "app.download": "Скачать приложение",
+  "footer.rights": "Все права защищены",
   "app.footerNote": "Свой сервер, свои файлы. Без рекламы и слежки.",
   'header.logout': 'Выйти',
 

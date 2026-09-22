@@ -178,7 +178,7 @@ static const AboutPart ABOUT[]={
  {ABOUT_HEAD,L"ПОДДЕРЖКА КАНАЛА"},
  {ABOUT_BODY,L"Всё бесплатно. Только добровольные донаты через внешние сервисы — приложение не обрабатывает платежи и не хранит данные карт."},
  {ABOUT_RULE,L""},
- {ABOUT_FOOT,L"© 2026 True Thrills. All rights reserved.\nCreated by DarK Creative Studio."},
+ {ABOUT_FOOT,L"© 2026 True Thrills — Дмитрий Паюл. Все права защищены.\nCreated by DarK Creative Studio."},
 };
 static const COLORREF ABOUT_BG=RGB(16,17,19),ABOUT_TEXT=RGB(228,228,232),ABOUT_MUTED=RGB(165,169,179),
  ABOUT_ACCENT=RGB(111,231,222),ABOUT_LINE=RGB(42,44,49),ABOUT_INK=RGB(8,32,30);

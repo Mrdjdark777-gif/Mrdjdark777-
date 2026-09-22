@@ -135,6 +135,7 @@ export const it: Record<keyof typeof ru, string> = {
   'header.settings': 'Impostazioni',
   "header.support": "Sostieni",
   "app.download": "Scarica l'app",
+  "footer.rights": "Tutti i diritti riservati",
   "app.footerNote": "Server proprio, file propri. Senza pubblicità né tracciamento.",
   'header.logout': 'Esci',
 

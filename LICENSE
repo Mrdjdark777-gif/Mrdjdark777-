@@ -1,0 +1,42 @@
+True Thrills
+Все права защищены / All rights reserved
+
+© 2026 Дмитрий Паюл
+
+Правообладатель / Copyright holder: Дмитрий Паюл.
+
+Исходный код, оформление, тексты, изображения, звук и документация этого
+проекта являются объектами исключительных прав правообладателя.
+
+Никакие права на использование, копирование, изменение, распространение,
+публичный показ или создание производных произведений не предоставляются.
+Доступ к исходному коду, в том числе передача архива или репозитория
+третьему лицу, сам по себе никаких прав не передаёт.
+
+Отдельные разрешения предоставляются только письменно и подписываются
+правообладателем.
+
+--
+
+The source code, design, texts, images, audio and documentation of this
+project are the exclusive property of the copyright holder.
+
+No rights to use, copy, modify, distribute, publicly display or create
+derivative works are granted. Access to the source code, including receiving
+an archive or a repository, does not by itself grant any rights.
+
+Any permission is granted only in writing and signed by the copyright holder.
+
+--
+
+Сторонние компоненты
+
+Проект использует сторонние библиотеки и шрифты, распространяемые по
+собственным лицензиям. Они остаются собственностью своих правообладателей, и
+эти условия настоящим документом не затрагиваются.
+
+Полная опись: docs/LICENSES-RU.md и docs/third-party-licenses.csv.
+
+Third-party components are distributed under their own licenses, remain the
+property of their respective owners, and are not affected by this notice.
+See docs/LICENSES-RU.md and docs/third-party-licenses.csv.
