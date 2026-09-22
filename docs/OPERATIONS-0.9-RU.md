@@ -106,3 +106,61 @@ sudo systemctl daemon-reload && sudo systemctl restart truethrills
 ## Что ещё нужно включить владельцу
 
 Внешний независимый монитор доступности и адрес для оповещения пока не заданы. MONITOR_WEBHOOK_URL — опциональный HTTPS endpoint, принимающий JSON checkedAt/ok/issues. Секрет в URL держать только в .env. Это не готовая интеграция Telegram/почты и не доказательство доставки сообщений. Настройка адреса и испытание выбранного канала остаются обязательными перед широким запуском.
+
+## Обновление сервера с телефона (Termux)
+
+Когда компьютера под рукой нет. Ставится один раз, дальше — одно слово.
+
+### Один раз
+
+Termux бери с F-Droid: версия из Google Play давно не обновляется и ломается
+на новых Android.
+
+```
+pkg update && pkg upgrade -y
+pkg install openssh -y
+termux-setup-storage
+```
+
+Ключ на телефон переноси сам — по кабелю или своим облаком. Через переписку
+и мессенджеры его отправлять нельзя. Положи в «Загрузки» и перенеси к себе:
+
+```
+mkdir -p ~/.ssh
+cp /sdcard/Download/ssh-key-2026-09-06.key ~/.ssh/truethrills.key
+chmod 600 ~/.ssh/truethrills.key
+rm /sdcard/Download/ssh-key-2026-09-06.key
+```
+
+Последняя строка обязательна: папка «Загрузки» открыта другим приложениям, а
+каталог Termux — нет.
+
+Проверка связи:
+
+```
+ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "echo OK"
+```
+
+Команды одним словом:
+
+```
+cat >> ~/.bashrc <<'EOF'
+tt-update(){ termux-wake-lock; ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && sudo bash .update-staging/update-safe.sh design/six-screens"; termux-wake-unlock; }
+tt-status(){ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && git log -1 --format=%H && systemctl is-active truethrills && curl -fsS http://127.0.0.1:3000/api/health"; }
+tt-clean(){ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && sudo node --env-file=.env scripts/prune-live-posts.mjs $1"; }
+EOF
+source ~/.bashrc
+```
+
+### Каждый раз
+
+```
+tt-update
+```
+
+Ждёт пару минут и заканчивается строкой `Updated successfully to …`.
+`termux-wake-lock` внутри не даёт телефону уснуть на середине сборки.
+
+Посмотреть, что сейчас на сервере: `tt-status`.
+Показать записи эфиров без строки эфира: `tt-clean`, удалить их:
+`tt-clean --delete`.
