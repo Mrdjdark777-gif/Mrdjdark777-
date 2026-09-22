@@ -63,7 +63,32 @@ assert.match(live, /^RuntimeDirectory=truethrills-live$/m);
 assert.ok(!/\/run\/lock\/truethrills-live/.test(live), 'файл блокировки не должен лежать в общедоступном /run/lock');
 
 // Копию снимает root, а наличие копий проверяет мониторинг от пользователя
-// сервиса: без передачи владения он доложит о пропаже бэкапов, которых нет.
-assert.match(read('scripts/backup-service.sh'), /chown -R truethrills:truethrills \/var\/backups\/truethrills/);
+// сервиса: без доступа он доложит о пропаже бэкапов, которых нет. Но доступ
+// этот — только на чтение. Прежний `chown -R truethrills` отдавал копии
+// сервису целиком, и захваченный процесс приложения уносил вместе с данными
+// возможность их вернуть.
+const backupScript = read('scripts/backup-service.sh');
+assert.match(backupScript, /chown -R root:truethrills \/var\/backups\/truethrills/,
+ 'копии должны принадлежать root, а сервису доставаться только по группе');
+assert.match(backupScript, /chmod -R u=rwX,g=rX,o= \/var\/backups\/truethrills/,
+ 'группе нужен только доступ на чтение: запись в каталог позволяет удалять файлы');
+assert.equal(/chown -R truethrills:truethrills \/var\/backups/.test(backupScript), false,
+ 'копии снова отданы сервису целиком');
 
-console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание, и это объяснено');
+// Код и административные скрипты принадлежат root. Раньше установка отдавала
+// сервисному пользователю весь /opt/truethrills — вместе с
+// scripts/backup-service.sh, который root запускает по таймеру в 04:00.
+// Это был путь от захваченного процесса приложения к root.
+const install = read('scripts/install-operations.sh');
+assert.equal(/chown -R truethrills:truethrills \/opt\/truethrills\s*$/m.test(install), false,
+ 'весь каталог приложения снова отдан сервисному пользователю: это путь к root через обслуживание');
+assert.match(install, /chown -R root:root \/opt\/truethrills/,
+ 'код приложения должен принадлежать root');
+for (const writable of ['/opt/truethrills/data', '/opt/truethrills/.next/cache']) {
+ assert.ok(install.includes('chown -R truethrills:truethrills ' + writable),
+  'сервису нужен доступ на запись в ' + writable);
+}
+assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
+ '.env читает сервис, но менять его он не должен');
+
+console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание; код и копии сервису не принадлежат');

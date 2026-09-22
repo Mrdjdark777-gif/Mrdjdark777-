@@ -26,4 +26,10 @@ node scripts/prune-backups.mjs --keep 5 --delete
 # Копию снимает root, а проверяет её наличие мониторинг — он работает от
 # пользователя сервиса. Без этого каталог снимка (0700 от root) для него
 # закрыт, и он доложит о пропавших бэкапах, которых на самом деле нет.
-chown -R truethrills:truethrills /var/backups/truethrills 2>/dev/null || true
+# Мониторинг работает от пользователя сервиса и должен видеть возраст
+# последней копии — значит, ему нужно чтение. Но не запись: копии снимает
+# root, и захваченный процесс приложения не должен уметь их переписать или
+# стереть. Каталог 750 root:truethrills даёт ровно чтение и обход: добавить
+# или удалить файл без права записи на каталог нельзя.
+chown -R root:truethrills /var/backups/truethrills 2>/dev/null || true
+chmod -R u=rwX,g=rX,o= /var/backups/truethrills 2>/dev/null || true

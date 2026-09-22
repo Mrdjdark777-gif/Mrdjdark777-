@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {existsSync,mkdirSync,readFileSync,renameSync,rmSync,writeFileSync,statfsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
-import {eq,and,gt,desc} from 'drizzle-orm';
+import {eq,and,gt,desc,like,isNull} from 'drizzle-orm';
 import {getDb} from '@/db';
 import {broadcasts,liveRecordings,posts,peers} from '@/db/schema';
 import {failure,requireOwner,result,owner,hash} from '@/lib/server';
@@ -15,24 +15,35 @@ export async function GET(req:Request){try{
  // Список записей для студии. К самой записи подтягиваем выпуск: автору нужны
  // обложка, длительность и описание — то же, что видит слушатель в архиве.
  if(q.has('list')){await requireOwner(req);
+  // Сколько отдавать. Прежний жёсткий предел в 25 строк прятал от автора всё
+  // старше двадцать пятого эфира, и удалить оттуда было нечего.
+  const limit=Math.min(200,Math.max(1,Number(q.get('limit'))||50));
+  const offset=Math.max(0,Number(q.get('offset'))||0);
+  const window=limit+offset;
   const rows=await db.select({id:liveRecordings.id,title:liveRecordings.title,state:liveRecordings.state,
    postId:liveRecordings.postId,createdAt:liveRecordings.createdAt,
    duration:posts.duration,cover:posts.coverKey,description:posts.description})
    .from(liveRecordings).leftJoin(posts,eq(posts.id,liveRecordings.postId))
-   .orderBy(desc(liveRecordings.createdAt)).limit(25).all();
+   .orderBy(desc(liveRecordings.createdAt)).limit(window).all();
   // Записи, чья строка эфира уже удалена, но выпуск остался: слушатель их
   // видит в архиве, а автор до сих пор нет — и удалить ему было нечем.
-  // Показываем их здесь же, рядом с обычными.
-  const known=new Set(rows.map(r=>r.postId).filter(Boolean) as string[]);
-  const orphans=(await db.select({id:posts.id,title:posts.title,createdAt:posts.createdAt,
-    duration:posts.duration,cover:posts.coverKey,description:posts.description,audioKey:posts.audioKey})
-    .from(posts).orderBy(desc(posts.createdAt)).limit(200).all())
-   .filter(p=>!!p.audioKey&&p.audioKey.startsWith('audio/live-')&&!known.has(p.id));
+  //
+  // Принадлежность выясняет сама база, а не загруженная страница списка.
+  // Раньше «сиротой» считался выпуск, которого нет среди 25 загруженных
+  // строк, — и действующий архив постарше показывался сиротой, хотя его
+  // запись эфира на месте.
+  const orphans=await db.select({id:posts.id,title:posts.title,createdAt:posts.createdAt,
+    duration:posts.duration,cover:posts.coverKey,description:posts.description})
+   .from(posts).leftJoin(liveRecordings,eq(liveRecordings.postId,posts.id))
+   .where(and(like(posts.audioKey,'audio/live-%'),isNull(liveRecordings.id)))
+   .orderBy(desc(posts.createdAt)).limit(window).all();
   const all=[...rows.map(r=>({...r,cover:!!r.cover,duration:r.duration??0,description:r.description??''})),
    ...orphans.map(p=>({id:p.id,title:p.title,state:'ready',postId:p.id,createdAt:p.createdAt,
     duration:p.duration??0,cover:!!p.cover,description:p.description??''}))];
   all.sort((a,b)=>b.createdAt-a.createdAt);
-  return result({recordings:all});}
+  // Обе выборки берутся с запасом на offset и режутся уже после слияния:
+  // иначе страницы двух источников разъехались бы между собой.
+  return result({recordings:all.slice(offset,offset+limit),more:all.length>offset+limit});}
  if(!liveId(id))return result({error:'#err.notFound'},404);
  const recording=await db.select().from(liveRecordings).where(eq(liveRecordings.id,id)).get();
  if(!recording)return result({error:'#err.notFound'},404);
