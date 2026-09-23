@@ -29,7 +29,14 @@ install -d -m 750 -o root -g truethrills /var/backups/truethrills
 # перестал читать собственный код — next start падал на tsconfig.json с
 # EACCES. Запись закрыли, а заодно нечаянно закрыли и чтение.
 chown -R root:truethrills /opt/truethrills
-chmod -R u=rwX,g=rX,o= /opt/truethrills
+# Чтение открыто всем, запись — только root. Сначала здесь стояло `o=`, и
+# это сломало обслуживание: пользователь ubuntu, под которым заходят по SSH,
+# для этого каталога тоже «посторонний», и даже `cd` переставал работать.
+# Защиты то ограничение не давало: на машине один админский аккаунт, и у
+# него есть sudo. Закрывать нужно было запись сервисом в код, который
+# запускает root, а не чтение. Секреты закрыты отдельно и ниже: данные 700,
+# .env 640, копии 750.
+chmod -R u=rwX,go=rX /opt/truethrills
 # Данные: база, звук, обложки, рабочие файлы эфира.
 install -d -m 700 -o truethrills -g truethrills /opt/truethrills/data
 chown -R truethrills:truethrills /opt/truethrills/data
