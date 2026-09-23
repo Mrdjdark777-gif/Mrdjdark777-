@@ -165,6 +165,46 @@ tt-update
 Показать записи эфиров без строки эфира: `tt-clean`, удалить их:
 `tt-clean --delete`.
 
+## Если приложение не открывается ни на ПК, ни на телефоне
+
+Оба приложения — оболочки вокруг сервера. Не открывается сразу везде —
+значит лёг сервер, а не приложения. Смотреть журнал:
+
+```bash
+systemctl is-active truethrills truethrills-live
+sudo journalctl -u truethrills -n 40 --no-pager
+```
+
+**`EACCES: permission denied` на любом файле проекта** — сервис не может
+прочитать собственный код. Так случилось 23 сентября 2026: обслуживание
+работает под `umask 077`, файлы создаются «только владельцу», и после смены
+владельца кода на root сервису не осталось даже чтения. Лечение —
+`scripts/install-operations.sh`, он выставляет права заново:
+
+```bash
+cd /opt/truethrills && sudo bash scripts/install-operations.sh && sudo systemctl restart truethrills truethrills-live
+```
+
+**`Cannot find module .../node_modules/next/dist/bin/next`** — то же самое,
+просто с другим сообщением. Node не различает «файла нет» и «файл нельзя
+прочитать» и в обоих случаях говорит «модуль не найден». Сначала проверь
+права тем же способом, каким читает сервис, и только потом думай на
+неполную установку:
+
+```bash
+sudo runuser -u truethrills -- test -x /opt/truethrills/node_modules/next/dist/bin/next && echo читается || echo НЕ-ЧИТАЕТСЯ
+```
+
+Если действительно не установлено — доставить и пересобрать:
+
+```bash
+cd /opt/truethrills && sudo npm ci --include=dev && sudo npm run build \
+  && sudo bash scripts/install-operations.sh \
+  && sudo systemctl restart truethrills truethrills-live
+```
+
+Проверка, что канал поднялся: `curl -fsS http://127.0.0.1:3000/api/health`.
+
 ## Копии: чего сейчас не хватает
 
 Внешняя проверка назвала это блокером, и по скриптам она права.

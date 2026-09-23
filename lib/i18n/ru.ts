@@ -135,6 +135,8 @@ export const ru = {
   "header.support": "Поддержать",
   "app.download": "Скачать приложение",
   "footer.rights": "Все права защищены",
+  "settings.ownerTitle": "Вход для автора",
+  "settings.ownerText": "Студия открывается после входа. Слушателям учётная запись не нужна.",
   "app.footerNote": "Свой сервер, свои файлы. Без рекламы и слежки.",
   'header.logout': 'Выйти',
 

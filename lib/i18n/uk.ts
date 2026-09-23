@@ -105,6 +105,8 @@ export const uk: Record<keyof typeof ru, string> = {
   "header.support": "Підтримати",
   "app.download": "Завантажити застосунок",
   "footer.rights": "Усі права захищено",
+  "settings.ownerTitle": "Вхід для автора",
+  "settings.ownerText": "Студія відкривається після входу. Слухачам обліковий запис не потрібен.",
   "app.footerNote": "Власний сервер, власні файли. Без реклами та стеження.",
   "header.logout": "Вийти",
   "setup.eyebrow": "TRUE THRILLS / ПЕРШИЙ ЗАПУСК",

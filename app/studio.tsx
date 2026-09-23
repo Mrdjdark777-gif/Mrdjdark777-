@@ -4,7 +4,7 @@ import {ShareSheet} from '@/components/studio/share-sheet';
 import {shareRoute,shareUrl,type SharePayload} from '@/lib/share';
 import {Artwork} from '@/components/studio/artwork';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Wind,Image as ImageIcon,AudioLines} from 'lucide-react';
+import {MoreHorizontal,Mic,Radio,BookOpen,Headphones,SlidersHorizontal,Search,ArrowUpRight,Plus,Upload,Square,Play,Heart,Check,Volume2,FileAudio,ChevronRight,Trash2,Eye,EyeOff,Pencil,Pin,PinOff,Loader2,LogOut,Share2,Video,Music2,Camera,Send,MessageCircle,Globe,Link2,Wind,Image as ImageIcon,AudioLines,LogIn} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {AlertDialog,AlertDialogContent,AlertDialogHeader,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
@@ -349,6 +349,15 @@ export default function Studio(){
  </>}
  </section>{author?<aside className="live-info"><h3>{t('live.infoAuthor')}</h3><p><Mic size={18}/>{t('live.authorTip1')}</p><p><Volume2 size={18}/>{t('live.authorTip2')}</p><p><Headphones size={18}/>{t('live.authorTip3')}</p><div className="pilot-note"><strong>{t('live.pilotTitle')}</strong><p>{t('live.pilotText')}</p><p>{t('live.pilotNoRecord')}</p></div></aside>:null}</div>}
  {(view==='settings'||(view==='home'&&author))&&<div className="settings-grid">
+ {/* Вход для автора. Пока владелец был залогинен всегда, ссылка была не
+     нужна — и её не было нигде, кроме окна первой настройки. Когда отзыв
+     сессий разом обнулил все cookie, из приложения на ПК стало не войти
+     вовсе: адресной строки там нет, а вид слушателя входа не предлагал.
+     Слушателю она ничего не навязывает: одна строка внизу настроек. */}
+ {view==='settings'&&!author&&!data?.signedIn&&
+  <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>
+   <h2>{t('settings.ownerTitle')}</h2><p>{t('settings.ownerText')}</p>
+   <a className="secondary-button" href="/login">{t('common.login')}</a></section>}
  {!author&&<NotificationSettings author={author}/>}
  {/* Строка поддержки на главной и в разделах ведёт на одну площадку — ту,
      что уместна по языку телефона. Обе должны оставаться доступны, поэтому

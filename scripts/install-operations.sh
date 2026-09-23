@@ -22,16 +22,30 @@ install -d -m 750 -o root -g truethrills /var/backups/truethrills
 # scripts/backup-service.sh, который root запускает по таймеру в 04:00:
 # захваченный процесс приложения получал root на следующем обслуживании.
 # Сервис пишет только туда, куда ему действительно нужно.
-chown -R root:root /opt/truethrills
+#
+# Владелец root, ГРУППА — сервисная, и группе даётся чтение. Без этой строки
+# приложение легло 23 сентября: update-safe.sh работает под `umask 077`, все
+# файлы создаются «только владельцу», и после смены владельца на root сервис
+# перестал читать собственный код — next start падал на tsconfig.json с
+# EACCES. Запись закрыли, а заодно нечаянно закрыли и чтение.
+chown -R root:truethrills /opt/truethrills
+chmod -R u=rwX,g=rX,o= /opt/truethrills
 # Данные: база, звук, обложки, рабочие файлы эфира.
 install -d -m 700 -o truethrills -g truethrills /opt/truethrills/data
 chown -R truethrills:truethrills /opt/truethrills/data
 # Next пишет кэш оптимизированных картинок во время работы.
-install -d -m 755 -o truethrills -g truethrills /opt/truethrills/.next/cache
+install -d -m 750 -o truethrills -g truethrills /opt/truethrills/.next/cache
 chown -R truethrills:truethrills /opt/truethrills/.next/cache
 # .env читает сервис, но менять его он не должен.
 chown root:truethrills /opt/truethrills/.env 2>/dev/null || true
 chmod 640 /opt/truethrills/.env 2>/dev/null || true
+# Проверяем тем же способом, каким читает сервис: если он не может открыть
+# свой конфиг, лучше упасть здесь, при обслуживании, чем в цикле перезапусков.
+for required in /opt/truethrills/next.config.ts /opt/truethrills/tsconfig.json /opt/truethrills/package.json; do
+ runuser -u truethrills -- test -r "$required" || { echo "Сервис не может прочитать $required — проверь права." >&2; exit 1; }
+done
+runuser -u truethrills -- test -x /opt/truethrills/node_modules/next/dist/bin/next \
+ || { echo 'Сервису недоступен node_modules/next — установка зависимостей не завершилась.' >&2; exit 1; }
 # База лежит здесь же, а в ней приватные ключи push-подписок: читать её
 # посторонним на машине незачем. Каталог создаётся приложением с правами по
 # умолчанию, поэтому закрываем его явно и на каждом обновлении.

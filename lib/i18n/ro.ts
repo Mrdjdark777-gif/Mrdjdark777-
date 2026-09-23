@@ -105,6 +105,8 @@ export const ro: Record<keyof typeof ru, string> = {
   "header.support": "Susține",
   "app.download": "Descarcă aplicația",
   "footer.rights": "Toate drepturile rezervate",
+  "settings.ownerTitle": "Autentificare autor",
+  "settings.ownerText": "Studioul se deschide după autentificare. Ascultătorii nu au nevoie de cont.",
   "app.footerNote": "Server propriu, fișiere proprii. Fără reclame și urmărire.",
   "header.logout": "Ieși",
   "setup.eyebrow": "TRUE THRILLS / PRIMA PORNIRE",

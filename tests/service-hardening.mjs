@@ -82,8 +82,27 @@ assert.equal(/chown -R truethrills:truethrills \/var\/backups/.test(backupScript
 const install = read('scripts/install-operations.sh');
 assert.equal(/chown -R truethrills:truethrills \/opt\/truethrills\s*$/m.test(install), false,
  'весь каталог приложения снова отдан сервисному пользователю: это путь к root через обслуживание');
-assert.match(install, /chown -R root:root \/opt\/truethrills/,
- 'код приложения должен принадлежать root');
+assert.match(install, /chown -R root:truethrills \/opt\/truethrills/,
+ 'код принадлежит root, но группой обязан быть сервис — иначе он не прочитает собственные файлы');
+
+// Закрыть запись мало: нужно ОТКРЫТЬ чтение. 23 сентября приложение легло
+// именно на этом. update-safe.sh работает под umask 077, файлы создаются
+// «только владельцу», и после смены владельца на root сервис перестал
+// читать свой же код: next start падал на tsconfig.json с EACCES, а
+// нечитаемый node_modules/next Node показывал как «модуль не найден».
+assert.match(install, /chmod -R u=rwX,g=rX,o= \/opt\/truethrills/,
+ 'группе нужно явное право чтения: umask 077 иначе оставляет файлы закрытыми даже для чтения');
+
+// И проверка тем же способом, каким читает сервис. Права, проверенные
+// чтением текста скрипта, ничего не доказывают — это и подвело в прошлый раз.
+for (const required of ['next.config.ts', 'tsconfig.json', 'package.json']) {
+ assert.ok(install.includes(required),
+  'установка должна убедиться, что сервис читает ' + required);
+}
+assert.match(install, /runuser -u truethrills -- test -r/,
+ 'читаемость нужно проверять от имени сервиса, а не от root');
+assert.match(install, /runuser -u truethrills -- test -x \/opt\/truethrills\/node_modules\/next/,
+ 'установка должна убедиться, что сервису доступен next — иначе служба уходит в цикл перезапусков');
 for (const writable of ['/opt/truethrills/data', '/opt/truethrills/.next/cache']) {
  assert.ok(install.includes('chown -R truethrills:truethrills ' + writable),
   'сервису нужен доступ на запись в ' + writable);
@@ -91,4 +110,4 @@ for (const writable of ['/opt/truethrills/data', '/opt/truethrills/.next/cache']
 assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
  '.env читает сервис, но менять его он не должен');
 
-console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание; код и копии сервису не принадлежат');
+console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание; код и копии сервису не принадлежат, но читаются им — и это проверяется от его имени');
