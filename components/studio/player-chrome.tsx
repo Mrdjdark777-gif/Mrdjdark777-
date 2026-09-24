@@ -123,10 +123,14 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   <div className="player-sheet-top">
    <button type="button" className="player-collapse tt-pressable" aria-label={t('player.collapse')} onClick={()=>{setMenu(false);onExpand(false);}}><ChevronDown size={22}/></button>
    <span className="player-kind">{view.presentation==='archive'?view.kindLabel:''}</span>
-   <div className="player-sheet-actions">
-    {act.donate&&<button type="button" className="player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><Heart size={21}/></button>}
-    <button type="button" className="player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
-    <button ref={moreRef} type="button" className="player-more tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
+   {/* Ряд задан прямо здесь, а не только в стилях: если страница осталась от
+       прежней сборки, кнопки всё равно встанут в строку, а не столбиком.
+       Класс player-more на всех трёх — по той же причине: он уже есть в
+       прежних стилях, поэтому размер и форма не разъедутся. */}
+   <div className="player-sheet-actions" style={{display:'flex',alignItems:'center',gap:2}}>
+    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><Heart size={21}/></button>}
+    <button type="button" className="player-more player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
+    <button ref={moreRef} type="button" className="player-more player-menu-button tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
    </div>
   </div>
 

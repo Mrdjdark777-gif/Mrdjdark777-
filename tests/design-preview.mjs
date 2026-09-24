@@ -138,6 +138,17 @@ try{
  await page.goto(base+'/?mode=listen');await settle(page);
  await page.locator('.scene-action').click();await page.locator('.podcast-player.is-open').waitFor();
  await page.waitForTimeout(400);
+ // Поддержка, выход и меню стоят в один ряд у правого края, на одной высоте
+ // со стрелкой «свернуть». Столбиком они лезли на обложку выпуска.
+ {const row=await page.evaluate(()=>{const b=[...document.querySelectorAll('.player-sheet-actions>button')].map(el=>el.getBoundingClientRect());
+   const c=document.querySelector('.player-collapse')?.getBoundingClientRect();
+   return {n:b.length,tops:b.map(r=>Math.round(r.top)),lefts:b.map(r=>Math.round(r.left)),collapse:c?Math.round(c.top):null};});
+  if(row.n<3)problems.push('в верхней полосе плеера '+row.n+' кнопки справа вместо трёх');
+  else{
+   if(new Set(row.tops).size!==1)problems.push('кнопки в верхней полосе плеера стоят не в ряд: верх '+row.tops.join(', '));
+   if(row.collapse!==row.tops[0])problems.push('правые кнопки плеера не на одной высоте со «свернуть»: '+row.tops[0]+' против '+row.collapse);
+   const grows=row.lefts.every((v,i)=>i===0||v>row.lefts[i-1]);
+   if(!grows)problems.push('кнопки в верхней полосе плеера идут не слева направо: '+row.lefts.join(', '));}}
  {const bg=await page.locator('.podcast-player.is-open').evaluate(el=>getComputedStyle(el).backgroundColor);
   const seen=await page.evaluate(()=>{const p=document.querySelector('.podcast-player.is-open');const r=p.getBoundingClientRect();
    const x=Math.round(r.width/2),y=Math.round(r.height*0.8);
@@ -169,11 +180,11 @@ try{
  await page.waitForFunction(()=>document.querySelector('.podcast-player audio')?.currentTime>0);
  await page.evaluate(()=>{window.__playingAudio=document.querySelector('.podcast-player audio');});
  const tactileBefore=await page.evaluate(()=>window.__hapticCalls);
- await page.locator('.player-more').click();await page.locator('.player-menu').waitFor();
+ await page.locator('.player-menu-button').click();await page.locator('.player-menu').waitFor();
  assert.equal(await page.evaluate(()=>window.__hapticCalls),tactileBefore+1,'one tap -> one haptic');
  await page.keyboard.press('Escape');await page.locator('.player-menu').waitFor({state:'hidden'});
- assert.equal(await page.locator('.player-more').evaluate(el=>el===document.activeElement),true,'Escape restores focus');
- await page.locator('.player-more').click();
+ assert.equal(await page.locator('.player-menu-button').evaluate(el=>el===document.activeElement),true,'Escape restores focus');
+ await page.locator('.player-menu-button').click();
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back закрывает меню плеера');
  await page.waitForTimeout(150);
  assert.equal(await page.locator('.player-menu').count(),0,'меню закрылось, плеер остался развёрнутым');
