@@ -263,7 +263,8 @@ try{
   // Строку «Продолжить» можно убрать крестиком: выпуск могли включить
   // случайно, а деться от строки было некуда.
   {await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:10,duration:2300,updatedAt:Date.now()}]));},podcast.id);
-   await page.reload();await settle(page);await page.waitForTimeout(400);
+   await page.reload();
+   await settle(page);await page.waitForTimeout(400);
    if(!await page.locator('.resume-row').count())problems.push('на главной нет строки «Продолжить», хотя отметка прослушивания есть');
    else{
     const close=page.locator('.resume-close');
@@ -286,7 +287,7 @@ try{
   // значками, а не в настройках.
   {await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
    if(await page.locator('.scene-copy .scene-meta').count())problems.push('под названием главного поста осталась длительность');
-   if(!await page.locator('.scene-side .social-row .social-chip').count())problems.push('на главной нет быстрых ссылок на площадки автора');
+   if(await page.locator('.scene-side .social-row>*').count()!==2)problems.push('на главной не две быстрые ссылки на площадки автора');
    // Симметрия. Три места расходились с осью экрана: название в кадре стояло
    // слева и ехало при смене длины, подписи плиток лежали в левом нижнем
    // углу под центрованным значком, а кнопки площадок делили строку по длине
@@ -340,7 +341,7 @@ try{
     // Архив и поддержка — пара, и по форме они должны совпадать с быстрыми
     // ссылками под ними: та же высота и та же ширина половины строки.
     if(!sym.strips)problems.push('на главной нет пары «архив и поддержка»');
-    if(!sym.litStrip)problems.push('плашка поддержки на главной без свечения');
+    if(sym.litStrip)problems.push('на плашке поддержки главной снова свечение — оно оставлено только сердечку');
     else{
      if(sym.strips.dw>1)problems.push('архив и поддержка разной ширины: разница '+Math.round(sym.strips.dw)+'px');
      if(sym.strips.dh>1)problems.push('архив и поддержка разной высоты: разница '+Math.round(sym.strips.dh)+'px');
@@ -385,6 +386,42 @@ try{
     if(!lit.button)problems.push('сердечко в шапке без свечения');}
    if(!await page.locator('.donate-note').count())problems.push('в окне поддержки нет пояснения, зачем эти ссылки');
    await page.keyboard.press('Escape');await page.waitForTimeout(250);}
+  // Полный круг строки «Продолжить»: послушал — закрыл — вернулся — закрыл.
+  // Каждый шаг проверялся по отдельности, а вместе — ни разу, и разойтись они
+  // могут именно на стыках: место записывает плеер, показывает главная, а
+  // возвращает третий путь.
+  {const mark=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('tt-listening-v1')||'[]')[0]||null);
+   const at=()=>page.evaluate(()=>{const a=document.querySelector('audio');return a?+a.currentTime.toFixed(1):-1;});
+   const rowText=async()=>await page.locator('.resume-row').count()?(await page.locator('.resume-row').innerText()).replace(/\n/g,' '):null;
+   const mmss=v=>String(Math.floor(v/60)).padStart(2,'0')+':'+String(Math.floor(v%60)).padStart(2,'0');
+   await page.evaluate(()=>{localStorage.removeItem('tt-listening-v1');localStorage.removeItem('tt-resume-hidden-v1');});
+   await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(400);
+   if(await rowText())problems.push('строка «Продолжить» показана без единой отметки прослушивания');
+   await page.locator('.scene-action').click();await page.locator('.podcast-player').waitFor({timeout:8000});
+   await page.waitForTimeout(3200);
+   const played=await at();
+   await page.locator('.player-close').click();await page.waitForTimeout(600);
+   const first=await mark();
+   if(!first)problems.push('закрытие плеера не записало место остановки');
+   else{
+    if(Math.abs(first.position-played)>1)problems.push('записано не то место: плеер был на '+played+'с, записано '+first.position.toFixed(1)+'с');
+    const text=await rowText();
+    if(text===null)problems.push('после прослушивания строки «Продолжить» нет');
+    else if(!text.includes(mmss(first.position)))problems.push('строка «Продолжить» показывает не записанное место: «'+text+'» против '+mmss(first.position));
+    else{
+     await page.locator('.resume-row').click();await page.locator('.podcast-player').waitFor({timeout:8000});
+     await page.waitForTimeout(1600);
+     const back=await at();
+     if(back<first.position-0.5)problems.push('строка «Продолжить» вернула раньше места остановки: '+back+'с против '+first.position.toFixed(1)+'с');
+     if(back>first.position+3)problems.push('строка «Продолжить» вернула позже места остановки: '+back+'с против '+first.position.toFixed(1)+'с');
+     await page.waitForTimeout(1500);
+     await page.locator('.player-close').click();await page.waitForTimeout(600);
+     const second=await mark();
+     if(!second||second.position<=first.position)problems.push('второе прослушивание не сдвинуло место остановки вперёд');
+     await page.reload();await settle(page);await page.waitForTimeout(600);
+     const kept=await mark(),shown=await rowText();
+     if(!kept||!second||Math.abs(kept.position-second.position)>0.2)problems.push('место остановки не пережило перезагрузку');
+     if(second&&(shown===null||!shown.includes(mmss(second.position))))problems.push('после перезагрузки строка показывает не то место: «'+shown+'»');}}}
   // Из каталога выпуск начинается сначала, даже если место остановки записано:
   // человек выбрал его заново, а не вернулся к нему. С места продолжает только
   // строка «Продолжить» на главной.

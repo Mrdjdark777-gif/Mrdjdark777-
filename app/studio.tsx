@@ -307,7 +307,7 @@ export default function Studio(){
     // иначе он открывается ниже сгиба и выглядит как «ничего не произошло».
     setTimeout(()=>document.querySelector('.live-archive-list')?.scrollIntoView({block:'start',behavior:'smooth'}),260);}}>
    <AudioLines size={19}/><span className="support-strip-label">{t('live.archiveTitle')}</span><ChevronRight size={18}/></button>}
-  support={heartLink?<DonationGlow plate><a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span></a></DonationGlow>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
+  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned}
   sections={[{kind:'podcast',label:t('nav.podcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),go:()=>goto('stories')}]}/>}

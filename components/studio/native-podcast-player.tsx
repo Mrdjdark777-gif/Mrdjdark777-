@@ -40,5 +40,12 @@ export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,on
   act={{toggle:()=>void command(state.playing?'pause':'play'),seekBy:s=>void command('seek',{position:Math.max(0,Math.min(state.duration,state.position+s*1000))}),
    seekTo:s=>void command('seek',{position:Math.max(0,Math.min(state.duration,s*1000))}),setRate:rate=>void command('rate',{rate}),
    setSleep:value=>void command('sleep',{minutes:value==='active'?remaining:Number(value)}),
-   close:()=>{void nativeCall('player.stop').catch(()=>{});onClose();},openNext:onNext,share:onShare,donate:onDonate}}/>;
+   // Место записывает опрос раз в секунду, и при закрытии этой секунды может
+   // не хватить: перемотал и сразу закрыл — строка «Продолжить» показывала
+   // прежнее место. Поэтому перед остановкой спрашиваем место в последний раз.
+   close:()=>{void nativeCall<NativePlayerState>('player.state')
+    .then(last=>{if(last.id===id&&last.duration>0)saveProgress(id,last.position/1000,last.duration/1000);})
+    .catch(()=>{})
+    .finally(()=>{void nativeCall('player.stop').catch(()=>{});});
+    onClose();},openNext:onNext,share:onShare,donate:onDonate}}/>;
 }
