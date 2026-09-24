@@ -22,6 +22,12 @@ const port=3132,base='http://127.0.0.1:'+port;
 const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{env,stdio:['ignore','ignore','inherit']});
 let browser,peaksWorker;const problems=[];
 const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);else problems.push(message);};
+// Проверка, которая ни разу не выполнилась, — это не проверка. Часть блоков
+// здесь начинается с условия «если элемент нашёлся», и когда элемент
+// переименовывали, блок молча переставал работать, а прогон оставался
+// зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
+const ran=new Set(),step=name=>ran.add(name);
+const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -325,6 +331,7 @@ try{
         dchip:Math.abs(a.width-chips[0].getBoundingClientRect().width),
         radius:Math.round(parseFloat(getComputedStyle(plate(strips[0])).borderTopLeftRadius))};}}
      const home=document.querySelector('.bottom-nav-home');
+     out.home=!!home;
      if(chips.length===2&&home){
       const a=chips[0].getBoundingClientRect(),b=chips[1].getBoundingClientRect();
       out.seam=Math.abs((a.right+b.left)/2-mid(home));
@@ -338,6 +345,8 @@ try{
     if(lean>=0)problems.push('подпись плитки '+(lean+1)+' набрана не по центру: text-align='+tiles[lean].align);
     if(skew>=0)problems.push('подпись плитки '+(skew+1)+' смещена от середины окошка на '+Math.round(tiles[skew].shift)+'px');
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
+    if(!sym.home)problems.push('в нижней панели нет знака канала — с чем сверять симметрию площадок, непонятно');
+    if(sym.chips===2&&sym.home)step('симметрия строки площадок');
     // Архив и поддержка — пара, и по форме они должны совпадать с быстрыми
     // ссылками под ними: та же высота и та же ширина половины строки.
     if(!sym.strips)problems.push('на главной нет пары «архив и поддержка»');
@@ -511,6 +520,7 @@ try{
   const bad=rhythm.filter(g=>Math.abs(g-16)>2);
   if(bad.length)problems.push('каталог: промежутки между блоками разъехались — '+rhythm.join(', '));
   if(await page.locator('.voice-card').count()){
+   step('новый выпуск в карточке');
    const was=await page.locator('.voice-card-title').textContent();
    await page.locator('.voice-card').click();await page.waitForTimeout(1200);
    await page.evaluate(()=>{const c=document.querySelector('.player-collapse');if(c)c.click();});
@@ -894,7 +904,7 @@ try{
   // Металлические круги вокруг иконок держат по одному WebGL-контексту
   // каждый. На телефоне их быть не должно: старому WebView это лишний
   // расход, а разметка тут общая с ПК.
-  const phoneShaders=await nav.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+  const phoneShaders=await nav.evaluate(()=>document.querySelectorAll('.tt-metal-shader canvas').length);
   assert.equal(phoneShaders,0,'на телефоне шейдерных кругов нет');
   assert.equal(await nav.evaluate(()=>document.querySelectorAll('.tt-beams').length),0,'на телефоне фона с лучами нет');
   assert.equal(rows.tops,1,'все пункты панели стоят в один ряд');
@@ -1226,6 +1236,7 @@ try{
  const shareBtn=studio.getByRole('button',{name:'Поделиться',exact:true}).first();
  check(await shareBtn.count()>0,'на главной студии нет кнопки «Поделиться»');
  if(await shareBtn.count()){
+  step('окно «Поделиться»');
   await shareBtn.click();await studio.waitForTimeout(500);
   const sheet=await studio.evaluate(()=>{const el=document.querySelector('.share-dialog');if(!el)return null;
    return {targets:el.querySelectorAll('.share-target').length,link:el.querySelector('.share-link input')?.value||'',
@@ -1260,6 +1271,7 @@ try{
  }
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
+ for(const name of MUST_RUN)if(!ran.has(name))problems.push('проверка «'+name+'» не выполнилась ни разу: её условие не сработало, и она ничего не проверила');
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
  console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; знак канала, боковая панель и кнопка настроек в студии нужного размера');
 }finally{await browser?.close();peaksWorker?.kill('SIGTERM');server.kill('SIGTERM');await rm(dir,{recursive:true,force:true});}
