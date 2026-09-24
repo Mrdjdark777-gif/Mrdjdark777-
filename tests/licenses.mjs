@@ -43,16 +43,18 @@ assert.deepEqual(unreviewed.map(r=>r.name+' ('+r.license+')'),[],
 const missing=rows.filter(r=>r.license==='НЕ УКАЗАНА'&&r.shipped);
 assert.deepEqual(missing.map(r=>r.name),[],'в поставке есть пакеты без указанной лицензии — так отдавать продукт нельзя');
 
-// Правообладатель назван в четырёх местах, и разойтись они не должны: файл
-// лицензии, манифест, подвал сайта и окно «О приложении» в студии на ПК.
-// Последнее — нативный код, и про него забывают первым.
+// Правообладатель назван в трёх местах, и разойтись они не должны: файл
+// лицензии, манифест и окно «О приложении» в студии на ПК. Последнее —
+// нативный код, и про него забывают первым. В подвале сайта имени больше
+// нет: автор убрал его намеренно, права это не меняет.
 const HOLDER='Dumitru Paiul';
 const places=[
  ['LICENSE','файл лицензии'],
  ['package.json','манифест проекта'],
- ['app/studio.tsx','подвал сайта'],
  ['desktop/client.cpp','окно «О приложении» в студии на ПК'],
 ];
+const footer=readFileSync(path.join(root,'app','studio.tsx'),'utf8');
+assert.ok(!footer.includes(HOLDER),'имя правообладателя вернулось в подвал сайта — его убрали намеренно');
 for(const [file,what] of places){
  const text=readFileSync(path.join(root,file),'utf8');
  assert.ok(text.includes(HOLDER),'правообладатель не назван: '+what+' ('+file+')');
@@ -65,4 +67,4 @@ assert.equal(manifest.private,true,'private:true защищает от случ�
 assert.ok(readFileSync(path.join(root,'app','studio.tsx'),'utf8').includes("t('footer.rights')"),
  'строка прав в подвале должна браться из словаря, а не быть зашита');
 
-console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех четырёх местах');
+console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех трёх местах, а в подвале сайта его нет');

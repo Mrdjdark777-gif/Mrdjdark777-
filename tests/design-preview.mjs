@@ -140,7 +140,7 @@ try{
  await page.waitForTimeout(400);
  // Поддержка, выход и меню стоят в один ряд у правого края, на одной высоте
  // со стрелкой «свернуть». Столбиком они лезли на обложку выпуска.
- {const row=await page.evaluate(()=>{const b=[...document.querySelectorAll('.player-sheet-actions>button')].map(el=>el.getBoundingClientRect());
+ {const row=await page.evaluate(()=>{const b=[...document.querySelectorAll('.player-sheet-actions>:not(style)')].map(el=>el.getBoundingClientRect());
    const c=document.querySelector('.player-collapse')?.getBoundingClientRect();
    return {n:b.length,tops:b.map(r=>Math.round(r.top)),lefts:b.map(r=>Math.round(r.left)),collapse:c?Math.round(c.top):null};});
   if(row.n<3)problems.push('в верхней полосе плеера '+row.n+' кнопки справа вместо трёх');
@@ -315,6 +315,14 @@ try{
       return {shift:m===null?0:Math.abs(m-mid(tile)),align:getComputedStyle(label).textAlign};});
      const chips=[...document.querySelectorAll('.scene-side .social-row>*')];
      out.chips=chips.length;
+     {const strips=[...document.querySelectorAll('.scene-strips>*')].filter(el=>el.tagName!=='STYLE');
+      const plate=el=>el.classList.contains('support-strip')?el:el.querySelector('.support-strip');
+      out.litStrip=!!document.querySelector('.scene-strips [data-beam] .support-strip');
+      if(strips.length===2&&chips.length===2){
+       const a=plate(strips[0]).getBoundingClientRect(),b=plate(strips[1]).getBoundingClientRect();
+       out.strips={dw:Math.abs(a.width-b.width),dh:Math.abs(a.height-b.height),
+        dchip:Math.abs(a.width-chips[0].getBoundingClientRect().width),
+        radius:Math.round(parseFloat(getComputedStyle(plate(strips[0])).borderTopLeftRadius))};}}
      const home=document.querySelector('.bottom-nav-home');
      if(chips.length===2&&home){
       const a=chips[0].getBoundingClientRect(),b=chips[1].getBoundingClientRect();
@@ -329,6 +337,15 @@ try{
     if(lean>=0)problems.push('подпись плитки '+(lean+1)+' набрана не по центру: text-align='+tiles[lean].align);
     if(skew>=0)problems.push('подпись плитки '+(skew+1)+' смещена от середины окошка на '+Math.round(tiles[skew].shift)+'px');
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
+    // Архив и поддержка — пара, и по форме они должны совпадать с быстрыми
+    // ссылками под ними: та же высота и та же ширина половины строки.
+    if(!sym.strips)problems.push('на главной нет пары «архив и поддержка»');
+    if(!sym.litStrip)problems.push('плашка поддержки на главной без свечения');
+    else{
+     if(sym.strips.dw>1)problems.push('архив и поддержка разной ширины: разница '+Math.round(sym.strips.dw)+'px');
+     if(sym.strips.dh>1)problems.push('архив и поддержка разной высоты: разница '+Math.round(sym.strips.dh)+'px');
+     if(sym.strips.dchip>1)problems.push('плашки и быстрые ссылки разной ширины: разница '+Math.round(sym.strips.dchip)+'px');
+     if(sym.strips.radius<40)problems.push('плашки не в форме капсулы: скругление '+sym.strips.radius+'px');}
     if(sym.seam>1)problems.push('шов между кнопками площадок не совпадает с кнопкой «Главная»: смещение '+Math.round(sym.seam)+'px');
     if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');}
    // Главная кнопка: одна подпись и никакой оправы. Металлическая обёртка
@@ -360,6 +377,12 @@ try{
    await page.locator('.support-button').click();await page.waitForTimeout(400);
    const choices=await page.locator('.donate-dialog .donate-choice').count();
    if(!choices)problems.push('сердечко не открыло выбор площадки поддержки');
+   // Свечение — опознавательный знак поддержки: оно должно быть и на площадках
+   // в окне, и на сердечке в шапке, и на плашке главной.
+   {const lit=await page.evaluate(()=>({choices:document.querySelectorAll('.donate-dialog [data-beam] .donate-choice').length,
+      button:document.querySelectorAll('[data-beam] .support-button').length}));
+    if(lit.choices!==choices)problems.push('площадки в окне поддержки без свечения: '+lit.choices+' из '+choices);
+    if(!lit.button)problems.push('сердечко в шапке без свечения');}
    if(!await page.locator('.donate-note').count())problems.push('в окне поддержки нет пояснения, зачем эти ссылки');
    await page.keyboard.press('Escape');await page.waitForTimeout(250);}
   // Из каталога выпуск начинается сначала, даже если место остановки записано:
@@ -566,7 +589,7 @@ try{
   for(const [w,h] of [[412,915],[390,760]]){
    await page.setViewportSize({width:w,height:h});await page.waitForTimeout(250);
    const fit=await page.evaluate(()=>{
-    const last=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
+    const last=document.querySelector('.live-stage .support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
     const nav=document.querySelector('.bottom-nav');
     const main=document.querySelector('.main-content');
     return {over:Math.max(document.documentElement.scrollHeight-innerHeight,main?main.scrollHeight-main.clientHeight:0),
@@ -596,7 +619,7 @@ try{
    ringSizes.push(w+'x'+h+':'+fit.ring);
    // Симметрия: архив и поддержка — одна плашка по размеру.
    const pair=await page.evaluate(()=>{const a=document.querySelector('.live-archive-card'),
-     b=document.querySelector('.live-stage>.support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
+     b=document.querySelector('.live-stage .support-strip')||document.querySelector('.live-stage>.live-stage-support-missing');
     if(!a||!b)return null;const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
     return {dh:Math.round(Math.abs(ra.height-rb.height)),dw:Math.round(Math.abs(ra.width-rb.width))};});
    if(!pair)problems.push('эфир '+w+'x'+h+': нет карточки архива или строки поддержки');

@@ -1,0 +1,9 @@
+/* Обёртка со свечением не должна менять раскладку: в строке плашек она
+   занимает место плашки, в сетке площадок — место площадки, а кнопка внутри
+   растягивается на всю обёртку. */
+.tt-glow{display:inline-flex;max-width:100%}
+.tt-glow>:not([data-beam-bloom]){width:100%}
+.scene-strips>.tt-glow,.live-stage>.tt-glow{display:flex;min-width:0}
+.scene-strips>.tt-glow{flex:1 1 0}
+.donate-choices>.tt-glow{display:flex;min-width:0}
+.site-footer>.tt-glow{display:inline-flex}

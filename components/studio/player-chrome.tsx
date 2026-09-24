@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
 import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight,Share2} from 'lucide-react';
+import {DonationGlow} from '@/components/ui/donation-glow';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
 import {Slider} from '@/components/ui/slider';
@@ -128,7 +129,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
        Класс player-more на всех трёх — по той же причине: он уже есть в
        прежних стилях, поэтому размер и форма не разъедутся. */}
    <div className="player-sheet-actions" style={{display:'flex',alignItems:'center',gap:2}}>
-    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><Heart size={21}/></button>}
+    {act.donate&&<DonationGlow><button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><Heart size={21}/></button></DonationGlow>}
     <button type="button" className="player-more player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
     <button ref={moreRef} type="button" className="player-more player-menu-button tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
    </div>

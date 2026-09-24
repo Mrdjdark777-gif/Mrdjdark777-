@@ -1639,7 +1639,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .listener-main .live-rings{width:min(30vw,380px);height:min(30vw,380px)}
  /* Строка поддержки в столбце эфира идёт по ширине карточки архива: иначе две
     соседние плашки стоят разной ширины и столбец выглядит собранным кое-как. */
- .listener-main .live-stage>.support-strip,
+ .listener-main .live-stage .support-strip,
  .listener-main .live-stage>.live-stage-support-missing{width:100%}
 }
 
@@ -1676,12 +1676,12 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    Строка поддержки была ниже и уже карточки архива — теперь у них общая
    геометрия: та же высота, те же поля, тот же значок в плитке.
    -------------------------------------------------------------------------- */
-.live-stage>.support-strip,.live-stage>.live-stage-support-missing{
+.live-stage .support-strip,.live-stage>.live-stage-support-missing{
  display:flex;align-items:center;gap:12px;width:100%;min-height:68px;padding:12px 14px;
  border:1px solid var(--line);border-radius:16px;background:var(--surface)}
-.live-stage>.support-strip>svg:first-child{width:42px;height:42px;flex:none;padding:10px;
+.live-stage .support-strip>svg:first-child{width:42px;height:42px;flex:none;padding:10px;
  border-radius:12px;background:var(--teal-dark,#123330);color:var(--teal);box-sizing:border-box}
-.live-stage>.support-strip .support-strip-label{font-size:15px;font-weight:600}
+.live-stage .support-strip .support-strip-label{font-size:15px;font-weight:600}
 
 /* Поиск виден только в раскрытом архиве: в закрытом искать негде. Список
    держит свою высоту сам, чтобы раскрытие не растягивало страницу. */
@@ -1699,14 +1699,14 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .listener-main .live-stage{gap:10px}
  .listener-main .live-rings{width:min(56vw,212px);height:min(56vw,212px);margin:2px 0 0}
  .listener-main .breath-note{font-size:12px;line-height:1.45;max-width:30ch;margin-top:2px}
- .listener-main .live-stage>.support-strip,
+ .listener-main .live-stage .support-strip,
  .listener-main .live-stage>.live-stage-support-missing,
  .listener-main .live-archive-card{min-height:64px;padding:10px 12px}
  .listener-main .live-archive-icon{width:36px;height:36px}
  /* Подпись карточки архива на узком экране переносилась и делала её выше
     строки поддержки — симметрия важнее второй строки целиком. */
  .listener-main .live-archive-copy span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .listener-main .live-stage>.support-strip>svg:first-child{width:36px;height:36px;padding:8px}
+ .listener-main .live-stage .support-strip>svg:first-child{width:36px;height:36px;padding:8px}
 }
 
 /* Громкость стоит сразу под кнопкой эфира и по ширине совпадает с ней. */
@@ -1714,10 +1714,10 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 
 /* Строка поддержки на экране эфира повторяет карточку архива целиком:
    значок в плитке, название и подпись под ним, стрелка. */
-.live-stage>.support-strip .support-strip-copy{display:flex;flex-direction:column;gap:2px;
+.live-stage .support-strip .support-strip-copy{display:flex;flex-direction:column;gap:2px;
  flex:1;min-width:0;text-align:left}
-.live-stage>.support-strip .support-strip-label{font-size:15px;font-weight:600;flex:none}
-.live-stage>.support-strip .support-strip-copy>span{font-size:12px;line-height:1.35;color:var(--muted);
+.live-stage .support-strip .support-strip-label{font-size:15px;font-weight:600;flex:none}
+.live-stage .support-strip .support-strip-copy>span{font-size:12px;line-height:1.35;color:var(--muted);
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Во время эфира на экране на четыре блока больше, чем в покое: название,
@@ -1985,7 +1985,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    подгонялся под высоту, соседи отбирали у них высоту по-разному, и на низком
    экране плашки расходились на два десятка пикселей. */
 .listener-main .live-archive-card,
-.listener-main .live-stage>.support-strip,
+.listener-main .live-stage .support-strip,
 .listener-main .live-stage>.live-stage-support-missing{flex:none}
 
 /* ----------------------------------------------------------------------------
@@ -2126,7 +2126,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    площадку — человек про неё просто не знал. */
 .donate-dialog{max-width:360px}
 .donate-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
-.donate-choices:has(>:only-child){grid-template-columns:minmax(0,1fr)}
+.donate-choices:has(>div:only-of-type){grid-template-columns:minmax(0,1fr)}
 .donate-choice{display:flex;flex-direction:column;align-items:center;gap:10px;
  padding:18px 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);
  color:inherit;text-decoration:none;font-size:14px;font-weight:600;
@@ -2169,3 +2169,18 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    открывают прямо из него, поэтому на это время окна поднимаются над ним. */
 body:has(.podcast-player.is-open) [data-slot=dialog-overlay],
 body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
+
+/* Архив эфиров и поддержка на главной повторяют форму быстрых ссылок под
+   ними: та же скруглённая капсула и та же высота. Только форма — блеска и
+   металлической подложки быстрых ссылок здесь нет, иначе на главной стало бы
+   два спорящих между собой акцента. */
+.scene-strips .support-strip{min-height:46px;border-radius:999px;padding:11px 18px;justify-content:center;gap:10px}
+.scene-strips .support-strip>svg:last-child{display:none}
+.scene-strips .support-strip-label{flex:none}
+/* Половина строки каждой — и плашке, и обёртке со свечением. Ширину задаёт
+   только flex: width:100% сбивал его и делал архив шире поддержки. */
+@media(max-width:1023px){
+ .scene-strips>.tt-glow,.scene-strips>.support-strip{flex:0 0 calc(50% - 4px);max-width:calc(50% - 4px);min-width:0}
+}
+.scene-strips .tt-glow .support-strip{width:100%}
+.live-stage>.tt-glow{width:100%}

@@ -20,6 +20,7 @@ import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
 import {LimelightNav} from '@/components/ui/limelight-nav';
+import {DonationGlow} from '@/components/ui/donation-glow';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
 import {KineticGrid} from '@/components/ui/kinetic-grid';
@@ -273,7 +274,7 @@ export default function Studio(){
    </div>}
    {/* Сердечко открывает небольшое окно с площадками: в настройках просьбам о
      поддержке не место, а одна зашитая ссылка прятала вторую площадку. */}
- {!author&&canDonate&&<button type="button" className="support-button" aria-label={t('donate.action')} onClick={()=>{haptic();setDonateOpen(true);}}><Heart size={19}/><span>{t('header.support')}</span></button>}
+ {!author&&canDonate&&<DonationGlow><button type="button" className="support-button" aria-label={t('donate.action')} onClick={()=>{haptic();setDonateOpen(true);}}><Heart size={19}/><span>{t('header.support')}</span></button></DonationGlow>}
  {!author&&(community?.enabled||community?.member)&&<button className="quiet-button tt-pressable" onClick={()=>{haptic();setProfileOpen(true);}} aria-label={t('community.profile')}>{t('community.profile')}</button>}
    {/* Поделиться каналом — там же, где поиск и настройки: слушателю больше негде. */}
    {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('share.action')} title={t('share.action')} onClick={()=>{haptic();void share('/?mode=listen&view=home',t('share.channel'));}}><Share2 size={19}/></button>}
@@ -306,7 +307,7 @@ export default function Studio(){
     // иначе он открывается ниже сгиба и выглядит как «ничего не произошло».
     setTimeout(()=>document.querySelector('.live-archive-list')?.scrollIntoView({block:'start',behavior:'smooth'}),260);}}>
    <AudioLines size={19}/><span className="support-strip-label">{t('live.archiveTitle')}</span><ChevronRight size={18}/></button>}
-  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
+  support={heartLink?<DonationGlow plate><a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span></a></DonationGlow>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned}
   sections={[{kind:'podcast',label:t('nav.podcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),go:()=>goto('stories')}]}/>}
@@ -349,7 +350,7 @@ export default function Studio(){
      <Play size={15} fill="currentColor"/></button>)}
   </div>}
   volume={live.joined?<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>:null}
-  support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.supportLiveNote')}</span></span><ChevronRight size={18}/></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.unavailable')}</span></span></span>}/>
+  support={heartLink?<DonationGlow plate><a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.supportLiveNote')}</span></span><ChevronRight size={18}/></a></DonationGlow>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.unavailable')}</span></span></span>}/>
  {!author&&liveStatus&&<LiveComments liveId={liveStatus.id}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}
@@ -380,7 +381,7 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills · Dumitru Paiul</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
+ {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
  {/* Фон-сетка — у слушателя и не на главной: там во весь кадр лежит обложка,
@@ -390,7 +391,7 @@ export default function Studio(){
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
- {!!heartLink&&<a className="site-footer-link" href={heartLink.url} target="_blank" rel="noopener noreferrer">{t('header.support')}</a>}
+ {!!heartLink&&<DonationGlow><a className="site-footer-link" href={heartLink.url} target="_blank" rel="noopener noreferrer">{t('header.support')}</a></DonationGlow>}
  <span className="site-footer-note">{t('app.footerNote')}</span>
 </footer>}
 {data&&!data.needsSetup&&<LimelightNav className="bottom-nav" activeId={view} items={[
@@ -414,8 +415,8 @@ export default function Studio(){
   <DialogHeader><DialogTitle>{t('donate.action')}</DialogTitle></DialogHeader>
   <div className="donate-choices">
    {(data?.donations??[]).map(dn=>{const Icon=DONATION_ICON[dn.kind];
-    return <a key={dn.kind} className="donate-choice tt-pressable" href={dn.url} target="_blank" rel="noopener noreferrer" onClick={()=>setDonateOpen(false)}>
-     <Icon size={30}/><span>{t(DONATIONS.find(x=>x.kind===dn.kind)?.labelKey??'common.link')}</span></a>;})}
+    return <DonationGlow key={dn.kind} plate><a className="donate-choice tt-pressable" href={dn.url} target="_blank" rel="noopener noreferrer" onClick={()=>setDonateOpen(false)}>
+     <Icon size={30}/><span>{t(DONATIONS.find(x=>x.kind===dn.kind)?.labelKey??'common.link')}</span></a></DonationGlow>;})}
   </div>
   <p className="donate-note">{t('donate.free')}</p>
  </DialogContent></Dialog>
