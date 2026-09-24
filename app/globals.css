@@ -2184,3 +2184,13 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 }
 .scene-strips .tt-glow .support-strip{width:100%}
 .live-stage>.tt-glow{width:100%}
+
+/* Площадки автора на главной — такие же половины строки, как архив и
+   поддержка над ними: ряд по две кнопки, обе одной ширины и одной формы.
+   Металлические кнопки отсюда убраны: на маленьком экране они мельтешили
+   шейдером и спорили с кадром. */
+@media(max-width:1023px){
+ .scene-side>.social-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .scene-side>.social-row .social-chip{flex:none;justify-content:center;min-height:46px;min-width:0;padding:11px 18px;font-size:14px}
+ .scene-side>.social-row .social-chip svg{flex:none}
+}

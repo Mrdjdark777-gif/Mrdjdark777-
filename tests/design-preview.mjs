@@ -964,7 +964,7 @@ try{
    await g.screenshot({path:'outputs/ui/guest-'+w+'.png',fullPage:true});
    const m=await g.evaluate(()=>({w:document.documentElement.scrollWidth,iw:innerWidth,
     h:document.documentElement.scrollHeight,ih:innerHeight,
-    shaders:document.querySelectorAll('.shader-container-exploded').length,
+    shaders:document.querySelectorAll('.tt-metal-shader canvas').length,
     beams:document.querySelectorAll('.tt-beams').length,
     listener:!!document.querySelector('.listener-main'),
     content:Math.round(document.querySelector('.main-content')?.getBoundingClientRect().width??0)}));

@@ -247,7 +247,7 @@ export default function Studio(){
  // Эфир и подкаст — разные вещи: записи эфиров живут в архиве эфиров и в
  // каталог подкастов не попадают ни у слушателя, ни у автора.
  const listed=visible.filter(p=>p.kind===listKind&&!(p.kind==='podcast'&&isLiveArchive(p.audioKey))&&(!needle||(p.title+' '+p.description).toLowerCase().includes(needle))).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
- const socialRow=data?.links?.length?<div className="social-row">{data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;if(l.kind==='youtube'||l.kind==='tiktok')return <LiquidMetalButton key={l.kind+l.url} className="tt-metal-social" label={t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')} icon={<Icon size={18}/>} href={l.url} onClick={()=>haptic()}/>;return <a key={l.kind+l.url} className="social-chip" href={l.url} target="_blank" rel="noopener noreferrer"><Icon size={16}/>{t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
+ const socialRow=data?.links?.length?<div className="social-row">{data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;return <a key={l.kind+l.url} className="social-chip tt-pressable" href={l.url} target="_blank" rel="noopener noreferrer" onClick={()=>haptic()}><Icon size={18}/>{t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link')}</a>;})}</div>:null;
  // Сердечко и полоса поддержки открывают окно выбора площадки. Плееру же
  // нужен один адрес, поэтому там выбираем по языку телефона: PayPal в России
  // не работает, Boosty за её пределами почти никто не знает.
