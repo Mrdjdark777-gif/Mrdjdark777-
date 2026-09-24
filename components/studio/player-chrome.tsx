@@ -1,8 +1,6 @@
 'use client';
-import {DonationHeart} from '@/components/community/donation-heart';
-import '@/components/community/style.css';
 import {useEffect,useState,useRef} from 'react';
-import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Timer,ChevronRight,Share2} from 'lucide-react';
+import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight,Share2} from 'lucide-react';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
 import {Slider} from '@/components/ui/slider';
@@ -33,12 +31,14 @@ import {swipeAxis,swipeCloses,swipeFade} from '@/lib/swipe';
 export type PlayerView={
  title:string;cover?:string;position:number;duration:number;playing:boolean;loading:boolean;seekable:boolean;
  rate:number;sleep:number;sleepOptions:{value:string|number;label:string}[];sleepValue:string|number;message?:string;
- presentation:Presentation;kindLabel:string;note?:string;supportUrl?:string;
+ presentation:Presentation;kindLabel:string;note?:string;
  postId:string;next?:{id:string;title:string;cover?:string;duration:number}|null;
 };
 export type PlayerActions={
  toggle:()=>void;seekBy:(seconds:number)=>void;seekTo:(seconds:number)=>void;scrub?:(seconds:number)=>void;
  setRate:(rate:number)=>void;setSleep:(value:string)=>void;close:()=>void;openNext?:(id:string)=>void;share?:()=>void;
+ /** Открывает окно выбора площадки поддержки. Нет площадок — нет и сердечка. */
+ donate?:()=>void;
 };
 const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
@@ -123,7 +123,11 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   <div className="player-sheet-top">
    <button type="button" className="player-collapse tt-pressable" aria-label={t('player.collapse')} onClick={()=>{setMenu(false);onExpand(false);}}><ChevronDown size={22}/></button>
    <span className="player-kind">{view.presentation==='archive'?view.kindLabel:''}</span>
-   <button ref={moreRef} type="button" className="player-more tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
+   <div className="player-sheet-actions">
+    {act.donate&&<button type="button" className="player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><Heart size={21}/></button>}
+    <button type="button" className="player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
+    <button ref={moreRef} type="button" className="player-more tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
+   </div>
   </div>
 
   <div className="player-body">
@@ -171,7 +175,6 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
     </label>
    </div>
    {view.message&&<p className="podcast-player-message" role="status">{view.message}</p>}
-   <DonationHeart href={view.supportUrl}/>
    {type&&view.next&&act.openNext&&<button type="button" className="player-next tt-pressable" onClick={()=>act.openNext!(view.next!.id)}>
     <span className="player-next-label">{t('player.next')}</span>
     <span className="player-next-row">

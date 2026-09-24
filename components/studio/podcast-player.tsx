@@ -10,9 +10,9 @@ import {readProgress,saveProgress} from '@/lib/listening-progress';
 import type {PlayFrom} from './play-from';
 import {useT} from '@/components/i18n-provider';
 
-type Props={src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;supportUrl?:string;onShare?:()=>void;from?:PlayFrom;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void};
+type Props={src:string;title:string;duration?:number;cover?:string;note?:string;archived?:boolean;onDonate?:()=>void;onShare?:()=>void;from?:PlayFrom;next?:{id:string;title:string;cover?:string;duration:number}|null;onNext?:(id:string)=>void;audioRef:RefObject<HTMLAudioElement|null>;autoplay?:boolean;expanded?:boolean;onExpand?:(next:boolean)=>void;onClose:()=>void};
 
-function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archived,supportUrl,onShare,from='begin',next,onNext,audioRef,autoplay=true,expanded=true,onExpand=()=>{},onClose}:Props){
+function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archived,onDonate,onShare,from='begin',next,onNext,audioRef,autoplay=true,expanded=true,onExpand=()=>{},onClose}:Props){
  const postId=new URL(src,'https://truethrills.com').searchParams.get('id')??'';
  const restored=useRef(false),lastSaved=useRef(0);
  const [rate,setRate]=useState(1),[sleep,setSleep]=useState(0),[isRepairing,setIsRepairing]=useState(false);
@@ -64,12 +64,12 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archi
    onEnded={()=>{wanted.current=false;setPlaying(false);setPosition(local.current?.duration||0);}}
    onError={()=>{setLoading(false);setMessage(t('player.unavailable'));}}/>;
  return <PlayerChrome expanded={expanded} onExpand={onExpand}
-  view={{title,cover,note,supportUrl,postId,next,presentation:presentation({archived,cover}),kindLabel:archived?t('post.liveArchive'):t('post.podcast'),
+  view={{title,cover,note,postId,next,presentation:presentation({archived,cover}),kindLabel:archived?t('post.liveArchive'):t('post.podcast'),
    position,duration,playing,loading:loading||isRepairing,seekable:seekable&&!isRepairing,rate,sleep,sleepValue:sleep,message,
    sleepOptions:[{value:0,label:t('player.sleepOff')},...[15,30,60].map(value=>({value,label:value+' '+t('player.minutes')}))]}}
   act={{toggle:()=>{if(playing){wanted.current=false;local.current?.pause();}else{wanted.current=true;void play();}},
    seekBy:s=>seek((local.current?.currentTime??0)+s),seekTo:s=>{scrubbing.current=false;seek(s);},scrub:s=>{scrubbing.current=true;setPosition(s);},
-   setRate:value=>{setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();},setSleep:value=>setSleep(Number(value)),close:onClose,openNext:onNext,share:onShare}}>
+   setRate:value=>{setRate(value);if(local.current)local.current.playbackRate=value;mediaPosition();},setSleep:value=>setSleep(Number(value)),close:onClose,openNext:onNext,share:onShare,donate:onDonate}}>
   {audio}
  </PlayerChrome>;
 }

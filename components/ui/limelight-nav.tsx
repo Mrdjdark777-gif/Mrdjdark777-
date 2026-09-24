@@ -12,6 +12,8 @@ export type NavItem = {
   onClick?: () => void;
   className?: string;
   badge?: ReactNode;
+  /** false — на этой кнопке лампа не зажигается. */
+  lamp?: boolean;
 };
 export type LimelightNavProps = {
   items?: NavItem[];
@@ -40,14 +42,15 @@ export function LimelightNav({items=defaults, activeId, defaultActiveIndex=0,
   const lightRef = useRef<HTMLDivElement>(null);
   const buttons = useRef(new Map<string|number, HTMLButtonElement>());
   // Stable signature avoids restarting observers on unrelated parent renders.
-  const ids = JSON.stringify(items.map(item=>item.id));
+  const ids = JSON.stringify(items.map(item=>[item.id,item.lamp!==false]));
   useEffect(()=>{
     const nav = navRef.current;
     const light = lightRef.current;
     if (!nav || !light) return;
     let frame = 0;
     const measure = ()=>{
-      const item = current === undefined ? undefined : buttons.current.get(current);
+      const active = items.find(entry=>entry.id===current);
+      const item = current === undefined || active?.lamp === false ? undefined : buttons.current.get(current);
       if (!item) {light.style.opacity='0'; return;}
       const vertical = getComputedStyle(nav).flexDirection.startsWith('column');
       light.dataset.orientation = vertical ? 'vertical' : 'horizontal';
@@ -62,6 +65,8 @@ export function LimelightNav({items=defaults, activeId, defaultActiveIndex=0,
     buttons.current.forEach(button=>observer?.observe(button));
     window.addEventListener('resize',schedule);
     return ()=>{cancelAnimationFrame(frame);observer?.disconnect();window.removeEventListener('resize',schedule);};
+  // items читается только по подписи ids, поэтому его в зависимостях нет.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[current,ids]);
   if (!items.length) return null;
   return <nav ref={navRef} aria-label={ariaLabel} className={cn('tt-limelight-nav',className)}>

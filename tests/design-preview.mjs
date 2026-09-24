@@ -302,7 +302,8 @@ try{
       if(!label)return {shift:0,align:'center'};
       const m=textMid(label);
       return {shift:m===null?0:Math.abs(m-mid(tile)),align:getComputedStyle(label).textAlign};});
-     const chips=[...document.querySelectorAll('.scene-side .social-row .social-chip')];
+     const chips=[...document.querySelectorAll('.scene-side .social-row>*')];
+     out.chips=chips.length;
      const home=document.querySelector('.bottom-nav-home');
      if(chips.length===2&&home){
       const a=chips[0].getBoundingClientRect(),b=chips[1].getBoundingClientRect();
@@ -316,8 +317,30 @@ try{
     const skew=tiles.findIndex(t=>t.shift>1),lean=tiles.findIndex(t=>t.align!=='center');
     if(lean>=0)problems.push('подпись плитки '+(lean+1)+' набрана не по центру: text-align='+tiles[lean].align);
     if(skew>=0)problems.push('подпись плитки '+(skew+1)+' смещена от середины окошка на '+Math.round(tiles[skew].shift)+'px');
+    if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
     if(sym.seam>1)problems.push('шов между кнопками площадок не совпадает с кнопкой «Главная»: смещение '+Math.round(sym.seam)+'px');
     if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');}
+   // Главная кнопка: одна подпись и никакой оправы. Металлическая обёртка
+   // накладывала на «Слушать» собственную надпись «Открыть» и обводила кнопку.
+   {const cta=await page.evaluate(()=>{const b=document.querySelector('.scene-copy .scene-action');
+     if(!b)return null;const copy=b.closest('.scene-copy');
+     return {labels:copy.querySelectorAll('.scene-action, .tt-metal-content').length,
+      text:b.textContent.trim(),metal:document.querySelectorAll('.scene-copy .tt-metal').length};});
+    if(!cta)problems.push('на главной нет кнопки запуска');
+    else{
+     if(cta.labels!==1)problems.push('на главной кнопке '+cta.labels+' подписи вместо одной');
+     if(cta.metal)problems.push('вокруг главной кнопки осталась металлическая оправа');
+     if(!/^[^\n]+$/.test(cta.text))problems.push('подпись главной кнопки разъехалась: '+JSON.stringify(cta.text));}}
+   // Лампа снизу светит на разделы, но не на знак канала.
+   {const lamp=()=>page.evaluate(()=>{const l=document.querySelector('.tt-limelight');return l?Number(getComputedStyle(l).opacity):null;});
+    await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(400);
+    const onHome=await lamp();
+    await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(400);
+    const onSection=await lamp();
+    if(onHome===null||onSection===null)problems.push('лампы в нижней панели нет вовсе');
+    else{
+     if(onHome>0.01)problems.push('лампа светит на знак канала (прозрачность '+onHome+')');
+     if(onSection<0.99)problems.push('лампа не светит на разделы (прозрачность '+onSection+')');}}
    await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
    const cards=await page.evaluate(()=>[...document.querySelectorAll('.settings-panel h2')].map(h=>h.textContent.trim()));
    if(cards.some(c=>/площадк/i.test(c)))problems.push('в настройках слушателя осталась карточка площадок: '+cards.join(', '));

@@ -45,14 +45,28 @@ try{
  assert.deepEqual(await page.locator('.donate-choice').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills'],'в окне поддержки обе площадки');
  assert.deepEqual(await page.locator('.donate-choice span').allInnerTexts(),['Boosty','PayPal'],'площадки подписаны');
  await page.keyboard.press('Escape');
- // В плеере слот один, поэтому там ссылка выбирается по языку телефона:
- // PayPal в России не работает, Boosty за её пределами почти не знают.
- await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page.locator('.podcast-player .tt-donation-heart').first().waitFor();
- assert.equal(await page.locator('.podcast-player .tt-donation-heart').first().getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
+ // Плашка поддержки в плеере превратилась в сердечко у трёх точек, и оно
+ // открывает тот же выбор площадки, что и на главной. Рядом с ним — явный
+ // выход: раньше закрыть плеер можно было только системной кнопкой телефона.
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page.locator('.podcast-player.is-open').waitFor();
+ await page.locator('.player-sheet-actions .player-donate').click();
+ await page.locator('.donate-choice').first().waitFor();
+ assert.deepEqual(await page.locator('.donate-choice').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills'],'в плеере поддержка тоже даёт выбор площадки');
+ // Escape закрывает окно выбора, а заодно доходит до плеера и сворачивает
+ // его — поэтому перед проверкой выхода разворачиваем обратно.
+ await page.keyboard.press('Escape');await page.waitForTimeout(300);
+ if(await page.locator('.podcast-player.is-mini').count()){await page.locator('.mini-open').click();await page.locator('.podcast-player.is-open').waitFor();}
+ assert.equal(await page.locator('.podcast-player .player-support').count(),0,'широкая плашка поддержки из плеера убрана');
+ await page.locator('.player-close').click();await page.waitForTimeout(300);
+ assert.equal(await page.locator('.podcast-player').count(),0,'кнопка закрытия закрывает плеер, а не сворачивает его');
+ // Ссылка по языку телефона осталась на плашке поддержки главной: слот там
+ // один. PayPal в России не работает, Boosty за её пределами почти не знают.
+ await page.goto(base+'/?mode=listen');await page.locator('.scene-strips .support-strip:not(.archive-strip)').waitFor();
+ assert.equal(await page.locator('.scene-strips .support-strip:not(.archive-strip)').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
  {const italian=await browser.newContext({locale:'it-IT',viewport:{width:390,height:844}});
   const eq=cookie.indexOf('=');await italian.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
-  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page2.locator('.podcast-player .tt-donation-heart').first().waitFor();
-  assert.equal(await page2.locator('.podcast-player .tt-donation-heart').first().getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
+  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen');await page2.locator('.scene-strips .support-strip:not(.archive-strip)').waitFor();
+  assert.equal(await page2.locator('.scene-strips .support-strip:not(.archive-strip)').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
   await italian.close();}
  await page.goto(base+'/?mode=listen');await page.locator('.support-strip').first().waitFor();
  // Вход в студию: на ПК и в браузере он есть, в приложении на Android его
