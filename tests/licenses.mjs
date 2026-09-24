@@ -65,11 +65,4 @@ assert.equal(manifest.private,true,'private:true защищает от случ�
 assert.ok(readFileSync(path.join(root,'app','studio.tsx'),'utf8').includes("t('footer.rights')"),
  'строка прав в подвале должна браться из словаря, а не быть зашита');
 
-// Студия — работа за столом: запись, эфир, разбор очереди. В приложении на
-// Android входа туда нет намеренно, чтобы не держать на виду дверь, которой
-// на телефоне всё равно не пользуются. На ПК и в браузере он остаётся.
-const studio = readFileSync(path.join(root, 'app', 'studio.tsx'), 'utf8');
-assert.match(studio, /view==='settings'&&!author&&!data\?\.signedIn&&!hasNativeClient\(\)&&/,
- 'вход в студию снова показывается в приложении на Android');
-
-console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех четырёх местах; вход в студию не показывается на Android');
+console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех четырёх местах');

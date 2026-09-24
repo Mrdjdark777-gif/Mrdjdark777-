@@ -1013,7 +1013,9 @@ try{
    if(!m.settings)problems.push('студия '+v+': в боковой панели нет кнопки настроек');
    // На ПК круги есть, и их немного: браузер держит около 16 WebGL-контекстов
    // на вкладку, дальше самые старые гаснут.
-   const shaders=await fit.evaluate(()=>document.querySelectorAll('.shader-container-exploded').length);
+   // Считаем не обёртки, а живые холсты шейдера: пустой div с тем же классом
+   // прошёл бы проверку и ничего не рисовал.
+   const shaders=await fit.evaluate(()=>document.querySelectorAll('.tt-metal-icon .tt-metal-shader canvas').length);
    // В браузере моста к оконному приложению нет, значит и меню действий быть
    // не должно: иначе кнопки нажимались бы вхолостую.
    if(await fit.evaluate(()=>document.querySelectorAll('.shell-menu').length))problems.push('студия '+v+': меню действий приложения показано в браузере');

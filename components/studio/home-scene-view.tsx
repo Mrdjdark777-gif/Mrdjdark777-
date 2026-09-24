@@ -1,4 +1,5 @@
 'use client';
+import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {useEffect,useRef,useState} from 'react';
 import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
@@ -81,7 +82,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
     <div className="scene-copy">
      <h2 className="scene-title">{hero.title}</h2>
-     <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
+     <div className="tt-metal tt-metal-listen"><LiquidMetalButton interactive={false} variant="teal" className="tt-metal-listen-surface"/><button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button></div>
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>

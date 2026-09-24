@@ -1,6 +1,8 @@
 'use client';
+import {DonationHeart} from '@/components/community/donation-heart';
+import '@/components/community/style.css';
 import {useEffect,useState,useRef} from 'react';
-import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Heart,Timer,ChevronRight,Share2} from 'lucide-react';
+import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Timer,ChevronRight,Share2} from 'lucide-react';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
 import {Slider} from '@/components/ui/slider';
@@ -169,9 +171,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
     </label>
    </div>
    {view.message&&<p className="podcast-player-message" role="status">{view.message}</p>}
-   {archive&&view.supportUrl&&<a className="player-support tt-pressable" href={view.supportUrl} target="_blank" rel="noopener noreferrer">
-    <Heart size={18}/><span className="player-support-label">{t('header.support')}</span><ChevronRight size={17}/>
-   </a>}
+   <DonationHeart href={view.supportUrl}/>
    {type&&view.next&&act.openNext&&<button type="button" className="player-next tt-pressable" onClick={()=>act.openNext!(view.next!.id)}>
     <span className="player-next-label">{t('player.next')}</span>
     <span className="player-next-row">
@@ -184,7 +184,6 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
 
   {menu&&<div ref={menuRef} className="player-menu" role="menu">
    {act.share&&<button type="button" role="menuitem" onClick={()=>{setMenu(false);act.share!();}}><Share2 size={17}/>{t('share.action')}</button>}
-   {view.supportUrl&&<a role="menuitem" href={view.supportUrl} target="_blank" rel="noopener noreferrer" onClick={()=>setMenu(false)}><Heart size={17}/>{t('header.support')}</a>}
    <button type="button" role="menuitem" onClick={()=>{setMenu(false);act.close();}}><X size={17}/>{t('player.close')}</button>
   </div>}
  </section>;

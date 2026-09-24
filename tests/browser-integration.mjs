@@ -32,22 +32,40 @@ try{
  await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await page.locator('.reader-scroll').waitFor();assert.equal(await page.locator('.reading-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 23, 25)');await page.locator('.reader-options select').selectOption('22');await page.locator('.reader-scroll').evaluate(el=>el.scrollTop=500);await page.waitForTimeout(150);await page.screenshot({path:'outputs/ui/reader-mobile.png',fullPage:true});
  await page.reload();await page.locator('.reader-scroll').waitFor();await page.waitForFunction(()=>document.querySelector('.reader-scroll')?.scrollTop>400);assert.equal(await page.locator('.reader-options select').inputValue(),'22');
  // Донат на главной остаётся виден и без настроенных площадок: это правило
- // проекта, а не украшение. На главной он ведёт на одну — уместную по языку
- // телефона, — поэтому доступ ко второй проверяется отдельно, в настройках.
+ // проекта, а не украшение.
  await page.goto(base+'/?mode=listen');await page.locator('.support-strip,.support-card').first().waitFor();
  assert.ok((await page.locator('.support-strip,.support-card').first().innerText()).trim().length>0,'строка поддержки должна показывать текст');
  await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'},{kind:'paypal',url:'https://paypal.me/truethrills'}]});
- await page.goto(base+'/?mode=listen&view=settings');await page.locator('.donation-card .social-chip').first().waitFor();
- assert.deepEqual(await page.locator('.donation-card .social-chip').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills'],'обе площадки остаются доступны слушателю');
- await page.goto(base+'/?mode=listen');await page.locator('.support-strip').waitFor();
- // Сердечко в шапке ведёт на одну ссылку, и она зависит от языка телефона:
+ // Площадок две, и выбор между ними делает слушатель: сердечко на главной
+ // открывает окно с обеими. Прежняя проверка требовала href у кнопки, то есть
+ // у элемента, у которого его не бывает, и потому ничего не проверяла.
+ await page.goto(base+'/?mode=listen');await page.locator('.support-button').waitFor();
+ await page.locator('.support-button').click();
+ await page.locator('.donate-choice').first().waitFor();
+ assert.deepEqual(await page.locator('.donate-choice').evaluateAll(els=>els.map(el=>el.getAttribute('href'))),['https://boosty.to/truethrills','https://paypal.me/truethrills'],'в окне поддержки обе площадки');
+ assert.deepEqual(await page.locator('.donate-choice span').allInnerTexts(),['Boosty','PayPal'],'площадки подписаны');
+ await page.keyboard.press('Escape');
+ // В плеере слот один, поэтому там ссылка выбирается по языку телефона:
  // PayPal в России не работает, Boosty за её пределами почти не знают.
- assert.equal(await page.locator('.support-button').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
+ await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page.locator('.podcast-player .tt-donation-heart').first().waitFor();
+ assert.equal(await page.locator('.podcast-player .tt-donation-heart').first().getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
  {const italian=await browser.newContext({locale:'it-IT',viewport:{width:390,height:844}});
   const eq=cookie.indexOf('=');await italian.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
-  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen');await page2.locator('.support-button').waitFor();
-  assert.equal(await page2.locator('.support-button').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
+  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await page2.locator('.podcast-player .tt-donation-heart').first().waitFor();
+  assert.equal(await page2.locator('.podcast-player .tt-donation-heart').first().getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
   await italian.close();}
+ await page.goto(base+'/?mode=listen');await page.locator('.support-strip').first().waitFor();
+ // Вход в студию: на ПК и в браузере он есть, в приложении на Android его
+ // нет намеренно. Проверяем не текст исходника, а то, что видно на экране:
+ // мост TrueThrillsNative подставляем до загрузки страницы, как это делает
+ // само приложение.
+ await page.goto(base+'/?mode=listen&view=settings');await page.locator('.settings-panel').first().waitFor();
+ assert.equal(await page.locator('.settings-panel a[href="/login"]').count(),1,'в браузере вход для автора должен быть');
+ {const phone=await browser.newContext({viewport:{width:390,height:844}});
+  await phone.addInitScript(()=>{window.TrueThrillsNative={postMessage(){}};});
+  const app=await phone.newPage();await app.goto(base+'/?mode=listen&view=settings');await app.locator('.settings-panel').first().waitFor();
+  assert.equal(await app.locator('.settings-panel a[href="/login"]').count(),0,'в приложении на Android входа в студию быть не должно');
+  await phone.close();}
  await page.screenshot({path:'outputs/ui/donation-home.png',fullPage:true});
  // Real browser MediaRecorder -> HTTP upload -> FFmpeg HLS -> browser playback.
  const ownerContext=await browser.newContext({permissions:['microphone'],viewport:{width:1280,height:900}});
