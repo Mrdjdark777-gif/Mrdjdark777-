@@ -13,6 +13,7 @@
  */
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {inventory,csv} from '../scripts/license-inventory.mjs';
 
@@ -43,28 +44,43 @@ assert.deepEqual(unreviewed.map(r=>r.name+' ('+r.license+')'),[],
 const missing=rows.filter(r=>r.license==='НЕ УКАЗАНА'&&r.shipped);
 assert.deepEqual(missing.map(r=>r.name),[],'в поставке есть пакеты без указанной лицензии — так отдавать продукт нельзя');
 
-// Правообладатель назван в трёх местах, и разойтись они не должны: файл
-// лицензии, манифест и окно «О приложении» в студии на ПК. Последнее —
-// нативный код, и про него забывают первым. В подвале сайта имени больше
-// нет: автор убрал его намеренно, права это не меняет.
+// Имя правообладателя живёт только в документах. Автор попросил убрать его
+// из продукта: из подвала сайта, из окна «О приложении» и из манифеста —
+// пользователю и программисту личное имя там не нужно, а права оно не
+// меняет, они держатся на LICENSE и на документах рядом с ним.
+//
+// Проверка двусторонняя. Документы без имени — это потеря права; имя,
+// вернувшееся в код, — нарушение просьбы автора, и оба случая возвращаются
+// молча: копирайт правят раз в год и не перечитывают.
 const HOLDER='Dumitru Paiul';
-const places=[
+const DOCUMENTS=[
  ['LICENSE','файл лицензии'],
- ['package.json','манифест проекта'],
- ['desktop/client.cpp','окно «О приложении» в студии на ПК'],
+ ['docs/RIGHTS-RU.md','разбор прав'],
+ ['ЧИТАТЬ-ПЕРВЫМ.md','оглавление для юриста'],
 ];
-const footer=readFileSync(path.join(root,'app','studio.tsx'),'utf8');
-assert.ok(!footer.includes(HOLDER),'имя правообладателя вернулось в подвал сайта — его убрали намеренно');
-for(const [file,what] of places){
+for(const [file,what] of DOCUMENTS){
  const text=readFileSync(path.join(root,file),'utf8');
  assert.ok(text.includes(HOLDER),'правообладатель не назван: '+what+' ('+file+')');
 }
+const documents=new Set([...DOCUMENTS.map(([file])=>file),'tests/licenses.mjs']);
+const tracked=execFileSync('git',['ls-files','-z'],{cwd:root,maxBuffer:1<<26}).toString('utf8').split('\0').filter(Boolean);
+assert.ok(tracked.length>200,'список файлов проекта не прочитан: '+tracked.length);
+const leaked=tracked.filter(file=>{
+ if(documents.has(file))return false;
+ let text;
+ try{text=readFileSync(path.join(root,file));}catch{return false;}
+ // Двоичные файлы не смотрим: имени в них нет, а читать их как текст незачем.
+ if(text.includes(0))return false;
+ return text.toString('utf8').includes(HOLDER);
+});
+assert.deepEqual(leaked,[],'имя правообладателя осталось за пределами документов:\n'+leaked.join('\n'));
+
 const manifest=JSON.parse(readFileSync(path.join(root,'package.json'),'utf8'));
 assert.equal(manifest.license,'UNLICENSED','поле license в package.json должно отражать закрытую лицензию');
-assert.equal(manifest.author,HOLDER,'поле author в package.json разошлось с правообладателем');
+assert.equal(manifest.author,'True Thrills','поле author в package.json должно называть проект, а не человека');
 assert.equal(manifest.private,true,'private:true защищает от случайной публикации пакета в реестр');
 // Подвал переводится, а не висит по-английски в четырёхъязычном интерфейсе.
 assert.ok(readFileSync(path.join(root,'app','studio.tsx'),'utf8').includes("t('footer.rights')"),
  'строка прав в подвале должна браться из словаря, а не быть зашита');
 
-console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; правообладатель назван во всех трёх местах, а в подвале сайта его нет');
+console.log('PASS: опись лицензий совпадает с package-lock.json ('+rows.length+' пакетов, из них '+shipped.length+' в поставке); неразобранных лицензий в поставке нет; имя правообладателя есть во всех документах и нигде в продукте');
