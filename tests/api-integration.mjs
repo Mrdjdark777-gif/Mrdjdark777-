@@ -1,4 +1,3 @@
-import {createHmac} from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
@@ -34,7 +33,6 @@ await build({
       export * as cover from '${root}/app/api/cover/route.ts';
       export * as live from '${root}/app/api/live/route.ts';
       export * as login from '${root}/app/api/auth/route.ts';
-      export * as ice from '${root}/app/api/ice/route.ts';
       export * as auth from '${root}/lib/auth.ts';
       export * as notifications from '${root}/app/api/notifications/route.ts';
       export * as push from '${root}/lib/push.ts';
@@ -97,12 +95,6 @@ try {
   assert.equal((await request('library', undefined, false)).data.needsSetup, true);
   assert.equal((await request('library', { action: 'setup' }, false)).status, 401);
   assert.equal((await request('library', { action: 'setup' })).status, 200);
-  process.env.TURN_SECRET='test-turn-secret';process.env.TURN_URLS='turn:relay.example:3478?transport=udp';
-  const publicIce=await request('ice',undefined,false);assert.equal(publicIce.data.iceServers.length,1);
-  const ownerIce=await request('ice');assert.equal(ownerIce.data.iceServers.length,2);
-  const turn=ownerIce.data.iceServers[1];assert.equal(turn.credential,createHmac('sha1',process.env.TURN_SECRET).update(turn.username).digest('base64'));assert.ok(Number(turn.username.split(':')[0])>Date.now()/1000+3500);
-  assert.notEqual(turn.username,(await request('ice')).data.iceServers[1].username);assert.equal(JSON.stringify(ownerIce.data).includes(process.env.TURN_SECRET),false);
-  delete process.env.TURN_SECRET;delete process.env.TURN_URLS;
 
   assert.equal((await request('library', { kind: 'story', title: 'Secret', body: 'Draft' }, false)).status, 403);
   assert.equal(

@@ -2194,3 +2194,8 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  .scene-side>.social-row .social-chip{flex:none;justify-content:center;min-height:46px;min-width:0;padding:11px 18px;font-size:14px}
  .scene-side>.social-row .social-chip svg{flex:none}
 }
+
+/* Ссылки на политику и правила: обычные ссылки в рост пальца, без украшений. */
+.legal-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px}
+.legal-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--teal);font-size:14px;text-decoration:none}
+.legal-links a:hover{text-decoration:underline}

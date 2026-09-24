@@ -594,4 +594,19 @@ export const it: Record<keyof typeof ru, string> = {
   "community.errDisabled": "La registrazione non è al momento disponibile.",
   "community.errConflict": "La richiesta ripetuta è diversa da quella iniziale. Ricarica la pagina.",
   "community.errOffline": "Servizio temporaneamente non disponibile.",
+
+  // Pagine legali e titolare dei dati.
+  "legal.updated": "Ultima modifica",
+  "legal.draft": "Il documento non è ancora completo: mancano il titolare dei dati e l’indirizzo di contatto. Fino ad allora non è in vigore e la community resta spenta.",
+  "legal.privacy": "Informativa sulla privacy",
+  "legal.rules": "Regole e condizioni",
+  "settings.legalTitle": "Titolare dei dati",
+  "settings.legalText": "Nome e indirizzo di contatto che le persone vedranno nell’informativa sulla privacy e nelle regole. Senza di essi i documenti non sono in vigore e la community non si accende.",
+  "settings.legalName": "Nome",
+  "settings.legalContact": "Indirizzo di contatto",
+  "settings.legalSave": "Salva",
+  "settings.legalSaved": "Titolare dei dati salvato",
+  "err.legalContact": "L’indirizzo di contatto deve essere un’e-mail nome@dominio",
+  "err.legalName": "Nome: da 2 a 120 caratteri",
+  "settings.legalListener": "Cosa conserva l’app, per chi e perché — e le regole con cui funziona il canale.",
 };

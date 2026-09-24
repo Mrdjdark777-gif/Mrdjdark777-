@@ -1,0 +1,14 @@
+/* Читают такие страницы редко и по делу: длинная строка, крупный текст,
+   никакого оформления сверх необходимого. */
+.legal-page{max-width:720px;margin:0 auto;padding:24px 18px 64px;color:#e8eeec;font-size:16px;line-height:1.65}
+.legal-nav{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:22px;font-size:14px}
+.legal-nav a{color:#6FE7DE;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.legal-page h1{font-size:27px;line-height:1.2;margin:0 0 6px}
+.legal-page h2{font-size:19px;line-height:1.3;margin:30px 0 8px}
+.legal-updated{margin:0 0 18px;color:#9fb0ac;font-size:13px}
+.legal-draft{margin:0 0 18px;padding:12px 14px;border:1px solid #e0b96a;border-radius:12px;background:#2a2412;color:#f0dcae}
+.legal-intro{margin:0 0 6px}
+.legal-page p{margin:0 0 12px;overflow-wrap:anywhere}
+.legal-page ul{margin:0 0 12px;padding-left:22px}
+.legal-page li{margin:0 0 7px}
+.legal-foot{margin-top:40px;padding-top:16px;border-top:1px solid #2c3a38;color:#9fb0ac;font-size:13px}

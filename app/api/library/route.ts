@@ -15,7 +15,7 @@ export async function GET(req: Request){try{
   // готовится», чем показывать пустой архив, будто записей не было вовсе.
   const pending=await db.select({id:liveRecordings.id}).from(liveRecordings)
     .where(inArray(liveRecordings.state,[...LIVE_BUSY_STATES])).get();
-  return result({archivePending:!!pending,items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
+  return result({archivePending:!!pending,items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
   originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb();
@@ -38,6 +38,18 @@ export async function POST(req: Request){try{
     const key=String(d.key??'').trim();
     if(key){if(!key.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(key);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
     await db.insert(settings).values({key:'channelArt',value:key}).onConflictDoUpdate({target:settings.key,set:{value:key}});return result({ok:true});
+  }
+  // Ответственный за данные и адрес для связи. Их показывают политика
+  // конфиденциальности и правила, и без них оба документа не действуют —
+  // поэтому хранятся они там же, где остальные настройки канала, а не в
+  // окружении сервера: автор должен мочь заполнить их сам.
+  if(d.action==='legal'){
+    const name=String(d.name??'').trim(),contact=String(d.contact??'').trim();
+    if(name&&(name.length<2||name.length>120))throw new Error('#err.legalName');
+    if(contact&&(contact.length>160||!/^[^@\s,;:<>"']+@[^@\s,;:<>"']+\.[a-zA-Z]{2,}$/.test(contact)))throw new Error('#err.legalContact');
+    await db.insert(settings).values({key:'legalName',value:name}).onConflictDoUpdate({target:settings.key,set:{value:name}});
+    await db.insert(settings).values({key:'legalContact',value:contact}).onConflictDoUpdate({target:settings.key,set:{value:contact}});
+    return result({ok:true});
   }
   if(d.action==='donations'){
     // parseDonations отбрасывает всё, что не HTTPS и не из известного списка платформ.

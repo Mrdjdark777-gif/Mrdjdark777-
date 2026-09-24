@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок'];
+const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -1271,6 +1271,39 @@ try{
  }
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
+ // Политика и правила: четыре языка, живые ссылки, и честное предупреждение,
+ // пока автор не назвал себя и адрес для связи. Документ без ответственного —
+ // это макет, и выглядеть он должен как макет, а не как действующий документ.
+ {const legal=await browser.newContext({viewport:{width:390,height:844}});
+  const lp=await legal.newPage();
+  await lp.goto(base+'/privacy');await lp.locator('.legal-page h1').waitFor();
+  if(!(await lp.locator('.legal-draft').count()))problems.push('политика без заполненного ответственного не предупреждает об этом');
+  if(!(await lp.locator('.legal-page').innerText()).includes('{contact}'))problems.push('незаполненная подстановка адреса в политике не видна — документ выглядит готовым');
+  await post({action:'legal',name:'True Thrills Test',contact:'legal@example.org'});
+  await lp.reload();await lp.locator('.legal-page h1').waitFor();
+  if(await lp.locator('.legal-draft').count())problems.push('политика заполнена, а предупреждение осталось');
+  const filled=await lp.locator('.legal-page').innerText();
+  if(filled.includes('{contact}')||filled.includes('{controller}'))problems.push('в политике остались незаполненные подстановки');
+  if(!filled.includes('legal@example.org'))problems.push('в политике нет адреса для связи');
+  if(!filled.includes('True Thrills Test'))problems.push('в политике не назван ответственный за данные');
+  const sections=await lp.locator('.legal-page section h2').count();
+  if(sections<10)problems.push('в политике всего '+sections+' разделов — документ обрезан');
+  await lp.screenshot({path:'outputs/ui/legal-privacy.png',fullPage:true});
+  await lp.goto(base+'/rules');await lp.locator('.legal-page h1').waitFor();
+  if(await lp.locator('.legal-page section h2').count()<6)problems.push('в правилах слишком мало разделов');
+  await lp.screenshot({path:'outputs/ui/legal-rules.png',fullPage:true});
+  await legal.close();
+  // Каждый язык отдаёт свой заголовок: подставленный русский на итальянском
+  // экране — это не перевод, а его отсутствие.
+  const titles=new Set();
+  for(const [tag,expect] of [['ru-RU','Политика'],['uk-UA','Політика'],['ro-MD','Politica'],['it-IT','Informativa']]){
+   const ctx=await browser.newContext({locale:tag,viewport:{width:390,height:844}});
+   const page3=await ctx.newPage();await page3.goto(base+'/privacy');await page3.locator('.legal-page h1').waitFor();
+   const heading=(await page3.locator('.legal-page h1').innerText()).trim();titles.add(heading);
+   if(!heading.startsWith(expect))problems.push('политика на '+tag+' открылась заголовком «'+heading+'», ожидалось «'+expect+'…»');
+   await ctx.close();}
+  if(titles.size!==4)problems.push('заголовки политики на четырёх языках совпали: переводов меньше, чем языков');
+  step('правовые страницы');}
  for(const name of MUST_RUN)if(!ran.has(name))problems.push('проверка «'+name+'» не выполнилась ни разу: её условие не сработало, и она ничего не проверила');
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
  console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; знак канала, боковая панель и кнопка настроек в студии нужного размера');

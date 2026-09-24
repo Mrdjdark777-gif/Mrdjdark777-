@@ -9,6 +9,14 @@ function fixture(){const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign
 test('guest cannot read or post comments',()=>{const f=fixture();assert.throws(()=>f.s.list('',f.live),/unauthorized/);assert.throws(()=>f.s.post('',{id:randomUUID(),body:'a',live:f.live}),/unauthorized/);f.db.close();});
 test('registration stores only a hash, not recovery code or raw session',()=>{const f=fixture();const r=f.db.prepare('SELECT * FROM tt_members WHERE id=?').get(f.a.member.id);assert.equal(r.recovery_hash.length,64);assert.ok(!JSON.stringify(r).includes(f.a.code));assert.equal(f.s.me(f.a.token).nickname,f.a.member.nickname);f.db.close();});
 test('code login rotates previous sessions; wrong code rejected',()=>{const f=fixture();assert.throws(()=>f.s.login('ip','wrong'),/invalid_code/);const n=f.s.login('ip',f.a.code);assert.equal(f.s.me(f.a.token),null);assert.equal(f.s.me(n.token).id,f.a.member.id);f.db.close();});
+test('session renews while in use, so a lost code does not lock a person out of their own data',()=>{const f=fixture();
+ // Неделя считается с последнего обращения. Иначе человек, потерявший код,
+ // через семь дней терял доступ к выгрузке и удалению своих же данных.
+ for(let day=0;day<20;day++){f.tick(6*86400000);assert.ok(f.s.me(f.a.token),'вход пропал на '+(day*6)+'-й день, хотя им пользовались');}
+ f.tick(7*86400000+1);assert.equal(f.s.me(f.a.token),null,'заброшенный вход обязан истечь');f.db.close();});
+test('nickname carries no language: the app ships in four',()=>{const f=fixture();
+ assert.ok(!/[А-Яа-яЁё]/.test(f.a.member.nickname),'псевдоним на русском: '+f.a.member.nickname);
+ assert.match(f.a.member.nickname,/^TT-[0-9A-F]{8}$/,'псевдоним не в ожидаемом виде: '+f.a.member.nickname);f.db.close();});
 test('expired session cannot access comments',()=>{const f=fixture();f.tick(7*86400000+1);assert.equal(f.s.me(f.a.token),null);assert.throws(()=>f.s.list(f.a.token,f.live),/unauthorized/);f.db.close();});
 test('rules acceptance and registration rate limit required',()=>{const f=fixture();assert.throws(()=>f.s.signup('ip','old'),/rules_required/);for(let i=0;i<3;i++)f.s.signup('ip',RULES);assert.throws(()=>f.s.signup('ip',RULES),/rate_limit/);f.db.close();});
 test('comment immediately visible to registered listeners without approval',()=>{const f=fixture();f.post();assert.equal(f.s.list(f.a.token,f.live).items[0].state,'published');assert.equal(f.s.list(f.b.token,f.live).items.length,1);assert.equal(f.s.queue().length,1);f.db.close();});

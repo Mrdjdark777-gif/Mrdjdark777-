@@ -542,4 +542,19 @@ export const ro: Record<keyof typeof ru, string> = {
   "community.errDisabled": "Înregistrarea nu este disponibilă momentan.",
   "community.errConflict": "Cererea repetată diferă de cea inițială. Reîncarcă pagina.",
   "community.errOffline": "Serviciu temporar indisponibil.",
+
+  // Pagini legale și responsabilul de date.
+  "legal.updated": "Ultima modificare",
+  "legal.draft": "Documentul nu este încă completat: lipsesc responsabilul de date și adresa de contact. Până atunci nu este în vigoare, iar comunitatea rămâne oprită.",
+  "legal.privacy": "Politica de confidențialitate",
+  "legal.rules": "Reguli și condiții",
+  "settings.legalTitle": "Responsabil de date",
+  "settings.legalText": "Numele și adresa de contact pe care oamenii le vor vedea în politica de confidențialitate și în reguli. Fără ele documentele nu sunt în vigoare, iar comunitatea nu pornește.",
+  "settings.legalName": "Nume",
+  "settings.legalContact": "Adresă de contact",
+  "settings.legalSave": "Salvează",
+  "settings.legalSaved": "Responsabilul de date a fost salvat",
+  "err.legalContact": "Adresa de contact trebuie să fie un e-mail nume@domeniu",
+  "err.legalName": "Nume: între 2 și 120 de caractere",
+  "settings.legalListener": "Ce păstrează aplicația, pentru cine și de ce — și regulile după care funcționează canalul.",
 };
