@@ -353,8 +353,13 @@ export default function Studio(){
      нужна — и её не было нигде, кроме окна первой настройки. Когда отзыв
      сессий разом обнулил все cookie, из приложения на ПК стало не войти
      вовсе: адресной строки там нет, а вид слушателя входа не предлагал.
-     Слушателю она ничего не навязывает: одна строка внизу настроек. */}
- {view==='settings'&&!author&&!data?.signedIn&&
+
+     В приложении на Android входа нет намеренно. Студия — это запись,
+     эфир и разбор очереди: работа за столом, а не с телефона. Показывать
+     туда дверь на устройстве, где ею всё равно не пользуются, значит
+     предлагать слушателю лишнее и держать на виду вход, который тут не
+     нужен. На ПК и в браузере ссылка остаётся. */}
+ {view==='settings'&&!author&&!data?.signedIn&&!hasNativeClient()&&
   <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>
    <h2>{t('settings.ownerTitle')}</h2><p>{t('settings.ownerText')}</p>
    <a className="secondary-button" href="/login">{t('common.login')}</a></section>}
