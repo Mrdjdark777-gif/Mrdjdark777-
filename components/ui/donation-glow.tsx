@@ -1,10 +1,12 @@
 'use client';
-import {useEffect,useState,type ReactNode} from 'react';
-import {BorderBeam} from './border-beam-button';
+import type {ReactNode} from 'react';
+import {BorderBeam} from './border-beam';
 import './donation-glow.css';
 
-/** Сколько секунд луч живёт после появления экрана. */
-const REST_AFTER=6000;
+/** Цвета луча: бирюза канала и её холодный край. */
+const FROM='#6FE7DE',TO='#4AA8FF';
+/** Оборот в секундах. Медленно намеренно — см. комментарий ниже. */
+const TURN=12;
 
 /**
  * Свечение вокруг всего, что связано с поддержкой автора: сердечка в шапке,
@@ -14,25 +16,19 @@ const REST_AFTER=6000;
  * просит, и просит редко; если подсветку расставлять по месту, она разойдётся
  * по виду и начнёт спорить сама с собой.
  *
- * Луч не крутится вечно. В первой версии он вращался раз в две секунды и
- * переливался цветом без остановки — на телефоне это единственное, что на
- * главной двигалось быстро, и владелец увидел мельтешение в углу глаза.
- * Теперь он показывается при появлении экрана и через несколько секунд
- * затихает: акцент остаётся, движение — нет. Перелив цвета выключен совсем.
+ * Луч идёт постоянно: это акцент на действии, и владелец хочет, чтобы он был
+ * виден всегда. Но медленно. Прежний вариант делал оборот за две секунды и
+ * переливался цветом — на телефоне это единственное, что двигалось быстро, и
+ * читалось как мельтешение в углу глаза. Двенадцать секунд на оборот глаз
+ * замечает как живой край, а не как мигание; проверка оформления держит
+ * порог в восемь секунд.
  *
- * Обёртка — обычный блок, поэтому в строке плашек и в сетке площадок она
- * должна вести себя как сама кнопка: за это отвечает класс tt-glow.
- *
- * Уважение к «уменьшить движение» встроено в сам компонент: при этой
- * настройке луч не крутится вовсе.
+ * Луч рисуется поверх кнопки, поэтому обёртка обязана быть позиционированной
+ * и знать своё скругление: он наследует радиус от неё (rounded-[inherit]).
  */
 export function DonationGlow({children,plate=false,className}:{children:ReactNode;plate?:boolean;className?:string}){
- const [awake,setAwake]=useState(true);
- useEffect(()=>{const timer=setTimeout(()=>setAwake(false),REST_AFTER);return()=>clearTimeout(timer);},[]);
- return <BorderBeam
-  className={'tt-glow'+(plate?' tt-glow-plate':'')+(className?' '+className:'')}
-  size={plate?'md':'sm'} colorVariant="colorful" theme="dark" glowSize={plate?1:.8}
-  staticColors active={awake}>
+ return <span className={'tt-glow'+(plate?' tt-glow-plate':'')+(className?' '+className:'')}>
   {children}
- </BorderBeam>;
+  <BorderBeam className="tt-beam" duration={TURN} colorFrom={FROM} colorTo={TO} borderWidth={1.5}/>
+ </span>;
 }

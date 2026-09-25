@@ -324,7 +324,7 @@ try{
      out.chips=chips.length;
      {const strips=[...document.querySelectorAll('.scene-strips>*')].filter(el=>el.tagName!=='STYLE');
       const plate=el=>el.classList.contains('support-strip')?el:el.querySelector('.support-strip');
-      out.litStrip=!!document.querySelector('.scene-strips [data-beam] .support-strip');
+      out.litStrip=!!document.querySelector('.scene-strips .tt-glow .support-strip');
       if(strips.length===2&&chips.length===2){
        const a=plate(strips[0]).getBoundingClientRect(),b=plate(strips[1]).getBoundingClientRect();
        out.strips={dw:Math.abs(a.width-b.width),dh:Math.abs(a.height-b.height),
@@ -405,11 +405,12 @@ try{
    if(!choices)problems.push('сердечко не открыло выбор площадки поддержки');
    // Свечение — опознавательный знак поддержки: оно должно быть и на площадках
    // в окне, и на сердечке в шапке, и на плашке главной.
-   {const lit=await page.evaluate(()=>({choices:document.querySelectorAll('.donate-dialog [data-beam] .donate-choice').length,
-      button:document.querySelectorAll('[data-beam] .support-button').length}));
+   {const lit=await page.evaluate(()=>({choices:document.querySelectorAll('.donate-dialog .tt-glow .donate-choice').length,
+      button:document.querySelectorAll('.tt-glow .support-button').length}));
     if(lit.choices!==choices)problems.push('площадки в окне поддержки без свечения: '+lit.choices+' из '+choices);
     if(!lit.button)problems.push('сердечко в шапке без свечения');}
    if(!await page.locator('.donate-note').count())problems.push('в окне поддержки нет пояснения, зачем эти ссылки');
+   await page.screenshot({path:'outputs/ui/donate-dialog.png'});
    await page.keyboard.press('Escape');await page.waitForTimeout(250);}
   // Полный круг строки «Продолжить»: послушал — закрыл — вернулся — закрыл.
   // Каждый шаг проверялся по отдельности, а вместе — ни разу, и разойтись они

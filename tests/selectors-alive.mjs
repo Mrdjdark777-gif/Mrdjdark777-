@@ -25,7 +25,6 @@ const root=path.resolve(import.meta.dirname,'..');
 
 /** Имена, которых в наших исходниках нет и быть не должно. */
 const ALLOWED=new Map([
- ['data-beam','рисует border-beam во время работы'],
  ['data-sonner-toast','рисует sonner во время работы'],
  ['voice-columns','надгробие: строку разделов из каталога убрали'],
  ['catalog-scope','надгробие: переключатель записей эфиров из каталога убрали'],

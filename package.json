@@ -23,7 +23,6 @@
     "@block65/webcrypto-web-push": "2.0.0",
     "@paper-design/shaders": "^0.0.80",
     "better-sqlite3": "^11.8.1",
-    "border-beam": "^1.4.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "drizzle-orm": "0.45.2",
