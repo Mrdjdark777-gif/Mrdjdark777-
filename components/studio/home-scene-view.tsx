@@ -1,35 +1,27 @@
 'use client';
+import './home-soft.css';
 import {useEffect,useRef,useState} from 'react';
 import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
-import {homeScene,freshSections,type ScenePost} from '@/lib/home-scene';
+import {homeScene,type ScenePost} from '@/lib/home-scene';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
 import {clock,haptic,coverSrc} from '@/lib/client';
 import {Artwork} from './artwork';
 
-/**
- * Главная S01 «Погружение»: фотография во всю ширину, поверх неё снизу —
- * название выпуска, метаданные и действие; под кадром строка «Продолжить»,
- * три фото-плитки разделов и поддержка.
- *
- * Фотографии настоящие: обложка публикации или обложка эфира. Своей обложки
- * нет — остаётся фирменный тёмный фон с логотипом. Сток не подставляем: лучше
- * честный тёмный кадр, чем чужая картинка, выданная за материал автора.
- *
- * Идущий эфир не подменяет публикацию в кадре: он приходит отдельной живой
- * строкой над плитками, чтобы выпуск под пальцем не менялся неожиданно.
+/** Главная по эталону владельца: кадр с надписью сверху и кнопкой снизу,
+ * карусель свежего, строка архива, карточка поддержки с площадками.
+ * Навигация, плеер и видимость публикаций работают как раньше.
  */
 const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>coverSrc(p);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,archive,support,links,appLink,sections,pinned}:{
- posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;liveAction:string;
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned}:{
+ posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;onBrowse?:()=>void;liveAction:string;
  archive?:React.ReactNode;support:React.ReactNode;links?:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
- sections:{kind:'podcast'|'video'|'story';label:string;go:()=>void}[];
 }){
  const {t}=useT();
  const [device,setDevice]=useState<{progress:ReturnType<typeof readProgress>;seen:string[];hidden:string[]}>({progress:[],seen:[],hidden:[]});
@@ -47,7 +39,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
  useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned});
- const fresh=freshSections({posts,seen:device.seen,hidden:device.hidden,heroId:picked.hero?.id??null});
+
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со
  // всеми полями, поэтому находим её по id.
  const hero=picked.hero?posts.find(p=>p.id===picked.hero!.id)??null:null;
@@ -57,15 +49,16 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  // один и тот же выпуск в двух местах подряд незачем.
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
  const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
-  .sort((a,b)=>b.createdAt-a.createdAt).slice(0,4);
- // Плитка раздела показывает обложку самой свежей публикации этого типа —
- // настоящую, а не отдельную декоративную картинку.
- const tileCover=(kind:string)=>{
-  const newest=posts.filter(p=>p.published===1&&p.kind===kind).sort((a,b)=>b.createdAt-a.createdAt)[0];
-  return newest?coverOf(newest):'';
- };
+  .sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);
  const heroCover=hero?coverOf(hero):'';
- const heroAction=hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
+ const heroResume=resume?.post.id===hero?.id?resume:null;
+ const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
+ // Надстрочная надпись в кадре — вид публикации, он уже записан заглавными
+ // в словарях. Отдельной «темы» у выпусков нет, выдумывать её нельзя.
+ const heroKind=hero?.kind==='video'?t('post.video'):hero?.kind==='story'?t('post.story'):t('post.podcast');
+ // Полоса под кнопкой показывает настоящее место в выпуске, а не оформление:
+ // нет длительности — нет и полосы.
+ const heroPart=heroResume&&heroResume.duration>0?Math.min(1,Math.max(0,heroResume.position/heroResume.duration)):0;
  const press=hero?{
   onPointerDown:(e:React.PointerEvent)=>{if(e.button!==0)return;held.current=false;if(hold.current)clearTimeout(hold.current);hold.current=setTimeout(()=>{held.current=true;haptic();setMenu({id:hero.id,title:hero.title});},HOLD_MS);},
   onPointerUp:()=>{if(hold.current)clearTimeout(hold.current);},
@@ -73,15 +66,26 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   onPointerCancel:()=>{if(hold.current)clearTimeout(hold.current);held.current=true;},
   onContextMenu:(e:React.MouseEvent)=>e.preventDefault(),
  }:{};
- return <div className="immersion">
+ return <div className="immersion tt-soft-home">
   <section className={'scene'+(heroCover?'':' scene-fallback')} {...press}>
    <Artwork className="scene-photo" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="scene-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/>
    <div className="scene-shade" aria-hidden="true"/>
    {hero?<>
     <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
+    {/* Надпись сверху, кнопка снизу: между ними остаётся видимая обложка.
+        Когда всё стояло внизу одной стопкой, текст ложился на снимок, а сам
+        снимок обрезался сверху и от него оставалась полоса. */}
     <div className="scene-copy">
+     <span className="soft-eyebrow">{heroKind}</span>
      <h2 className="scene-title">{hero.title}</h2>
-     <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
+     {hero.description&&<p className="soft-description">{hero.description}</p>}
+    </div>
+    <div className="soft-hero-foot">
+     <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
+     {heroResume&&heroResume.duration>0&&<div className="soft-hero-progress">
+      <span className="soft-hero-time">{clock(heroResume.position)} / {clock(heroResume.duration)}</span>
+      <span className="soft-hero-track" aria-hidden="true"><span className="soft-hero-fill" style={{width:(heroPart*100).toFixed(1)+'%'}}/></span>
+     </div>}
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
@@ -93,8 +97,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
       наплодил бы пустых строк с промежутками между ними. */}
   <div className="scene-side">
   {/* Описание канала на мониторе живёт здесь, а не поверх фотографии: там оно
-      мелкое и лежит на снимке, а правая колонка на небольшом канале пустует.
-      На телефоне остаётся как было — поверх кадра. */}
+      мелкое и лежит на снимке, а правая колонка на небольшом канале пустует. */}
   <p className="side-intro">{t('home.channelIntro')}</p>
   {/* Под кадром — одна строка, а не стопка. Идёт эфир — он и стоит здесь, он
       важнее и заканчивается; нет эфира — строка «Продолжить». Раньше сюда
@@ -102,7 +105,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   {live?<button type="button" className="live-strip tt-pressable" onClick={()=>{haptic();onOpenLive();}}>
    <span className="live-dot" aria-hidden="true"/><span className="live-strip-copy"><strong>{live.title}</strong><span>{t('live.authorOnAir')}</span></span>
    <span className="live-strip-action">{liveAction}<ChevronRight size={17}/></span>
-  </button>:resume?<div className="resume-wrap">
+  </button>:resume&&!heroResume?<div className="resume-wrap">
    <button type="button" className="resume-row tt-pressable" onClick={()=>{haptic();onOpen(resume.post,true);}}>
     <Clock size={18}/><span className="resume-copy"><span className="resume-label">{t('home.continue')}</span>
     <span className="resume-sep" aria-hidden="true">·</span><span className="resume-time">{clock(resume.position)}</span></span>
@@ -113,36 +116,31 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     onClick={()=>{haptic();hideResume(resume.post.id);}}><X size={17}/></button>
   </div>:null}
 
-  <div className="section-tiles">
-   {sections.map(s=>{const Icon=ICON[s.kind],cover=tileCover(s.kind);
-    return <button key={s.kind} type="button" className={'section-tile'+(cover?'':' section-tile-plain')} onClick={()=>{haptic();s.go();}}>
-     <Artwork src={cover} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon className="section-tile-icon" size={26}/>}/>
-     <span className="section-tile-shade" aria-hidden="true"/>
-     <span className="section-tile-copy"><strong>{s.label}</strong>{fresh.has(s.kind)&&<span className="section-tile-new">{t('home.fresh')}</span>}</span>
-    </button>;})}
-  </div>
-
-  {latest.length>0&&<section className="fresh-list">
-   <h3 className="fresh-list-title">{t('home.freshList')}</h3>
-   {latest.map(p=>{const Icon=ICON[p.kind as 'podcast'|'video'|'story']??Headphones;
-    return <button key={p.id} type="button" className="fresh-row tt-pressable" onClick={()=>{haptic();onOpen(p);}}>
-     <Artwork className="fresh-cover" src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon size={18}/>}/>
-     <span className="fresh-copy">
-      <strong>{p.title}</strong>
-      <span>{p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story')}{p.duration>0?' · '+clock(p.duration):''}</span>
-     </span>
-     <ChevronRight size={17}/>
-    </button>;})}
+  {latest.length>0&&<section className="soft-catalog" aria-label={t('home.freshList')}>
+   <div className="soft-catalog-head">
+    <h3>{t('home.freshList')}</h3>
+    {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
+   </div>
+   <ul className="soft-carousel" aria-label={t('home.freshList')}>
+    {latest.map(p=>{const Icon=ICON[p.kind as keyof typeof ICON]??Headphones;
+     return <li key={p.id}><button type="button" className="soft-episode tt-pressable" onClick={()=>{haptic();onOpen(p);}}>
+      <span className="soft-art"><Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon size={36}/>}/><span className="soft-play" aria-hidden="true">{p.kind==='story'?<BookOpen size={19}/>:<Play size={19}/>}</span></span>
+      <strong>{p.title}</strong><span className="soft-meta"><Icon size={14}/>{p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story')}{p.duration>0?' · '+clock(p.duration):''}</span>
+     </button></li>;})}
+   </ul>
   </section>}
-
-  {/* Архив эфиров — отдельный вход с главной: записи живут не в каталоге, и
-      добираться до них через вкладку эфира каждый раз незачем. На низком
-      экране две плашки встают в ряд, иначе нижняя уходит под мини-плеер. */}
-  <div className="scene-strips">{archive}{support}</div>
-  {/* Площадки автора — значками и сразу на главной. В настройках им не место:
-      туда идут за настройками, а не за ссылками. */}
-  {links}
-  {appLink}
+  {/* Архив эфиров — вход в раздел, а не выпуск. Карточкой в карусели он
+      выглядел как публикация, которую можно включить; строкой во всю ширину
+      он читается тем, чем является. */}
+  {archive&&<div className="soft-archive-row">{archive}</div>}
+  {appLink&&<div className="soft-app-link">{appLink}</div>}
+  {/* Последний блок содержимого; глобальный плеер и вкладки живут снаружи. */}
+  <section className="soft-support">
+   {support}
+   {links&&<div className="soft-socials"><span className="soft-socials-label">{t('home.socialsLabel')}</span>{links}</div>}
+  </section>
+  {/* Место под глобальный мини-плеер: он висит поверх и иначе накрыл бы поддержку. */}
+  <div className="soft-tail" aria-hidden="true"/>
   </div>
 
   <Dialog open={!!menu} onOpenChange={open=>{if(!open)setMenu(null);}}>

@@ -681,9 +681,12 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .is-listener .support-button{width:40px;height:40px;background:none;border:none;color:#e8ebec;box-shadow:none}
 .is-listener .support-button svg{fill:none}
 
-/* Главная: фотография начинается от самого верха, шапка ложится на неё. */
-.is-immersive .top-header{position:absolute;top:0;left:0;right:0;z-index:20;background:none;
- padding-top:calc(10px + env(safe-area-inset-top))}
+/* Шапка стоит НАД кадром, а не поверх него. Раньше фотография начиналась от
+   самого верха экрана и шапка ложилась на неё. На новой главной кадр — это
+   карточка со скруглением: наехавшая шапка срезала ей верх вместе с
+   надстрочной подписью и названием. */
+.is-immersive .top-header{position:relative;z-index:20;background:none;
+ padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:2px}
 .is-immersive .top-header-brand,.is-immersive .top-header-actions .quiet-button,.is-immersive .support-button{
  color:#f4f3f1;text-shadow:0 1px 12px rgba(0,0,0,.6)}
 .is-immersive .status-bar-veil{display:none}

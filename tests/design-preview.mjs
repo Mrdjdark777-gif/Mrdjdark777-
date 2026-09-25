@@ -11,7 +11,7 @@
  */
 import {chromium} from 'playwright';
 import {spawn,execFileSync} from 'node:child_process';
-import {mkdtemp,mkdir,rm,readFile,writeFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-design-')),soft=process.env.TT_DESIGN_SOFT==='1';
@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии'];
+const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -205,9 +205,17 @@ try{
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),false,'на главной Back отдаётся системе');
  for(const [width,height] of [[390,844],[360,640]]){
   await page.setViewportSize({width,height});await page.waitForTimeout(150);
-  const m=await metrics(page);check(m.scrollH<=height+1,`главная с мини-плеером ${width}x${height}: ${m.scrollH}>${height}`);
-  const support=await page.locator('.support-strip:not(.app-strip):not(.archive-strip)').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
-  check(support.y+support.height<=mini.y,`мини-плеер закрывает донат ${width}x${height}`);
+  // Новая главная выше экрана намеренно: в ней карусель и блок поддержки.
+  // Требование не «помещается», а «доступно»: пролистав до низа, поддержку
+  // видно целиком и мини-плеер её не накрывает.
+  await page.evaluate(()=>{const m=document.querySelector('.main-content');(m||document.scrollingElement).scrollTop=99999;});
+  await page.waitForTimeout(350);
+  const support=await page.locator('.soft-support').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
+  check(!!support&&!!mini,`на ${width}x${height} нет блока поддержки или мини-плеера`);
+  if(support&&mini){
+   check(support.y+support.height<=mini.y+1,`мини-плеер закрывает поддержку ${width}x${height}: низ ${Math.round(support.y+support.height)} против ${Math.round(mini.y)}`);
+   check(support.y>=0,`блок поддержки уехал выше экрана ${width}x${height}: ${Math.round(support.y)}`);
+  }
   await shot(page,`mini-${width}`);
  }
  await page.setViewportSize({width:390,height:844});
@@ -301,35 +309,25 @@ try{
    // Меряем в браузере, а не на глаз, и с запасом в один пиксель на округление.
    {const sym=await page.evaluate(()=>{
      const mid=el=>{const r=el.getBoundingClientRect();return r.left+r.width/2;};
-     // Мерить коробку мало: при text-align:left блок остаётся во всю ширину,
-     // его центр совпадает с центром контейнера, а буквы стоят слева. Поэтому
-     // берём прямоугольник самого текста через Range — он обводит строки, а не
-     // блок, — и заодно спрашиваем вычисленный text-align, чтобы проверка не
-     // зависела от того, какой длины оказалось название в этот раз.
-     const textMid=el=>{const r=document.createRange();r.selectNodeContents(el);
-      const box=r.getBoundingClientRect();return box.width?box.left+box.width/2:null;};
      const out={};
+     // Надпись в кадре набрана слева — так на эталоне владельца. Проверяем не
+     // центровку, а общую ось: надстрочная подпись, название, описание и
+     // кнопка запуска должны начинаться с одной вертикали, иначе кадр
+     // выглядит рассыпанным.
      const copy=document.querySelector('.scene-copy'),title=document.querySelector('.scene-title');
      if(copy&&title){
       out.titleAlign=getComputedStyle(title).textAlign;
-      const m=textMid(title);
-      out.title=m===null?0:Math.abs(m-mid(copy));
+      // Левый край коробки, а не текста: у кнопки внутри свои отступы, и по
+      // тексту она всегда оказалась бы правее надписи. Набор слева проверяет
+      // отдельная строка ниже — text-align.
+      const edges=[document.querySelector('.soft-eyebrow'),title,document.querySelector('.soft-description'),
+       document.querySelector('.soft-hero-foot .scene-action')].filter(Boolean)
+       .map(el=>el.getBoundingClientRect().left);
+      out.edgeCount=edges.length;
+      out.edge=edges.length>1?Math.round(Math.max(...edges)-Math.min(...edges)):0;
      }
-     out.tiles=[...document.querySelectorAll('.section-tile')].map(tile=>{
-      const label=tile.querySelector('.section-tile-copy strong');
-      if(!label)return {shift:0,align:'center'};
-      const m=textMid(label);
-      return {shift:m===null?0:Math.abs(m-mid(tile)),align:getComputedStyle(label).textAlign};});
      const chips=[...document.querySelectorAll('.scene-side .social-row>*')];
      out.chips=chips.length;
-     {const strips=[...document.querySelectorAll('.scene-strips>*')].filter(el=>el.tagName!=='STYLE');
-      const plate=el=>el.classList.contains('support-strip')?el:el.querySelector('.support-strip');
-      out.litStrip=!!document.querySelector('.scene-strips .tt-glow .support-strip');
-      if(strips.length===2&&chips.length===2){
-       const a=plate(strips[0]).getBoundingClientRect(),b=plate(strips[1]).getBoundingClientRect();
-       out.strips={dw:Math.abs(a.width-b.width),dh:Math.abs(a.height-b.height),
-        dchip:Math.abs(a.width-chips[0].getBoundingClientRect().width),
-        radius:Math.round(parseFloat(getComputedStyle(plate(strips[0])).borderTopLeftRadius))};}}
      const home=document.querySelector('.bottom-nav-home');
      out.home=!!home;
      if(chips.length===2&&home){
@@ -338,48 +336,49 @@ try{
       out.widths=Math.abs(a.width-b.width);
      }
      return out;});
-    if(sym.titleAlign!=='center')problems.push('название в кадре набрано не по центру: text-align='+sym.titleAlign);
-    if(sym.title>1)problems.push('название в кадре смещено с оси кадра на '+Math.round(sym.title)+'px');
-    const tiles=sym.tiles||[];
-    const skew=tiles.findIndex(t=>t.shift>1),lean=tiles.findIndex(t=>t.align!=='center');
-    if(lean>=0)problems.push('подпись плитки '+(lean+1)+' набрана не по центру: text-align='+tiles[lean].align);
-    if(skew>=0)problems.push('подпись плитки '+(skew+1)+' смещена от середины окошка на '+Math.round(tiles[skew].shift)+'px');
+    if(sym.titleAlign!=='left')problems.push('название в кадре набрано не слева: text-align='+sym.titleAlign);
+    if(sym.edgeCount<3)problems.push('в кадре нечему выравниваться: найдено '+sym.edgeCount+' элемента надписи');
+    if(sym.edge>2)problems.push('надпись и кнопка в кадре стоят на разных вертикалях: расхождение '+sym.edge+'px');
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
     if(!sym.home)problems.push('в нижней панели нет знака канала — с чем сверять симметрию площадок, непонятно');
     if(sym.chips===2&&sym.home)step('симметрия строки площадок');
-    // Архив и поддержка — пара, и по форме они должны совпадать с быстрыми
-    // ссылками под ними: та же высота и та же ширина половины строки.
-    // Четыре плашки на главной — архив, поддержка и две быстрые ссылки —
-    // обязаны быть одной кнопкой в четырёх экземплярах. Они уже расходились
-    // фоном, рамкой, весом шрифта и отступом между значком и надписью: по
-    // отдельности каждая мелочь незаметна, а вместе ряд выглядит собранным
-    // из двух разных наборов.
-    {const plates=await page.evaluate(()=>{
-      const items=[...document.querySelectorAll('.scene-strips .support-strip'),...document.querySelectorAll('.scene-side .social-row>*')];
-      return items.map(el=>{const c=getComputedStyle(el),r=el.getBoundingClientRect();
-       return {name:(el.innerText||'').trim().split('\n')[0].slice(0,14),
-        vid:[Math.round(r.width),Math.round(r.height),c.borderTopLeftRadius,c.backgroundColor,
-         c.borderTopWidth,c.borderTopColor,c.paddingTop,c.paddingLeft,c.fontSize,c.fontWeight,c.gap,c.boxShadow].join('|')};});});
-     if(plates.length!==4)problems.push('на главной '+plates.length+' плашек вместо четырёх — сравнивать не с чем');
-     else{
-      const odd=plates.filter(p=>p.vid!==plates[0].vid);
-      if(odd.length)problems.push('плашки на главной разного вида: «'+plates[0].name+'» против '+
-       odd.map(p=>'«'+p.name+'»').join(', ')+'\n     '+plates[0].vid+'\n     '+odd[0].vid);}}
-    if(!sym.strips)problems.push('на главной нет пары «архив и поддержка»');
-    if(sym.litStrip)problems.push('на плашке поддержки главной снова свечение — оно оставлено только сердечку');
-    else{
-     if(sym.strips.dw>1)problems.push('архив и поддержка разной ширины: разница '+Math.round(sym.strips.dw)+'px');
-     if(sym.strips.dh>1)problems.push('архив и поддержка разной высоты: разница '+Math.round(sym.strips.dh)+'px');
-     if(sym.strips.dchip>1)problems.push('плашки и быстрые ссылки разной ширины: разница '+Math.round(sym.strips.dchip)+'px');
-     if(sym.strips.radius<40)problems.push('плашки не в форме капсулы: скругление '+sym.strips.radius+'px');}
-    if(sym.seam>1)problems.push('шов между кнопками площадок не совпадает с кнопкой «Главная»: смещение '+Math.round(sym.seam)+'px');
-    if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');}
+    if(sym.widths>1)problems.push('кнопки площадок разной ширины: разница '+Math.round(sym.widths)+'px');
+    // Шов между YouTube и TikTok раньше измерялся и ни с чем не сверялся.
+    // Владелец просил, чтобы он совпадал с осью знака канала в нижней панели.
+    if(sym.chips===2&&sym.home&&sym.seam>2)problems.push('шов между кнопками площадок не на оси знака канала: расхождение '+Math.round(sym.seam)+'px');}
+   // Порядок главной по эталону владельца: карусель свежего, под ней строкой
+   // во всю ширину вход в архив эфиров, последним блоком — поддержка, а
+   // площадки автора внутри неё. Карточкой в карусели архив читался как
+   // выпуск, который можно включить, поэтому кнопки play у него быть не
+   // должно и в карусели его быть не должно.
+   {const order=await page.evaluate(()=>{
+     const side=document.querySelector('.scene-side');
+     const car=document.querySelector('.soft-catalog'),row=document.querySelector('.soft-archive-row');
+     const support=document.querySelector('.soft-support');
+     const at=el=>el&&side?[...side.children].indexOf(el.closest('.scene-side>*')):-1;
+     return {row:!!row,
+      inCarousel:!!document.querySelector('.soft-carousel .archive-strip'),
+      play:!!(row&&row.querySelector('.soft-play')),
+      afterCarousel:at(row)>at(car)&&at(car)>=0,
+      beforeSupport:at(row)<at(support)&&at(support)>=0,
+      supportInside:!!(support&&support.querySelector('.support-strip')),
+      socialsBelow:!!(support&&support.querySelector('.soft-socials')),
+      cards:document.querySelectorAll('.soft-carousel>li').length};});
+    if(!order.row)problems.push('на главной нет строки входа в архив эфиров');
+    if(order.inCarousel)problems.push('архив эфиров снова лежит карточкой в карусели — это вход в раздел, а не выпуск');
+    if(order.play)problems.push('у строки архива появилась кнопка воспроизведения');
+    if(!order.afterCarousel)problems.push('строка архива стоит не под каруселью свежего');
+    if(!order.beforeSupport)problems.push('строка архива стоит не перед блоком поддержки');
+    if(order.cards<2)problems.push('в карусели '+order.cards+' карточек — выпуски не собрались');
+    if(!order.supportInside)problems.push('поддержки нет в последнем блоке содержимого');
+    if(!order.socialsBelow)problems.push('площадок автора нет под поддержкой');
+    step('порядок новой главной');}
    // Главная кнопка: одна подпись и никакой оправы. Металлическая обёртка
    // накладывала на «Слушать» собственную надпись «Открыть» и обводила кнопку.
-   {const cta=await page.evaluate(()=>{const b=document.querySelector('.scene-copy .scene-action');
-     if(!b)return null;const copy=b.closest('.scene-copy');
+   {const cta=await page.evaluate(()=>{const b=document.querySelector('.soft-hero-foot .scene-action');
+     if(!b)return null;const copy=b.closest('.soft-hero-foot');
      return {labels:copy.querySelectorAll('.scene-action, .tt-metal-content').length,
-      text:b.textContent.trim(),metal:document.querySelectorAll('.scene-copy .tt-metal').length};});
+      text:b.textContent.trim(),metal:document.querySelectorAll('.scene .tt-metal').length};});
     if(!cta)problems.push('на главной нет кнопки запуска');
     else{
      if(cta.labels!==1)problems.push('на главной кнопке '+cta.labels+' подписи вместо одной');
@@ -897,12 +896,29 @@ try{
  // площадок, и прятать то, о чём он просил, хуже, чем дать пролистнуть один
  // блок. Поэтому там проверяем, что до сгиба помещается главное — герой,
  // плитки и поддержка, — а площадки могут оказаться чуть ниже.
- for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollH<=m.innerH+1,`главная ${width}×${height} прокручивается: ${m.scrollH}>${m.innerH}`);}
+ for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);
+  const fold=await page.evaluate(()=>{const b=s=>{const n=document.querySelector(s);return n?Math.round(n.getBoundingClientRect().bottom):null;};
+   const nav=document.querySelector('.bottom-nav');
+   return {title:b('.scene-title'),action:b('.scene-action'),carousel:!!document.querySelector('.soft-carousel'),
+    support:b('.soft-support'),navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
+  check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: название выпуска уходит за первый экран (${fold.title})`);
+  check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
+  check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
+  // Блок поддержки — последний на главной. Подрезанный панелью разделов, он
+  // читается как поломка: владелец именно на это и указал. Пока плеер не
+  // играет, главная обязана помещаться целиком.
+  check(fold.support!==null&&fold.navTop!==null,`главная ${width}×${height}: нет блока поддержки или панели разделов`);
+  if(fold.support!==null&&fold.navTop!==null)
+   check(fold.support<=fold.navTop,`главная ${width}×${height}: панель разделов режет блок поддержки (низ ${fold.support} против ${fold.navTop})`);
+  await shot(page,`home${width===390?'':'-'+width}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
-  const bottom=await page.locator('.support-strip:not(.app-strip):not(.archive-strip)').evaluate(el=>Math.round(el.getBoundingClientRect().bottom));
-  check(bottom<=640,`на 360×640 строка поддержки уходит за первый экран: ${bottom}>640`);
-  const m=await metrics(page);
-  check(m.scrollH<=m.innerH+140,`на 360×640 главная прокручивается больше чем на один блок: ${m.scrollH}>${m.innerH}`);
+  // До сгиба обязаны помещаться кадр и кнопка запуска: за ними человек и
+  // пришёл. Карусель и поддержка лежат ниже — это замысел новой главной,
+  // и прятать их прокруткой честнее, чем ужимать кадр до полоски.
+  const fold=await page.evaluate(()=>{const b=el=>{const n=document.querySelector(el);return n?Math.round(n.getBoundingClientRect().bottom):null;};
+   return {action:b('.scene-action'),carousel:b('.soft-carousel')};});
+  check(fold.action!==null&&fold.action<=640,`на 360×640 кнопка запуска уходит за первый экран: ${fold.action}>640`);
+  check(fold.carousel!==null,'на 360×640 карусели свежего нет');
   await shot(page,'home-360');}
  await fresh.close();
  // Студия автора на широком экране.
@@ -1025,33 +1041,25 @@ try{
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
    if(Math.abs(frame.headRight-frame.mainRight)>1)problems.push('слушатель '+w+': шапка не по колонке содержимого ('+frame.headRight+' против '+frame.mainRight+')');
-   // Главная в две колонки: кадр слева, всё остальное справа от него, а не
-   // под ним. Кадр больше не занимает экран по высоте.
-   const two=await g.evaluate(()=>{const sc=document.querySelector('.immersion>.scene'),
-    side=document.querySelector('.scene-side');
-    if(!sc||!side)return null;const a=sc.getBoundingClientRect(),b=side.getBoundingClientRect();
-    return {sceneRight:Math.round(a.right),sideLeft:Math.round(b.left),
-     sceneH:Math.round(a.height),viewport:innerHeight};});
-   if(!two)problems.push('слушатель '+w+': на главной нет кадра или правой колонки');
-   // Карточки разделов держат ту же пропорцию 4:5, что и обложки: иначе
-   // вертикальную картинку 1080×1350 режет по высоте до полоски.
-   const tiles=await g.evaluate(()=>[...document.querySelectorAll('.section-tile')]
-    .map(el=>{const r=el.getBoundingClientRect();return Math.round(r.width/r.height*100)/100;}));
-   const wrong=tiles.filter(r=>Math.abs(r-0.8)>0.05);
-   if(!tiles.length)problems.push('слушатель '+w+': карточек разделов нет');
-   // Описание канала стоит в правой колонке, а не поверх фотографии. Оно не
-   // зависит от числа публикаций — в отличие от списка свежего, который на
-   // канале с одним выпуском пуст, и колонка оставалась голой.
-   const intro=await g.evaluate(()=>{const side=document.querySelector('.side-intro'),
-    over=document.querySelector('.scene-intro');
-    return {side:!!side&&getComputedStyle(side).display!=='none'&&side.textContent.trim().length>10,
-     over:!!over&&getComputedStyle(over).display!=='none'};});
-   if(!intro.side)problems.push('слушатель '+w+': описания канала нет в правой колонке');
-   if(intro.over)problems.push('слушатель '+w+': описание канала осталось и поверх кадра — показано дважды');
-   else if(wrong.length)problems.push('слушатель '+w+': карточки разделов не 4:5 — '+wrong.join(', '));
-   else{
-    if(two.sideLeft<two.sceneRight)problems.push('слушатель '+w+': правая колонка налезает на кадр ('+two.sideLeft+' < '+two.sceneRight+')');
-    if(two.sceneH>two.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+two.sceneH+'px при экране '+two.viewport);
+   // Главная 2.0 на мониторе — одна колонка по центру, не растянутая на всю
+   // ширину: кадр, карусель, поддержка. Прежняя раскладка в две колонки с
+   // описанием канала справа ушла вместе со старой главной.
+   {const wide=await g.evaluate(()=>{const sc=document.querySelector('.immersion>.scene'),
+     home=document.querySelector('.immersion.tt-soft-home'),car=document.querySelector('.soft-carousel'),
+     sup=document.querySelector('.soft-support');
+     if(!sc||!home)return null;const a=sc.getBoundingClientRect(),h=home.getBoundingClientRect();
+     return {sceneH:Math.round(a.height),viewport:innerHeight,columnW:Math.round(h.width),
+      cards:document.querySelectorAll('.soft-carousel>li').length,
+      carousel:!!car,support:!!sup,
+      overflow:Math.round(car?car.scrollWidth-car.clientWidth:0)};});
+    if(!wide)problems.push('слушатель '+w+': на главной нет кадра или новой обёртки');
+    else{
+     if(!wide.carousel)problems.push('слушатель '+w+': карусели свежего нет');
+     if(!wide.support)problems.push('слушатель '+w+': блока поддержки нет');
+     if(wide.cards<2)problems.push('слушатель '+w+': в карусели '+wide.cards+' карточек — архив и выпуски не собрались');
+     if(wide.sceneH>wide.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+wide.sceneH+'px при экране '+wide.viewport);
+     if(wide.columnW>1000)problems.push('слушатель '+w+': колонка содержимого растянута на '+wide.columnW+'px');
+    }
    }
   }
   // 1023 — последний пиксель телефонной раскладки. Проверяем, что за границей
@@ -1369,8 +1377,8 @@ try{
  // Если телефон изменили намеренно — пересними замок и скажи об этом в
  // сообщении коммита: TT_LOCK_WRITE=1 npm run test:design
  {const ANCHORS={
-   'слушатель 390':{url:'/?mode=listen&view=home',w:390,h:844,sel:['.top-header','.scene-title','.scene-action','.scene-strips','.scene-side .social-row','.bottom-nav']},
-   'слушатель 360':{url:'/?mode=listen&view=home',w:360,h:640,sel:['.scene-action','.scene-strips','.bottom-nav']},
+   'слушатель 390':{url:'/?mode=listen&view=home',w:390,h:844,sel:['.top-header','.scene-title','.scene-action','.soft-carousel','.soft-support','.scene-side .social-row','.bottom-nav']},
+   'слушатель 360':{url:'/?mode=listen&view=home',w:360,h:640,sel:['.scene-action','.soft-carousel','.bottom-nav']},
    'каталог 390':{url:'/?mode=listen&view=podcasts',w:390,h:844,sel:['.post-list','.post-card','.bottom-nav']},
    'эфир 390':{url:'/?mode=listen&view=live',w:390,h:844,sel:['.live-rings','.live-archive-card','.bottom-nav']},
    'студия 1440':{url:'/',w:1440,h:900,sel:['.library-tiles','.side-nav,.bottom-nav','.main-content']},
@@ -1391,7 +1399,7 @@ try{
    await writeFile(lockPath,JSON.stringify(taken,null,1)+'\n');
    console.log('ЗАМОК ПЕРЕСНЯТ:',lockPath);
   }else{
-   let saved=null;try{saved=JSON.parse(await readFile(lockPath,'utf8'));}catch{}
+   const {readFile}=await import('node:fs/promises');let saved=null;try{saved=JSON.parse(await readFile(lockPath,'utf8'));}catch{}
    if(!saved)problems.push('замка телефона и студии нет: сними его один раз командой TT_LOCK_WRITE=1 npm run test:design');
    else for(const [name,got] of Object.entries(taken)){
     const was=saved[name];

@@ -1,0 +1,120 @@
+/* Главная слушателя. Плеер, вкладки и воспроизведение не трогаются.
+   Углы намеренно круглее эталона: в приложении всё остальное скруглено так же. */
+.immersion.tt-soft-home{--soft-radius:32px;--soft-card:26px;--soft-line:#ffffff14;--soft-surface:#141b1f;
+ display:flex!important;flex-direction:column!important;gap:12px!important;width:100%;min-width:0;
+ padding:6px 16px 16px!important;background:#0d0f12;box-sizing:border-box;height:auto!important;overflow:visible!important}
+
+/* ── Кадр ──────────────────────────────────────────────────────────────
+   Надпись вверху, кнопка внизу, между ними видно саму обложку. Всё внизу
+   одной стопкой закрывало снимок, а сверху его подрезала шапка. */
+/* Отступ сверху освобождал место наехавшей шапке. Шапка теперь стоит над
+   кадром, и отступ только съедал бы фотографию. */
+.tt-soft-home .scene,.tt-soft-home .scene-fallback{padding:0!important;margin:0!important}
+.tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;width:100%!important;
+ height:clamp(190px,23.5svh,290px)!important;min-height:190px!important;
+ border-radius:var(--soft-radius)!important;overflow:hidden;border:1px solid #6fe7de22}
+.tt-soft-home .scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tt-soft-home .scene-shade{position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(180deg,#0d0f12cc 0%,#0d0f1252 26%,#0d0f1200 44%,#0d0f1270 70%,#0d0f12f0 100%)}
+.tt-soft-home .scene-copy{position:absolute!important;inset:16px 18px auto!important;padding:0!important;
+ display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.tt-soft-home .soft-eyebrow{font-size:10px;font-weight:600;letter-spacing:.24em;color:#cfdcdb;text-transform:uppercase}
+/* Общие правила симметрии старой главной центрируют надпись в кадре и
+   растягивают кнопку на всю ширину (globals.css). На эталоне владельца кадр
+   набран слева, поэтому здесь они гасятся адресно. */
+.tt-soft-home .scene-copy,.tt-soft-home .soft-hero-foot{align-items:flex-start!important;text-align:left!important}
+.tt-soft-home .scene-title,.tt-soft-home .soft-eyebrow,.tt-soft-home .soft-description{
+ text-align:left!important;align-self:flex-start!important;margin-inline:0!important}
+.tt-soft-home .scene-title{font-family:Georgia,serif;font-size:clamp(27px,7.4vw,40px)!important;line-height:1.05!important;
+ margin:0!important;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+ color:#f4f6f5;text-shadow:0 2px 14px #0d0f1299}
+.tt-soft-home .soft-description{font-size:12.5px;line-height:1.35;color:#d3dcdb;margin:1px 0 0;max-width:86%;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 10px #0d0f1299}
+.tt-soft-home .soft-hero-foot{position:absolute;inset:auto 18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+/* Кнопка по содержимому, а не во всю ширину: растянутая на весь кадр
+   она выглядела заплаткой поверх снимка. */
+.tt-soft-home .soft-hero-foot .scene-action{align-self:flex-start!important;width:fit-content!important;
+ min-width:0!important;max-width:100%;min-height:46px!important;margin:0!important;
+ padding:0 26px 0 20px!important;border-radius:999px!important;font-size:16px!important;font-weight:650!important;
+ display:inline-flex!important;align-items:center;justify-content:center;gap:9px}
+.tt-soft-home .soft-hero-progress{display:flex;align-items:center;gap:10px;width:min(100%,300px)}
+.tt-soft-home .soft-hero-time{font-size:11.5px;color:#cfdad9;font-variant-numeric:tabular-nums;flex:none}
+.tt-soft-home .soft-hero-track{flex:1;height:4px;border-radius:999px;background:#ffffff33;overflow:hidden}
+.tt-soft-home .soft-hero-fill{display:block;height:100%;border-radius:999px;background:#6fe7de}
+.tt-soft-home .scene-menu{position:absolute;top:10px;right:10px;min-width:40px;min-height:40px;border-radius:50%;background:#0d0f1288}
+
+/* ── Правая колонка на мониторе, обычный поток на телефоне ───────────── */
+.tt-soft-home .scene-side{display:flex!important;flex-direction:column!important;gap:12px!important;min-width:0;width:100%;padding:0!important}
+.tt-soft-home .side-intro{display:none!important}
+.tt-soft-home .live-strip,.tt-soft-home .resume-wrap{margin:0!important;border-radius:22px!important;min-height:48px}
+
+/* ── Карусель ───────────────────────────────────────────────────────── */
+.tt-soft-home .soft-catalog{min-width:0}
+.tt-soft-home .soft-catalog-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 7px}
+.tt-soft-home .soft-catalog-head h3{font-size:21px;font-weight:650;letter-spacing:-.025em;margin:0;color:#f0f5f4}
+.tt-soft-home .soft-all{display:inline-flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;border:0;background:none;
+ color:#b7c5c5;font:inherit;font-size:14px;cursor:pointer;border-radius:999px}
+.tt-soft-home .soft-all>svg{width:17px;height:17px}
+.tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
+ scroll-padding-inline:3px;padding:3px 3px 4px;margin:0;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent}
+.tt-soft-home .soft-carousel>li{flex:0 0 42%;min-width:132px;max-width:220px;scroll-snap-align:start}
+.tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
+ background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
+.tt-soft-home .soft-art{position:relative;display:flex;align-items:center;justify-content:center;width:100%;
+ height:clamp(104px,13svh,160px);border-radius:var(--soft-card);overflow:hidden;
+ background:radial-gradient(circle at 35% 30%,#234743,#131c21);border:1px solid var(--soft-line)}
+.tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
+.tt-soft-home .soft-play{position:absolute;bottom:9px;right:9px;width:33px;height:33px;border:1px solid #ffffff55;
+ border-radius:50%;display:grid;place-items:center;background:#0d0f12bb;color:#e9fffc}
+.tt-soft-home .soft-episode strong{font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
+ -webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.tt-soft-home .soft-meta{display:flex;align-items:center;gap:5px;color:#aab8b9;font-size:11px;flex-wrap:wrap}
+
+/* ── Архив эфиров: строка во всю ширину, вход в раздел ───────────────── */
+.tt-soft-home .soft-archive-row>.archive-strip{display:flex!important;align-items:center;gap:12px;width:100%;
+ min-height:50px;margin:0!important;padding:10px 16px!important;border-radius:22px!important;
+ background:var(--soft-surface)!important;border:1px solid var(--soft-line)!important;text-align:left}
+.tt-soft-home .soft-archive-row .archive-strip>svg:first-child{width:22px;height:22px;color:#6fe7de;flex:none}
+.tt-soft-home .soft-archive-row .support-strip-label{flex:1;font-size:16px!important;font-weight:600}
+.tt-soft-home .soft-archive-row .archive-strip>svg:last-child{width:18px;height:18px;color:#8ea0a1;flex:none}
+
+/* ── Поддержка: надпись слева, сердце справа, площадки под чертой ────── */
+.tt-soft-home .soft-support{border-radius:var(--soft-card);background:var(--soft-surface);border:1px solid var(--soft-line);
+ padding:11px 16px 12px;margin-top:auto}
+.tt-soft-home .soft-support>.support-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;
+ width:100%;min-height:44px;margin:0;padding:0;border:0;background:none;border-radius:0}
+.tt-soft-home .support-card-copy{display:flex;flex-direction:column;gap:2px;min-width:0;text-align:left}
+.tt-soft-home .support-card-copy .support-strip-label{font-size:19px;font-weight:650;letter-spacing:-.02em;color:#f0f5f4;white-space:normal}
+.tt-soft-home .support-card-note{font-size:12.5px;line-height:1.3;color:#9fb0b1}
+.tt-soft-home .support-card-heart{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;
+ border:1px solid #6fe7de66;background:#6fe7de0f;color:#6fe7de}
+/* Подпись отдельной строкой по центру, кнопки под ней равной ширины. В
+   эталоне подпись стоит слева от кнопок, но тогда шов между YouTube и TikTok
+   уезжает от оси экрана, а симметрия строки площадок — отдельное требование
+   владельца и отдельная проверка. */
+.tt-soft-home .soft-socials{margin-top:9px;padding-top:9px;border-top:1px solid var(--soft-line)}
+.tt-soft-home .soft-socials-label{display:block;text-align:center;font-size:12px;color:#9fb0b1;margin-bottom:6px}
+.tt-soft-home .soft-socials .home-social{margin:0!important;padding:0!important;border:0!important;background:none!important}
+.tt-soft-home .soft-socials .social-row{display:flex;flex-wrap:nowrap;gap:8px;margin:0;min-width:0}
+.tt-soft-home .soft-socials .social-row>a{flex:1 1 0;min-width:0;min-height:40px;padding:7px 10px;justify-content:center;border-radius:999px}
+.tt-soft-home .soft-app-link{font-size:12px}
+.tt-soft-home button:focus-visible,.tt-soft-home a:focus-visible{outline:2px solid #6fe7de;outline-offset:2px}
+
+@media(min-width:768px){.immersion.tt-soft-home{max-width:980px;margin-inline:auto;padding:24px!important}
+ .tt-soft-home .soft-carousel>li{flex-basis:190px}
+ .tt-soft-home .scene{height:360px!important}
+ .tt-soft-home .scene-title{font-size:46px!important}
+ .tt-soft-home .scene-copy{inset:26px 28px auto!important}
+ .tt-soft-home .soft-hero-foot{inset:auto 28px 24px}}
+@media(max-height:740px) and (max-width:767px){.immersion.tt-soft-home{gap:10px!important}
+ .tt-soft-home .scene{height:210px!important;min-height:210px!important}
+ .tt-soft-home .scene-side{gap:10px!important}
+ .tt-soft-home .soft-art{height:112px}}
+@media(prefers-reduced-motion:reduce){.tt-soft-home *{scroll-behavior:auto!important}}
+
+/* Глобальный мини-плеер висит над навигацией и накрывал бы последний блок
+   содержимого — поддержку. Отступами это не решалось: место под плеер
+   оставляет настоящий элемент в конце главной, который есть только пока
+   плеер на экране. */
+.tt-soft-home .soft-tail{height:0;flex:none}
+body:has(.podcast-player.is-mini) .tt-soft-home .soft-tail{height:92px}
