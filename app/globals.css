@@ -2170,11 +2170,21 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 body:has(.podcast-player.is-open) [data-slot=dialog-overlay],
 body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 
-/* Архив эфиров и поддержка на главной повторяют форму быстрых ссылок под
-   ними: та же скруглённая капсула и та же высота. Только форма — блеска и
-   металлической подложки быстрых ссылок здесь нет, иначе на главной стало бы
-   два спорящих между собой акцента. */
-.scene-strips .support-strip{min-height:46px;border-radius:999px;padding:11px 18px;justify-content:center;gap:10px}
+/* Четыре плашки на главной — одна и та же кнопка в четырёх экземплярах:
+   архив эфиров, поддержка, и обе быстрые ссылки. Стиль задан один раз на обе
+   строки, потому что порознь они уже разошлись — фоном, рамкой, весом шрифта
+   и отступом между значком и надписью, — и глазами это не ловилось. */
+.scene-strips .support-strip,
+.scene-side>.social-row .social-chip{
+ min-height:46px;border-radius:999px;padding:11px 18px;gap:10px;
+ display:inline-flex;align-items:center;justify-content:center;
+ font-size:14px;font-weight:600;color:#f4f3f1;text-decoration:none;
+ background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
+ -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+ box-shadow:var(--glass-bevel)}
+.scene-strips .support-strip-label{font-size:14px;font-weight:600}
+.scene-strips .support-strip>svg:first-child,
+.scene-side>.social-row .social-chip>svg{width:18px;height:18px;flex:none}
 .scene-strips .support-strip>svg:last-child{display:none}
 .scene-strips .support-strip-label{flex:none}
 /* Половина строки каждой — и плашке, и обёртке со свечением. Ширину задаёт
@@ -2185,14 +2195,10 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .scene-strips .tt-glow .support-strip{width:100%}
 .live-stage>.tt-glow{width:100%}
 
-/* Площадки автора на главной — такие же половины строки, как архив и
-   поддержка над ними: ряд по две кнопки, обе одной ширины и одной формы.
-   Металлические кнопки отсюда убраны: на маленьком экране они мельтешили
-   шейдером и спорили с кадром. */
+/* Площадки автора идут по две в ряд — тем же шагом, что архив и поддержка. */
 @media(max-width:1023px){
  .scene-side>.social-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
- .scene-side>.social-row .social-chip{flex:none;justify-content:center;min-height:46px;min-width:0;padding:11px 18px;font-size:14px}
- .scene-side>.social-row .social-chip svg{flex:none}
+ .scene-side>.social-row .social-chip{min-width:0}
 }
 
 /* Ссылки на политику и правила: обычные ссылки в рост пальца, без украшений. */

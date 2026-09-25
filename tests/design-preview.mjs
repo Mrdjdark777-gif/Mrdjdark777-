@@ -349,6 +349,22 @@ try{
     if(sym.chips===2&&sym.home)step('симметрия строки площадок');
     // Архив и поддержка — пара, и по форме они должны совпадать с быстрыми
     // ссылками под ними: та же высота и та же ширина половины строки.
+    // Четыре плашки на главной — архив, поддержка и две быстрые ссылки —
+    // обязаны быть одной кнопкой в четырёх экземплярах. Они уже расходились
+    // фоном, рамкой, весом шрифта и отступом между значком и надписью: по
+    // отдельности каждая мелочь незаметна, а вместе ряд выглядит собранным
+    // из двух разных наборов.
+    {const plates=await page.evaluate(()=>{
+      const items=[...document.querySelectorAll('.scene-strips .support-strip'),...document.querySelectorAll('.scene-side .social-row>*')];
+      return items.map(el=>{const c=getComputedStyle(el),r=el.getBoundingClientRect();
+       return {name:(el.innerText||'').trim().split('\n')[0].slice(0,14),
+        vid:[Math.round(r.width),Math.round(r.height),c.borderTopLeftRadius,c.backgroundColor,
+         c.borderTopWidth,c.borderTopColor,c.paddingTop,c.paddingLeft,c.fontSize,c.fontWeight,c.gap,c.boxShadow].join('|')};});});
+     if(plates.length!==4)problems.push('на главной '+plates.length+' плашек вместо четырёх — сравнивать не с чем');
+     else{
+      const odd=plates.filter(p=>p.vid!==plates[0].vid);
+      if(odd.length)problems.push('плашки на главной разного вида: «'+plates[0].name+'» против '+
+       odd.map(p=>'«'+p.name+'»').join(', ')+'\n     '+plates[0].vid+'\n     '+odd[0].vid);}}
     if(!sym.strips)problems.push('на главной нет пары «архив и поддержка»');
     if(sym.litStrip)problems.push('на плашке поддержки главной снова свечение — оно оставлено только сердечку');
     else{
