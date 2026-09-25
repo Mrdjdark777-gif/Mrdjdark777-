@@ -61,12 +61,12 @@ try{
  assert.equal(await page.locator('.podcast-player').count(),0,'кнопка закрытия закрывает плеер, а не сворачивает его');
  // Ссылка по языку телефона осталась на плашке поддержки главной: слот там
  // один. PayPal в России не работает, Boosty за её пределами почти не знают.
- await page.goto(base+'/?mode=listen');await page.locator('.scene-strips .support-strip:not(.archive-strip)').waitFor();
- assert.equal(await page.locator('.scene-strips .support-strip:not(.archive-strip)').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
+ await page.goto(base+'/?mode=listen');await page.locator('.soft-support .support-strip').waitFor();
+ assert.equal(await page.locator('.soft-support .support-strip').getAttribute('href'),'https://boosty.to/truethrills','русский интерфейс — Boosty');
  {const italian=await browser.newContext({locale:'it-IT',viewport:{width:390,height:844}});
   const eq=cookie.indexOf('=');await italian.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
-  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen');await page2.locator('.scene-strips .support-strip:not(.archive-strip)').waitFor();
-  assert.equal(await page2.locator('.scene-strips .support-strip:not(.archive-strip)').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
+  const page2=await italian.newPage();await page2.goto(base+'/?mode=listen');await page2.locator('.soft-support .support-strip').waitFor();
+  assert.equal(await page2.locator('.soft-support .support-strip').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
   await italian.close();}
  await page.goto(base+'/?mode=listen');await page.locator('.support-strip').first().waitFor();
  // Вход в студию: на ПК и в браузере он есть, в приложении на Android его

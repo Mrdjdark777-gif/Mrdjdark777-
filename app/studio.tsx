@@ -312,8 +312,7 @@ export default function Studio(){
    <AudioLines size={19}/><span className="support-strip-label">{t('live.archiveTitle')}</span><ChevronRight size={18}/></button>}
   support={heartLink?<a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span></a>:<span className="support-strip is-empty"><Heart size={19}/><span className="support-strip-label">{t('header.support')}</span><span className="support-strip-note">{t('donate.unavailable')}</span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
-  pinned={data.pinned}
-  sections={[{kind:'podcast',label:t('nav.podcasts'),go:()=>goto('podcasts')},{kind:'video',label:t('nav.videos'),go:()=>goto('videos')},{kind:'story',label:t('nav.stories'),go:()=>goto('stories')}]}/>}
+  pinned={data.pinned}/>}
  {(view==='podcasts'||view==='stories'||view==='videos')&&<>
  {!author&&view==='podcasts'&&<VoiceHeader haptic={haptic}
   latest={(()=>{const fresh=visible.filter(p=>p.kind==='podcast'&&!isLiveArchive(p.audioKey)&&!seen.includes(p.id)).sort((a,b)=>b.createdAt-a.createdAt)[0];return fresh?{id:fresh.id,title:fresh.title,duration:fresh.duration}:null;})()}
