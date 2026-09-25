@@ -557,4 +557,5 @@ export const uk: Record<keyof typeof ru, string> = {
   "err.legalContact": "Адреса для зв’язку має бути поштою вигляду ім’я@домен",
   "err.legalName": "Ім’я або назва: від 2 до 120 символів",
   "settings.legalListener": "Що застосунок зберігає, кому й навіщо — і правила, за якими працює канал.",
+  "legal.panelTitle": "Дані та правила",
 };

@@ -557,4 +557,5 @@ export const ro: Record<keyof typeof ru, string> = {
   "err.legalContact": "Adresa de contact trebuie să fie un e-mail nume@domeniu",
   "err.legalName": "Nume: între 2 și 120 de caractere",
   "settings.legalListener": "Ce păstrează aplicația, pentru cine și de ce — și regulile după care funcționează canalul.",
+  "legal.panelTitle": "Date și reguli",
 };

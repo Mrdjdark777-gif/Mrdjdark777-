@@ -373,7 +373,7 @@ export default function Studio(){
  {/* Документы должны быть под рукой и в приложении, а не только в подвале
      сайта: на телефоне подвала человек может и не увидеть. */}
  {view==='settings'&&!author&&<section className="settings-panel"><div className="section-icon"><ShieldCheck size={22}/></div>
-  <h2>{t('legal.privacy')}</h2><p>{t('settings.legalListener')}</p>
+  <h2>{t('legal.panelTitle')}</h2><p>{t('settings.legalListener')}</p>
   <div className="legal-links"><a href="/privacy">{t('legal.privacy')}</a><a href="/rules">{t('legal.rules')}</a></div></section>}
  {view==='settings'&&!author&&!data?.signedIn&&!hasNativeClient()&&
   <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>

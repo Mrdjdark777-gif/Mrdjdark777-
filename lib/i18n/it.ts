@@ -609,4 +609,5 @@ export const it: Record<keyof typeof ru, string> = {
   "err.legalContact": "L’indirizzo di contatto deve essere un’e-mail nome@dominio",
   "err.legalName": "Nome: da 2 a 120 caratteri",
   "settings.legalListener": "Cosa conserva l’app, per chi e perché — e le regole con cui funziona il canale.",
+  "legal.panelTitle": "Dati e regole",
 };

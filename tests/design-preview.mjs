@@ -1315,6 +1315,12 @@ try{
    if(!heading.startsWith(expect))problems.push('политика на '+tag+' открылась заголовком «'+heading+'», ожидалось «'+expect+'…»');
    await ctx.close();}
   if(titles.size!==4)problems.push('заголовки политики на четырёх языках совпали: переводов меньше, чем языков');
+  // robots.txt: сайт открыт, а вход в студию, профиль и API закрыты.
+  {const r=await fetch(base+'/robots.txt');const body=await r.text();
+   if(!r.ok)problems.push('robots.txt не отдаётся: '+r.status);
+   for(const closed of ['/login','/account','/api/'])
+    if(!body.includes('Disallow: '+closed))problems.push('robots.txt не закрывает '+closed+': '+body.replace(/\n/g,' | '));
+   if(!/Allow: \/(\s|$)/m.test(body))problems.push('robots.txt закрывает сайт целиком: '+body.replace(/\n/g,' | '));}
   step('правовые страницы');}
  for(const name of MUST_RUN)if(!ran.has(name))problems.push('проверка «'+name+'» не выполнилась ни разу: её условие не сработало, и она ничего не проверила');
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
