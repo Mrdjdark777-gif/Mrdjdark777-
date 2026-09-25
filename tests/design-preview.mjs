@@ -406,9 +406,9 @@ try{
    // Свечение — опознавательный знак поддержки: оно должно быть и на площадках
    // в окне, и на сердечке в шапке, и на плашке главной.
    {const lit=await page.evaluate(()=>({choices:document.querySelectorAll('.donate-dialog .tt-glow .donate-choice').length,
-      button:document.querySelectorAll('.tt-glow .support-button').length}));
+      button:document.querySelectorAll('.support-button .tt-heart-spark').length}));
     if(lit.choices!==choices)problems.push('площадки в окне поддержки без свечения: '+lit.choices+' из '+choices);
-    if(!lit.button)problems.push('сердечко в шапке без свечения');}
+    if(!lit.button)problems.push('по контуру сердечка в шапке не бежит свет');}
    if(!await page.locator('.donate-note').count())problems.push('в окне поддержки нет пояснения, зачем эти ссылки');
    await page.screenshot({path:'outputs/ui/donate-dialog.png'});
    await page.keyboard.press('Escape');await page.waitForTimeout(250);}

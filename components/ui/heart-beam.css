@@ -1,0 +1,11 @@
+/* Контур сердца и бегущий по нему свет. Штрих задан в долях пути
+   (pathLength=100), поэтому длина отрезка не зависит от размера значка. */
+.tt-heart-beam{overflow:visible;flex:none}
+.tt-heart-beam path{fill:none!important;stroke-linecap:round;stroke-linejoin:round}
+.tt-heart-line{stroke:currentColor;stroke-width:2}
+.tt-heart-spark{stroke:url(#tt-heart-beam-line);stroke-width:2.6;
+ stroke-dasharray:16 84;stroke-dashoffset:0;
+ filter:drop-shadow(0 0 3px rgba(111,231,222,.9));
+ animation:tt-heart-run 10s linear infinite}
+@keyframes tt-heart-run{to{stroke-dashoffset:-100}}
+@media(prefers-reduced-motion:reduce){.tt-heart-spark{animation:none;stroke-dasharray:none;opacity:.55}}

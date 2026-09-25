@@ -21,6 +21,7 @@ import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
 import {LimelightNav} from '@/components/ui/limelight-nav';
 import {DonationGlow} from '@/components/ui/donation-glow';
+import {HeartBeam} from '@/components/ui/heart-beam';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
 import {KineticGrid} from '@/components/ui/kinetic-grid';
@@ -276,7 +277,7 @@ export default function Studio(){
    </div>}
    {/* Сердечко открывает небольшое окно с площадками: в настройках просьбам о
      поддержке не место, а одна зашитая ссылка прятала вторую площадку. */}
- {!author&&canDonate&&<DonationGlow><button type="button" className="support-button" aria-label={t('donate.action')} onClick={()=>{haptic();setDonateOpen(true);}}><Heart size={19}/><span>{t('header.support')}</span></button></DonationGlow>}
+ {!author&&canDonate&&<button type="button" className="support-button" aria-label={t('donate.action')} onClick={()=>{haptic();setDonateOpen(true);}}><HeartBeam size={20}/><span>{t('header.support')}</span></button>}
  {!author&&(community?.enabled||community?.member)&&<button className="quiet-button tt-pressable" onClick={()=>{haptic();setProfileOpen(true);}} aria-label={t('community.profile')}>{t('community.profile')}</button>}
    {/* Поделиться каналом — там же, где поиск и настройки: слушателю больше негде. */}
    {!author&&data&&!data.needsSetup&&<button className="quiet-button tt-pressable" aria-label={t('share.action')} title={t('share.action')} onClick={()=>{haptic();void share('/?mode=listen&view=home',t('share.channel'));}}><Share2 size={19}/></button>}
