@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы'];
+const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -1337,6 +1337,25 @@ try{
    for(const closed of ['/login','/account','/api/'])
     if(!body.includes('Disallow: '+closed))problems.push('robots.txt не закрывает '+closed+': '+body.replace(/\n/g,' | '));
    if(!/Allow: \/(\s|$)/m.test(body))problems.push('robots.txt закрывает сайт целиком: '+body.replace(/\n/g,' | '));}
+  // На главной у слушателя ничто не должно мельтешить. Это не вкусовщина:
+  // свечение сердечка крутилось раз в две секунды и переливалось цветом без
+  // остановки, и владелец видел это как мельтешение в углу глаза весь сеанс.
+  // Луч теперь затихает через несколько секунд; медленный фон остаётся.
+  // Порог — восемь секунд на оборот: всё, что быстрее и бесконечно, заметно.
+  {const anim=await browser.newContext({viewport:{width:390,height:844}});
+   const ap=await anim.newPage();await ap.goto(base+'/?mode=listen&view=home');
+   await ap.waitForTimeout(9000);
+   const moving=await ap.evaluate(()=>document.getAnimations()
+    .filter(a=>a.playState==='running')
+    .map(a=>{const t=a.effect&&a.effect.getComputedTiming?a.effect.getComputedTiming():{};
+     const el=a.effect&&a.effect.target;
+     return {name:a.animationName||a.transitionProperty||'?',endless:t.iterations===Infinity,dur:Math.round(t.duration||0),
+      el:el?(el.tagName.toLowerCase()+'.'+String(el.className||'').split(' ')[0]).slice(0,40):'—'};})
+    .filter(a=>a.endless&&a.dur<8000));
+   if(moving.length)problems.push('на главной у слушателя что-то мельтешит: '+
+    moving.map(m=>m.name+' ('+m.dur+'ms, '+m.el+')').join(', '));
+   await anim.close();
+   step('движение на главной');}
   step('правовые страницы');}
  for(const name of MUST_RUN)if(!ran.has(name))problems.push('проверка «'+name+'» не выполнилась ни разу: её условие не сработало, и она ничего не проверила');
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
