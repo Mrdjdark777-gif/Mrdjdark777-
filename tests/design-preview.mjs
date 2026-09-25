@@ -11,7 +11,7 @@
  */
 import {chromium} from 'playwright';
 import {spawn,execFileSync} from 'node:child_process';
-import {mkdtemp,mkdir,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,rm,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-design-')),soft=process.env.TT_DESIGN_SOFT==='1';
@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной'];
+const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -1358,6 +1358,53 @@ try{
    await anim.close();
    step('движение на главной');}
   step('правовые страницы');}
+ // ЗАМОК ТЕЛЕФОНА И СТУДИИ.
+ //
+ // Витрину для компьютера делаем отдельно, и условие простое: приложение на
+ // телефоне и студия на ПК от этого не двигаются. Обещать такое словами
+ // нельзя — узкие и широкие правила живут в одном файле стилей и цепляют друг
+ // друга через общие классы. Поэтому здесь записаны координаты опорных
+ // элементов, и любое их смещение роняет прогон с указанием, что именно уехало.
+ //
+ // Если телефон изменили намеренно — пересними замок и скажи об этом в
+ // сообщении коммита: TT_LOCK_WRITE=1 npm run test:design
+ {const ANCHORS={
+   'слушатель 390':{url:'/?mode=listen&view=home',w:390,h:844,sel:['.top-header','.scene-title','.scene-action','.scene-strips','.scene-side .social-row','.bottom-nav']},
+   'слушатель 360':{url:'/?mode=listen&view=home',w:360,h:640,sel:['.scene-action','.scene-strips','.bottom-nav']},
+   'каталог 390':{url:'/?mode=listen&view=podcasts',w:390,h:844,sel:['.post-list','.post-card','.bottom-nav']},
+   'эфир 390':{url:'/?mode=listen&view=live',w:390,h:844,sel:['.live-rings','.live-archive-card','.bottom-nav']},
+   'студия 1440':{url:'/',w:1440,h:900,sel:['.library-tiles','.side-nav,.bottom-nav','.main-content']},
+  };
+  const taken={};
+  for(const [name,a] of Object.entries(ANCHORS)){
+   const ctx=await browser.newContext({viewport:{width:a.w,height:a.h}});
+   if(name.startsWith('студия')){const eq=cookie.indexOf('=');await ctx.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);}
+   const lp=await ctx.newPage();await lp.goto(base+a.url);await settle(lp);await lp.waitForTimeout(500);
+   taken[name]=await lp.evaluate(list=>Object.fromEntries(list.map(sel=>{
+    const el=document.querySelector(sel);if(!el)return [sel,null];
+    const r=el.getBoundingClientRect();
+    return [sel,[Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]];})),a.sel);
+   await ctx.close();
+  }
+  const lockPath=path.join(root,'tests','fixtures','layout-lock.json');
+  if(process.env.TT_LOCK_WRITE==='1'){
+   await writeFile(lockPath,JSON.stringify(taken,null,1)+'\n');
+   console.log('ЗАМОК ПЕРЕСНЯТ:',lockPath);
+  }else{
+   let saved=null;try{saved=JSON.parse(await readFile(lockPath,'utf8'));}catch{}
+   if(!saved)problems.push('замка телефона и студии нет: сними его один раз командой TT_LOCK_WRITE=1 npm run test:design');
+   else for(const [name,got] of Object.entries(taken)){
+    const was=saved[name];
+    if(!was){problems.push('в замке нет экрана «'+name+'» — пересними замок');continue;}
+    for(const [sel,box] of Object.entries(got)){
+     const before=was[sel];
+     if(!before&&!box)continue;
+     if(JSON.stringify(before)!==JSON.stringify(box))
+      problems.push('«'+name+'»: «'+sel+'» уехал — было '+JSON.stringify(before)+', стало '+JSON.stringify(box));
+    }
+   }
+  }
+  step('замок телефона и студии');}
  for(const name of MUST_RUN)if(!ran.has(name))problems.push('проверка «'+name+'» не выполнилась ни разу: её условие не сработало, и она ничего не проверила');
  if(problems.length)throw new Error('\n - '+problems.join('\n - '));
  console.log('PASS: экраны сняты в outputs/ui/design-*.png; системный Back закрывает меню, плеер и раздел по порядку; главная без переполнения на пяти ширинах, целиком помещается на 390×844 и 412×915, а на 360×640 до сгиба доходит строка поддержки; знак канала, боковая панель и кнопка настроек в студии нужного размера');
