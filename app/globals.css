@@ -830,13 +830,15 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
 .live-orb{position:relative;width:74%;height:74%;border-radius:50%;overflow:hidden;
  display:grid;place-items:center;background:linear-gradient(180deg,#1b242b,#121619);
  border:1px solid rgba(255,255,255,.07)}
-/* Металлическая кромка знака эфира — та же, что у значков в студии на ПК, но
-   не шейдером: там это WebGL-контекст на каждый круг, а здесь круг один и
-   смотрят на него с телефона. Кольцо сделано коническим градиентом с маской
-   по центру; крутится поворотом всего слоя, а не переменной угла, — поворот
-   понимают все браузеры, а @property ещё не везде. */
+/* Кромка знака эфира — та же светящаяся кромка, что у плашек: свет сверху,
+   бирюза уходит в холодный край. Металлический конический градиент отсюда
+   убран: он был из другого набора и спорил с остальным экраном.
+
+   Кольцо рисуется маской по центру и крутится поворотом всего слоя, а не
+   переменной угла, — поворот понимают все браузеры. Оборот шестнадцать
+   секунд: блик медленно обходит круг и не мельтешит. */
 .live-orb::after{content:'';position:absolute;inset:0;border-radius:50%;padding:3px;
- background:conic-gradient(#5b6672,#cfd6dd,#6f7c88,#eef2f5,#59636e,#b9c2cb,#8e99a4,#5b6672);
+ background:var(--edge-light);
  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
  mask-composite:exclude;
@@ -863,7 +865,9 @@ body:has(.podcast-player.is-mini) .immersion{min-height:calc(100dvh - var(--bott
  background:var(--teal);color:#08201E;box-shadow:0 14px 34px -18px rgba(111,231,222,.85)}
 .live-cta:disabled{opacity:.72}
 .live-archive-card{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;
- border-radius:16px;border:1px solid var(--line);background:var(--surface);color:#f4f3f1;text-align:left}
+ border-radius:16px;color:#f4f3f1;text-align:left;
+ border:var(--edge-width) solid transparent;
+ background:var(--edge-fill) padding-box,var(--edge-light) border-box}
 .live-archive-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:12px;
  background:var(--teal-dark,#123330);color:var(--teal)}
 .live-archive-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -2170,6 +2174,19 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 body:has(.podcast-player.is-open) [data-slot=dialog-overlay],
 body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 
+/* Светящаяся кромка: свет падает сверху, бирюза канала уходит в холодный
+   край. Одна пара переменных на все места, где она применяется, — плашки
+   главной, карточка архива в эфире и кромка знака эфира. Порознь такие вещи
+   расходятся по оттенку за пару правок.
+
+   Рисуется не рамкой, а двумя слоями фона: заливка по padding-box, градиент
+   по border-box. Так кромка получается градиентной без лишней разметки. */
+:root,.dark{
+ --edge-width:1.5px;
+ --edge-fill:linear-gradient(#161c1e,#121719);
+ --edge-light:radial-gradient(75% 100% at 50% 0%,rgba(111,231,222,.95) 0%,rgba(74,168,255,.34) 75%);
+}
+
 /* Четыре плашки на главной — одна и та же кнопка в четырёх экземплярах:
    архив эфиров, поддержка, и обе быстрые ссылки. Стиль задан один раз на обе
    строки, потому что порознь они уже разошлись — фоном, рамкой, весом шрифта
@@ -2179,8 +2196,8 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  min-height:46px;border-radius:999px;padding:11px 18px;gap:10px;
  display:inline-flex;align-items:center;justify-content:center;
  font-size:14px;font-weight:600;color:#f4f3f1;text-decoration:none;
- background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
- -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+ border:var(--edge-width) solid transparent;
+ background:var(--edge-fill) padding-box,var(--edge-light) border-box;
  box-shadow:var(--glass-bevel)}
 .scene-strips .support-strip-label{font-size:14px;font-weight:600}
 .scene-strips .support-strip>svg:first-child,
