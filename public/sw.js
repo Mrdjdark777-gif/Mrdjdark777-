@@ -2,11 +2,17 @@ self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
 // Тексты в service worker живут отдельно от словарей приложения: сюда не
 // доходит сборка Next. Язык берём у самого браузера, как в остальном интерфейсе.
-const LANG=(self.navigator.language||'ru').slice(0,2)==='it'?'it':'ru';
-const SW_TEXT={
+const SW_TEXT_ALL={
  ru:{offline:'Нет подключения к интернету. Подключись к сети и обнови страницу.',retry:'Повторить',fallback:'Новая публикация'},
  it:{offline:'Nessuna connessione a internet. Collegati alla rete e ricarica la pagina.',retry:'Riprova',fallback:'Nuova pubblicazione'},
-}[LANG];
+ uk:{offline:'Немає підключення до інтернету. Під’єднайся до мережі та онови сторінку.',retry:'Повторити',fallback:'Нова публікація'},
+ ro:{offline:'Nu există conexiune la internet. Conectează-te la rețea și reîncarcă pagina.',retry:'Încearcă din nou',fallback:'Publicație nouă'},
+};
+// Языки те же, что у приложения. Украинский и румынский здесь когда-то
+// забыли, и их слушатели видели русский текст: служебный поток живёт вне
+// словарей, и заметить такое можно только проверкой.
+const LANG=SW_TEXT_ALL[(self.navigator.language||'ru').slice(0,2).toLowerCase()]?(self.navigator.language||'ru').slice(0,2).toLowerCase():'ru';
+const SW_TEXT=SW_TEXT_ALL[LANG];
 const OFFLINE_PAGE=`<!doctype html><html lang="${LANG}"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="font-family:Arial;background:#101113;color:#fff;padding:40px"><h1>True Thrills</h1><p>${SW_TEXT.offline}</p><button onclick="location.reload()">${SW_TEXT.retry}</button></body></html>`;
 // Authenticated content and recordings are never added to a shared offline cache.
 self.addEventListener('fetch',event=>{if(event.request.mode==='navigate')event.respondWith(fetch(event.request).catch(()=>new Response(OFFLINE_PAGE,{headers:{'Content-Type':'text/html; charset=utf-8'}})));});

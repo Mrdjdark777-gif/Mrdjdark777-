@@ -20,6 +20,7 @@ import {ro} from '../lib/i18n/ro.ts';
 
 const root=path.resolve(import.meta.dirname,'..');
 const DICTS={ru,it,uk,ro};
+const LOCALES=Object.keys(DICTS);
 let passed=0;
 function test(name,fn){fn();passed++;console.log('PASS '+name);}
 
@@ -71,6 +72,26 @@ test('экран сообщества не содержит русского т�
     });
   }
   assert.deepEqual(bad,[],'русский текст мимо словаря:\n'+bad.join('\n'));
+});
+
+test('служебный поток говорит на всех языках приложения',()=>{
+  // sw.js живёт вне сборки и вне словарей: туда не доходит ни типизация, ни
+  // проверка ключей. Украинский и румынский здесь однажды забыли, и их
+  // слушатели видели русский текст на странице «нет сети» и в уведомлении
+  // без текста.
+  const source=readFileSync(path.join(root,'public','sw.js'),'utf8');
+  const block=source.match(/const SW_TEXT_ALL=(\{[\s\S]*?\n\});/);
+  assert.ok(block,'в sw.js не найден словарь SW_TEXT_ALL');
+  const texts=new Function('return '+block[1])();
+  assert.deepEqual(Object.keys(texts).sort(),[...LOCALES].sort(),'языки sw.js разошлись с языками приложения');
+  const shape=Object.keys(texts[LOCALES[0]]).sort();
+  for(const [lang,entry] of Object.entries(texts)){
+   assert.deepEqual(Object.keys(entry).sort(),shape,'в sw.js у «'+lang+'» другой набор строк');
+   for(const [key,value] of Object.entries(entry))
+    assert.ok(typeof value==='string'&&value.trim().length>2,'в sw.js пустая строка '+lang+'.'+key);
+   if(lang!=='ru')for(const [key,value] of Object.entries(entry))
+    assert.notEqual(value,texts.ru[key],'в sw.js «'+lang+'.'+key+'» не переведён — он совпадает с русским');
+  }
 });
 
 console.log('TOTAL '+passed+' passed');

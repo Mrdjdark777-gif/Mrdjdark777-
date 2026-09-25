@@ -1292,6 +1292,18 @@ try{
   await lp.goto(base+'/rules');await lp.locator('.legal-page h1').waitFor();
   if(await lp.locator('.legal-page section h2').count()<6)problems.push('в правилах слишком мало разделов');
   await lp.screenshot({path:'outputs/ui/legal-rules.png',fullPage:true});
+  // Ссылки на документы открываются в том же окне. target="_blank" в
+  // WebView Android чаще всего не делает ничего: окно не создаётся, и ссылка
+  // выглядит мёртвой. Проверяем на экране настроек слушателя и в подвале.
+  {await lp.goto(base+'/?mode=listen&view=settings');await lp.waitForTimeout(400);
+   const links=await lp.evaluate(()=>[...document.querySelectorAll('a[href="/privacy"],a[href="/rules"]')]
+    .map(a=>({href:a.getAttribute('href'),target:a.getAttribute('target')})));
+   if(links.length<2)problems.push('на экране настроек слушателя нет ссылок на политику и правила: '+links.length);
+   const blank=links.filter(l=>l.target);
+   if(blank.length)problems.push('ссылки на документы открываются в новом окне — в приложении они будут мёртвыми: '+JSON.stringify(blank));
+   await lp.goto(base+'/?mode=listen&view=podcasts');await lp.waitForTimeout(400);
+   const foot=await lp.evaluate(()=>[...document.querySelectorAll('.site-footer a[href="/privacy"],.site-footer a[href="/rules"]')].length);
+   if(foot<2)problems.push('в подвале сайта нет ссылок на политику и правила');}
   await legal.close();
   // Каждый язык отдаёт свой заголовок: подставленный русский на итальянском
   // экране — это не перевод, а его отсутствие.
