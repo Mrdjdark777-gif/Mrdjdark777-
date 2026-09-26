@@ -211,11 +211,18 @@ try{
   await page.evaluate(()=>{const m=document.querySelector('.main-content');(m||document.scrollingElement).scrollTop=99999;});
   await page.waitForTimeout(350);
   const support=await page.locator('.soft-support').boundingBox(),mini=await page.locator('.podcast-player.is-mini').boundingBox();
+  const nav=await page.locator('.bottom-nav').boundingBox();
   check(!!support&&!!mini,`на ${width}x${height} нет блока поддержки или мини-плеера`);
+  check(!!nav,`на ${width}x${height} нет панели разделов`);
   if(support&&mini){
    check(support.y+support.height<=mini.y+1,`мини-плеер закрывает поддержку ${width}x${height}: низ ${Math.round(support.y+support.height)} против ${Math.round(mini.y)}`);
    check(support.y>=0,`блок поддержки уехал выше экрана ${width}x${height}: ${Math.round(support.y)}`);
   }
+  // Пролистали до самого низа — значит последний блок обязан быть виден
+  // целиком. Панель разделов висит поверх содержимого, и без этой проверки
+  // поддержка снова оказалась бы подрезанной.
+  if(support&&nav)
+   check(support.y+support.height<=nav.y+1,`панель разделов режет поддержку ${width}x${height}: низ ${Math.round(support.y+support.height)} против ${Math.round(nav.y)}`);
   await shot(page,`mini-${width}`);
  }
  await page.setViewportSize({width:390,height:844});
@@ -238,13 +245,17 @@ try{
  {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(300);
   const names=await page.evaluate(()=>[...document.querySelectorAll('.post-title')].map(e=>e.textContent.trim()));
   if(names.includes('Истории после заката'))problems.push('запись эфира попала в каталог подкастов: '+names.join(', '));
-  // Главная тоже не должна знать про запись эфира: она становилась и обложкой
-  // плитки «Подкасты», и поводом для значка «новое».
+  // Запись эфира — настоящий выпуск: у неё есть обложка, длительность и
+  // воспроизведение, поэтому в карусели ей место. В кадр она сама не встаёт:
+  // кадром распоряжается автор, и случайная запись не должна вытеснять
+  // оттуда то, ради чего снимали.
   await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
-  const homeText=await page.evaluate(()=>document.querySelector('.main-content')?.innerText||'');
-  if(homeText.includes('Истории после заката'))problems.push('запись эфира попала на главную слушателя');
-  const tileArt=await page.evaluate(()=>[...document.querySelectorAll('img')].map(i=>i.getAttribute('src')||'').join(' '));
-  if(tileArt.includes(archived.id))problems.push('обложка записи эфира стала картинкой раздела на главной');
+  {const where=await page.evaluate(()=>({
+    carousel:[...document.querySelectorAll('.soft-carousel>li strong')].map(e=>e.textContent.trim()),
+    hero:document.querySelector('.scene-title')?.textContent.trim()||''}));
+   if(!where.carousel.includes('Истории после заката'))
+    problems.push('записи эфира нет в карусели главной: '+where.carousel.join(', '));
+   if(where.hero==='Истории после заката')problems.push('запись эфира сама встала в кадр главной');}
   // Архив эфиров открывается прямо с главной, а не только из вкладки эфира.
   await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
   const entry=page.locator('.scene-side .support-strip',{hasText:'Архив эфиров'}).first();
@@ -320,7 +331,7 @@ try{
       // Левый край коробки, а не текста: у кнопки внутри свои отступы, и по
       // тексту она всегда оказалась бы правее надписи. Набор слева проверяет
       // отдельная строка ниже — text-align.
-      const edges=[document.querySelector('.soft-eyebrow'),title,document.querySelector('.soft-description'),
+      const edges=[document.querySelector('.soft-eyebrow'),title,
        document.querySelector('.soft-hero-foot .scene-action')].filter(Boolean)
        .map(el=>el.getBoundingClientRect().left);
       out.edgeCount=edges.length;
@@ -337,7 +348,7 @@ try{
      }
      return out;});
     if(sym.titleAlign!=='left')problems.push('название в кадре набрано не слева: text-align='+sym.titleAlign);
-    if(sym.edgeCount<3)problems.push('в кадре нечему выравниваться: найдено '+sym.edgeCount+' элемента надписи');
+    if(sym.edgeCount!==3)problems.push('в кадре не три надписи для выравнивания, а '+sym.edgeCount);
     if(sym.edge>2)problems.push('надпись и кнопка в кадре стоят на разных вертикалях: расхождение '+sym.edge+'px');
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
     if(!sym.home)problems.push('в нижней панели нет знака канала — с чем сверять симметрию площадок, непонятно');
@@ -898,18 +909,22 @@ try{
  // плитки и поддержка, — а площадки могут оказаться чуть ниже.
  for(const [width,height] of [[390,844],[412,915]]){const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);
   const fold=await page.evaluate(()=>{const b=s=>{const n=document.querySelector(s);return n?Math.round(n.getBoundingClientRect().bottom):null;};
-   const nav=document.querySelector('.bottom-nav');
-   return {title:b('.scene-title'),action:b('.scene-action'),carousel:!!document.querySelector('.soft-carousel'),
-    support:b('.soft-support'),navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
+   const nav=document.querySelector('.bottom-nav'),scene=document.querySelector('.immersion>.scene');
+   const car=document.querySelector('.soft-carousel');
+   const r=scene?scene.getBoundingClientRect():null;
+   return {title:b('.scene-title'),action:b('.scene-action'),carousel:!!car,
+    sceneRatio:r?Number((r.width/r.height).toFixed(2)):null,
+    carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
+    navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: название выпуска уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
   check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
-  // Блок поддержки — последний на главной. Подрезанный панелью разделов, он
-  // читается как поломка: владелец именно на это и указал. Пока плеер не
-  // играет, главная обязана помещаться целиком.
-  check(fold.support!==null&&fold.navTop!==null,`главная ${width}×${height}: нет блока поддержки или панели разделов`);
-  if(fold.support!==null&&fold.navTop!==null)
-   check(fold.support<=fold.navTop,`главная ${width}×${height}: панель разделов режет блок поддержки (низ ${fold.support} против ${fold.navTop})`);
+  // Кадр-постер занимает первый экран целиком — это замысел, а не поломка.
+  // Поэтому здесь проверяется не «всё поместилось», а что постер именно
+  // вертикальный и что снизу видно начало карусели: без этого человек не
+  // поймёт, что главная листается.
+  check(fold.sceneRatio!==null&&fold.sceneRatio<1,`главная ${width}×${height}: кадр не вертикальный (отношение ширины к высоте ${fold.sceneRatio})`);
+  check(fold.carouselTop!==null&&fold.carouselTop<fold.navTop,`главная ${width}×${height}: карусели не видно под постером, листать некуда`);
   await shot(page,`home${width===390?'':'-'+width}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
   // До сгиба обязаны помещаться кадр и кнопка запуска: за ними человек и

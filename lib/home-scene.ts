@@ -50,6 +50,13 @@ export function homeScene(input: {
   hidden: string[];
   /** Публикация, закреплённая автором в кадре. */
   pinned?: string | null;
+  /**
+   * Публикации, которым в кадре не место. Записи эфиров лежат в карусели
+   * наравне с остальными выпусками — это настоящие выпуски, — но сами в кадр
+   * не встают: кадром распоряжается автор, и случайная запись не должна
+   * вытеснять оттуда то, ради чего снимали.
+   */
+  noHero?: string[];
 }): HomeScene {
   const published = input.posts.filter(p => p.published === 1);
   const byDate = [...published].sort((a, b) => b.createdAt - a.createdAt);
@@ -71,10 +78,14 @@ export function homeScene(input: {
   const pinned = input.pinned
     ? published.find(p => p.id === input.pinned && !input.hidden.includes(p.id)) ?? null
     : null;
+  // Закрепление автора сильнее запрета: закрепил запись эфира сам — значит так
+  // и задумано. Запрет действует только когда кадр выбирается сам.
+  const noHero = input.noHero ?? [];
+  const free = byDate.filter(p => !noHero.includes(p.id));
   const hero = pinned
-    ?? byDate.find(p => !input.seen.includes(p.id) && !input.hidden.includes(p.id))
-    ?? byDate.find(p => !input.hidden.includes(p.id))
-    ?? byDate[0]
+    ?? free.find(p => !input.seen.includes(p.id) && !input.hidden.includes(p.id))
+    ?? free.find(p => !input.hidden.includes(p.id))
+    ?? free[0]
     ?? null;
   return {hero, resume};
 }

@@ -59,6 +59,15 @@ assert.equal(homeScene({...base, pinned: '1', hidden: ['1']}).hero.id, '3', 'у�
 assert.equal(homeScene({...base, posts: [post('3'), post('2'), post('1', {published: 0})], pinned: '1'}).hero.id, '3', 'снятая с публикации не держит кадр');
 assert.equal(homeScene({...base, pinned: ''}).hero.id, '3', 'пустое закрепление — это его отсутствие');
 
+// Записи эфиров лежат на главной наравне с остальными выпусками, но сами в
+// кадр не встают: кадром распоряжается автор. Закрепил запись сам — значит так
+// и задумано, запрет закреплению не мешает.
+assert.equal(homeScene({...base, noHero: ['3']}).hero.id, '2', 'запись эфира уступает кадр следующей публикации');
+assert.equal(homeScene({...base, noHero: ['3'], seen: ['2']}).hero.id, '1', 'запрет действует и когда следующая уже открыта');
+assert.equal(homeScene({...base, noHero: ['3', '2', '1']}).hero, null, 'запретить можно всё — кадр тогда пуст');
+assert.equal(homeScene({...base, noHero: ['3'], pinned: '3'}).hero.id, '3', 'закрепление автора сильнее запрета');
+assert.equal(homeScene({...base, noHero: ['3'], progress: [{id: '3', position: 50, duration: 600}]}).resume.post.id, '3', 'продолжить запись эфира можно: запрет только на кадр');
+
 // Метки «новое» рассказывают про другие разделы, раз кадр занят одним.
 const mixed = [post('9', {kind: 'video'}), post('8', {kind: 'story'}), post('7')];
 assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: [], heroId: '9'})].sort(), ['podcast', 'story'], 'публикация в кадре меткой не считается');
@@ -66,4 +75,4 @@ assert.deepEqual([...freshSections({posts: mixed, seen: ['8'], hidden: [], heroI
 assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: ['7', '8'], heroId: '9'})], [], 'убранное с главной меток не даёт');
 assert.deepEqual([...freshSections({posts: [post('6', {published: 0})], seen: [], hidden: []})], [], 'черновик не обещает нового');
 
-console.log('PASS: кадром распоряжается автор, иначе в нём самая свежая неоткрытая публикация; «Продолжить» — отдельный выпуск со своей позицией; метки «новое» рассказывают про другие разделы');
+console.log('PASS: кадром распоряжается автор, иначе в нём самая свежая неоткрытая публикация; записи эфиров в кадр сами не встают, но закрепить их можно; «Продолжить» — отдельный выпуск со своей позицией; метки «новое» рассказывают про другие разделы');

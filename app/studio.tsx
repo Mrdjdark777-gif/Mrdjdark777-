@@ -242,7 +242,11 @@ export default function Studio(){
  // от прямых включений.
  // Главная слушателя тоже не знает про записи эфиров: иначе запись становилась
  // и обложкой плитки «Подкасты», и поводом для значка «новое».
- const homePosts=(data?.items??[]).filter(p=>!(p.kind==='podcast'&&isLiveArchive(p.audioKey)));
+ // Записи эфиров живут на главной наравне с остальными выпусками: у них есть
+ // обложка, длительность и настоящее воспроизведение. В кадр они сами не
+ // встают — туда их может поставить только автор, закрепив вручную.
+ const homePosts=data?.items??[];
+ const liveArchiveIds=(data?.items??[]).filter(p=>p.kind==='podcast'&&isLiveArchive(p.audioKey)).map(p=>p.id);
  const liveArchives=visible.filter(p=>p.kind==='podcast'&&isLiveArchive(p.audioKey)).sort((a,b)=>b.createdAt-a.createdAt);
  const archiveNeedle=archiveQuery.trim().toLowerCase();
  const archiveShown=archiveNeedle?liveArchives.filter(p=>p.title.toLowerCase().includes(archiveNeedle)):liveArchives;
@@ -304,7 +308,7 @@ export default function Studio(){
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
- {view==='home'&&!author&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink}
+ {view==='home'&&!author&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
   archive={<button type="button" className="support-strip archive-strip tt-pressable" onClick={()=>{haptic();setArchiveOpen(true);goto('live');
     // С главной человек идёт именно за записями: подводим к списку сразу,
     // иначе он открывается ниже сгиба и выглядит как «ничего не произошло».

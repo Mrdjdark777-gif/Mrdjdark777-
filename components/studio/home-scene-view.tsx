@@ -19,9 +19,11 @@ const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>coverSrc(p);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned}:{
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned,noHero}:{
  posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;onBrowse?:()=>void;liveAction:string;
  archive?:React.ReactNode;support:React.ReactNode;links?:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
+ /** Публикации, которые не встают в кадр сами: записи эфиров. */
+ noHero?:string[];
 }){
  const {t}=useT();
  const [device,setDevice]=useState<{progress:ReturnType<typeof readProgress>;seen:string[];hidden:string[]}>({progress:[],seen:[],hidden:[]});
@@ -38,7 +40,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  },[]);
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
  useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
- const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned});
+ const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со
  // всеми полями, поэтому находим её по id.
@@ -78,7 +80,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <div className="scene-copy">
      <span className="soft-eyebrow">{heroKind}</span>
      <h2 className="scene-title">{hero.title}</h2>
-     {hero.description&&<p className="soft-description">{hero.description}</p>}
     </div>
     <div className="soft-hero-foot">
      <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
