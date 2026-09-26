@@ -1,7 +1,7 @@
 'use client';
 import './home-soft.css';
 import {useEffect,useRef,useState} from 'react';
-import {BookOpen,ChevronRight,Clock,EyeOff,Headphones,Play,Video,MoreHorizontal,X} from 'lucide-react';
+import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
@@ -46,7 +46,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  // всеми полями, поэтому находим её по id.
  const hero=picked.hero?posts.find(p=>p.id===picked.hero!.id)??null:null;
  const resume=picked.resume?{...picked.resume,post:posts.find(p=>p.id===picked.resume!.post.id)!}:null;
- const ICON={podcast:Headphones,video:Video,story:BookOpen} as const;
  // Свежее — то, чего ещё нет в кадре и в строке «Продолжить»: повторять
  // один и тот же выпуск в двух местах подряд незачем.
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
@@ -128,17 +127,18 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
    <ul className="soft-carousel" aria-label={t('home.freshList')}>
-    {latest.map(p=>{const Icon=ICON[p.kind as keyof typeof ICON]??Headphones;
-     const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+    {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
      // Вид публикации — значком в углу обложки, а не строкой под ней: строка
      // с подписью и длительностью отнимала место у названия и повторяла то,
      // что и так видно по значку.
      return <li key={p.id}><button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">
-       {/* Без обложки — знак канала, а не тот же значок, что уже стоит в углу. */}
+       {/* Без обложки — знак канала. */}
        <Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
-       <span className="soft-kind"><Icon size={15}/><span className="is-hidden-text">{kindLabel}</span></span>
-       <span className="soft-play" aria-hidden="true">{p.kind==='story'?<BookOpen size={17}/>:<Play size={17}/>}</span>
+       {/* Вид публикации — словом вверху обложки. Значок владелец отверг:
+           наушники и камера читаются хуже, чем «АУДИО» и «ВИДЕО». Кнопки
+           воспроизведения на карточке нет — вся карточка и есть кнопка. */}
+       <span className="soft-kind">{kindLabel}</span>
       </span>
       <strong>{p.title}</strong>
      </button></li>;})}
@@ -154,8 +154,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    {support}
    {links&&<div className="soft-socials"><span className="soft-socials-label">{t('home.socialsLabel')}</span>{links}</div>}
   </section>
-  {/* Место под глобальный мини-плеер: он висит поверх и иначе накрыл бы поддержку. */}
-  <div className="soft-tail" aria-hidden="true"/>
   </div>
 
   <Dialog open={!!menu} onOpenChange={open=>{if(!open)setMenu(null);}}>

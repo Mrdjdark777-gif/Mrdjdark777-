@@ -401,7 +401,13 @@ export default function Studio(){
  </>:null}
  </div>}
  </>}
- {!(view==='home'&&!author)&&<footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>}
+ {/* Подвал есть и на главной: она больше не обязана помещаться в экран, а
+     строка о правах должна быть видна в приложении, а не только на сайте. */}
+ <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
+ {/* Место под глобальный мини-плеер: он висит поверх и иначе накрыл бы подвал.
+     Отступами это не решается — у запертой оболочки своё правило с большей
+     весомостью, поэтому место занимает настоящий элемент в самом низу. */}
+ {view==='home'&&!author&&<div className="soft-tail" aria-hidden="true"/>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
  {/* Фон-сетка — у слушателя и не на главной: там во весь кадр лежит обложка,

@@ -1,6 +1,10 @@
 /* Главная слушателя. Плеер, вкладки и воспроизведение не трогаются.
    Углы намеренно круглее эталона: в приложении всё остальное скруглено так же. */
-.immersion.tt-soft-home{--soft-radius:32px;--soft-card:26px;--soft-line:#ffffff14;--soft-surface:#141b1f;
+/* Основная область у слушателя — колонка flex. Главная в ней была обычным
+   элементом и при нехватке места сжималась до своей min-height: содержимое
+   вылезало за её коробку, и блок поддержки оказывался под мини-плеером,
+   сколько ни прокручивай. Сжиматься ей нельзя — она растёт по содержимому. */
+.immersion.tt-soft-home{flex:0 0 auto!important;--soft-radius:32px;--soft-card:26px;--soft-line:#ffffff14;--soft-surface:#141b1f;
  display:flex!important;flex-direction:column!important;gap:12px!important;width:100%;min-width:0;
  padding:6px 16px 16px!important;background:#0d0f12;box-sizing:border-box;height:auto!important;overflow:visible!important}
 
@@ -13,14 +17,15 @@
 /* Отступ сверху освобождал место наехавшей шапке. Шапка теперь стоит над
    кадром, и отступ только съедал бы фотографию. */
 .tt-soft-home .scene,.tt-soft-home .scene-fallback{padding:0!important;margin-block:0!important}
+.immersion.tt-soft-home{padding-top:0!important}
 /* Размер задаётся шириной, а не высотой: при ограничении по высоте кадр
    перестаёт быть два к трём и начинает резать обложку сильнее, чем нужно.
    Поэтому постер уже полосы содержимого и стоит по центру — как афиша на
    стене, а не во всю стену. */
 .tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
- width:min(100%,265px)!important;margin-inline:auto!important;align-self:center!important;
+ width:calc(100% + 32px)!important;margin-inline:-16px!important;align-self:stretch!important;max-width:none!important;
  aspect-ratio:2/3;height:auto!important;min-height:0!important;max-height:none!important;
- background:#090c0e;border-radius:var(--soft-radius)!important;overflow:hidden;border:1px solid #6fe7de22}
+ background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
    читается как настоящая афиша, а когда обложка сделана под 2:3 — не
@@ -32,7 +37,7 @@
    своя надпись, и кнопка с градиентом её закрывали. */
 .tt-soft-home .scene-shade{position:absolute;inset:0;pointer-events:none;
  background:linear-gradient(180deg,#05070ab8 0%,#05070a4a 9%,#05070a00 20%,#05070a00 100%)}
-.tt-soft-home .scene-copy{position:absolute!important;inset:14px 16px auto!important;padding:0!important;
+.tt-soft-home .scene-copy{position:absolute!important;inset:12px 18px auto!important;padding:0!important;
  display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 /* Есть в разметке, нет на экране: название постера и подпись вида публикации
    читают экранные дикторы, а видно вместо них саму афишу и значок. */
@@ -49,7 +54,7 @@
  margin:0!important;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
  color:#f4f6f5;text-shadow:0 2px 14px #0d0f1299}
 .tt-soft-home .soft-hero-foot{display:flex;flex-direction:column;align-items:center;gap:8px;
- width:min(100%,265px);margin-inline:auto;margin-top:-4px}
+ width:100%;margin-inline:auto;margin-top:12px}
 /* Кнопка по содержимому, а не во всю ширину: растянутая на весь кадр
    она выглядела заплаткой поверх снимка. */
 .tt-soft-home .soft-hero-foot .scene-action{align-self:stretch!important;width:100%!important;
@@ -84,10 +89,9 @@
  background:radial-gradient(circle at 35% 30%,#234743,#131c21);border:1px solid var(--soft-line)}
 .tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
 .tt-soft-home .soft-mark{width:56px!important;height:56px!important;object-fit:contain!important;opacity:.85}
-.tt-soft-home .soft-kind{position:absolute;top:8px;left:8px;width:28px;height:28px;border:1px solid #ffffff3d;
- border-radius:50%;display:grid;place-items:center;background:#05070ab0;color:#dff6f3;backdrop-filter:blur(3px)}
-.tt-soft-home .soft-play{position:absolute;bottom:8px;right:8px;width:30px;height:30px;border:1px solid #ffffff55;
- border-radius:50%;display:grid;place-items:center;background:#0d0f12bb;color:#e9fffc}
+.tt-soft-home .soft-kind{position:absolute;top:0;left:0;right:0;padding:7px 10px 16px;
+ font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#e7f2f1;
+ text-shadow:0 1px 6px #05070acc;background:linear-gradient(180deg,#05070abf,#05070a00)}
 .tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
  -webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 
@@ -126,13 +130,15 @@
  /* На мониторе экран бывает низким (1024x573). Ширина постера ограничена ещё
     и высотой окна, иначе афиша перекрывает весь экран и под ней ничего не
     видно — проверка держит кадр в трёх четвертях высоты. */
- .tt-soft-home .scene{width:min(100%,320px,calc((100svh - 190px) / 1.5))!important}
+ /* На мониторе экран бывает низким (1024x573): ширина постера ограничена и
+    высотой окна, иначе афиша занимает его целиком. */
+ .tt-soft-home .scene{width:min(100%,340px,calc((100svh - 190px) / 1.5))!important;
+  margin-inline:auto!important;align-self:center!important;border-radius:var(--soft-radius)!important}
+ .tt-soft-home .soft-hero-foot{width:min(100%,340px)}
  .tt-soft-home .scene-title{font-size:36px!important}
- .tt-soft-home .scene-copy{inset:18px 20px auto!important}
- .tt-soft-home .soft-hero-foot{width:min(100%,320px)}}
+ .tt-soft-home .scene-copy{inset:18px 20px auto!important}}
 @media(max-height:740px) and (max-width:767px){.immersion.tt-soft-home{gap:10px!important}
- .tt-soft-home .scene{width:min(100%,225px)!important}
- .tt-soft-home .soft-hero-foot{width:min(100%,225px)}
+ .tt-soft-home .scene{aspect-ratio:3/4}
  .tt-soft-home .scene-side{gap:10px!important}}
 @media(prefers-reduced-motion:reduce){.tt-soft-home *{scroll-behavior:auto!important}}
 
@@ -140,5 +146,8 @@
    содержимого — поддержку. Отступами это не решалось: место под плеер
    оставляет настоящий элемент в конце главной, который есть только пока
    плеер на экране. */
-.tt-soft-home .soft-tail{height:0;flex:none}
-body:has(.podcast-player.is-mini) .tt-soft-home .soft-tail{height:92px}
+.listener-main .soft-tail{height:0;flex:none}
+body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
+/* Подвал на главной: та же полоса, что в остальных разделах, но по краям
+   содержимого — постер уходит под края экрана, подвал за ним не идёт. */
+.listener-main:has(.tt-soft-home) .content-footer{margin-top:18px}

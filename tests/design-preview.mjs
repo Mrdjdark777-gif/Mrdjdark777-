@@ -223,6 +223,12 @@ try{
   // поддержка снова оказалась бы подрезанной.
   if(support&&nav)
    check(support.y+support.height<=nav.y+1,`панель разделов режет поддержку ${width}x${height}: низ ${Math.round(support.y+support.height)} против ${Math.round(nav.y)}`);
+  // Строка о правах есть и на главной: раньше её там не рисовали вовсе,
+  // потому что главная обязана была помещаться в экран.
+  {const foot=await page.locator('.listener-main .content-footer').boundingBox();
+   check(!!foot,`на главной ${width}x${height} нет строки о правах`);
+   if(foot&&nav)check(foot.y+foot.height<=nav.y+1,`панель разделов режет строку о правах ${width}x${height}: низ ${Math.round(foot.y+foot.height)} против ${Math.round(nav.y)}`);
+   if(foot&&mini)check(foot.y+foot.height<=mini.y+1,`мини-плеер закрывает строку о правах ${width}x${height}`);}
   await shot(page,`mini-${width}`);
  }
  await page.setViewportSize({width:390,height:844});
@@ -337,7 +343,8 @@ try{
      if(scene&&action){
       const a=scene.getBoundingClientRect(),b=action.getBoundingClientRect();
       out.actionBelow=Math.round(b.top-a.bottom);
-      out.actionWidth=Math.round(Math.abs(b.width-a.width));
+      out.actionOffAxis=Math.round(Math.abs((b.left+b.width/2)-(a.left+a.width/2)));
+      out.actionWider=Math.round(b.width-a.width);
      }
      const chips=[...document.querySelectorAll('.scene-side .social-row>*')];
      out.chips=chips.length;
@@ -355,7 +362,8 @@ try{
     else{
      if(sym.actionBelow<0)problems.push('кнопка запуска залезла на постер и закрывает афишу: '+sym.actionBelow+'px');
      if(sym.actionBelow>24)problems.push('кнопка запуска оторвалась от постера на '+sym.actionBelow+'px');
-     if(sym.actionWidth>2)problems.push('кнопка запуска не по ширине постера: разница '+sym.actionWidth+'px');}
+     if(sym.actionOffAxis>2)problems.push('кнопка запуска не по оси постера: смещение '+sym.actionOffAxis+'px');
+     if(sym.actionWider>0)problems.push('кнопка запуска шире постера на '+sym.actionWider+'px');}
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
     if(!sym.home)problems.push('в нижней панели нет знака канала — с чем сверять симметрию площадок, непонятно');
     if(sym.chips===2&&sym.home)step('симметрия строки площадок');
@@ -375,7 +383,12 @@ try{
      const at=el=>el&&side?[...side.children].indexOf(el.closest('.scene-side>*')):-1;
      return {row:!!row,
       inCarousel:!!document.querySelector('.soft-carousel .archive-strip'),
-      play:!!(row&&row.querySelector('.soft-play')),
+      rowIsEpisode:!!(row&&row.querySelector('.soft-episode')),
+      // Вид публикации на карточке — слово, а не значок: «АУДИО», «ВИДЕО»,
+      // «ИСТОРИЯ». Значки владелец отверг, читаются хуже.
+      kinds:[...document.querySelectorAll('.soft-carousel .soft-kind')]
+       .map(el=>({text:el.textContent.trim(),icons:el.querySelectorAll('svg').length})),
+      cardPlay:document.querySelectorAll('.soft-carousel .soft-episode svg').length,
       afterCarousel:at(row)>at(car)&&at(car)>=0,
       beforeSupport:at(row)<at(support)&&at(support)>=0,
       supportInside:!!(support&&support.querySelector('.support-strip')),
@@ -383,7 +396,12 @@ try{
       cards:document.querySelectorAll('.soft-carousel>li').length};});
     if(!order.row)problems.push('на главной нет строки входа в архив эфиров');
     if(order.inCarousel)problems.push('архив эфиров снова лежит карточкой в карусели — это вход в раздел, а не выпуск');
-    if(order.play)problems.push('у строки архива появилась кнопка воспроизведения');
+    if(order.rowIsEpisode)problems.push('строка архива стала карточкой выпуска');
+    if(order.kinds.length!==order.cards)problems.push('вид публикации подписан не на всех карточках: '+order.kinds.length+' из '+order.cards);
+    {const noText=order.kinds.filter(k=>!k.text).length,withIcon=order.kinds.filter(k=>k.icons).length;
+     if(noText)problems.push('на '+noText+' карточках вид публикации не подписан словом');
+     if(withIcon)problems.push('на '+withIcon+' карточках вид публикации снова показан значком');}
+    if(order.cardPlay)problems.push('на карточках карусели появились значки: их '+order.cardPlay+', а карточка сама и есть кнопка');
     if(!order.afterCarousel)problems.push('строка архива стоит не под каруселью свежего');
     if(!order.beforeSupport)problems.push('строка архива стоит не перед блоком поддержки');
     if(order.cards<2)problems.push('в карусели '+order.cards+' карточек — выпуски не собрались');
@@ -924,6 +942,7 @@ try{
    const r=scene?scene.getBoundingClientRect():null;
    return {title:b('.soft-eyebrow'),action:b('.scene-action'),carousel:!!car,
     sceneRatio:r?Number((r.width/r.height).toFixed(2)):null,
+    sceneLeft:r?Math.round(r.left):null,sceneRight:r?Math.round(r.right):null,
     carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
     navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
@@ -934,7 +953,12 @@ try{
   // вертикальный и что снизу видно начало карусели: без этого человек не
   // поймёт, что главная листается.
   check(fold.sceneRatio!==null&&fold.sceneRatio<1,`главная ${width}×${height}: кадр не вертикальный (отношение ширины к высоте ${fold.sceneRatio})`);
-  check(fold.carouselTop!==null&&fold.carouselTop<fold.navTop,`главная ${width}×${height}: карусели не видно под постером, листать некуда`);
+  // Постер во всю ширину занимает почти весь первый экран — так просил
+  // владелец. Требование к сгибу одно: кнопка запуска доступна без
+  // прокрутки, за ней человек и пришёл.
+  check(fold.action!==null&&fold.navTop!==null&&fold.action<=fold.navTop,`главная ${width}×${height}: кнопка запуска уходит под панель разделов (${fold.action} против ${fold.navTop})`);
+  // Постер идёт от края до края экрана: это первое, о чём просил владелец.
+  check(fold.sceneLeft===0&&fold.sceneRight===width,`главная ${width}×${height}: постер не во всю ширину (${fold.sceneLeft}…${fold.sceneRight})`);
   await shot(page,`home${width===390?'':'-'+width}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
   // До сгиба обязаны помещаться кадр и кнопка запуска: за ними человек и
