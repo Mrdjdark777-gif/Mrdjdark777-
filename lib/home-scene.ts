@@ -43,6 +43,16 @@ export type HomeScene = {
 /** Дослушанным считаем выпуск, до конца которого осталось меньше двух секунд. */
 const finished = (position: number, duration: number) => duration > 0 && position >= duration - 2;
 
+/**
+ * Сколько нужно послушать, чтобы появилась строка «Продолжить».
+ *
+ * Отметку места плеер пишет сразу, как только пошёл звук, — и строка вылезала
+ * после случайного касания, показывая «Продолжить · 00:00». Продолжать там
+ * нечего: человек этого выпуска не слушал. Пятнадцать секунд — это уже
+ * намерение, а не промах пальцем.
+ */
+const RESUME_MIN = 15;
+
 export function homeScene(input: {
   posts: ScenePost[];
   progress: SceneProgress[];
@@ -65,7 +75,7 @@ export function homeScene(input: {
   // поэтому берём первую запись, которую ещё можно продолжить.
   let resume: HomeScene['resume'] = null;
   for (const mark of input.progress) {
-    if (mark.position <= 0 || input.hidden.includes(mark.id)) continue;
+    if (mark.position < RESUME_MIN || input.hidden.includes(mark.id)) continue;
     const post = published.find(p => p.id === mark.id && p.kind === 'podcast');
     if (!post || finished(mark.position, mark.duration)) continue;
     resume = {post, position: mark.position, duration: mark.duration || post.duration};

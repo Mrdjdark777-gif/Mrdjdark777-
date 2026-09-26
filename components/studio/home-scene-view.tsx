@@ -74,22 +74,27 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    <div className="scene-shade" aria-hidden="true"/>
    {hero?<>
     <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
-    {/* Надпись сверху, кнопка снизу: между ними остаётся видимая обложка.
-        Когда всё стояло внизу одной стопкой, текст ложился на снимок, а сам
-        снимок обрезался сверху и от него оставалась полоса. */}
+    {/* На постере название уже нарисовано — своё мы поверх не кладём. Оно
+        остаётся в разметке для экранных дикторов и для проверок, но не
+        показывается. Видна только надстрочная подпись: по ней понятно,
+        история это, видео или аудио. */}
     <div className="scene-copy">
      <span className="soft-eyebrow">{heroKind}</span>
-     <h2 className="scene-title">{hero.title}</h2>
-    </div>
-    <div className="soft-hero-foot">
-     <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
-     {heroResume&&heroResume.duration>0&&<div className="soft-hero-progress">
-      <span className="soft-hero-time">{clock(heroResume.position)} / {clock(heroResume.duration)}</span>
-      <span className="soft-hero-track" aria-hidden="true"><span className="soft-hero-fill" style={{width:(heroPart*100).toFixed(1)+'%'}}/></span>
-     </div>}
+     <h2 className="scene-title is-hidden-text">{hero.title}</h2>
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
+  {/* Кнопка стоит ПОД постером, а не на нём: на афише внизу своя надпись, и
+      кнопка её закрывала. Долгое нажатие обрабатывается и здесь: выйдя из
+      кадра, кнопка перестала открывать меню выпуска, потому что обработчик
+      висел только на кадре. */}
+  {hero&&<div className="soft-hero-foot" {...press}>
+   <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
+   {heroResume&&heroResume.duration>0&&<div className="soft-hero-progress">
+    <span className="soft-hero-time">{clock(heroResume.position)} / {clock(heroResume.duration)}</span>
+    <span className="soft-hero-track" aria-hidden="true"><span className="soft-hero-fill" style={{width:(heroPart*100).toFixed(1)+'%'}}/></span>
+   </div>}
+  </div>}
 
   {/* Всё, что не кадр, собрано в одну обёртку. На телефоне она прозрачна
       (display:contents) и порядок блоков ровно тот же, что был. На мониторе
@@ -124,9 +129,18 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    </div>
    <ul className="soft-carousel" aria-label={t('home.freshList')}>
     {latest.map(p=>{const Icon=ICON[p.kind as keyof typeof ICON]??Headphones;
-     return <li key={p.id}><button type="button" className="soft-episode tt-pressable" onClick={()=>{haptic();onOpen(p);}}>
-      <span className="soft-art"><Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<Icon size={36}/>}/><span className="soft-play" aria-hidden="true">{p.kind==='story'?<BookOpen size={19}/>:<Play size={19}/>}</span></span>
-      <strong>{p.title}</strong><span className="soft-meta"><Icon size={14}/>{p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story')}{p.duration>0?' · '+clock(p.duration):''}</span>
+     const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+     // Вид публикации — значком в углу обложки, а не строкой под ней: строка
+     // с подписью и длительностью отнимала место у названия и повторяла то,
+     // что и так видно по значку.
+     return <li key={p.id}><button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
+      <span className="soft-art">
+       {/* Без обложки — знак канала, а не тот же значок, что уже стоит в углу. */}
+       <Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
+       <span className="soft-kind"><Icon size={15}/><span className="is-hidden-text">{kindLabel}</span></span>
+       <span className="soft-play" aria-hidden="true">{p.kind==='story'?<BookOpen size={17}/>:<Play size={17}/>}</span>
+      </span>
+      <strong>{p.title}</strong>
      </button></li>;})}
    </ul>
   </section>}

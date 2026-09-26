@@ -287,7 +287,7 @@ try{
   if(await page.locator('.scene-intro').count())problems.push('на главной осталась подпись поверх кадра');
   // Строку «Продолжить» можно убрать крестиком: выпуск могли включить
   // случайно, а деться от строки было некуда.
-  {await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:10,duration:2300,updatedAt:Date.now()}]));},podcast.id);
+  {await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:40,duration:2300,updatedAt:Date.now()}]));},podcast.id);
    await page.reload();
    await settle(page);await page.waitForTimeout(400);
    if(!await page.locator('.resume-row').count())problems.push('на главной нет строки «Продолжить», хотя отметка прослушивания есть');
@@ -302,7 +302,7 @@ try{
      // Настоящая причина возврата: при запуске приложение спрашивает у
      // фонового плеера, что он держит, и записывает то же место обратно.
      // Повторяем это руками — убранная строка всё равно не должна вернуться.
-     await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:10,duration:2300,updatedAt:Date.now()}]));},podcast.id);
+     await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:40,duration:2300,updatedAt:Date.now()}]));},podcast.id);
      await page.reload();await settle(page);await page.waitForTimeout(400);
      if(await page.locator('.resume-row').count())problems.push('строка «Продолжить» вернулась, когда плеер записал место заново');
     }
@@ -321,21 +321,23 @@ try{
    {const sym=await page.evaluate(()=>{
      const mid=el=>{const r=el.getBoundingClientRect();return r.left+r.width/2;};
      const out={};
-     // Надпись в кадре набрана слева — так на эталоне владельца. Проверяем не
-     // центровку, а общую ось: надстрочная подпись, название, описание и
-     // кнопка запуска должны начинаться с одной вертикали, иначе кадр
-     // выглядит рассыпанным.
-     const copy=document.querySelector('.scene-copy'),title=document.querySelector('.scene-title');
-     if(copy&&title){
-      out.titleAlign=getComputedStyle(title).textAlign;
-      // Левый край коробки, а не текста: у кнопки внутри свои отступы, и по
-      // тексту она всегда оказалась бы правее надписи. Набор слева проверяет
-      // отдельная строка ниже — text-align.
-      const edges=[document.querySelector('.soft-eyebrow'),title,
-       document.querySelector('.soft-hero-foot .scene-action')].filter(Boolean)
-       .map(el=>el.getBoundingClientRect().left);
-      out.edgeCount=edges.length;
-      out.edge=edges.length>1?Math.round(Math.max(...edges)-Math.min(...edges)):0;
+     // На афише название уже нарисовано, поэтому своего названия на постере
+     // нет — есть только надстрочная подпись, и она набрана слева. Кнопка
+     // стоит ПОД постером: внизу афиши своя надпись, и кнопка её закрывала.
+     const eyebrow=document.querySelector('.soft-eyebrow');
+     const scene=document.querySelector('.immersion>.scene');
+     const action=document.querySelector('.soft-hero-foot .scene-action');
+     // «Видно» — это не «ширина больше нуля»: у спрятанной для дикторов
+     // надписи коробка в один пиксель, и по нулю проверка срабатывала бы
+     // всегда. Настоящая надпись занимает десятки пикселей.
+     const shownTitle=[...document.querySelectorAll('.scene-title')]
+      .find(el=>{const r=el.getBoundingClientRect();return r.width>=8&&r.height>=8;});
+     out.titleOnPoster=!!(shownTitle&&scene&&scene.contains(shownTitle));
+     if(eyebrow)out.titleAlign=getComputedStyle(eyebrow).textAlign;
+     if(scene&&action){
+      const a=scene.getBoundingClientRect(),b=action.getBoundingClientRect();
+      out.actionBelow=Math.round(b.top-a.bottom);
+      out.actionWidth=Math.round(Math.abs(b.width-a.width));
      }
      const chips=[...document.querySelectorAll('.scene-side .social-row>*')];
      out.chips=chips.length;
@@ -347,9 +349,13 @@ try{
       out.widths=Math.abs(a.width-b.width);
      }
      return out;});
-    if(sym.titleAlign!=='left')problems.push('название в кадре набрано не слева: text-align='+sym.titleAlign);
-    if(sym.edgeCount!==3)problems.push('в кадре не три надписи для выравнивания, а '+sym.edgeCount);
-    if(sym.edge>2)problems.push('надпись и кнопка в кадре стоят на разных вертикалях: расхождение '+sym.edge+'px');
+    if(sym.titleAlign!=='left')problems.push('надстрочная подпись в кадре набрана не слева: text-align='+sym.titleAlign);
+    if(sym.titleOnPoster)problems.push('на постере снова показывается название — на афише оно уже нарисовано');
+    if(sym.actionBelow===undefined)problems.push('на главной нет постера или кнопки запуска');
+    else{
+     if(sym.actionBelow<0)problems.push('кнопка запуска залезла на постер и закрывает афишу: '+sym.actionBelow+'px');
+     if(sym.actionBelow>24)problems.push('кнопка запуска оторвалась от постера на '+sym.actionBelow+'px');
+     if(sym.actionWidth>2)problems.push('кнопка запуска не по ширине постера: разница '+sym.actionWidth+'px');}
     if(sym.chips!==2)problems.push('в строке площадок не две кнопки, а '+sym.chips+' — симметрию проверить не на чем');
     if(!sym.home)problems.push('в нижней панели нет знака канала — с чем сверять симметрию площадок, непонятно');
     if(sym.chips===2&&sym.home)step('симметрия строки площадок');
@@ -434,7 +440,11 @@ try{
    await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(400);
    if(await rowText())problems.push('строка «Продолжить» показана без единой отметки прослушивания');
    await page.locator('.scene-action').click();await page.locator('.podcast-player').waitFor({timeout:8000});
-   await page.waitForTimeout(3200);
+   // Строка «Продолжить» появляется не раньше пятнадцати секунд: случайное
+   // касание — не прослушивание. Отматываем вперёд, а не ждём вживую, иначе
+   // прогон простаивал бы по четверти минуты на каждом заходе.
+   await page.evaluate(()=>{const a=document.querySelector('audio');if(a)a.currentTime=40;});
+   await page.waitForTimeout(1800);
    const played=await at();
    await page.locator('.player-close').click();await page.waitForTimeout(600);
    const first=await mark();
@@ -894,7 +904,7 @@ try{
  assert.equal(await page.locator('.scene-menu').evaluate(el=>getComputedStyle(el).pointerEvents),'none','кнопка меню не перехватывает нажатия по кадру');
  await page.locator('.scene-menu').focus();await page.keyboard.press('Enter');
  await page.locator('.card-menu-action').click();await page.getByRole('dialog').waitFor({state:'hidden'});
- await page.locator('.scene-title').filter({hasText:'Голос северного ветра'}).waitFor();
+ await page.locator('.scene-title').filter({hasText:'Голос северного ветра'}).waitFor({state:'attached'});
  assert.equal(await page.locator('.scene-mark').count(),1,'new fallback survives image failure and hero replacement');
  await page.unroute('**/api/library');await page.unroute('**/api/cover?*');
  await phone.close();
@@ -912,11 +922,11 @@ try{
    const nav=document.querySelector('.bottom-nav'),scene=document.querySelector('.immersion>.scene');
    const car=document.querySelector('.soft-carousel');
    const r=scene?scene.getBoundingClientRect():null;
-   return {title:b('.scene-title'),action:b('.scene-action'),carousel:!!car,
+   return {title:b('.soft-eyebrow'),action:b('.scene-action'),carousel:!!car,
     sceneRatio:r?Number((r.width/r.height).toFixed(2)):null,
     carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
     navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
-  check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: название выпуска уходит за первый экран (${fold.title})`);
+  check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
   check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
   // Кадр-постер занимает первый экран целиком — это замысел, а не поломка.
@@ -1392,7 +1402,7 @@ try{
  // Если телефон изменили намеренно — пересними замок и скажи об этом в
  // сообщении коммита: TT_LOCK_WRITE=1 npm run test:design
  {const ANCHORS={
-   'слушатель 390':{url:'/?mode=listen&view=home',w:390,h:844,sel:['.top-header','.scene-title','.scene-action','.soft-carousel','.soft-support','.scene-side .social-row','.bottom-nav']},
+   'слушатель 390':{url:'/?mode=listen&view=home',w:390,h:844,sel:['.top-header','.soft-eyebrow','.scene-action','.soft-carousel','.soft-support','.scene-side .social-row','.bottom-nav']},
    'слушатель 360':{url:'/?mode=listen&view=home',w:360,h:640,sel:['.scene-action','.soft-carousel','.bottom-nav']},
    'каталог 390':{url:'/?mode=listen&view=podcasts',w:390,h:844,sel:['.post-list','.post-card','.bottom-nav']},
    'эфир 390':{url:'/?mode=listen&view=live',w:390,h:844,sel:['.live-rings','.live-archive-card','.bottom-nav']},

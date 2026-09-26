@@ -12,9 +12,14 @@
    листать дальше. */
 /* Отступ сверху освобождал место наехавшей шапке. Шапка теперь стоит над
    кадром, и отступ только съедал бы фотографию. */
-.tt-soft-home .scene,.tt-soft-home .scene-fallback{padding:0!important;margin:0!important}
-.tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;width:100%!important;
- aspect-ratio:2/3;height:auto!important;min-height:0!important;max-height:min(64svh,560px);
+.tt-soft-home .scene,.tt-soft-home .scene-fallback{padding:0!important;margin-block:0!important}
+/* Размер задаётся шириной, а не высотой: при ограничении по высоте кадр
+   перестаёт быть два к трём и начинает резать обложку сильнее, чем нужно.
+   Поэтому постер уже полосы содержимого и стоит по центру — как афиша на
+   стене, а не во всю стену. */
+.tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
+ width:min(100%,265px)!important;margin-inline:auto!important;align-self:center!important;
+ aspect-ratio:2/3;height:auto!important;min-height:0!important;max-height:none!important;
  background:#090c0e;border-radius:var(--soft-radius)!important;overflow:hidden;border:1px solid #6fe7de22}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
@@ -23,28 +28,35 @@
    Затемнение держится у самых краёв: вверху под надпись, внизу под кнопку.
    Середина постера остаётся чистой, иначе картинка тонет в тумане. */
 .tt-soft-home .scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* Затемнение осталось только вверху — под надстрочную подпись. Внизу афиши
+   своя надпись, и кнопка с градиентом её закрывали. */
 .tt-soft-home .scene-shade{position:absolute;inset:0;pointer-events:none;
- background:linear-gradient(180deg,#05070ad9 0%,#05070a5c 13%,#05070a00 24%,#05070a00 58%,#05070a80 79%,#05070af5 100%)}
-.tt-soft-home .scene-copy{position:absolute!important;inset:16px 18px auto!important;padding:0!important;
- display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+ background:linear-gradient(180deg,#05070ab8 0%,#05070a4a 9%,#05070a00 20%,#05070a00 100%)}
+.tt-soft-home .scene-copy{position:absolute!important;inset:14px 16px auto!important;padding:0!important;
+ display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+/* Есть в разметке, нет на экране: название постера и подпись вида публикации
+   читают экранные дикторы, а видно вместо них саму афишу и значок. */
+.tt-soft-home .is-hidden-text{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;
+ overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .tt-soft-home .soft-eyebrow{font-size:10px;font-weight:600;letter-spacing:.24em;color:#cfdcdb;text-transform:uppercase}
 /* Общие правила симметрии старой главной центрируют надпись в кадре и
    растягивают кнопку на всю ширину (globals.css). На эталоне владельца кадр
    набран слева, поэтому здесь они гасятся адресно. */
-.tt-soft-home .scene-copy,.tt-soft-home .soft-hero-foot{align-items:flex-start!important;text-align:left!important}
+.tt-soft-home .scene-copy{align-items:flex-start!important;text-align:left!important}
 .tt-soft-home .scene-title,.tt-soft-home .soft-eyebrow{
  text-align:left!important;align-self:flex-start!important;margin-inline:0!important}
-.tt-soft-home .scene-title{font-family:Georgia,serif;font-size:clamp(27px,7.4vw,40px)!important;line-height:1.05!important;
+.tt-soft-home .scene-title{font-family:Georgia,serif;font-size:clamp(21px,5.6vw,29px)!important;line-height:1.06!important;
  margin:0!important;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
  color:#f4f6f5;text-shadow:0 2px 14px #0d0f1299}
-.tt-soft-home .soft-hero-foot{position:absolute;inset:auto 18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.tt-soft-home .soft-hero-foot{display:flex;flex-direction:column;align-items:center;gap:8px;
+ width:min(100%,265px);margin-inline:auto;margin-top:-4px}
 /* Кнопка по содержимому, а не во всю ширину: растянутая на весь кадр
    она выглядела заплаткой поверх снимка. */
-.tt-soft-home .soft-hero-foot .scene-action{align-self:flex-start!important;width:fit-content!important;
+.tt-soft-home .soft-hero-foot .scene-action{align-self:stretch!important;width:100%!important;
  min-width:0!important;max-width:100%;min-height:46px!important;margin:0!important;
- padding:0 26px 0 20px!important;border-radius:999px!important;font-size:16px!important;font-weight:650!important;
- display:inline-flex!important;align-items:center;justify-content:center;gap:9px}
-.tt-soft-home .soft-hero-progress{display:flex;align-items:center;gap:10px;width:min(100%,300px)}
+ padding:0 22px!important;border-radius:999px!important;font-size:16px!important;font-weight:650!important;
+ display:inline-flex!important;align-items:center;justify-content:center;gap:8px}
+.tt-soft-home .soft-hero-progress{display:flex;align-items:center;gap:10px;width:100%}
 .tt-soft-home .soft-hero-time{font-size:11.5px;color:#cfdad9;font-variant-numeric:tabular-nums;flex:none}
 .tt-soft-home .soft-hero-track{flex:1;height:4px;border-radius:999px;background:#ffffff33;overflow:hidden}
 .tt-soft-home .soft-hero-fill{display:block;height:100%;border-radius:999px;background:#6fe7de}
@@ -64,18 +76,20 @@
 .tt-soft-home .soft-all>svg{width:17px;height:17px}
 .tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
  scroll-padding-inline:3px;padding:3px 3px 4px;margin:0;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent}
-.tt-soft-home .soft-carousel>li{flex:0 0 42%;min-width:132px;max-width:220px;scroll-snap-align:start}
+.tt-soft-home .soft-carousel>li{flex:0 0 37%;min-width:118px;max-width:170px;scroll-snap-align:start}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
 .tt-soft-home .soft-art{position:relative;display:flex;align-items:center;justify-content:center;width:100%;
  aspect-ratio:2/3;border-radius:var(--soft-card);overflow:hidden;
  background:radial-gradient(circle at 35% 30%,#234743,#131c21);border:1px solid var(--soft-line)}
 .tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
-.tt-soft-home .soft-play{position:absolute;bottom:9px;right:9px;width:33px;height:33px;border:1px solid #ffffff55;
+.tt-soft-home .soft-mark{width:56px!important;height:56px!important;object-fit:contain!important;opacity:.85}
+.tt-soft-home .soft-kind{position:absolute;top:8px;left:8px;width:28px;height:28px;border:1px solid #ffffff3d;
+ border-radius:50%;display:grid;place-items:center;background:#05070ab0;color:#dff6f3;backdrop-filter:blur(3px)}
+.tt-soft-home .soft-play{position:absolute;bottom:8px;right:8px;width:30px;height:30px;border:1px solid #ffffff55;
  border-radius:50%;display:grid;place-items:center;background:#0d0f12bb;color:#e9fffc}
-.tt-soft-home .soft-episode strong{font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
- -webkit-box-orient:vertical;overflow:hidden;min-height:34px}
-.tt-soft-home .soft-meta{display:flex;align-items:center;gap:5px;color:#aab8b9;font-size:11px;flex-wrap:wrap}
+.tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
+ -webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 
 /* ── Архив эфиров: строка во всю ширину, вход в раздел ───────────────── */
 .tt-soft-home .soft-archive-row>.archive-strip{display:flex!important;align-items:center;gap:12px;width:100%;
@@ -108,13 +122,17 @@
 .tt-soft-home button:focus-visible,.tt-soft-home a:focus-visible{outline:2px solid #6fe7de;outline-offset:2px}
 
 @media(min-width:768px){.immersion.tt-soft-home{max-width:980px;margin-inline:auto;padding:24px!important}
- .tt-soft-home .soft-carousel>li{flex-basis:190px}
- .tt-soft-home .scene{max-height:min(70svh,640px)}
- .tt-soft-home .scene-title{font-size:46px!important}
- .tt-soft-home .scene-copy{inset:26px 28px auto!important}
- .tt-soft-home .soft-hero-foot{inset:auto 28px 24px}}
+ .tt-soft-home .soft-carousel>li{flex-basis:160px;max-width:180px}
+ /* На мониторе экран бывает низким (1024x573). Ширина постера ограничена ещё
+    и высотой окна, иначе афиша перекрывает весь экран и под ней ничего не
+    видно — проверка держит кадр в трёх четвертях высоты. */
+ .tt-soft-home .scene{width:min(100%,320px,calc((100svh - 190px) / 1.5))!important}
+ .tt-soft-home .scene-title{font-size:36px!important}
+ .tt-soft-home .scene-copy{inset:18px 20px auto!important}
+ .tt-soft-home .soft-hero-foot{width:min(100%,320px)}}
 @media(max-height:740px) and (max-width:767px){.immersion.tt-soft-home{gap:10px!important}
- .tt-soft-home .scene{max-height:min(62svh,430px)}
+ .tt-soft-home .scene{width:min(100%,225px)!important}
+ .tt-soft-home .soft-hero-foot{width:min(100%,225px)}
  .tt-soft-home .scene-side{gap:10px!important}}
 @media(prefers-reduced-motion:reduce){.tt-soft-home *{scroll-behavior:auto!important}}
 

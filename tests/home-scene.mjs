@@ -33,6 +33,11 @@ assert.equal(scene.resume.duration, 600);
 assert.equal(homeScene({...base, progress: [{id: '1', position: 599, duration: 600}]}).resume, null);
 // Нулевая позиция — это не «начал слушать».
 assert.equal(homeScene({...base, progress: [{id: '1', position: 0, duration: 600}]}).resume, null);
+// Случайное касание — не прослушивание. Плеер пишет место сразу, и строка
+// «Продолжить · 00:00» вылезала после промаха пальцем.
+assert.equal(homeScene({...base, progress: [{id: '1', position: 1, duration: 600}]}).resume, null, 'секунда звука — это промах, а не прослушивание');
+assert.equal(homeScene({...base, progress: [{id: '1', position: 14, duration: 600}]}).resume, null, 'меньше пятнадцати секунд строки «Продолжить» не даёт');
+assert.equal(homeScene({...base, progress: [{id: '1', position: 15, duration: 600}]}).resume.post.id, '1', 'с пятнадцати секунд продолжать уже есть что');
 // Продолжают подкаст: прогресс по истории или видео строку не даёт.
 assert.equal(homeScene({...base, posts: [post('3', {kind: 'story'})], progress: [{id: '3', position: 50, duration: 600}]}).resume, null);
 // Выпуск, которого больше нет, не должен ронять экран.
