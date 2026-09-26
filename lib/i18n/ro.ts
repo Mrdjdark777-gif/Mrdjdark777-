@@ -90,7 +90,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.emptyTitle": "Aici va apărea primul episod",
   "home.emptyNote": "Autorul nu a publicat încă nimic.",
   "home.fresh": "nou",
-  "home.freshList": "Recente",
+  "home.freshList": "Noutăți",
   'home.all': "Toate",
   'home.supportTitle': "Susține proiectul",
   'home.supportNote': "Ajută poveștile noi să răsune",

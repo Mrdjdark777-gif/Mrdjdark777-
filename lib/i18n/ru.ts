@@ -119,7 +119,7 @@ export const ru = {
   'home.emptyTitle': 'Здесь появится первый выпуск',
   'home.emptyNote': 'Автор ещё не опубликовал материалы.',
   'home.fresh': 'новое',
-  'home.freshList': "Свежее",
+  'home.freshList': "Новое",
   'home.all': "Все",
   'home.supportTitle': "Поддержать проект",
   'home.supportNote': "Помочь новым историям звучать",
