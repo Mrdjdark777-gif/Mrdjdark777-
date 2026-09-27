@@ -24,22 +24,30 @@ if($Action -eq 'Status'){
  exit
 }
 if($Action -eq 'Update'){
- # Файлы обслуживания лежат РЯДОМ с node_modules сервера: backup-data.mjs
- # подключает better-sqlite3, а Node ищет пакеты рядом со самим файлом. Из
- # домашнего каталога он их не находит и копия данных не делается вовсе.
+ # Файлы обслуживания должны лежать РЯДОМ с node_modules сервера:
+ # backup-data.mjs подключает better-sqlite3, а Node ищет пакеты рядом с самим
+ # файлом. Из домашнего каталога он их не находит, и копия данных не делается.
  #
  # Но каталогом /opt/truethrills с обновления 0.9.1 владеет системный
- # пользователь сервиса, и писать туда под ubuntu нельзя. Поэтому каталог для
- # файлов создаёт sudo и сразу отдаёт его тому, кто вошёл, — только этот
- # каталог, не весь /opt/truethrills. Сам .env остаётся нетронутым.
- Invoke-Remote 'sudo install -d -m 700 -o "$(id -un)" -g "$(id -gn)" /opt/truethrills/.update-staging'
+ # пользователь сервиса, и класть туда файлы напрямую под ubuntu нельзя.
+ # Поэтому в два шага: scp кладёт файлы в домашний каталог (туда он пишет
+ # всегда), а на место их переносит root. Владельцем каталог остаётся у
+ # сервиса — ничего чужого в его дереве не появляется.
+ #
+ # Передавать сюда подстановки оболочки нельзя: старый PowerShell ломает
+ # кавычки при передаче в внешние программы, и команда уезжает на сервер
+ # покалеченной. Все строки ниже — без кавычек и без $(...).
+ Invoke-Remote 'mkdir -p $HOME/.truethrills-staging'
  foreach($Name in @('update-safe.sh','backup-data.mjs','verify-backup.mjs')){
-  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:/opt/truethrills/.update-staging/$Name"
+  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name"
   if($LASTEXITCODE -ne 0){throw 'Could not stage update scripts.'}
  }
+ Invoke-Remote 'sudo install -d -m 755 /opt/truethrills/.update-staging'
+ Invoke-Remote 'sudo cp $HOME/.truethrills-staging/update-safe.sh $HOME/.truethrills-staging/backup-data.mjs $HOME/.truethrills-staging/verify-backup.mjs /opt/truethrills/.update-staging/'
  $Command="cd /opt/truethrills && sudo bash .update-staging/update-safe.sh '$Branch' '$ExpectedCommit'"
  Invoke-Remote $Command
- # Каталог обслуживания не остаётся в дереве сервиса чужим по владельцу.
+ # Ни в дереве сервиса, ни в домашнем каталоге временных файлов не остаётся.
+ Invoke-Remote 'rm -rf $HOME/.truethrills-staging'
  Invoke-Remote 'sudo rm -rf /opt/truethrills/.update-staging'
  exit
 }
