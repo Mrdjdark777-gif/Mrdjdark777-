@@ -112,6 +112,7 @@ export const ru = {
   'reader.brightness': "Яркость",
   'reader.systemBrightness': "Как на устройстве",
   'reader.bookmarks': "Закладки",
+  'reader.progress': "Прочитано",
   'reader.addBookmark': "Поставить закладку",
   'reader.removeBookmark': "Убрать закладку",
   'reader.noBookmarks': "Закладок пока нет",

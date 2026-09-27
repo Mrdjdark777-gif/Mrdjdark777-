@@ -84,6 +84,7 @@ export const uk: Record<keyof typeof ru, string> = {
   'reader.brightness': "Яскравість",
   'reader.systemBrightness': "Як на пристрої",
   'reader.bookmarks': "Закладки",
+  'reader.progress': "Прочитано",
   'reader.addBookmark': "Поставити закладку",
   'reader.removeBookmark': "Прибрати закладку",
   'reader.noBookmarks': "Закладок поки немає",

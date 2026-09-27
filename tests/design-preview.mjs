@@ -717,6 +717,20 @@ try{
     return {text:f.textContent.trim(),visible:css.visibility!=='hidden'&&Number(css.opacity)>0,
      covered:!(top===f||f.contains(top)||(top&&top.contains(f))),coveredBy:top?top.className||top.tagName:'ничего',
      right:Math.round(innerWidth-r.right),bottom:Math.round(innerHeight-r.bottom)};});
+   // Полоса прочитанного видна всегда, в том числе с убранными панелями:
+   // номер страницы в нижней строке без панелей не показывается.
+   {const bar=await page.evaluate(()=>{const n=document.querySelector('.tt-reader-progress');
+     if(!n)return null;const fill=n.querySelector('span');
+     const r=n.getBoundingClientRect(),css=getComputedStyle(n);
+     return {top:Math.round(r.top),wide:Math.round(r.width),vw:innerWidth,
+      shown:css.visibility!=='hidden'&&Number(css.opacity)>0,
+      scale:fill?getComputedStyle(fill).transform:'нет'};});
+    if(!bar)problems.push('в читалке нет полосы прочитанного');
+    else{
+     if(!bar.shown)problems.push('полоса прочитанного спрятана стилями');
+     if(bar.top>2)problems.push('полоса прочитанного не наверху: '+bar.top);
+     if(bar.wide!==bar.vw)problems.push('полоса прочитанного не во всю ширину: '+bar.wide+' из '+bar.vw);
+     if(bar.scale==='нет'||bar.scale==='none')problems.push('полоса прочитанного ничего не показывает: заполнение не сдвинуто');}}
    if(!folio)problems.push('в углу страницы нет номера');
    else{
     if(!folio.visible)problems.push('номер страницы в углу не виден');

@@ -113,6 +113,7 @@ export const it: Record<keyof typeof ru, string> = {
   'reader.brightness': "Luminosità",
   'reader.systemBrightness': "Come sul dispositivo",
   'reader.bookmarks': "Segnalibri",
+  'reader.progress': "Letto",
   'reader.addBookmark': "Aggiungi segnalibro",
   'reader.removeBookmark': "Togli segnalibro",
   'reader.noBookmarks': "Ancora nessun segnalibro",

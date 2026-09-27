@@ -58,6 +58,12 @@
    сильнее предыдущей и стоит там, где кончилась предыдущая. Углы и тени
    считает скрипт и кладёт прямо в стиль узла — здесь только неподвижное. */
 .tt-reader-turn{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;pointer-events:none}
+/* Мягкая тень, которую поднятый лист роняет на страницу под собой. Она
+   разделяет две страницы светом, а не чёрной полосой поперёк текста. */
+.tt-reader-turn::before{content:'';position:absolute;top:0;bottom:0;width:64%;pointer-events:none;
+ opacity:calc(var(--tt-a,0) * .3);transform:translateZ(-1px)}
+.tt-reader-turn.is-fwd::before{left:0;background:linear-gradient(90deg,#0009,#0005 36%,#0000)}
+.tt-reader-turn.is-back::before{right:0;background:linear-gradient(270deg,#0009,#0005 36%,#0000)}
 /* Звено нарочно шире своей доли на полтора пикселя: соседние перекрываются, и
    щелей между ними не видно. Без перекрытия на каждом стыке светится полоска
    фона — это было видно на снимке. */
@@ -72,6 +78,14 @@
  background:linear-gradient(270deg,color-mix(in srgb,var(--tt-paper) 88%,#000) 0%,var(--tt-paper) 55%)}
 .tt-reader-turn.is-back .tt-reader-strip-back{
  background:linear-gradient(90deg,color-mix(in srgb,var(--tt-paper) 88%,#000) 0%,var(--tt-paper) 55%)}
+
+/* Сколько прочитано — тонкая полоса поверх всего, включая панели. Номер
+   страницы в нижней строке виден только с панелями, а прогресс нужен всегда. */
+.tt-reader-progress{position:absolute;top:0;left:0;right:0;height:3px;z-index:5;pointer-events:none;
+ background:color-mix(in srgb,var(--tt-ink) 12%,transparent)}
+.tt-reader-progress>span{display:block;height:100%;transform-origin:0 50%;
+ background:linear-gradient(90deg,#6fe7de,#4aa8ff);transition:transform .5s cubic-bezier(.22,.68,.24,1)}
+@media(prefers-reduced-motion:reduce){.tt-reader-progress>span{transition:none}}
 
 /* Номер страницы в углу — для чтения с убранными панелями. Когда панели на
    экране, номер стоит в нижней строке, и второй такой же в том же углу был бы

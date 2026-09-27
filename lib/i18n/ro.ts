@@ -84,6 +84,7 @@ export const ro: Record<keyof typeof ru, string> = {
   'reader.brightness': "Luminozitate",
   'reader.systemBrightness': "Ca pe dispozitiv",
   'reader.bookmarks': "Semne de carte",
+  'reader.progress': "Citit",
   'reader.addBookmark': "Pune un semn",
   'reader.removeBookmark': "Scoate semnul",
   'reader.noBookmarks': "Încă nu există semne",

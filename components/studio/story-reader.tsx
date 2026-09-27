@@ -43,11 +43,11 @@ const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
  */
 const stripCount=(paragraphs:number)=>paragraphs<=160?16:paragraphs<=500?10:6;
 /** Полный оборот листа и наибольший прогиб посреди оборота, в градусах. */
-const TURNED=170,BEND=70;
+const TURNED=170,BEND=62;
 /** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно. */
 const COMMIT=0.3;
 /** Сколько идёт доводка целого оборота. */
-const RUN_MS=900;
+const RUN_MS=1150;
 
 const readPrefs=():Prefs=>{try{
  const v=JSON.parse(localStorage.getItem(PREFS_KEY)||'null');
@@ -166,9 +166,10 @@ export function StoryReader({id,title,description,body,onClose}:{
   const box=stage.current,now=live.current;if(!box||!now)return;
   const width=box.clientWidth,span=width/count,forward=now.dir===1;
   // Поворот отстаёт от пальца: у настоящей книги лист сначала приподнимается
-  // и гнётся, а на ребро встаёт только под конец. Прямая пропорция ставила
-  // его ребром уже на середине хода, и лист пропадал из виду.
-  const turn=(forward?-1:1)*Math.pow(Math.min(1,p),1.25)*TURNED;
+  // и гнётся, а на ребро встаёт только под конец. Чем больше показатель, тем
+  // дольше лист остаётся плоским и тем меньше он «перекидывается»: на
+  // середине хода он должен быть ещё виден целиком, а не стоять ребром.
+  const turn=(forward?-1:1)*Math.pow(Math.min(1,p),1.45)*TURNED;
   const bend=(forward?-1:1)*Math.sin(Math.min(1,p)*Math.PI)*BEND;
   // Вес звена: у корешка прогиб почти нулевой, у свободного края наибольший.
   let total=0;const weights:number[]=[];
@@ -181,7 +182,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    if(node)node.style.transform='translate3d('+(x-flat).toFixed(2)+'px,0,'+z.toFixed(2)+'px) rotateY('+angle.toFixed(2)+'deg)';
    const shade=shades.current[i];
    // Чем сильнее звено отвёрнуто от читателя, тем глубже на нём тень.
-   if(shade)shade.style.opacity=(Math.min(1,(1-Math.cos(radians))/2)*0.82).toFixed(3);
+   if(shade)shade.style.opacity=(Math.min(1,(1-Math.cos(radians))/2)*0.58).toFixed(3);
    x+=(forward?1:-1)*span*Math.cos(radians);
    z+=(forward?-1:1)*span*Math.sin(radians);
    angle+=bend*weights[i]/total;
@@ -199,7 +200,8 @@ export function StoryReader({id,title,description,body,onClose}:{
   const ms=Math.max(180,RUN_MS*Math.abs(gap)),start=performance.now();
   const step=(now:number)=>{
    const t=Math.min(1,(now-start)/ms);
-   const eased=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+   // Косинусная кривая мягче кубической: ни рывка в начале, ни удара в конце.
+   const eased=-(Math.cos(Math.PI*t)-1)/2;
    part.current=from+gap*eased;curl(part.current);
    if(t<1){raf.current=requestAnimationFrame(step);return;}
    raf.current=0;done();
@@ -339,6 +341,13 @@ export function StoryReader({id,title,description,body,onClose}:{
    </div>}
    <span className="tt-reader-folio">{page+1}</span>
   </div>
+  {/* Сколько прочитано — тонкой полосой поверх всего. Она видна и когда
+      панели убраны: в нижней строке номер страницы есть только с панелями. */}
+  <div className="tt-reader-progress" role="progressbar" aria-label={t('reader.progress')}
+   aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio*100)}>
+   <span style={{transform:'scaleX('+ratio.toFixed(4)+')'}}/>
+  </div>
+
   {/* Вуаль яркости лежит поверх всей читалки — вместе с панелями и листом
       настроек. Гасить только текст, оставляя панели яркими, незачем: глаза
       слепит именно светлое пятно на тёмном экране. Остального приложения она
