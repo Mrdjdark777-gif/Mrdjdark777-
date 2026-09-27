@@ -53,13 +53,37 @@ const grey=async(locator,base)=>{
  for(let x=0;x<width;x++)columns[x]/=height;
  const sorted=[...columns].sort((a,b)=>a-b);
  const middle=sorted[Math.floor(sorted.length/2)];
+ // Полоса сгиба ищется по отличию от страницы, а не по темноте. Изнанка листа
+ // на тёмном оформлении светлее бумаги, и мерка «самый тёмный столбец» после
+ // этой правки почти ничего не находила — проверка едва не превратилась в
+ // слепую.
+ const band=(from,to)=>{
+  let best=0,far=-1;
+  for(let x=0;x<width;x++){
+   let sum=0;for(let y=from;y<to;y++)sum+=data[y*width+x];
+   const away=Math.abs(sum/(to-from)-middle);
+   if(away>far){far=away;best=x;}
+  }
+  return best;
+ };
+ const third=Math.floor(height/3);
+ const tilt=band(height-third,height)-band(0,third);
+ // Куда завёрнут лист: в какой половине экрана его больше. Изнанка светлее
+ // бумаги, поэтому та половина, где лежит перевёрнутый лист, светлее другой.
+ let top=0,bottom=0;
+ const half=Math.floor(height/2);
+ for(let y=0;y<half;y++)for(let x=0;x<width;x++)top+=data[y*width+x];
+ for(let y=half;y<height;y++)for(let x=0;x<width;x++)bottom+=data[y*width+x];
+ const balance=top/(half*width)-bottom/((height-half)*width);
  let diff=0;
  if(base&&base.data.length===data.length){
   for(let i=0;i<data.length;i++)if(Math.abs(data[i]-base.data[i])>10)diff++;
   diff/=data.length;
  }
  return {data,width,height,mean,
-  spread:Math.sqrt(square/data.length),dip:middle-sorted[0],diff};
+  tilt,balance,
+  spread:Math.sqrt(square/data.length),
+  dip:Math.max(middle-sorted[0],sorted[sorted.length-1]-middle),diff};
 };
 const MUST_RUN=['штамп сборки','поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
@@ -810,7 +834,16 @@ try{
    const rest=await grey(page.locator('.tt-reader-stage'));
    await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5);
    await page.mouse.down();
-   await page.mouse.move(box.x+box.width*0.46,box.y+box.height*0.5,{steps:14});
+   // Оборот снимается по кадрам: одной картинкой середины не видно, идёт ли
+   // волна от правого края влево и растёт ли горбик.
+   let early=null;
+   for(const at of [0.80,0.66,0.52,0.38,0.24]){
+    await page.mouse.move(box.x+box.width*at,box.y+box.height*0.5,{steps:6});
+    await page.waitForTimeout(220);
+    await page.locator('.tt-reader-stage').screenshot({path:'outputs/ui/story-turn-'+Math.round(at*100)+'.png'});
+    if(at===0.80)early=await grey(page.locator('.tt-reader-stage'),rest);
+   }
+   await page.mouse.move(box.x+box.width*0.46,box.y+box.height*0.5,{steps:6});
    await page.waitForTimeout(350);
    await shot(page,'story-curl');
    const mid=await grey(page.locator('.tt-reader-stage'),rest);
@@ -823,10 +856,30 @@ try{
    if(!(mid.spread>3))problems.push('посреди оборота на странице нет ни текста, ни изгиба: разброс светимости '+mid.spread.toFixed(1));
    // Свёрнутый лист обязан оставить на странице тёмную полосу — изнанку и
    // тень у сгиба. Без неё это плоская подмена картинки, а не изгиб.
-   if(!(mid.dip>6))problems.push('на странице нет тёмной полосы сгиба: провал по столбцам всего '+mid.dip.toFixed(1));
+   if(!(mid.dip>6))problems.push('на странице не видно полосы сгиба: отличие по столбцам всего '+mid.dip.toFixed(1));
    // И кадр посреди оборота обязан отличаться от кадра в покое: иначе лист
    // стоит на месте.
    if(!(mid.diff>0.1))problems.push('посреди оборота страница не изменилась: отличие от покоя '+(mid.diff*100).toFixed(1)+'%');
+   // Сторона изгиба. Лист обязан заворачиваться вниз, как в Play Книгах, — у
+   // исходного шейдера он гнётся к верхнему углу, и это первое, что владелец
+   // увидел. Наклон полосы сгиба это и показывает: внизу она обязана стоять
+   // правее, чем наверху.
+   // Внизу полоса сгиба обязана стоять ЛЕВЕЕ, чем наверху: так лист
+   // заворачивается вниз. До правки он гнулся к верхнему углу — наклон был
+   // ровно противоположный, и владелец увидел это первым же взглядом.
+   console.log('Оборот страницы: наклон сгиба '+mid.tilt+', перевес верх-низ '+mid.balance.toFixed(2)+', отличие по столбцам '+mid.dip.toFixed(1)+', от покоя '+(mid.diff*100).toFixed(1)+'%');
+   // Горбик обязан расти, а не появляться сразу целиком: в начале оборота лист
+   // тронут чуть-чуть, к середине — заметно. Владелец описывал это словами
+   // «правый край скользит справа налево, а горбик становится всё больше».
+   if(early&&!(mid.diff>early.diff*1.6))
+    problems.push('оборот не нарастает: в начале '+(early.diff*100).toFixed(1)+'%, в середине '+(mid.diff*100).toFixed(1)+'%');
+   // Сторону изгиба — вниз лист заворачивается или вверх — здесь проверкой не
+   // ловят, и делать вид, что ловят, нельзя. Обе мерки, которые для этого
+   // пробовались, при развороте изгиба знака не меняют: наклон полосы сгиба дал
+   // -101 против -161, перевес светлоты между половинами экрана 0.67 против
+   // 1.03. Сгиб почти отвесный, и кадр выходит слишком похожим. Числа
+   // печатаются выше, а сторона видна на снимках оборота в
+   // outputs/ui/story-turn-*.png — её смотрят глазами.
    // Возвращаем палец почти к началу и отпускаем: лист обязан лечь обратно,
    // а номер страницы — остаться прежним. Заодно следующие проверки получают
    // ту же страницу, с которой начинали.
@@ -954,7 +1007,7 @@ try{
    // порога прежний — отличить настоящий длинный рассказ от демонстрационного.
    if(!(total>20))problems.push('длинный рассказ не длинный: страниц всего '+total);
    if(!(long.spread>3))problems.push('на длинном рассказе посреди оборота однотонное пятно: разброс '+long.spread.toFixed(1));
-   if(!(long.dip>6))problems.push('на длинном рассказе нет тёмной полосы сгиба: провал '+long.dip.toFixed(1));
+   if(!(long.dip>6))problems.push('на длинном рассказе не видно полосы сгиба: отличие '+long.dip.toFixed(1));
    if(!(long.diff>0.1))problems.push('на длинном рассказе страница не изменилась: отличие от покоя '+(long.diff*100).toFixed(1)+'%');}
   step('читалка');}
  // Эфир, когда его нет, и настройки.

@@ -16,8 +16,9 @@
  *
  * Изменено против источника: цвет бумаги приходит снаружи (у нас четыре
  * оформления, и просвет между страницами обязан быть цвета бумаги, а не
- * чёрным), выборка холстов с сохранением пропорций, направление оборота и
- * крайние состояния при нуле и единице.
+ * чёрным), выборка холстов с сохранением пропорций, направление оборота,
+ * сторона изгиба (лист гнётся вниз, а не вверх) и крайние состояния при нуле и
+ * единице.
  */
 
 const VERTEX =
@@ -39,8 +40,17 @@ uniform float viewportAspect;
 uniform float fromAspect;
 uniform float toAspect;
 uniform vec3 paperColor;
+// Цвет изнанки листа: светлее бумаги на тёмных оформлениях и темнее на светлых.
+uniform vec3 backColor;
+// Сторона изгиба. Лист обязан заворачиваться вниз, как в Play Книгах, а не
+// вверх: исходный шейдер гнёт его к верхнему углу. Приём тот же, каким уже
+// разворачивается направление листания, — координата переворачивается на
+// входе в геометрию и возвращается обратно при выборке картинки, поэтому
+// гнётся лист в другую сторону, а текст на нём остаётся ровным.
+uniform float flipY;
 vec2 sampleUV(vec2 p, float aspect) {
   p.x = direction > 0.0 ? p.x : 1.0-p.x;
+  p.y = flipY > 0.5 ? 1.0-p.y : p.y;
   vec2 scaleFit = vec2(min(1.0, aspect/viewportAspect), min(1.0, viewportAspect/aspect));
   return (p-0.5)/scaleFit+0.5;
 }
@@ -99,7 +109,9 @@ uniform float edgeScale;
 #define scale edgeScale
 const float sharpness = 3.0;
 
-const float cylinderRadius = 1.0 / PI / 2.0;
+// Радиус сгиба вынесен наружу: у источника он жёстко задан и даёт складку
+// шириной в четверть экрана. У книги сгиб узкий.
+uniform float cylinderRadius;
 
 // These depend on the progress uniform and must be computed per-fragment.
 // Global initializers with uniforms are invalid in GLSL ES and fail on Mesa.
@@ -172,7 +184,11 @@ vec4 backside(float yc, vec3 point)
         vec4 color = getFromColor(point.xy);
         float gray = (color.r + color.b + color.g) / 15.0;
         gray += (8.0 / 10.0) * (pow(max(0.0, 1.0 - abs(yc / cylinderRadius)), 2.0 / 10.0) / 2.0 + (5.0 / 10.0));
-        color.rgb = paperColor * (0.70 + 0.30 * clamp(gray, 0.0, 1.0));
+        // У источника здесь paperColor * (0.70 + 0.30 * gray): на тёмной бумаге
+        // изнанка выходила почти чёрной, и оборот читался чёрной прорехой, а не
+        // перевёрнутым листом. Теперь это переход от бумаги к её оборотному
+        // тону, который считается снаружи по светлоте оформления.
+        color.rgb = mix(paperColor, backColor, clamp(gray, 0.0, 1.0));
         return color;
 }
 
@@ -282,7 +298,7 @@ vec4 transition(vec2 p) {
 }
 
 void main() {
- vec2 p=vUV; if(direction<0.0)p.x=1.0-p.x;
+ vec2 p=vUV; if(direction<0.0)p.x=1.0-p.x; if(flipY>0.5)p.y=1.0-p.y;
  if(progress<=0.0){gl_FragColor=getFromColor(p);return;}
  if(progress>=1.0){gl_FragColor=getToColor(p);return;}
  vec4 c=transition(p);
@@ -345,10 +361,23 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
  const at = (name: string) => gl.getUniformLocation(program, name);
  const uniform = {
   progress: at('progress'), direction: at('direction'), paperColor: at('paperColor'),
+  flipY: at('flipY'), backColor: at('backColor'), cylinderRadius: at('cylinderRadius'),
   viewportAspect: at('viewportAspect'), fromAspect: at('fromAspect'),
   toAspect: at('toAspect'), edgeScale: at('edgeScale'),
  };
  gl.uniform3fv(uniform.paperColor, paper);
+ // Изгиб вниз. Владелец просил как в Play Книгах: у исходного шейдера лист
+ // заворачивается к верхнему углу, и это первое, что бросилось в глаза.
+ gl.uniform1f(uniform.flipY, 1);
+ // Изнанка листа. На тёмной бумаге она светлее бумаги, на светлой — темнее:
+ // перевёрнутый лист ловит свет иначе, чем лежащая страница, и без этого
+ // разворот в ночном оформлении выглядел чёрной прорехой.
+ const lit = paper[0] * 0.3 + paper[1] * 0.6 + paper[2] * 0.1;
+ const shift = lit < 0.5 ? 0.17 : -0.12;
+ gl.uniform3fv(uniform.backColor,
+  paper.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List);
+ // Узкий сгиб: у источника он шириной в четверть экрана, у книги — в палец.
+ gl.uniform1f(uniform.cylinderRadius, 0.085);
 
  const textures = [0, 1].map(unit => {
   const texture = gl.createTexture();
