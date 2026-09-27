@@ -29,8 +29,21 @@ try{
  await page.locator('.player-extras select').first().selectOption('1.5');assert.equal(await page.locator('.podcast-player audio').evaluate(a=>a.playbackRate),1.5);
  await page.locator('.podcast-toggle').click();await page.waitForFunction(()=>document.querySelector('.podcast-player audio')?.paused===true);await page.screenshot({path:'outputs/ui/player-mobile.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
- await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await page.locator('.reader-scroll').waitFor();assert.equal(await page.locator('.reading-dialog').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 23, 25)');await page.locator('.reader-options select').selectOption('22');await page.locator('.reader-scroll').evaluate(el=>el.scrollTop=500);await page.waitForTimeout(150);await page.screenshot({path:'outputs/ui/reader-mobile.png',fullPage:true});
- await page.reload();await page.locator('.reader-scroll').waitFor();await page.waitForFunction(()=>document.querySelector('.reader-scroll')?.scrollTop>400);assert.equal(await page.locator('.reader-options select').inputValue(),'22');
+ // Читалка в настоящем браузере: размер шрифта переживает перезапуск, и от
+ // него меняется разбивка на страницы — значит страницы считает текст, а не
+ // заранее заданное число.
+ await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(400);
+ const pageCount=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[1]));
+ const small=await pageCount();
+ assert.ok(small>1,'текст истории должен разбиться на страницы, а не остаться одной');
+ await page.locator('[aria-label="Настройки чтения"]').click();await page.locator('.tt-reader-themes').waitFor();
+ for(let i=0;i<3;i++){await page.locator('[aria-label="Больше"]').click();await page.waitForTimeout(250);}
+ const big=await pageCount();
+ assert.ok(big>small,'крупный шрифт обязан дать больше страниц: было '+small+', стало '+big);
+ await page.screenshot({path:'outputs/ui/reader-mobile.png',fullPage:true});
+ await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();
+ await page.reload();await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(600);
+ assert.equal(await pageCount(),big,'размер шрифта не пережил перезапуск: страниц стало '+await pageCount()+' вместо '+big);
  // Донат на главной остаётся виден и без настроенных площадок: это правило
  // проекта, а не украшение.
  await page.goto(base+'/?mode=listen');await page.locator('.support-strip,.support-card').first().waitFor();

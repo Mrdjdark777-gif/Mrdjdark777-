@@ -1,0 +1,98 @@
+/* Читалка во весь экран. Нижняя панель разделов (z-index 30) и мини-плеер
+   (40) остаются под ней: во время чтения на экране только текст. */
+.tt-reader{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;
+ background:var(--tt-paper);color:var(--tt-ink);overscroll-behavior:contain;
+ -webkit-user-select:none;user-select:none}
+.tt-reader-day{--tt-paper:#f4f1ea;--tt-ink:#20211f;--tt-soft:#6c6a63;--tt-panel:#fffdf8;--tt-edge:#00000014}
+.tt-reader-sepia{--tt-paper:#efe0c6;--tt-ink:#3a2d1c;--tt-soft:#7c6a4f;--tt-panel:#f7ecd8;--tt-edge:#00000012}
+.tt-reader-night{--tt-paper:#14181a;--tt-ink:#dfe6e5;--tt-soft:#93a2a2;--tt-panel:#1b2124;--tt-edge:#ffffff14}
+.tt-reader-black{--tt-paper:#000;--tt-ink:#c9d2d1;--tt-soft:#7e8a8a;--tt-panel:#0b0e0f;--tt-edge:#ffffff12}
+
+/* Страницы делает сам браузер: текст льётся в колонки шириной ровно в полосу
+   чтения, а лента сдвигается на целую колонку. Переносы, абзацы и висячие
+   строки считает он же — это честная разбивка, а не деление по количеству
+   букв. */
+.tt-reader-stage{position:relative;flex:1;min-height:0;overflow:hidden;cursor:pointer}
+/* Полоса текста отступает сверху и снизу на высоту панелей всегда, а не
+   только когда они показаны: панели полупрозрачные и всплывают поверх, и
+   строка, оказавшаяся под ними, просто пропадала бы.
+   Выключка по левому краю, а не по ширине: без переносов выключка по ширине
+   растягивает пробелы в дыры — это было видно на первом же снимке. */
+.tt-reader-flow{--tt-col:320px;--tt-gap:40px;
+ position:absolute;top:calc(58px + env(safe-area-inset-top));bottom:calc(54px + env(safe-area-inset-bottom));
+ /* Высоту в целое число строк дописывает скрипт: bottom нужен только для
+    первого измерения доступного места. */
+ left:calc(var(--tt-gap) / 2);width:var(--tt-col);
+ column-width:var(--tt-col);column-gap:var(--tt-gap);column-fill:auto;
+ text-align:left;overflow-wrap:break-word;
+ transition:transform .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
+@media(prefers-reduced-motion:reduce){.tt-reader-flow{transition:none}}
+.tt-reader-title{font-size:1.5em;line-height:1.2;font-weight:700;margin:0 0 .5em;text-align:left;
+ break-after:avoid;letter-spacing:-.02em}
+.tt-reader-intro{font-size:.82em;line-height:1.55;color:var(--tt-soft);margin:0 0 1.4em;text-align:left}
+/* Предложение — единица чтения вслух и единица подсветки; по нему же
+   вычисляется страница, на которой оно лежит. */
+.tt-reader-line{display:inline}
+.tt-reader-line.is-first{display:inline;}
+.tt-reader-line.is-first::before{content:'';display:block;height:.85em}
+.tt-reader-line.is-spoken{background:color-mix(in srgb,var(--tt-ink) 14%,transparent);border-radius:3px}
+/* Затемнение поверх текста: яркость экрана из браузера не меняется, поэтому
+   «убавить свет» — это вуаль над страницей. */
+.tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none}
+
+.tt-reader-top,.tt-reader-bottom{position:absolute;left:0;right:0;z-index:2;display:flex;align-items:center;gap:6px;
+ background:color-mix(in srgb,var(--tt-panel) 92%,transparent);backdrop-filter:blur(8px);
+ transition:transform .22s,opacity .22s}
+.tt-reader-top{top:0;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--tt-edge)}
+.tt-reader-bottom{bottom:0;padding:8px 14px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--tt-edge);gap:12px}
+.tt-reader[data-chrome=off] .tt-reader-top{transform:translateY(-100%);opacity:0;pointer-events:none}
+.tt-reader[data-chrome=off] .tt-reader-bottom{transform:translateY(100%);opacity:0;pointer-events:none}
+.tt-reader-heading{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-reader-icon{position:relative;display:grid;place-items:center;width:40px;height:40px;min-width:40px;
+ border:0;border-radius:50%;background:none;color:var(--tt-ink)}
+.tt-reader-count{position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;
+ background:#6fe7de;color:#08201e;font-size:10px;font-weight:700;display:grid;place-items:center}
+.tt-reader-page{font-size:12px;color:var(--tt-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tt-reader-speak{display:grid;place-items:center;width:40px;height:40px;min-width:40px;border-radius:50%;
+ border:1px solid var(--tt-edge);background:none;color:var(--tt-ink)}
+.tt-reader-speak.is-on{background:#6fe7de;color:#08201e;border-color:#6fe7de}
+.tt-reader-slider{flex:1;min-width:0;accent-color:#6fe7de;min-height:30px}
+
+.tt-reader-sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;max-height:78%;overflow:auto;
+ background:var(--tt-panel);border-top:1px solid var(--tt-edge);border-radius:22px 22px 0 0;
+ padding:12px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px #0000004d}
+.tt-reader-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.tt-reader-sheet-head strong{font-size:16px;font-weight:650}
+.tt-reader-settings,.tt-reader-marks{display:flex;flex-direction:column;gap:6px}
+.tt-reader-row{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:46px;font-size:14px}
+.tt-reader-row>span:first-child{color:var(--tt-soft);flex:none}
+.tt-reader-row select{flex:1;min-width:0;max-width:60%;background:var(--tt-paper);color:var(--tt-ink);
+ border:1px solid var(--tt-edge);border-radius:10px;padding:8px}
+.tt-reader-themes{display:flex;gap:8px}
+.tt-reader-theme{width:40px;height:40px;border-radius:50%;border:1px solid var(--tt-edge);font-size:13px;font-weight:700}
+.tt-reader-theme.is-day{background:#f4f1ea;color:#20211f}
+.tt-reader-theme.is-sepia{background:#efe0c6;color:#3a2d1c}
+.tt-reader-theme.is-night{background:#14181a;color:#dfe6e5}
+.tt-reader-theme.is-black{background:#000;color:#c9d2d1}
+.tt-reader-theme.is-active{outline:2px solid #6fe7de;outline-offset:2px}
+.tt-reader-steps{display:flex;align-items:center;gap:10px}
+.tt-reader-steps button{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;
+ border:1px solid var(--tt-edge);background:none;color:var(--tt-ink)}
+.tt-reader-steps b{min-width:28px;text-align:center;font-variant-numeric:tabular-nums}
+.tt-reader-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tt-reader-chips button{min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid var(--tt-edge);
+ background:none;color:var(--tt-ink);font-size:13px}
+.tt-reader-chips button.is-active{background:#6fe7de;color:#08201e;border-color:#6fe7de}
+.tt-reader-note{font-size:13px;line-height:1.5;color:var(--tt-soft);margin:10px 2px 6px}
+.tt-reader-mark{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 10px;
+ border:0;border-bottom:1px solid var(--tt-edge);background:none;color:var(--tt-ink);font:inherit}
+.tt-reader-mark b{font-size:12px;color:#6fe7de;font-variant-numeric:tabular-nums;flex:none;min-width:38px}
+.tt-reader-mark span{flex:1;min-width:0;font-size:13px;line-height:1.4;color:var(--tt-soft);
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tt-reader-mark i{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:var(--tt-soft)}
+.tt-reader button:focus-visible,.tt-reader [tabindex]:focus-visible{outline:2px solid #6fe7de;outline-offset:2px}
+
+@media(min-width:768px){
+ .tt-reader-flow{max-width:none}
+ .tt-reader-heading{font-size:15px}
+}

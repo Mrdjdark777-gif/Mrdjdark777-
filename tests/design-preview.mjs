@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
+const MUST_RUN=['читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -606,8 +606,61 @@ try{
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
- // История.
- await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);await page.locator('.reader-scroll').waitFor();await page.waitForTimeout(300);await shot(page,'story');
+ // История. Читалка занимает весь экран, текст разбит на страницы, край
+ // листает, середина прячет панели, место и оформление переживают перезапуск.
+ {await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);
+  await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(400);
+  const full=await page.evaluate(()=>{const r=document.querySelector('.tt-reader').getBoundingClientRect();
+   return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height),
+    vw:innerWidth,vh:innerHeight,pages:Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[1])};});
+  if(full.x!==0||full.y!==0||full.w!==full.vw||full.h!==full.vh)
+   problems.push('читалка не на весь экран: '+JSON.stringify(full));
+  if(!(full.pages>1))problems.push('текст не разбился на страницы: страниц '+full.pages);
+  // Высота полосы — целое число строк. Иначе колонка обрывается посреди
+  // строки и внизу страницы висит половина букв.
+  {const cut=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow');
+    const bar=document.querySelector('.tt-reader-bottom');
+    const css=getComputedStyle(f);const lead=parseFloat(css.lineHeight)||0;
+    return {lead:Math.round(lead*100)/100,height:Math.round(parseFloat(css.height)*100)/100,
+     rest:lead?Math.round((parseFloat(css.height)%lead)*100)/100:-1,
+     over:Math.round(f.getBoundingClientRect().bottom-bar.getBoundingClientRect().top)};});
+   if(cut.rest<0)problems.push('у полосы чтения не читается межстрочный интервал');
+   else if(cut.rest>1)problems.push('полоса чтения обрывает строку: высота '+cut.height+' при строке '+cut.lead+', остаток '+cut.rest);
+   // И сама полоса не должна заходить под нижнюю панель: там текст просто
+   // пропадает, сколько бы целых строк в неё ни помещалось.
+   if(cut.over>1)problems.push('полоса чтения уходит под нижнюю панель на '+cut.over+'px');}
+  await shot(page,'story');
+  // Нажатие у правого края листает вперёд, у левого — назад.
+  const box=await page.locator('.tt-reader-stage').boundingBox();
+  const at=x=>page.mouse.click(box.x+box.width*x,box.y+box.height*0.5);
+  const now=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[0]));
+  await at(0.9);await page.waitForTimeout(450);const second=await now();
+  if(second!==2)problems.push('нажатие у правого края не пролистало вперёд: страница '+second);
+  await at(0.1);await page.waitForTimeout(450);const back=await now();
+  if(back!==1)problems.push('нажатие у левого края не вернуло назад: страница '+back);
+  // Середина прячет панели — ради этого читалку и делали во весь экран.
+  await at(0.5);await page.waitForTimeout(350);
+  if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
+  await at(0.5);await page.waitForTimeout(350);
+  // Оформление: ночь и день должны давать разный фон, иначе выбор пустой.
+  const paper=()=>page.evaluate(()=>getComputedStyle(document.querySelector('.tt-reader')).backgroundColor);
+  await page.locator('[aria-label="Настройки чтения"]').click();await page.locator('.tt-reader-themes').waitFor();
+  await page.locator('.tt-reader-theme.is-day').click();await page.waitForTimeout(200);const day=await paper();
+  await page.locator('.tt-reader-theme.is-night').click();await page.waitForTimeout(200);const night=await paper();
+  if(day===night)problems.push('смена оформления не меняет фон читалки: '+day);
+  await shot(page,'story-settings');
+  await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(250);
+  // Закладка и место: и то и другое должно пережить перезапуск.
+  await at(0.9);await at(0.9);await page.waitForTimeout(500);
+  const marked=await now();
+  await page.locator('[aria-label="Поставить закладку"]').click();await page.waitForTimeout(200);
+  await page.reload();await settle(page);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(700);
+  const after=await now();
+  if(after!==marked)problems.push('читалка открылась не на том месте: было '+marked+', стало '+after);
+  await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();
+  if(!await page.locator('.tt-reader-mark').count())problems.push('закладка не пережила перезапуск');
+  await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(200);
+  step('читалка');}
  // Эфир, когда его нет, и настройки.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
   // Подсказка дыхания: четыре слова на одном круге, и в каждый момент
