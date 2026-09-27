@@ -118,4 +118,57 @@ for (const writable of ['/opt/truethrills/data', '/opt/truethrills/.next/cache']
 assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
  '.env читает сервис, но менять его он не должен');
 
-console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание; код и копии сервису не принадлежат, но читаются им — и это проверяется от его имени');
+// ВЫКЛАДКА. Переход служб с root на системного пользователя сломал не только
+// права на каталог — он сломал и путь, которым код попадает на сервер. Это
+// выяснилось не здесь, а у владельца: четыре захода подряд обновление падало,
+// каждый раз в новом месте одной и той же цепочки. Проверка на службы была, а
+// на выкладку — нет.
+{
+ const deploy = readFileSync(path.join(root, 'scripts/TrueThrills-Server.ps1'), 'utf8');
+
+ // 1. scp не пишет в дерево сервиса. Каталогом владеет truethrills, входим мы
+ //    другим пользователем, и попытка положить файл напрямую упирается в
+ //    «Permission denied».
+ const uploads = [...deploy.matchAll(/scp @SshOptions[^\n]*"\$\{Server\}:([^"]*)"/g)].map(m => m[1]);
+ assert.ok(uploads.length > 0, 'в выкладке не нашлось ни одной отправки файлов на сервер');
+ for (const required of ['update-safe.sh', 'backup-data.mjs', 'verify-backup.mjs']) {
+  assert.ok(deploy.includes(required), 'выкладка должна отправлять на сервер ' + required);
+ }
+ for (const target of uploads) {
+  assert.ok(!target.startsWith('/opt/truethrills'),
+   'scp пишет прямо в дерево сервиса (' + target + ') — под своим пользователем туда нельзя');
+ }
+
+ // 2. Но рядом с node_modules файлы оказаться обязаны: backup-data.mjs
+ //    подключает better-sqlite3, а Node ищет пакеты рядом с самим файлом.
+ assert.match(deploy, /sudo cp [^\n]*\/opt\/truethrills\/\.update-staging\//,
+  'файлы обслуживания должны попадать рядом с node_modules сервера, иначе копия данных не делается');
+ assert.match(deploy, /sudo bash \.update-staging\/update-safe\.sh/,
+  'обновление должно запускаться из каталога рядом с node_modules');
+
+ // 3. Ни одна удалённая команда не полагается на кавычки и подстановки:
+ //    старый PowerShell ломает их при передаче во внешние программы, и
+ //    команда уезжает на сервер покалеченной — молча, без ошибки.
+ for (const [, remote] of deploy.matchAll(/Invoke-Remote '([^']*)'/g)) {
+  assert.ok(!remote.includes('$('),
+   'удалённая команда полагается на подстановку оболочки: ' + remote);
+  assert.ok(!remote.includes('"'),
+   'удалённая команда содержит кавычки, которые ломает старый PowerShell: ' + remote);
+ }
+
+ // 4. Временное из дерева сервиса убирается: чужого по владельцу там остаться
+ //    не должно.
+ assert.match(deploy, /sudo rm -rf \/opt\/truethrills\/\.update-staging/,
+  'каталог обслуживания должен убираться из дерева сервиса после обновления');
+
+ // 5. Сборка идёт с нуля. Next отдавал прежние куски стилей после обновления:
+ //    код новый, а на экране старое.
+ const update = readFileSync(path.join(root, 'scripts/update-safe.sh'), 'utf8');
+ const clean = update.indexOf('rm -rf .next'), build = update.indexOf('npm run build');
+ assert.ok(clean > 0 && build > clean,
+  'сборка должна начинаться с удаления .next, иначе после обновления на экране остаются прежние стили');
+ assert.match(update, /Выложен коммит/,
+  'обновление должно называть выложенный коммит: иначе это остаётся догадкой');
+}
+
+console.log('PASS: приложение, воркер эфира и мониторинг запускаются от системного пользователя без оболочки; от root остаётся только обслуживание; код и копии сервису не принадлежат, но читаются им; выкладка не пишет в чужой каталог, не полагается на кавычки и собирает с нуля');
