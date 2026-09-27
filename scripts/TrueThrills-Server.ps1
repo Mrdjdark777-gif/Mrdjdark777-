@@ -24,13 +24,17 @@ if($Action -eq 'Status'){
  exit
 }
 if($Action -eq 'Update'){
- # Stage only maintenance code beside existing node_modules. Do not overwrite server .env.
- Invoke-Remote 'cd /opt/truethrills && mkdir -p .update-staging'
+ # Файлы обслуживания кладём в домашний каталог того, кто входит на сервер.
+ # Каталогом /opt/truethrills владеет системный пользователь сервиса, и с
+ # обновления 0.9.1 писать туда под ubuntu нельзя — scp отвечал «Permission
+ # denied» и обновление не начиналось вовсе. Сам скрипт всё равно работает
+ # от root и сам переходит в /opt/truethrills.
+ Invoke-Remote 'mkdir -p "$HOME/.truethrills-staging"'
  foreach($Name in @('update-safe.sh','backup-data.mjs','verify-backup.mjs')){
-  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:/opt/truethrills/.update-staging/$Name"
+  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name"
   if($LASTEXITCODE -ne 0){throw 'Could not stage update scripts.'}
  }
- $Command="cd /opt/truethrills && sudo bash .update-staging/update-safe.sh '$Branch' '$ExpectedCommit'"
+ $Command="sudo bash `"`$HOME/.truethrills-staging/update-safe.sh`" '$Branch' '$ExpectedCommit'"
  Invoke-Remote $Command
  exit
 }
