@@ -16,7 +16,11 @@ $SshOptions=@()
 if($KeyPath){$KeyPath=(Resolve-Path -LiteralPath $KeyPath).Path;$SshOptions=@('-i',$KeyPath)}
 function Invoke-Remote([string]$Command){ & ssh @SshOptions $Server $Command; if($LASTEXITCODE -ne 0){throw 'SSH command failed. See the message above.'} }
 if($Action -eq 'Status'){
- Invoke-Remote 'cd /opt/truethrills && git log -1 --format=%H && systemctl is-active truethrills && curl -fsS http://127.0.0.1:3000/api/health'
+ # Каталогом владеет системный пользователь сервиса, а входим мы под ubuntu:
+ # без safe.directory git отказывается читать чужой репозиторий («dubious
+ # ownership») и проверка состояния падает, хотя сервер жив. Обновление это
+ # уже умело — оно работает от root и прописывает исключение само.
+ Invoke-Remote "cd /opt/truethrills && git -c safe.directory=/opt/truethrills log -1 --format='%H %s' && git -c safe.directory=/opt/truethrills rev-parse --abbrev-ref HEAD && systemctl is-active truethrills && curl -fsS http://127.0.0.1:3000/api/health"
  exit
 }
 if($Action -eq 'Update'){
