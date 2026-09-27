@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
+const MUST_RUN=['штамп сборки','поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -234,6 +234,26 @@ try{
    check(!!foot,`на главной ${width}x${height} нет строки о правах`);
    if(foot&&nav)check(foot.y+foot.height<=nav.y+1,`панель разделов режет строку о правах ${width}x${height}: низ ${Math.round(foot.y+foot.height)} против ${Math.round(nav.y)}`);
    if(foot&&mini)check(foot.y+foot.height<=mini.y+1,`мини-плеер закрывает строку о правах ${width}x${height}`);}
+  // Штамп сборки: он отвечает на вопрос «доехал ли новый код до телефона».
+  // С коммитом рабочей копии он здесь не сверяется намеренно: сборка сделана
+  // до прогона, и после очередного коммита проверка падала бы не по делу.
+  // Сверяются подвал и /api/health между собой — они обязаны называть одно и
+  // то же, и ни один из них не имеет права остаться словом «dev».
+  if(width===390){step('штамп сборки');
+   const stamp=await page.evaluate(()=>{
+    const node=document.querySelector('.listener-main .content-footer .footer-build');
+    if(!node)return null;
+    const css=getComputedStyle(node);
+    return {text:(node.textContent||'').trim(),
+     shown:css.display!=='none'&&css.visibility!=='hidden'&&Number(css.opacity)>0};});
+   check(!!stamp,'в подвале нет штампа сборки: непонятно, какой код на экране');
+   if(stamp){
+    check(stamp.shown,'штамп сборки спрятан стилями');
+    check(/^[0-9a-f]{7,40}$/.test(stamp.text),'штамп сборки не похож на коммит: '+stamp.text);}
+   const health=await page.evaluate(async()=>{
+    const answer=await fetch('/api/health');return answer.json();});
+   check(/^[0-9a-f]{7,40}$/.test(String(health.build)),'/api/health не называет сборку: '+health.build);
+   if(stamp)check(health.build===stamp.text,'подвал и /api/health называют разные сборки: '+stamp.text+' и '+health.build);}
   await shot(page,`mini-${width}`);
  }
  await page.setViewportSize({width:390,height:844});
@@ -765,6 +785,22 @@ try{
     if(!(bend.turned>0.05))problems.push('лист не повёрнут, хотя палец протянул больше трети экрана');
     if(!(bend.spread>0.05))problems.push('лист не гнётся: все звенья повёрнуты одинаково (разброс '+bend.spread.toFixed(3)+')');
     if(!(bend.lift>4))problems.push('лист не поднимается над страницей: вынос всего '+bend.lift.toFixed(1)+'px');}
+   // Тень под поднятым листом. Её стили в файле лежали давно, а переменную,
+   // от которой зависела прозрачность, не выставлял никто: тень была ровно
+   // прозрачная во всех кадрах, и ни одна проверка этого не называла.
+   // Смотрим не переменную, а то, что получилось: видимую прозрачность и
+   // ширину полосы у ::before.
+   {const cast=await page.evaluate(()=>{
+     const layer=document.querySelector('.tt-reader-turn');
+     if(!layer)return null;
+     const css=getComputedStyle(layer,'::before');
+     return {opacity:Number(css.opacity),wide:parseFloat(css.width)||0,
+      image:css.backgroundImage||'нет',box:layer.clientWidth};});
+    if(!cast)problems.push('слоя переворота нет на экране');
+    else{
+     if(!(cast.opacity>0.1))problems.push('под листом нет тени: прозрачность '+cast.opacity);
+     if(!(cast.wide>cast.box*0.25))problems.push('тень под листом слишком узкая: '+Math.round(cast.wide)+'px из '+cast.box);
+     if(!cast.image.includes('gradient'))problems.push('тень под листом не растушёвана: '+cast.image);}}
    // Возвращаем палец почти к началу и отпускаем: лист обязан лечь обратно,
    // а номер страницы — остаться прежним. Заодно следующие проверки получают
    // ту же страницу, с которой начинали.

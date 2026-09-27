@@ -2261,3 +2261,9 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 @keyframes tt-shimmer{from{background-position:130% 0}to{background-position:-130% 0}}
 @media(prefers-reduced-motion:reduce){
  .tt-shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor;color:#f0f5f4}}
+
+/* Штамп сборки в подвале. Он нужен не для красоты: пока его не было, вопрос
+   «доехал ли новый код до телефона» решался кругом переписки. Набран
+   одноширинным, приглушённый — на своё место в подвале он не тянет. */
+.footer-build{font-family:ui-monospace,monospace;letter-spacing:.06em;
+ color:color-mix(in srgb,currentColor 62%,transparent)}

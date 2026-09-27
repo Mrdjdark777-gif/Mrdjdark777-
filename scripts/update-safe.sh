@@ -58,6 +58,15 @@ const fs=require('node:fs');let text=fs.readFileSync('.env','utf8');text=/^LIVE_
 JS
 bash scripts/install-operations.sh
 systemctl start truethrills
-curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 2 --max-time 10 http://127.0.0.1:3000/api/health
+health=$(curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 2 --max-time 10 http://127.0.0.1:3000/api/health)
+echo "$health"
+# Служба обязана отдавать ровно тот код, который сейчас выложен. Иначе сборка
+# отстала от кода, а на экране остаётся прежнее приложение — именно так трижды
+# и получалось «обновил, ничего не изменилось».
+want=$(git rev-parse --short HEAD)
+case "$health" in
+ *"\"build\":\"$want\""*) echo "Сборка совпадает с кодом: $want" ;;
+ *) echo "Служба отдаёт не ту сборку: ждали $want, ответ: $health" >&2; exit 1 ;;
+esac
 trap - ERR
 echo "Updated successfully to $target. Previous commit: $previous"

@@ -160,6 +160,7 @@ export const it: Record<keyof typeof ru, string> = {
   "header.support": "Sostieni",
   "app.download": "Scarica l'app",
   "footer.rights": "Tutti i diritti riservati",
+  "footer.build": "Quale build è installata",
   "settings.ownerTitle": "Accesso autore",
   "settings.ownerText": "Lo studio si apre dopo l'accesso. Gli ascoltatori non hanno bisogno di un account.",
   "app.footerNote": "Server proprio, file propri. Senza pubblicità né tracciamento.",

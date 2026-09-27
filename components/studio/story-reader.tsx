@@ -77,6 +77,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [flip,setFlip]=useState<Flip|null>(null);
  const live=useRef<Flip|null>(null);
  const strips=useRef<(HTMLDivElement|null)[]>([]),shades=useRef<(HTMLDivElement|null)[]>([]);
+ const turnBox=useRef<HTMLDivElement>(null);
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
  const [loaded,setLoaded]=useState(false);
@@ -186,6 +187,23 @@ export function StoryReader({id,title,description,body,onClose}:{
    x+=(forward?1:-1)*span*Math.cos(radians);
    z+=(forward?-1:1)*span*Math.sin(radians);
    angle+=bend*weights[i]/total;
+  }
+  // Тень, которую поднятый лист роняет на страницу под собой.
+  //
+  // Ширина — это то, сколько лист ещё закрывает: у плоского листа он лежит во
+  // всю страницу, у вставшего на ребро закрывает нулевую полосу. Сила —
+  // наибольшая посреди оборота: плоский лист тени не даёт, потому что лежит
+  // вплотную, а вставший на ребро уже не роняет её на страницу.
+  //
+  // Раньше этой строки не было: стили тени в файле лежали, но переменную,
+  // от которой зависела её прозрачность, никто не выставлял, и тень не
+  // появлялась ни в одном кадре.
+  const under=turnBox.current;
+  if(under){
+   const lift=Math.sin(Math.min(1,p)*Math.PI);
+   const cover=Math.max(0,Math.cos(turn*Math.PI/180))*width;
+   under.style.setProperty('--tt-a',(lift*0.55).toFixed(3));
+   under.style.setProperty('--tt-w',cover.toFixed(1)+'px');
   }
  },[count]);
 
@@ -325,7 +343,7 @@ export function StoryReader({id,title,description,body,onClose}:{
        показывает свой кусок текста и поворачивается на свой угол. Изнанка —
        чистая бумага того же оформления, иначе на середине оборота полоса
        просто исчезала бы. */}
-   {flip&&<div className={'tt-reader-turn is-'+(flip.dir===1?'fwd':'back')} aria-hidden="true">
+   {flip&&<div className={'tt-reader-turn is-'+(flip.dir===1?'fwd':'back')} ref={turnBox} aria-hidden="true">
     {Array.from({length:count},(_,i)=><div key={i} className="tt-reader-strip"
       ref={node=>{strips.current[i]=node;}}
       style={{left:(flip.dir===1?i:count-1-i)*(100/count)+'%',width:'calc('+(100/count)+'% + 1.5px)',

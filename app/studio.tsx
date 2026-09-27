@@ -403,7 +403,7 @@ export default function Studio(){
  </>}
  {/* Подвал есть и на главной: она больше не обязана помещаться в экран, а
      строка о правах должна быть видна в приложении, а не только на сайте. */}
- <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>{t('footer.rights')}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
+ <footer className="content-footer"><span>© {new Date().getFullYear()} True Thrills</span><span>{t('footer.rights')}</span><span className="footer-build" title={t('footer.build')}>{process.env.NEXT_PUBLIC_BUILD||'dev'}</span>{view==='settings'&&<span className="footer-studio">Created by DarK Creative Studio</span>}</footer>
  {/* Место под глобальный мини-плеер: он висит поверх и иначе накрыл бы подвал.
      Отступами это не решается — у запертой оболочки своё правило с большей
      весомостью, поэтому место занимает настоящий элемент в самом низу. */}
