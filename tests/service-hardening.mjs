@@ -193,6 +193,19 @@ assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
  // Сборку обязаны называть оба ответа — и здоровый, и аварийный: выкладка
  // сверяется по этому полю, и если служба поднялась «нездоровой», знать, какой
  // код на ней, нужно тем более.
+ // Заимствованный шейдер обязан ехать со своей лицензией. Он не пакет npm,
+ // поэтому в описи из package-lock.json его нет и проверка лицензий его не
+ // видит: BSD-3-Clause требует сохранять уведомление и в исходниках, и в
+ // собранном виде, а забыть об этом легче всего именно у вложенного кода.
+ const curl = readFileSync(path.join(root, 'lib/page-curl.ts'), 'utf8');
+ assert.match(curl, /vendor\/page-curl-shader\.LICENSE\.txt/,
+  'код с заимствованным шейдером должен указывать, где лежит его лицензия');
+ const notice = readFileSync(path.join(root, 'vendor/page-curl-shader.LICENSE.txt'), 'utf8');
+ assert.match(notice, /BSD|Hewlett-Packard/,
+  'vendor/page-curl-shader.LICENSE.txt должен содержать сам текст лицензии, а не ссылку на неё');
+ assert.match(readFileSync(path.join(root, 'docs/LICENSES-RU.md'), 'utf8'), /page-curl-shader/,
+  'вложенный шейдер должен быть разобран в описи сторонних компонентов');
+
  const health = readFileSync(path.join(root, 'app/api/health/route.ts'), 'utf8');
  const says = health.match(/build:process\.env\.NEXT_PUBLIC_BUILD/g) ?? [];
  assert.equal(says.length, 2,

@@ -14,6 +14,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,rm,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import sharp from 'sharp';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-design-')),soft=process.env.TT_DESIGN_SOFT==='1';
 const env={...process.env,DATABASE_PATH:path.join(dir,'db.sqlite'),STORAGE_DIR:path.join(dir,'storage'),LIVE_DIR:path.join(dir,'live'),SESSION_SECRET:'design-secret-not-production',ADMIN_PASSWORD:'design-password',FIREBASE_SERVICE_ACCOUNT_FILE:'',PUBLIC_SITE_URL:''};
 execFileSync(process.execPath,['node_modules/drizzle-kit/bin.cjs','migrate'],{env,stdio:'ignore'});
@@ -27,6 +28,39 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
+/**
+ * Снимок узла в серое и три меры по нему.
+ *
+ * Нужен для изгиба страницы: его рисует шейдер, и о нём нельзя спросить
+ * разметку — стили холста не меняются ни на один кадр. Проверять приходится то,
+ * что видно: пиксели.
+ *
+ * spread — разброс светимости по всей картинке. Однотонное пятно (не собравшийся
+ *          шейдер, пустой холст) даёт ноль.
+ * dip    — насколько самый тёмный столбец темнее серединного. Свёрнутый лист
+ *          обязан оставить тёмную полосу у сгиба; плоская подмена картинки — нет.
+ * diff   — доля пикселей, заметно изменившихся против переданного кадра.
+ */
+const grey=async(locator,base)=>{
+ const png=await locator.screenshot();
+ const {data,info}=await sharp(png).greyscale().raw().toBuffer({resolveWithObject:true});
+ const {width,height}=info;
+ let sum=0;for(const v of data)sum+=v;
+ const mean=sum/data.length;
+ let square=0;for(const v of data)square+=(v-mean)**2;
+ const columns=new Float64Array(width);
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++)columns[x]+=data[y*width+x];
+ for(let x=0;x<width;x++)columns[x]/=height;
+ const sorted=[...columns].sort((a,b)=>a-b);
+ const middle=sorted[Math.floor(sorted.length/2)];
+ let diff=0;
+ if(base&&base.data.length===data.length){
+  for(let i=0;i<data.length;i++)if(Math.abs(data[i]-base.data[i])>10)diff++;
+  diff/=data.length;
+ }
+ return {data,width,height,mean,
+  spread:Math.sqrt(square/data.length),dip:middle-sorted[0],diff};
+};
 const MUST_RUN=['штамп сборки','поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
@@ -677,49 +711,56 @@ try{
  // История. Читалка занимает весь экран, текст разбит на страницы, край
  // листает, середина прячет панели, место и оформление переживают перезапуск.
  {await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);
-  await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(400);
+  await page.locator('.tt-reader-line').first().waitFor();await page.waitForTimeout(400);
   const full=await page.evaluate(()=>{const r=document.querySelector('.tt-reader').getBoundingClientRect();
    return {x:Math.round(r.left),y:Math.round(r.top),w:Math.round(r.width),h:Math.round(r.height),
-    vw:innerWidth,vh:innerHeight,pages:Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[1])};});
+    vw:innerWidth,vh:innerHeight,pages:Number(document.querySelector('.tt-reader-page-count')?.textContent.split('/')[1])};});
   if(full.x!==0||full.y!==0||full.w!==full.vw||full.h!==full.vh)
    problems.push('читалка не на весь экран: '+JSON.stringify(full));
   if(!(full.pages>1))problems.push('текст не разбился на страницы: страниц '+full.pages);
-  // Высота полосы — целое число строк. Иначе колонка обрывается посреди
-  // строки и внизу страницы висит половина букв.
-  {const cut=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow:not(.is-copy)');
+  // Сетка строк. Каждая строка занимает целое число строк сетки, и последняя
+  // строка страницы не заходит под нижнюю панель: там текст просто пропадает.
+  //
+  // Проверяется то, что видно глазами, а не то, что задумано: высоты берутся у
+  // настоящих узлов на экране.
+  {const grid=await page.evaluate(()=>{
+    const sheet=document.querySelector('.tt-reader-page:not(.is-copy)');
     const bar=document.querySelector('.tt-reader-bottom');
-    const css=getComputedStyle(f);const lead=parseFloat(css.lineHeight)||0;
-    return {lead:Math.round(lead*100)/100,height:Math.round(parseFloat(css.height)*100)/100,
-     rest:lead?Math.round((parseFloat(css.height)%lead)*100)/100:-1,
-     over:Math.round(f.getBoundingClientRect().bottom-bar.getBoundingClientRect().top)};});
-   if(cut.rest<0)problems.push('у полосы чтения не читается межстрочный интервал');
-   else if(cut.rest>1)problems.push('полоса чтения обрывает строку: высота '+cut.height+' при строке '+cut.lead+', остаток '+cut.rest);
-   // И сама полоса не должна заходить под нижнюю панель: там текст просто
-   // пропадает, сколько бы целых строк в неё ни помещалось.
-   if(cut.over>1)problems.push('полоса чтения уходит под нижнюю панель на '+cut.over+'px');}
-  // Сетка строк. Высота полосы — целое число строк, но если хоть один кусок
-  // текста из сетки выпал, внизу страницы всё равно повиснет половина строки.
-  {const grid=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow:not(.is-copy)');
-    const lead=parseFloat(getComputedStyle(f).lineHeight)||0;if(!lead)return null;
-    const bad=[];
-    for(const node of f.querySelectorAll('h1,p')){
-     const box=node.getBoundingClientRect().height;
-     const css=getComputedStyle(node);
-     const whole=box+parseFloat(css.marginBottom||'0');
-     const rest=Math.abs(whole/lead-Math.round(whole/lead))*lead;
-     if(rest>1)bad.push(node.tagName.toLowerCase()+':'+Math.round(whole)+'@'+Math.round(rest));
-    }
-    return {lead:Math.round(lead),bad:bad.slice(0,4),count:bad.length};});
-   if(!grid)problems.push('в полосе чтения не читается межстрочный интервал');
-   else if(grid.count)problems.push('текст выпал из сетки строк ('+grid.lead+'px): '+grid.bad.join(', '));}
+    if(!sheet||!bar)return null;
+    const lines=[...sheet.querySelectorAll('.tt-reader-line')];
+    if(!lines.length)return {lines:0};
+    // Строка сетки — самая частая высота среди строк текста: заголовок выше,
+    // но он один, а абзацных строк много.
+    const heights=lines.map(n=>Math.round(n.getBoundingClientRect().height*100)/100);
+    const tally=new Map();
+    for(const h of heights)tally.set(h,(tally.get(h)??0)+1);
+    const lead=[...tally.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    const off=heights.filter(h=>Math.abs(h/lead-Math.round(h/lead))*lead>1);
+    const last=lines[lines.length-1].getBoundingClientRect();
+    const sum=heights.reduce((a,b)=>a+b,0);
+    return {lines:lines.length,lead,off:off.slice(0,4),offCount:off.length,
+     over:Math.round(last.bottom-bar.getBoundingClientRect().top),
+     room:Math.round(parseFloat(getComputedStyle(sheet).height)),sum:Math.round(sum)};});
+   if(!grid)problems.push('на странице читалки нет ни строк, ни нижней панели');
+   else if(!grid.lines)problems.push('страница читалки пуста: ни одной строки');
+   else{
+    if(grid.offCount)problems.push('строки выпали из сетки ('+grid.lead+'px): '+grid.off.join(', '));
+    // Строки набраны ровно на страницу: ни одна лишняя не всунута.
+    if(grid.sum>grid.room+1)problems.push('строк набрано больше, чем помещается: '+grid.sum+'px в полосе '+grid.room+'px');
+    // И не меньше. Первая страница рассказа не последняя — она обязана быть
+    // набрана до низа. Пока пустые строки между абзацами считались, но не
+    // рисовались, внизу оставалась пустота высотой в полстраницы, а проверка
+    // «не больше, чем помещается» это пропускала.
+    if(grid.sum<grid.room-grid.lead*1.5)problems.push('страница набрана не до низа: '+grid.sum+'px в полосе '+grid.room+'px');
+    if(grid.over>1)problems.push('последняя строка уходит под нижнюю панель на '+grid.over+'px');}}
   await shot(page,'story');
   // Нажатие у правого края листает вперёд, у левого — назад.
   const box=await page.locator('.tt-reader-stage').boundingBox();
   const at=x=>page.mouse.click(box.x+box.width*x,box.y+box.height*0.5);
-  const now=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[0]));
-  await at(0.9);await page.waitForTimeout(1200);const second=await now();
+  const now=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page-count')?.textContent.split('/')[0]));
+  await at(0.9);await page.waitForTimeout(1700);const second=await now();
   if(second!==2)problems.push('нажатие у правого края не пролистало вперёд: страница '+second);
-  await at(0.1);await page.waitForTimeout(1200);const back=await now();
+  await at(0.1);await page.waitForTimeout(1700);const back=await now();
   if(back!==1)problems.push('нажатие у левого края не вернуло назад: страница '+back);
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(350);
@@ -759,54 +800,39 @@ try{
     if(folio.right>40||folio.bottom>40)problems.push('номер страницы не в углу: отступы '+folio.right+'/'+folio.bottom);}}
   await at(0.5);await page.waitForTimeout(350);
   // Изгиб. Держим палец посреди оборота — лист обязан стоять согнутым, а не
-  // висеть плоской карточкой. Согнут он или нет, видно по звеньям: у жёсткого
-  // листа все они повёрнуты одинаково, у согнутого — каждое по-своему.
-  {await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5);
+  // висеть плоской карточкой.
+  //
+  // Проверяются настоящие пиксели, а не задуманные величины. Изгиб рисует
+  // шейдер, и о нём нельзя спросить разметку: стили узла у холста не меняются
+  // ни на один кадр. Поэтому сцена снимается и разбирается по светимости.
+  {const on=await page.evaluate(()=>
+    document.querySelector('.tt-reader-gl')?.getAttribute('data-on')??'нет холста');
+   const rest=await grey(page.locator('.tt-reader-stage'));
+   await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5);
    await page.mouse.down();
    await page.mouse.move(box.x+box.width*0.46,box.y+box.height*0.5,{steps:14});
    await page.waitForTimeout(350);
    await shot(page,'story-curl');
-   const bend=await page.evaluate(()=>{
-    const list=[...document.querySelectorAll('.tt-reader-strip')];
-    if(list.length<2)return {count:list.length};
-    // Первое число матрицы поворота — косинус угла вокруг вертикальной оси.
-    // Сдвиги на него не влияют, поэтому по нему и сверяем звенья.
-    // Числа берём из скобок: без этого в разбор попадала бы тройка из самого
-    // слова «matrix3d», и все звенья выглядели бы одинаковыми.
-    const parts=n=>{const m=getComputedStyle(n).transform;
-     const inside=m.slice(m.indexOf('(')+1,m.lastIndexOf(')'));
-     return inside?inside.split(',').map(v=>Number(v.trim())):[];};
-    const all=list.map(n=>{const v=parts(n);return v.length?v[0]:1;});
-    const lift=list.map(n=>{const v=parts(n);return v.length>=16?v[14]:0;});
-    return {count:list.length,spread:Math.max(...all)-Math.min(...all),
-     turned:1-Math.min(...all),lift:Math.max(...lift.map(Math.abs))};});
-   if(bend.count!==16)problems.push('лист разрезан не на шестнадцать звеньев, а на '+bend.count);
-   else{
-    if(!(bend.turned>0.05))problems.push('лист не повёрнут, хотя палец протянул больше трети экрана');
-    if(!(bend.spread>0.05))problems.push('лист не гнётся: все звенья повёрнуты одинаково (разброс '+bend.spread.toFixed(3)+')');
-    if(!(bend.lift>4))problems.push('лист не поднимается над страницей: вынос всего '+bend.lift.toFixed(1)+'px');}
-   // Тень под поднятым листом. Её стили в файле лежали давно, а переменную,
-   // от которой зависела прозрачность, не выставлял никто: тень была ровно
-   // прозрачная во всех кадрах, и ни одна проверка этого не называла.
-   // Смотрим не переменную, а то, что получилось: видимую прозрачность и
-   // ширину полосы у ::before.
-   {const cast=await page.evaluate(()=>{
-     const layer=document.querySelector('.tt-reader-turn');
-     if(!layer)return null;
-     const css=getComputedStyle(layer,'::before');
-     return {opacity:Number(css.opacity),wide:parseFloat(css.width)||0,
-      image:css.backgroundImage||'нет',box:layer.clientWidth};});
-    if(!cast)problems.push('слоя переворота нет на экране');
-    else{
-     if(!(cast.opacity>0.1))problems.push('под листом нет тени: прозрачность '+cast.opacity);
-     if(!(cast.wide>cast.box*0.25))problems.push('тень под листом слишком узкая: '+Math.round(cast.wide)+'px из '+cast.box);
-     if(!cast.image.includes('gradient'))problems.push('тень под листом не растушёвана: '+cast.image);}}
+   const mid=await grey(page.locator('.tt-reader-stage'),rest);
+   const drawn=await page.evaluate(()=>
+    document.querySelector('.tt-reader-gl')?.getAttribute('data-on')??'нет холста');
+   if(on!=='no')problems.push('холст изгиба виден и в покое: data-on='+on);
+   if(drawn!=='yes')problems.push('посреди оборота холст изгиба не включён: data-on='+drawn);
+   // Страница не должна оказаться однотонным пятном: так выглядит и не
+   // собравшийся шейдер, и пустой холст.
+   if(!(mid.spread>3))problems.push('посреди оборота на странице нет ни текста, ни изгиба: разброс светимости '+mid.spread.toFixed(1));
+   // Свёрнутый лист обязан оставить на странице тёмную полосу — изнанку и
+   // тень у сгиба. Без неё это плоская подмена картинки, а не изгиб.
+   if(!(mid.dip>6))problems.push('на странице нет тёмной полосы сгиба: провал по столбцам всего '+mid.dip.toFixed(1));
+   // И кадр посреди оборота обязан отличаться от кадра в покое: иначе лист
+   // стоит на месте.
+   if(!(mid.diff>0.1))problems.push('посреди оборота страница не изменилась: отличие от покоя '+(mid.diff*100).toFixed(1)+'%');
    // Возвращаем палец почти к началу и отпускаем: лист обязан лечь обратно,
    // а номер страницы — остаться прежним. Заодно следующие проверки получают
    // ту же страницу, с которой начинали.
    const was=await now();
    await page.mouse.move(box.x+box.width*0.86,box.y+box.height*0.5,{steps:10});
-   await page.mouse.up();await page.waitForTimeout(1200);
+   await page.mouse.up();await page.waitForTimeout(1700);
    const after=await now();
    if(after!==was)problems.push('недотянутый лист перевернул страницу: было '+was+', стало '+after);}
 
@@ -818,7 +844,7 @@ try{
     await page.mouse.move(box.x+box.width*to,box.y+box.height*0.55,{steps:10});
     // Палец не отрывается в ту же миллисекунду, в которую закончил движение.
     await page.waitForTimeout(80);
-    await page.mouse.up();await page.waitForTimeout(1400);};
+    await page.mouse.up();await page.waitForTimeout(1700);};
    await swipe(0.78,0.22);const swiped=await now();
    if(swiped!==2)problems.push('смахивание влево не пролистало вперёд: страница '+swiped);
    await swipe(0.22,0.78);const swipedBack=await now();
@@ -835,7 +861,7 @@ try{
   await at(0.9);await page.waitForTimeout(1200);await at(0.9);await page.waitForTimeout(1200);
   const marked=await now();
   await page.locator('[aria-label="Поставить закладку"]').click();await page.waitForTimeout(200);
-  await page.reload();await settle(page);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(900);
+  await page.reload();await settle(page);await page.locator('.tt-reader-line').first().waitFor();await page.waitForTimeout(900);
   const after=await now();
   if(after!==marked)problems.push('читалка открылась не на том месте: было '+marked+', стало '+after);
   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();
@@ -861,6 +887,29 @@ try{
      if(!box.track)problems.push('переключатель рисуется не разметкой: дорожки нет');
      if(box.shown>0.01)problems.push('системный флажок виден поверх нарисованного: прозрачность '+box.shown);
      if(box.w<40||box.h<24)problems.push('переключатель мелкий: '+box.w+'x'+box.h);}}
+   // Он обязан быть железным переключателем из присланного образца, а не
+   // гладкой пилюлей: клавиша ходит из края в край, и по краям два огонька —
+   // погашенный горит слева, включённый справа.
+   {const look=async()=>page.evaluate(()=>{
+     const n=document.querySelector('.tt-reader-switch');
+     const track=n?.querySelector('.tt-reader-switch-track');
+     if(!n||!track)return null;
+     const knob=getComputedStyle(track,'::before');
+     return {knob:knob.transform,width:knob.width,
+      left:getComputedStyle(n,'::before').backgroundColor,
+      right:getComputedStyle(n,'::after').backgroundColor,
+      seam:getComputedStyle(track,'::after').backgroundImage};});
+    await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(320);
+    const off=await look();
+    await page.locator('.tt-reader-switch').check();await page.waitForTimeout(320);
+    const on=await look();
+    if(!off||!on)problems.push('у переключателя нет ни клавиши, ни дорожки');
+    else{
+     if(parseFloat(off.width)<10)problems.push('у переключателя нет клавиши: её ширина '+off.width);
+     if(off.knob===on.knob)problems.push('клавиша переключателя не ходит: '+off.knob+' в обоих положениях');
+     if(!off.seam.includes('gradient'))problems.push('на клавише нет прорези: '+off.seam);
+     if(off.left===on.left)problems.push('левый огонёк не гаснет при включении: '+off.left);
+     if(off.right===on.right)problems.push('правый огонёк не загорается: '+off.right);}}
   await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(150);
   const veil=async(value)=>{await page.locator('.tt-reader-row .tt-reader-slider').fill(String(value));
    await page.waitForTimeout(200);
@@ -884,28 +933,29 @@ try{
   await page.locator('.tt-reader-switch').check();await page.waitForTimeout(200);
   if(await page.locator('.tt-reader-dim').count())problems.push('с яркостью «как на устройстве» затемнение осталось');
   await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(200);
-  // Длинный рассказ гнётся тоже. Именно здесь изгиб и не работал: порог
+  // Длинный рассказ гнётся тоже. Именно здесь изгиб однажды и не работал: порог
   // внутри читалки выключал его молча, а демонстрационный текст был короче
-  // порога, и проверки этого не видели.
+  // порога, и проверки этого не видели. Теперь изгиб рисует шейдер и порогов у
+  // него нет, но проверка остаётся: длина рассказа не должна менять картинку.
   {await page.goto(base+'/?mode=listen&view=stories&post='+longStory.id);await settle(page);
-   await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(500);
+   await page.locator('.tt-reader-line').first().waitFor();await page.waitForTimeout(500);
+   const total=await page.evaluate(()=>
+    Number(document.querySelector('.tt-reader-page-count')?.textContent.split('/')[1]));
    const wide=await page.locator('.tt-reader-stage').boundingBox();
+   const calm=await grey(page.locator('.tt-reader-stage'));
    await page.mouse.move(wide.x+wide.width*0.88,wide.y+wide.height*0.5);
    await page.mouse.down();
    await page.mouse.move(wide.x+wide.width*0.46,wide.y+wide.height*0.5,{steps:14});
    await page.waitForTimeout(350);
-   const long=await page.evaluate(()=>{
-    const list=[...document.querySelectorAll('.tt-reader-strip')];
-    const parts=n=>{const m=getComputedStyle(n).transform;
-     const inside=m.slice(m.indexOf('(')+1,m.lastIndexOf(')'));
-     return inside?inside.split(',').map(v=>Number(v.trim())):[];};
-    const all=list.map(n=>{const v=parts(n);return v.length?v[0]:1;});
-    return {count:list.length,paragraphs:document.querySelectorAll('.tt-reader-flow:not(.is-copy) p').length,
-     spread:all.length>1?Math.max(...all)-Math.min(...all):0};});
+   const long=await grey(page.locator('.tt-reader-stage'),calm);
    await page.mouse.up();await page.waitForTimeout(1200);
-   if(long.paragraphs<200)problems.push('длинный рассказ не длинный: абзацев '+long.paragraphs);
-   if(long.count<6)problems.push('на длинном рассказе лист не гнётся: звеньев '+long.count);
-   if(!(long.spread>0.05))problems.push('на длинном рассказе все звенья повёрнуты одинаково (разброс '+long.spread.toFixed(3)+')');}
+   // Порог по страницам, а не по абзацам: разбивку теперь считает читалка, и
+   // триста двадцать коротких абзацев дают около тридцати страниц. Смысл
+   // порога прежний — отличить настоящий длинный рассказ от демонстрационного.
+   if(!(total>20))problems.push('длинный рассказ не длинный: страниц всего '+total);
+   if(!(long.spread>3))problems.push('на длинном рассказе посреди оборота однотонное пятно: разброс '+long.spread.toFixed(1));
+   if(!(long.dip>6))problems.push('на длинном рассказе нет тёмной полосы сгиба: провал '+long.dip.toFixed(1));
+   if(!(long.diff>0.1))problems.push('на длинном рассказе страница не изменилась: отличие от покоя '+(long.diff*100).toFixed(1)+'%');}
   step('читалка');}
  // Эфир, когда его нет, и настройки.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');

@@ -66,9 +66,14 @@ assert.deepEqual(wrap({kind: 'para', text: '   '}, metrics(100, 10)), [],
   const rows = page.reduce((sum, line) => sum + line.rows, 0);
   assert.ok(rows <= 4, 'на странице не может быть больше строк, чем помещается: ' + rows);
  }
- const all = pages.flat().map(l => l.text);
+ const all = pages.flat().map(l => l.text).filter(Boolean);
  assert.equal(all.length, 12, 'ни один абзац не должен пропасть при разбивке');
  assert.deepEqual(all, blocks.map(b => b.text), 'порядок абзацев обязан сохраниться');
+ // Пустая строка между абзацами возвращается настоящей строкой без текста.
+ // Пока её только считали, но не возвращали, абзацы на экране слипались, а низ
+ // страницы оставался пустым — это было видно на первом же снимке.
+ assert.ok(pages.flat().some(line => line.text === '' && line.rows > 0),
+  'пустая строка между абзацами должна вернуться строкой, а не остаться в счёте');
  assert.ok(pages.length >= 4, 'двенадцать абзацев с пустыми строками не влезают в три страницы по четыре');
 }
 

@@ -5,14 +5,20 @@ import {ArrowLeft,Bookmark,BookmarkCheck,List,Minus,Plus,Settings2,Trash2,X} fro
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 import {haptic} from '@/lib/client';
+import {blocksOf,paginate,type Kind,type Page} from '@/lib/page-text';
+import {createCurl,type Curl} from '@/lib/page-curl';
 
 /**
  * Читалка во весь экран, с листанием по страницам.
  *
- * Страницы делает сам браузер: текст льётся в колонки шириной ровно в полосу
- * чтения (CSS multi-column), а лента сдвигается на целую колонку. Переносы,
- * абзацы и висячие строки браузер считает сам — это разбивка по тексту, а не
- * деление на куски по количеству букв.
+ * Страницы считает сама читалка, а не колонки CSS. Так было не всегда: пока
+ * разбивку делал браузер, границы страниц были видны, но не названы, — а изгиб
+ * листа на WebGL берёт страницу картинкой, и нарисовать её можно только зная
+ * состав страницы построчно. Разбор один и тот же для настоящего текста на
+ * экране и для картинки: иначе на первом кадре оборота буквы дрогнули бы.
+ *
+ * В покое на экране настоящий текст в разметке — его можно выделить, его читает
+ * экранный диктор. Холст с изгибом появляется только на время оборота.
  *
  * Место хранится долей прочитанного, а не номером страницы: сменил размер
  * шрифта — страниц стало другое количество, а доля осталась прежней.
@@ -24,8 +30,11 @@ type Theme='day'|'sepia'|'night'|'black';
 /** Переворот страницы: откуда, куда и в какую сторону гнётся лист. Насколько
  *  он согнут, в состоянии не живёт: это доля от нуля до единицы, её правит
  *  палец кадр за кадром, и держать её в состоянии значило бы перерисовывать
- *  React шестьдесят раз в секунду вместе со всеми полосами текста. */
+ *  React шестьдесят раз в секунду. */
 type Flip={from:number;to:number;dir:1|-1;auto:boolean};
+/** Полоса чтения: где она стоит и какой у неё шаг строки. Одна и та же мерка
+ *  идёт и в разметку, и на холст. */
+type Frame={width:number;height:number;left:number;top:number;lead:number};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
@@ -33,15 +42,20 @@ const LEAD=1.7;
 const PREFS_KEY='tt-reader-prefs-v1';
 const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
 /**
- * Во сколько полос режется лист. Изгиб — это ломаная из полос: чем их больше,
- * тем мягче дуга. Каждая полоса несёт свою копию текста, поэтому у длинного
- * рассказа звеньев становится меньше — но изгиб остаётся всегда.
+ * Насколько крупнее название рассказа и сколько строк сетки занимает его строка.
  *
- * Раньше здесь стоял порог, за которым изгиб просто выключался. Порог был в
- * сто шестьдесят абзацев, в проверочном рассказе их сорок — и настоящий
- * рассказ владельца молча листался жёстким листом, хотя проверки были зелёные.
+ * Одна строка, а не две: на две строки сетки название расползалось так, что
+ * между его собственными строками зияла дыра в целую строку текста — это было
+ * видно на снимке. Буквы крупнее своей клетки, и это нормально для заголовка:
+ * плотная выключка у крупного кегля читается как замысел, а не как теснота.
  */
-const stripCount=(paragraphs:number)=>paragraphs<=160?16:paragraphs<=500?10:6;
+const TITLE_SCALE=1.5,TITLE_ROWS=1;
+/**
+ * Во сколько полос режется лист на запасном обороте — том, что остаётся без
+ * WebGL. Изгиб там — ломаная из полос: чем их больше, тем мягче дуга, но каждая
+ * полоса несёт свою копию страницы, поэтому число ограничено.
+ */
+const STRIPS=16;
 /** Полный оборот листа и наибольший прогиб посреди оборота, в градусах. */
 const TURNED=170,BEND=62;
 /** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно. */
@@ -64,13 +78,27 @@ const readSaved=(id:string):{ratio?:number;marks?:Mark[]}=>{try{
  return v&&typeof v==='object'?v:{};
 }catch{return {};}};
 
+/** Цвет из стилей в три доли от нуля до единицы — шейдеру нужен именно такой. */
+const toRgb=(value:string):[number,number,number]=>{
+ const probe=document.createElement('span');
+ probe.style.color=value.trim()||'#000';
+ document.body.appendChild(probe);
+ const parsed=getComputedStyle(probe).color.match(/[\d.]+/g);
+ probe.remove();
+ if(!parsed||parsed.length<3)return [0.06,0.07,0.09];
+ return [Number(parsed[0])/255,Number(parsed[1])/255,Number(parsed[2])/255];
+};
+
 export function StoryReader({id,title,description,body,onClose}:{
  id:string;title:string;description?:string;body:string;onClose:()=>void;
 }){
  const {t}=useT();
- const stage=useRef<HTMLDivElement>(null),flow=useRef<HTMLDivElement>(null);
+ const stage=useRef<HTMLDivElement>(null),sheetRef=useRef<HTMLDivElement>(null);
+ const glCanvas=useRef<HTMLCanvasElement>(null);
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
- const [page,setPage]=useState(0),[pages,setPages]=useState(1),[step,setStep]=useState(0);
+ const [pages,setPages]=useState<Page[]>([[]]);
+ const [page,setPage]=useState(0);
+ const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0});
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
  const [marks,setMarks]=useState<Mark[]>([]);
@@ -81,7 +109,10 @@ export function StoryReader({id,title,description,body,onClose}:{
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
  const [loaded,setLoaded]=useState(false);
- const paragraphs=useMemo(()=>body.split(/\n+/).map(p=>p.trim()).filter(Boolean),[body]);
+ const curl=useRef<Curl|null>(null);
+ const [webgl,setWebgl]=useState(false);
+ const paper=useRef<(HTMLCanvasElement|null)[]>([null,null]);
+ const blocks=useMemo(()=>blocksOf(title,description,body),[title,description,body]);
 
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
  // другую историю она заходит новым экземпляром, а не сменой поля.
@@ -108,30 +139,46 @@ export function StoryReader({id,title,description,body,onClose}:{
  const saveMarks=useCallback((next:Mark[],ratio:number)=>{setMarks(next);
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks:next}));}catch{}},[id]);
 
+ /** Начертание для своего вида строки. Одна и та же строка идёт и в стиль
+  *  разметки, и в холст: разойдутся они — на первом кадре оборота дрогнут
+  *  буквы. */
+ const fonts=useMemo(()=>{
+  const family=prefs.serif
+   ?"Georgia,'Times New Roman',serif"
+   :(typeof document==='undefined'?'sans-serif'
+     :getComputedStyle(document.documentElement).getPropertyValue('--font-ui').trim()||'sans-serif');
+  const size=(kind:Kind)=>kind==='title'?Math.round(prefs.size*TITLE_SCALE):prefs.size;
+  return {family,size,
+   css:(kind:Kind)=>(kind==='title'?'700 ':kind==='intro'?'italic ':'')+size(kind)+'px '+family};
+ },[prefs.serif,prefs.size]);
+
+ // Разбивка. Полосу мерит холст тем же шрифтом, каким она нарисована в
+ // разметке: свой перенос строк без настоящей мерки — это догадка.
  useLayoutEffect(()=>{
   const measure=()=>{
-   const box=stage.current,line=flow.current;if(!box||!line)return;
+   const box=stage.current;if(!box)return;
    const pad=Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
-   const col=Math.max(120,box.clientWidth-pad*2),gap=pad*2;
-   line.style.setProperty('--tt-col',col+'px');
-   line.style.setProperty('--tt-gap',gap+'px');
-   // Высота полосы подгоняется под целое число строк: иначе колонка обрывается
-   // посреди строки и внизу страницы висит половина букв.
-   //
-   // Отступы сверху и снизу берутся из стилей ОДИН раз и запоминаются. Считать
-   // их заново нельзя: после первой подгонки у полосы стоит своя высота, и её
-   // собственный размер — это уже высота всего текста, а не свободного места.
-   if(!insets.current){const css=getComputedStyle(line);
-    insets.current={top:parseFloat(css.top)||0,bottom:parseFloat(css.bottom)||0};}
+   const width=Math.max(120,box.clientWidth-pad*2);
+   if(!insets.current){
+    const line=sheetRef.current;
+    const css=line?getComputedStyle(line):null;
+    insets.current={top:css?parseFloat(css.top)||0:0,bottom:css?parseFloat(css.bottom)||0:0};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
-   const fits=Math.max(1,Math.floor(free/lead));
-   line.style.bottom='auto';
-   line.style.height=Math.round(fits*lead)+'px';
-   const total=Math.max(1,Math.round((line.scrollWidth+gap)/(col+gap)));
-   setStep(col+gap);setPages(total);
-   const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(total-1));
-   setPage(Number.isFinite(next)?next:0);
+   const rows=Math.max(1,Math.floor(free/lead));
+   const gauge=document.createElement('canvas').getContext('2d');
+   const laid=paginate(blocks,{
+    width,rows,
+    measure:(text,kind)=>{
+     if(!gauge)return text.length*fonts.size(kind)*0.5;
+     gauge.font=fonts.css(kind);
+     return gauge.measureText(text).width;},
+    height:kind=>kind==='title'?TITLE_ROWS:1,
+    after:()=>1});
+   setPages(laid);
+   setFrame({width,height:rows*lead,left:pad,top:insets.current.top,lead});
+   const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
+   setPage(Number.isFinite(next)?Math.min(laid.length-1,Math.max(0,next)):0);
   };
   const box=stage.current;if(!box)return;
   measure();
@@ -139,65 +186,81 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>observer.disconnect();
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[body,prefs.size,prefs.serif,loaded]);
+ },[blocks,prefs.size,fonts,loaded]);
 
- const ratio=pages>1?page/(pages-1):0;
+ const total=pages.length;
+ const ratio=total>1?page/(total-1):0;
  useEffect(()=>{if(!loaded)return;
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks}));}catch{}},[id,loaded,ratio,marks]);
 
- const count=stripCount(paragraphs.length);
+ // Поверхность изгиба живёт вместе с читалкой, а не с каждым оборотом: собирать
+ // программу шейдера на каждое нажатие — это подвисание на первом кадре.
+ // Оформление меняет цвет бумаги, поэтому при смене оформления она пересобирается.
+ useEffect(()=>{
+  const node=glCanvas.current;if(!node)return;
+  const paperColor=toRgb(getComputedStyle(node).getPropertyValue('--tt-paper'));
+  const made=createCurl(node,paperColor);
+  curl.current=made;setWebgl(!!made);
+  if(!made)return;
+  const observer=new ResizeObserver(()=>made.resize());observer.observe(node);
+  return()=>{observer.disconnect();made.destroy();curl.current=null;};
+ },[prefs.theme]);
+
+ /** Рисует страницу на холсте — ровно теми же строками и в тех же местах, где
+  *  они стоят в разметке. */
+ const paint=useCallback((index:number,target:HTMLCanvasElement)=>{
+  const box=stage.current;if(!box)return;
+  const density=Math.min(window.devicePixelRatio||1,2);
+  const wide=box.clientWidth,high=box.clientHeight;
+  target.width=Math.max(1,Math.round(wide*density));
+  target.height=Math.max(1,Math.round(high*density));
+  const ctx=target.getContext('2d');if(!ctx)return;
+  ctx.setTransform(density,0,0,density,0,0);
+  const css=getComputedStyle(box);
+  ctx.fillStyle=css.getPropertyValue('--tt-paper').trim()||'#000';
+  ctx.fillRect(0,0,wide,high);
+  const ink=css.getPropertyValue('--tt-ink').trim()||'#fff';
+  const soft=css.getPropertyValue('--tt-soft').trim()||ink;
+  ctx.textBaseline='middle';
+  let y=frame.top;
+  for(const line of pages[index]??[]){
+   ctx.font=fonts.css(line.kind);
+   ctx.fillStyle=line.kind==='intro'?soft:ink;
+   ctx.fillText(line.text,frame.left,y+line.rows*frame.lead/2);
+   y+=line.rows*frame.lead;
+  }
+ },[fonts,frame,pages]);
 
  /**
-  * Изгиб листа.
+  * Запасной изгиб — для устройств без WebGL.
   *
   * Лист разрезан на узкие вертикальные полосы. Каждая следующая повёрнута чуть
   * сильнее предыдущей и поставлена туда, где кончилась предыдущая, — ломаная
-  * из шестнадцати звеньев читается как гладкая дуга. Так бумага и гнётся: длина
-  * листа не меняется, меняется его кривизна.
-  *
-  * Прогиб набирает силу к свободному краю (у корешка бумага почти плоская) и
-  * посреди оборота он наибольший, а к началу и к концу сходит на нет: лист
-  * ложится плоско и на стол, и на предыдущую страницу.
-  *
-  * Всё это делается прямо в стилях узлов, мимо React. Перерисовывать дерево с
-  * шестнадцатью копиями текста каждый кадр нельзя — этого не выдержит ни один
-  * телефон.
+  * читается как дуга. Это грубее шейдера, но лучше, чем страница, которая
+  * просто подменяется.
   */
- const curl=useCallback((p:number)=>{
+ const stripBend=useCallback((p:number)=>{
   const box=stage.current,now=live.current;if(!box||!now)return;
-  const width=box.clientWidth,span=width/count,forward=now.dir===1;
-  // Поворот отстаёт от пальца: у настоящей книги лист сначала приподнимается
-  // и гнётся, а на ребро встаёт только под конец. Чем больше показатель, тем
-  // дольше лист остаётся плоским и тем меньше он «перекидывается»: на
-  // середине хода он должен быть ещё виден целиком, а не стоять ребром.
+  const width=box.clientWidth,span=width/STRIPS,forward=now.dir===1;
   const turn=(forward?-1:1)*Math.pow(Math.min(1,p),1.45)*TURNED;
   const bend=(forward?-1:1)*Math.sin(Math.min(1,p)*Math.PI)*BEND;
-  // Вес звена: у корешка прогиб почти нулевой, у свободного края наибольший.
-  let total=0;const weights:number[]=[];
-  for(let i=0;i<count;i++){const t=(i+0.5)/count;const w=t*t;weights.push(w);total+=w;}
+  let sum=0;const weights:number[]=[];
+  for(let i=0;i<STRIPS;i++){const t=(i+0.5)/STRIPS;const w=t*t;weights.push(w);sum+=w;}
   let angle=turn,x=forward?0:width,z=0;
-  for(let i=0;i<count;i++){
+  for(let i=0;i<STRIPS;i++){
    const node=strips.current[i];
    const flat=forward?i*span:width-i*span;
    const radians=angle*Math.PI/180;
    if(node)node.style.transform='translate3d('+(x-flat).toFixed(2)+'px,0,'+z.toFixed(2)+'px) rotateY('+angle.toFixed(2)+'deg)';
    const shade=shades.current[i];
-   // Чем сильнее звено отвёрнуто от читателя, тем глубже на нём тень.
    if(shade)shade.style.opacity=(Math.min(1,(1-Math.cos(radians))/2)*0.58).toFixed(3);
    x+=(forward?1:-1)*span*Math.cos(radians);
    z+=(forward?-1:1)*span*Math.sin(radians);
-   angle+=bend*weights[i]/total;
+   angle+=bend*weights[i]/sum;
   }
-  // Тень, которую поднятый лист роняет на страницу под собой.
-  //
-  // Ширина — это то, сколько лист ещё закрывает: у плоского листа он лежит во
-  // всю страницу, у вставшего на ребро закрывает нулевую полосу. Сила —
-  // наибольшая посреди оборота: плоский лист тени не даёт, потому что лежит
-  // вплотную, а вставший на ребро уже не роняет её на страницу.
-  //
-  // Раньше этой строки не было: стили тени в файле лежали, но переменную,
-  // от которой зависела её прозрачность, никто не выставлял, и тень не
-  // появлялась ни в одном кадре.
+  // Тень, которую поднятый лист роняет на страницу под собой. Ширина — сколько
+  // лист ещё закрывает, сила — насколько он поднят: плоский лист тени не даёт,
+  // вставший на ребро уже не роняет её на страницу.
   const under=turnBox.current;
   if(under){
    const lift=Math.sin(Math.min(1,p)*Math.PI);
@@ -205,7 +268,15 @@ export function StoryReader({id,title,description,body,onClose}:{
    under.style.setProperty('--tt-a',(lift*0.55).toFixed(3));
    under.style.setProperty('--tt-w',cover.toFixed(1)+'px');
   }
- },[count]);
+ },[]);
+
+ /** Кадр оборота. Куда рисовать — решает наличие WebGL. */
+ const bend=useCallback((p:number)=>{
+  const now=live.current;if(!now)return;
+  const gl=curl.current;
+  if(gl){gl.draw(Math.min(1,Math.max(0,p)),now.dir===1);return;}
+  stripBend(p);
+ },[stripBend]);
 
  const stopRun=useCallback(()=>{if(raf.current)cancelAnimationFrame(raf.current);raf.current=0;},[]);
 
@@ -220,12 +291,12 @@ export function StoryReader({id,title,description,body,onClose}:{
    const t=Math.min(1,(now-start)/ms);
    // Косинусная кривая мягче кубической: ни рывка в начале, ни удара в конце.
    const eased=-(Math.cos(Math.PI*t)-1)/2;
-   part.current=from+gap*eased;curl(part.current);
+   part.current=from+gap*eased;bend(part.current);
    if(t<1){raf.current=requestAnimationFrame(step);return;}
    raf.current=0;done();
   };
   raf.current=requestAnimationFrame(step);
- },[curl,stopRun]);
+ },[bend,stopRun]);
 
  const put=useCallback((next:Flip|null)=>{live.current=next;setFlip(next);},[]);
 
@@ -234,28 +305,38 @@ export function StoryReader({id,title,description,body,onClose}:{
   *  доводка принадлежала: быстрый рывок успевает закончиться раньше, чем
   *  React успевает отрисовать начало оборота. */
  const land=useCallback((now:Flip,turned:boolean)=>{
-  if(turned){wanted.current=pages>1?now.to/(pages-1):0;setPage(now.to);}
+  if(turned){wanted.current=total>1?now.to/(total-1):0;setPage(now.to);}
   part.current=0;put(null);
- },[pages,put]);
+ },[total,put]);
+
+ /** Завести оборот: нарисовать обе страницы на холсты и отдать их шейдеру. */
+ const begin=useCallback((next:Flip)=>{
+  const gl=curl.current;
+  if(gl){
+   const from=paper.current[0]??(paper.current[0]=document.createElement('canvas'));
+   const to=paper.current[1]??(paper.current[1]=document.createElement('canvas'));
+   paint(next.from,from);paint(next.to,to);
+   gl.pages(from,to);
+  }
+  part.current=0;put(next);
+ },[paint,put]);
 
  // Нажатие по краю и перемотка ползунком заводят тот же лист, что и палец,
  // только гнёт его не палец, а доводка.
  const go=useCallback((next:number)=>{
-  const limit=Math.min(pages-1,Math.max(0,next));
+  const limit=Math.min(total-1,Math.max(0,next));
   if(limit===page||live.current)return;
-  part.current=0;
-  put({from:page,to:limit,dir:limit>page?1:-1,auto:true});
- },[page,pages,put]);
+  begin({from:page,to:limit,dir:limit>page?1:-1,auto:true});
+ },[page,total,begin]);
 
- // Полосы появляются в дереве после отрисовки, поэтому первый изгиб задаём
- // здесь же: иначе лист мигнул бы плоским кадром. Сам собой оборот идёт
- // только когда его завели нажатием или ползунком; лист под пальцем никуда
- // не едет — его ведёт палец.
+ // Полосы и холст встают на место после отрисовки, поэтому первый кадр задаём
+ // здесь же: иначе лист мигнул бы плоским кадром. Сам собой оборот идёт только
+ // когда его завели нажатием или ползунком; лист под пальцем ведёт палец.
  useLayoutEffect(()=>{
   if(!flip)return;
-  curl(part.current);
+  bend(part.current);
   if(flip.auto&&!raf.current)run(1,()=>land(flip,true));
- // curl и run пересобираются при смене страницы, но перезапускать из-за них
+ // bend и run пересобираются при смене страницы, но перезапускать из-за них
  // уже идущий оборот нельзя: он бы начинался заново.
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[flip]);
@@ -280,15 +361,15 @@ export function StoryReader({id,title,description,body,onClose}:{
    if(Math.abs(dx)<10||Math.abs(dx)<=Math.abs(dy))return;
    const dir=dx<0?1:-1 as 1|-1;
    const to=page+dir;
-   if(to<0||to>pages-1)return;          // за краем книги листать нечего
-   from.dir=dir;stopRun();part.current=0;
-   put({from:page,to,dir,auto:false});
+   if(to<0||to>total-1)return;          // за краем книги листать нечего
+   from.dir=dir;stopRun();
+   begin({from:page,to,dir,auto:false});
    return;
   }
   if(!live.current)return;
   const box=e.currentTarget.getBoundingClientRect();
   part.current=Math.min(1,Math.abs(dx)/(box.width*1.02));
-  curl(part.current);
+  bend(part.current);
  };
  const up=(e:React.PointerEvent<HTMLDivElement>)=>{
   const from=touch.current;touch.current=null;if(!from)return;
@@ -312,51 +393,51 @@ export function StoryReader({id,title,description,body,onClose}:{
  const here=marks.find(m=>Math.abs(m.ratio-ratio)<.004);
  const toggleMark=()=>{haptic();
   if(here){saveMarks(marks.filter(m=>m!==here),ratio);return;}
-  const line=flow.current;
-  const text=(()=>{
-   if(!line||!step)return '';
-   const base=line.getBoundingClientRect().left;
-   for(const node of Array.from(line.querySelectorAll<HTMLElement>('p'))){
-    if(Math.round((node.getBoundingClientRect().left-base)/step)===page)return node.textContent??'';
-   }
-   return line.querySelector('p')?.textContent??'';
-  })();
+  const lines=pages[page]??[];
+  const text=(lines.find(line=>line.kind==='para')??lines[0])?.text??'';
   saveMarks([{ratio,text:text.trim().slice(0,90),at:Date.now()},...marks].slice(0,50),ratio);
  };
 
- const flowStyle=(at:number):React.CSSProperties=>({transform:'translateX(-'+at*step+'px)',
-  fontSize:prefs.size,lineHeight:LEAD,
-  fontFamily:prefs.serif?'Georgia,\'Times New Roman\',serif':'var(--font-ui)'});
- const text=<>
-  <h1 className="tt-reader-title">{title}</h1>
-  {description&&<p className="tt-reader-intro">{description}</p>}
-  {paragraphs.map((para,index)=><p key={index}>{para}</p>)}
- </>;
+ /** Одна страница в разметке. Настоящий текст, а не картинка: его выделяют,
+  *  его читает экранный диктор. */
+ const sheetOf=(index:number,copy:boolean)=>
+  <div className={'tt-reader-page'+(copy?' is-copy':'')} ref={copy?undefined:sheetRef}
+   style={{left:frame.left,width:frame.width}} aria-hidden={copy?true:undefined}>
+   {(pages[index]??[]).map((line,at)=>
+    <div key={at} className={'tt-reader-line is-'+line.kind}
+     style={{height:line.rows*frame.lead,font:fonts.css(line.kind)}}>{line.text}</div>)}
+  </div>;
 
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
    onPointerCancel={()=>{touch.current=null;}}>
-   {/* Под листом лежит та страница, на которую он открывается. Когда лист
-       ложится обратно, под ним снова прежняя. */}
-   <div className="tt-reader-flow" ref={flow} style={flowStyle(flip?flip.to:page)}>{text}</div>
-   {/* Гнущийся лист. Каждая полоса — своё окно в ту же страницу: она
-       показывает свой кусок текста и поворачивается на свой угол. Изнанка —
-       чистая бумага того же оформления, иначе на середине оборота полоса
-       просто исчезала бы. */}
-   {flip&&<div className={'tt-reader-turn is-'+(flip.dir===1?'fwd':'back')} ref={turnBox} aria-hidden="true">
-    {Array.from({length:count},(_,i)=><div key={i} className="tt-reader-strip"
-      ref={node=>{strips.current[i]=node;}}
-      style={{left:(flip.dir===1?i:count-1-i)*(100/count)+'%',width:'calc('+(100/count)+'% + 1.5px)',
-       transformOrigin:flip.dir===1?'0 50%':'100% 50%'} as React.CSSProperties}>
-     <div className="tt-reader-strip-face">
-      <div className="tt-reader-strip-inner" style={{width:count*100+'%',left:(flip.dir===1?-i:-(count-1-i))*100+'%'}}>
-       <div className="tt-reader-flow is-copy" style={flowStyle(flip.from)}>{text}</div>
+   {/* Страница в покое. Во время оборота её место занимает холст: показывать
+       обе сразу значило бы двойной текст на просвете. */}
+   {!flip&&sheetOf(page,false)}
+   {/* Холст изгиба стоит всегда: собирать программу шейдера на каждое нажатие
+       — это подвисание на первом кадре оборота. Видим он только в обороте. */}
+   <canvas className="tt-reader-gl" ref={glCanvas} aria-hidden="true"
+    data-on={flip&&webgl?'yes':'no'}/>
+   {/* Запасной оборот из полос — там, где WebGL нет. Каждая полоса — своё окно
+       в ту же страницу. Изнанка — чистая бумага того же оформления, иначе на
+       середине оборота полоса просто исчезала бы. */}
+   {flip&&!webgl&&<>
+    {sheetOf(flip.to,true)}
+    <div className={'tt-reader-turn is-'+(flip.dir===1?'fwd':'back')} ref={turnBox} aria-hidden="true">
+     {Array.from({length:STRIPS},(_,i)=><div key={i} className="tt-reader-strip"
+       ref={node=>{strips.current[i]=node;}}
+       style={{left:(flip.dir===1?i:STRIPS-1-i)*(100/STRIPS)+'%',width:'calc('+(100/STRIPS)+'% + 1.5px)',
+        transformOrigin:flip.dir===1?'0 50%':'100% 50%'} as React.CSSProperties}>
+      <div className="tt-reader-strip-face">
+       <div className="tt-reader-strip-inner" style={{width:STRIPS*100+'%',left:(flip.dir===1?-i:-(STRIPS-1-i))*100+'%'}}>
+        {sheetOf(flip.from,true)}
+       </div>
+       <div className="tt-reader-strip-shade" ref={node=>{shades.current[i]=node;}}/>
       </div>
-      <div className="tt-reader-strip-shade" ref={node=>{shades.current[i]=node;}}/>
-     </div>
-     <div className="tt-reader-strip-back"/>
-    </div>)}
-   </div>}
+      <div className="tt-reader-strip-back"/>
+     </div>)}
+    </div>
+   </>}
    <span className="tt-reader-folio">{page+1}</span>
   </div>
   {/* Сколько прочитано — тонкой полосой поверх всего. Она видна и когда
@@ -381,10 +462,10 @@ export function StoryReader({id,title,description,body,onClose}:{
   </header>
 
   <footer className="tt-reader-bottom">
-   <input className="tt-reader-slider" type="range" min={0} max={Math.max(0,pages-1)} value={page}
-    aria-label={t('reader.page',{page:String(page+1),total:String(pages)})}
+   <input className="tt-reader-slider" type="range" min={0} max={Math.max(0,total-1)} value={page}
+    aria-label={t('reader.page',{page:String(page+1),total:String(total)})}
     onChange={e=>go(Number(e.target.value))}/>
-   <span className="tt-reader-page">{page+1} / {pages}</span>
+   <span className="tt-reader-page-count">{page+1} / {total}</span>
   </footer>
 
   {sheet!=='none'&&<div className="tt-reader-sheet" role="dialog" aria-modal="true">
@@ -438,7 +519,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    </div>:<div className="tt-reader-marks">
     {marks.length===0?<p className="tt-reader-note">{t('reader.noBookmarks')}</p>:marks.map(mark=>
      <button key={mark.at} type="button" className="tt-reader-mark tt-pressable" onClick={()=>{
-      haptic();go(Math.round(mark.ratio*(pages-1)));setSheet('none');setChrome(false);}}>
+      haptic();go(Math.round(mark.ratio*(total-1)));setSheet('none');setChrome(false);}}>
       <b>{Math.round(mark.ratio*100)}%</b><span>{mark.text}</span>
       <i role="button" tabIndex={0} aria-label={t('reader.removeBookmark')}
        onClick={e=>{e.stopPropagation();saveMarks(marks.filter(m=>m!==mark),ratio);}}

@@ -99,6 +99,11 @@ export function wrap(block: Block, metrics: Metrics): Line[] {
  *
  * Пустая строка после куска на дне страницы не тратится: место она занимает
  * только между кусками, а не в самом низу.
+ *
+ * Сама пустая строка возвращается обычной строкой без текста. Иначе она была
+ * бы учтена в счёте, но не нарисована: абзацы слиплись бы, а низ страницы
+ * остался бы пустым ровно на столько, сколько пустых строк проглотили. Так и
+ * вышло на первом же снимке.
  */
 export function paginate(blocks: Block[], metrics: Metrics): Page[] {
  const limit = Math.max(1, Math.floor(metrics.rows));
@@ -121,7 +126,10 @@ export function paginate(blocks: Block[], metrics: Metrics): Page[] {
   }
   const gap = Math.max(0, Math.round(metrics.after(block.kind)));
   // Пустая строка нужна только если после неё на странице ещё что-то будет.
-  if (gap && index < blocks.length - 1 && used + gap < limit) used += gap;
+  if (gap && index < blocks.length - 1 && used + gap < limit) {
+   page.push({text: '', kind: block.kind, first: false, rows: gap});
+   used += gap;
+  }
  }
  close();
  return pages.length ? pages : [[]];
