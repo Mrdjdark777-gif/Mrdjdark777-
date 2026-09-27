@@ -44,7 +44,13 @@ node --env-file=.env "$script_dir/backup-data.mjs" /var/backups/truethrills
 mutated=1
 git merge --ff-only "$target"
 npm ci --include=dev
+# Сборка с нуля. Next иногда оставляет в .next прежние куски стилей и отдаёт
+# их после обновления: код новый, а на экране всё по-старому. Ловится это
+# только глазами и стоит дороже, чем лишняя минута сборки.
+rm -rf .next
 npm run build
+# Что именно выложено — видно из журнала обновления, а не по догадке.
+echo "Выложен коммит: $(git rev-parse --short HEAD) ($branch)"
 node --env-file=.env node_modules/drizzle-kit/bin.cjs migrate
 # Change only this known non-secret option, preserving every other setting.
 node - <<'JS'
