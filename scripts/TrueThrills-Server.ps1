@@ -24,18 +24,23 @@ if($Action -eq 'Status'){
  exit
 }
 if($Action -eq 'Update'){
- # Файлы обслуживания кладём в домашний каталог того, кто входит на сервер.
- # Каталогом /opt/truethrills владеет системный пользователь сервиса, и с
- # обновления 0.9.1 писать туда под ubuntu нельзя — scp отвечал «Permission
- # denied» и обновление не начиналось вовсе. Сам скрипт всё равно работает
- # от root и сам переходит в /opt/truethrills.
- Invoke-Remote 'mkdir -p "$HOME/.truethrills-staging"'
+ # Файлы обслуживания лежат РЯДОМ с node_modules сервера: backup-data.mjs
+ # подключает better-sqlite3, а Node ищет пакеты рядом со самим файлом. Из
+ # домашнего каталога он их не находит и копия данных не делается вовсе.
+ #
+ # Но каталогом /opt/truethrills с обновления 0.9.1 владеет системный
+ # пользователь сервиса, и писать туда под ubuntu нельзя. Поэтому каталог для
+ # файлов создаёт sudo и сразу отдаёт его тому, кто вошёл, — только этот
+ # каталог, не весь /opt/truethrills. Сам .env остаётся нетронутым.
+ Invoke-Remote 'sudo install -d -m 700 -o "$(id -un)" -g "$(id -gn)" /opt/truethrills/.update-staging'
  foreach($Name in @('update-safe.sh','backup-data.mjs','verify-backup.mjs')){
-  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name"
+  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:/opt/truethrills/.update-staging/$Name"
   if($LASTEXITCODE -ne 0){throw 'Could not stage update scripts.'}
  }
- $Command="sudo bash `"`$HOME/.truethrills-staging/update-safe.sh`" '$Branch' '$ExpectedCommit'"
+ $Command="cd /opt/truethrills && sudo bash .update-staging/update-safe.sh '$Branch' '$ExpectedCommit'"
  Invoke-Remote $Command
+ # Каталог обслуживания не остаётся в дереве сервиса чужим по владельцу.
+ Invoke-Remote 'sudo rm -rf /opt/truethrills/.update-staging'
  exit
 }
 # Пароль уходит на сервер только по ssh и только в переменную окружения
