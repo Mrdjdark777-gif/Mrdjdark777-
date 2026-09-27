@@ -60,6 +60,11 @@ try{
  // в нём нечего.
  await post({action:'calmArt',key:await demoCover('tile-forest.jpg')});
  const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
+ // Настоящий рассказ у владельца — это сотни коротких абзацев, а не сорок
+ // длинных. На коротком демонстрационном тексте изгиб страницы работал, а на
+ // настоящем молча выключался порогом внутри читалки: проверки были зелёные,
+ // а на телефоне лист оставался жёстким.
+ const longStory=await post({kind:'story',title:'Длинный рассказ для проверки изгиба',description:'Сотни коротких абзацев.',body:'Море не кончалось.\n\n'.repeat(320),published:true,coverKey:await demoCover('tile-mountains.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'История о перевале, который проходят затемно, о ночёвке под скалой и о том, почему обратная дорога всегда кажется короче. Демонстрационное описание нарочно длинное: на нём проверяется раскрытие текста по нажатию.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await demoCover('tile-waterfall.jpg')});
  // Второй выпуск специально без обложки иновее первого: по нему видно
  // типографический S04, и у него есть «Далее» — следующий в разделе.
@@ -792,11 +797,19 @@ try{
   // Переключатель нарисован нами, а не браузером: системная галочка с
    // оформлением читалки ничего общего не имеет.
    {const box=await page.evaluate(()=>{const n=document.querySelector('.tt-reader-switch');
-     if(!n)return null;const css=getComputedStyle(n);const r=n.getBoundingClientRect();
-     return {look:css.appearance||css.webkitAppearance,w:Math.round(r.width),h:Math.round(r.height)};});
+     if(!n)return null;const input=n.querySelector('input'),track=n.querySelector('.tt-reader-switch-track');
+     const r=n.getBoundingClientRect();
+     return {track:!!track,input:!!input,
+      // Системный флажок не должен быть виден: его рисует движок, и на
+      // телефоне владельца он оставался квадратом, потому что свойство
+      // appearance доходит не везде. Прозрачность — надёжнее.
+      shown:input?Number(getComputedStyle(input).opacity):1,
+      w:Math.round(r.width),h:Math.round(r.height)};});
     if(!box)problems.push('в настройках чтения нет переключателя яркости');
     else{
-     if(box.look!=='none')problems.push('переключатель остался системной галочкой: appearance='+box.look);
+     if(!box.input)problems.push('переключатель перестал быть настоящим флажком — клавиатура и дикторы его не увидят');
+     if(!box.track)problems.push('переключатель рисуется не разметкой: дорожки нет');
+     if(box.shown>0.01)problems.push('системный флажок виден поверх нарисованного: прозрачность '+box.shown);
      if(box.w<40||box.h<24)problems.push('переключатель мелкий: '+box.w+'x'+box.h);}}
   await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(150);
   const veil=async(value)=>{await page.locator('.tt-reader-row .tt-reader-slider').fill(String(value));
@@ -821,6 +834,28 @@ try{
   await page.locator('.tt-reader-switch').check();await page.waitForTimeout(200);
   if(await page.locator('.tt-reader-dim').count())problems.push('с яркостью «как на устройстве» затемнение осталось');
   await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(200);
+  // Длинный рассказ гнётся тоже. Именно здесь изгиб и не работал: порог
+  // внутри читалки выключал его молча, а демонстрационный текст был короче
+  // порога, и проверки этого не видели.
+  {await page.goto(base+'/?mode=listen&view=stories&post='+longStory.id);await settle(page);
+   await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(500);
+   const wide=await page.locator('.tt-reader-stage').boundingBox();
+   await page.mouse.move(wide.x+wide.width*0.88,wide.y+wide.height*0.5);
+   await page.mouse.down();
+   await page.mouse.move(wide.x+wide.width*0.46,wide.y+wide.height*0.5,{steps:14});
+   await page.waitForTimeout(350);
+   const long=await page.evaluate(()=>{
+    const list=[...document.querySelectorAll('.tt-reader-strip')];
+    const parts=n=>{const m=getComputedStyle(n).transform;
+     const inside=m.slice(m.indexOf('(')+1,m.lastIndexOf(')'));
+     return inside?inside.split(',').map(v=>Number(v.trim())):[];};
+    const all=list.map(n=>{const v=parts(n);return v.length?v[0]:1;});
+    return {count:list.length,paragraphs:document.querySelectorAll('.tt-reader-flow:not(.is-copy) p').length,
+     spread:all.length>1?Math.max(...all)-Math.min(...all):0};});
+   await page.mouse.up();await page.waitForTimeout(1200);
+   if(long.paragraphs<200)problems.push('длинный рассказ не длинный: абзацев '+long.paragraphs);
+   if(long.count<6)problems.push('на длинном рассказе лист не гнётся: звеньев '+long.count);
+   if(!(long.spread>0.05))problems.push('на длинном рассказе все звенья повёрнуты одинаково (разброс '+long.spread.toFixed(3)+')');}
   step('читалка');}
  // Эфир, когда его нет, и настройки.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
@@ -1166,7 +1201,10 @@ try{
   // Поэтому здесь проверяется не «всё поместилось», а что постер именно
   // вертикальный и что снизу видно начало карусели: без этого человек не
   // поймёт, что главная листается.
-  check(fold.sceneRatio!==null&&fold.sceneRatio<1,`главная ${width}×${height}: кадр не вертикальный (отношение ширины к высоте ${fold.sceneRatio})`);
+  // Кадр идёт от края до края, и владелец просил его уменьшать. Квадрат —
+  // предел: ниже него афиша превращается в полосу и перестаёт быть афишей.
+  // Поэтому правило теперь «не шире, чем выше», а не «строго вертикальный».
+  check(fold.sceneRatio!==null&&fold.sceneRatio<=1,`главная ${width}×${height}: кадр шире, чем выше (отношение ${fold.sceneRatio}) — это уже полоса, а не афиша`);
   // Постер во всю ширину занимает почти весь первый экран — так просил
   // владелец. Требование к сгибу одно: кнопка запуска доступна без
   // прокрутки, за ней человек и пришёл.

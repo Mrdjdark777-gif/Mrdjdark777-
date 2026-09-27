@@ -32,13 +32,16 @@ const SIZES=[16,18,20,22,25,28];
 const LEAD=1.7;
 const PREFS_KEY='tt-reader-prefs-v1';
 const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
-/** Во сколько полос режется лист. Изгиб — это ломаная из полос: чем их
- *  больше, тем мягче дуга. Каждая полоса несёт свою копию текста, поэтому
- *  число выбрано так, чтобы дуга была гладкой, а копий оставалось немного. */
-const STRIPS=16;
-/** Длинный рассказ гнуть полосами дорого: копий текста становится слишком
- *  много. Тогда лист поворачивается целиком, без изгиба. */
-const BEND_LIMIT=160;
+/**
+ * Во сколько полос режется лист. Изгиб — это ломаная из полос: чем их больше,
+ * тем мягче дуга. Каждая полоса несёт свою копию текста, поэтому у длинного
+ * рассказа звеньев становится меньше — но изгиб остаётся всегда.
+ *
+ * Раньше здесь стоял порог, за которым изгиб просто выключался. Порог был в
+ * сто шестьдесят абзацев, в проверочном рассказе их сорок — и настоящий
+ * рассказ владельца молча листался жёстким листом, хотя проверки были зелёные.
+ */
+const stripCount=(paragraphs:number)=>paragraphs<=160?16:paragraphs<=500?10:6;
 /** Полный оборот листа и наибольший прогиб посреди оборота, в градусах. */
 const TURNED=170,BEND=70;
 /** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно. */
@@ -141,8 +144,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  useEffect(()=>{if(!loaded)return;
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks}));}catch{}},[id,loaded,ratio,marks]);
 
- const bendable=paragraphs.length<=BEND_LIMIT;
- const count=bendable?STRIPS:1;
+ const count=stripCount(paragraphs.length);
 
  /**
   * Изгиб листа.
@@ -386,10 +388,17 @@ export function StoryReader({id,title,description,body,onClose}:{
       <button type="button" className={prefs.serif?'':'is-active'} onClick={()=>savePrefs({...prefs,serif:false})}>{t('reader.fontSans')}</button>
      </div>
     </div>
+    {/* Переключатель нарисован разметкой, а не свойством appearance: оно
+        доходит не до каждого движка, и на телефоне владельца вместо тумблера
+        оставалась системная галочка. Сам флажок спрятан, но остаётся
+        настоящим — клавиатура и экранные дикторы работают как прежде. */}
     <label className="tt-reader-row">
      <span>{t('reader.systemBrightness')}</span>
-     <input type="checkbox" className="tt-reader-switch" checked={prefs.autoDim}
-      onChange={e=>savePrefs({...prefs,autoDim:e.target.checked})}/>
+     <span className="tt-reader-switch">
+      <input type="checkbox" checked={prefs.autoDim}
+       onChange={e=>savePrefs({...prefs,autoDim:e.target.checked})}/>
+      <span className="tt-reader-switch-track" aria-hidden="true"/>
+     </span>
     </label>
     <div className="tt-reader-row">
      <span>{t('reader.brightness')}</span>

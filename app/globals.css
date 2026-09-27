@@ -2251,10 +2251,13 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
    библиотеки для этого не нужно — она бы двигала ту же background-position,
    только из JavaScript и каждый кадр. */
 .tt-shimmer{
- background:linear-gradient(110deg,#e8f4f3 0%,#e8f4f3 38%,#6fe7de 47%,#d6faf6 53%,#e8f4f3 62%,#e8f4f3 100%);
+ /* Полоса белая, а не голубая: голубая читалась как ещё один оттенок фона,
+    белая на тёмном — как блик. По краям буквы тусклее самой полосы, иначе
+    сияния не видно вовсе. */
+ background:linear-gradient(110deg,#b9c6c6 0%,#b9c6c6 36%,#ffffff 47%,#ffffff 53%,#b9c6c6 64%,#b9c6c6 100%);
  background-size:230% 100%;background-clip:text;-webkit-background-clip:text;
  -webkit-text-fill-color:transparent;color:transparent;
  animation:tt-shimmer 3.6s linear infinite}
 @keyframes tt-shimmer{from{background-position:130% 0}to{background-position:-130% 0}}
 @media(prefers-reduced-motion:reduce){
- .tt-shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor;color:#e8f4f3}}
+ .tt-shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor;color:#f0f5f4}}

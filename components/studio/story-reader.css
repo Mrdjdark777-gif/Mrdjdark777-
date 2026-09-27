@@ -96,17 +96,23 @@
 .tt-reader-page{font-size:12px;color:var(--tt-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 .tt-reader-slider{flex:1;min-width:0;accent-color:#6fe7de;min-height:30px}
 .tt-reader-slider:disabled{opacity:.4}
-/* Переключатель вместо системной галочки: та выглядит как квадрат из
-   браузера и с оформлением читалки не имеет ничего общего. */
-.tt-reader-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;
- width:48px;height:28px;margin:0;border-radius:999px;cursor:pointer;
+/* Переключатель вместо системной галочки. Рисуется разметкой, а не свойством
+   appearance: оно доходит не до каждого движка, и там, где не дошло, на
+   экране оставался системный квадрат. Сам флажок на месте — он просто не
+   виден, поэтому клавиатура и экранные дикторы работают как прежде. */
+.tt-reader-switch{position:relative;flex:none;display:block;width:48px;height:28px;cursor:pointer}
+.tt-reader-switch>input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;
+ opacity:0;border:0;cursor:pointer;z-index:1}
+.tt-reader-switch-track{position:absolute;inset:0;border-radius:999px;
  background:color-mix(in srgb,var(--tt-ink) 16%,transparent);
  border:1px solid var(--tt-edge);transition:background .18s,border-color .18s}
-.tt-reader-switch::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
+.tt-reader-switch-track::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
  background:var(--tt-paper);box-shadow:0 1px 3px #0006;transition:transform .18s,background .18s}
-.tt-reader-switch:checked{background:#6fe7de;border-color:#6fe7de}
-.tt-reader-switch:checked::after{transform:translateX(20px);background:#08201e}
-@media(prefers-reduced-motion:reduce){.tt-reader-switch,.tt-reader-switch::after{transition:none}}
+.tt-reader-switch>input:checked+.tt-reader-switch-track{background:#6fe7de;border-color:#6fe7de}
+.tt-reader-switch>input:checked+.tt-reader-switch-track::after{transform:translateX(20px);background:#08201e}
+.tt-reader-switch>input:focus-visible+.tt-reader-switch-track{outline:2px solid #6fe7de;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){
+ .tt-reader-switch-track,.tt-reader-switch-track::after{transition:none}}
 
 .tt-reader-sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;max-height:78%;overflow:auto;
  background:var(--tt-panel);border-top:1px solid var(--tt-edge);border-radius:22px 22px 0 0;
