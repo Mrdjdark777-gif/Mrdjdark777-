@@ -12,7 +12,11 @@
    чтения, а лента сдвигается на целую колонку. Переносы, абзацы и висячие
    строки считает он же — это честная разбивка, а не деление по количеству
    букв. */
-.tt-reader-stage{position:relative;flex:1;min-height:0;overflow:hidden;cursor:pointer}
+/* touch-action:none обязателен: без него браузер забирает горизонтальный жест
+   себе как прокрутку, события указателя до нас не доходят, и смахивание не
+   работает вовсе — остаётся только нажатие. */
+.tt-reader-stage{position:relative;flex:1;min-height:0;overflow:hidden;cursor:pointer;
+ touch-action:none;perspective:2000px;perspective-origin:50% 50%}
 /* Полоса текста отступает сверху и снизу на высоту панелей всегда, а не
    только когда они показаны: панели полупрозрачные и всплывают поверх, и
    строка, оказавшаяся под ними, просто пропадала бы.
@@ -24,27 +28,59 @@
     первого измерения доступного места. */
  left:calc(var(--tt-gap) / 2);width:var(--tt-col);
  column-width:var(--tt-col);column-gap:var(--tt-gap);column-fill:auto;
- text-align:left;overflow-wrap:break-word;
- transition:transform .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
-@media(prefers-reduced-motion:reduce){.tt-reader-flow{transition:none}}
-.tt-reader-title{font-size:1.5em;line-height:1.2;font-weight:700;margin:0 0 .5em;text-align:left;
- break-after:avoid;letter-spacing:-.02em}
-.tt-reader-intro{font-size:.82em;line-height:1.55;color:var(--tt-soft);margin:0 0 1.4em;text-align:left}
-/* Предложение — единица чтения вслух и единица подсветки; по нему же
-   вычисляется страница, на которой оно лежит. */
-.tt-reader-line{display:inline}
-.tt-reader-line.is-first{display:inline;}
-.tt-reader-line.is-first::before{content:'';display:block;height:.85em}
-.tt-reader-line.is-spoken{background:color-mix(in srgb,var(--tt-ink) 14%,transparent);border-radius:3px}
+ text-align:left;overflow-wrap:break-word}
+/* Лента сдвигается мгновенно: движение показывает слой переворота, а не она
+   сама. Иначе два движения идут одновременно и смазывают друг друга. */
+/* Всё в полосе стоит на сетке строк: высота любого куска — целое число
+   строк. Высота самой полосы тоже подогнана под строки, и стоит хоть одному
+   отступу выпасть из сетки, как внизу страницы повисает половина строки.
+   Отсюда и заголовок с интерлиньяжем 1.7/1.5: его строка занимает ровно одну
+   строку основного текста. */
+.tt-reader-flow{--tt-lead:1.7}
+.tt-reader-flow p{margin:0 0 calc(var(--tt-lead) * 1em)}
+.tt-reader-title{font-size:1.5em;line-height:calc(var(--tt-lead) / 1.5);font-weight:700;
+ margin:0 0 calc(var(--tt-lead) / 1.5 * 1em);text-align:left;break-after:avoid;letter-spacing:-.02em}
+.tt-reader-intro{font-size:1em;line-height:var(--tt-lead);color:var(--tt-soft);
+ margin:0 0 calc(var(--tt-lead) * 1em);text-align:left}
 /* Затемнение поверх текста: яркость экрана из браузера не меняется, поэтому
    «убавить свет» — это вуаль над страницей. */
-.tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none}
+.tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none;z-index:2}
+
+/* Переворот страницы. Верхний слой — уходящая страница: вперёд она
+   поднимается от левого корешка и уходит влево, назад — от правого и вправо.
+   Под ней уже лежит новая, поэтому номер меняется сразу.
+   У слоя две стороны: лицо с текстом и изнанка — чистый лист бумаги того же
+   оформления. Без изнанки на середине оборота страница просто исчезала бы. */
+.tt-reader-turn{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;
+ will-change:transform;pointer-events:none}
+.tt-reader-turn.is-fwd{transform-origin:left center;animation:tt-turn-fwd .52s cubic-bezier(.36,.02,.2,1) forwards}
+.tt-reader-turn.is-back{transform-origin:right center;animation:tt-turn-back .52s cubic-bezier(.36,.02,.2,1) forwards}
+@keyframes tt-turn-fwd{from{transform:rotateY(0)}to{transform:rotateY(-172deg)}}
+@keyframes tt-turn-back{from{transform:rotateY(0)}to{transform:rotateY(172deg)}}
+.tt-reader-turn-face,.tt-reader-turn-back{position:absolute;inset:0;overflow:hidden;
+ backface-visibility:hidden;background:var(--tt-paper)}
+/* Тень у корешка: без неё оборот выглядит плоским сдвигом, а не страницей. */
+.tt-reader-turn-face::after,.tt-reader-turn-back::after{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#00000059 0%,#0000 22%,#0000 78%,#0000003d 100%)}
+.tt-reader-turn-back{transform:rotateY(180deg)}
+.tt-reader-turn.is-back .tt-reader-turn-back{transform:rotateY(-180deg)}
+@media(prefers-reduced-motion:reduce){
+ .tt-reader-turn{animation-duration:1ms!important}
+}
+
+/* Номер страницы в углу — для чтения с убранными панелями. Когда панели на
+   экране, номер стоит в нижней строке, и второй такой же в том же углу был бы
+   просто наложением одного на другое. */
+.tt-reader-folio{position:absolute;z-index:4;right:16px;bottom:calc(10px + env(safe-area-inset-bottom));
+ font-size:12px;font-variant-numeric:tabular-nums;color:var(--tt-soft);pointer-events:none;
+ transition:opacity .2s}
+.tt-reader[data-chrome=on] .tt-reader-folio{opacity:0}
 
 .tt-reader-top,.tt-reader-bottom{position:absolute;left:0;right:0;z-index:2;display:flex;align-items:center;gap:6px;
  background:color-mix(in srgb,var(--tt-panel) 92%,transparent);backdrop-filter:blur(8px);
  transition:transform .22s,opacity .22s}
 .tt-reader-top{top:0;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--tt-edge)}
-.tt-reader-bottom{bottom:0;padding:8px 14px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--tt-edge);gap:12px}
+.tt-reader-bottom{bottom:0;padding:8px 14px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--tt-edge);gap:14px}
 .tt-reader[data-chrome=off] .tt-reader-top{transform:translateY(-100%);opacity:0;pointer-events:none}
 .tt-reader[data-chrome=off] .tt-reader-bottom{transform:translateY(100%);opacity:0;pointer-events:none}
 .tt-reader-heading{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -53,9 +89,6 @@
 .tt-reader-count{position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;
  background:#6fe7de;color:#08201e;font-size:10px;font-weight:700;display:grid;place-items:center}
 .tt-reader-page{font-size:12px;color:var(--tt-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
-.tt-reader-speak{display:grid;place-items:center;width:40px;height:40px;min-width:40px;border-radius:50%;
- border:1px solid var(--tt-edge);background:none;color:var(--tt-ink)}
-.tt-reader-speak.is-on{background:#6fe7de;color:#08201e;border-color:#6fe7de}
 .tt-reader-slider{flex:1;min-width:0;accent-color:#6fe7de;min-height:30px}
 
 .tt-reader-sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;max-height:78%;overflow:auto;

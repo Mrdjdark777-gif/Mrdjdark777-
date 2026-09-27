@@ -618,7 +618,7 @@ try{
   if(!(full.pages>1))problems.push('текст не разбился на страницы: страниц '+full.pages);
   // Высота полосы — целое число строк. Иначе колонка обрывается посреди
   // строки и внизу страницы висит половина букв.
-  {const cut=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow');
+  {const cut=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow:not(.is-copy)');
     const bar=document.querySelector('.tt-reader-bottom');
     const css=getComputedStyle(f);const lead=parseFloat(css.lineHeight)||0;
     return {lead:Math.round(lead*100)/100,height:Math.round(parseFloat(css.height)*100)/100,
@@ -629,19 +629,62 @@ try{
    // И сама полоса не должна заходить под нижнюю панель: там текст просто
    // пропадает, сколько бы целых строк в неё ни помещалось.
    if(cut.over>1)problems.push('полоса чтения уходит под нижнюю панель на '+cut.over+'px');}
+  // Сетка строк. Высота полосы — целое число строк, но если хоть один кусок
+  // текста из сетки выпал, внизу страницы всё равно повиснет половина строки.
+  {const grid=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-flow:not(.is-copy)');
+    const lead=parseFloat(getComputedStyle(f).lineHeight)||0;if(!lead)return null;
+    const bad=[];
+    for(const node of f.querySelectorAll('h1,p')){
+     const box=node.getBoundingClientRect().height;
+     const css=getComputedStyle(node);
+     const whole=box+parseFloat(css.marginBottom||'0');
+     const rest=Math.abs(whole/lead-Math.round(whole/lead))*lead;
+     if(rest>1)bad.push(node.tagName.toLowerCase()+':'+Math.round(whole)+'@'+Math.round(rest));
+    }
+    return {lead:Math.round(lead),bad:bad.slice(0,4),count:bad.length};});
+   if(!grid)problems.push('в полосе чтения не читается межстрочный интервал');
+   else if(grid.count)problems.push('текст выпал из сетки строк ('+grid.lead+'px): '+grid.bad.join(', '));}
   await shot(page,'story');
   // Нажатие у правого края листает вперёд, у левого — назад.
   const box=await page.locator('.tt-reader-stage').boundingBox();
   const at=x=>page.mouse.click(box.x+box.width*x,box.y+box.height*0.5);
   const now=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[0]));
-  await at(0.9);await page.waitForTimeout(450);const second=await now();
+  await at(0.9);await page.waitForTimeout(800);const second=await now();
   if(second!==2)problems.push('нажатие у правого края не пролистало вперёд: страница '+second);
-  await at(0.1);await page.waitForTimeout(450);const back=await now();
+  await at(0.1);await page.waitForTimeout(800);const back=await now();
   if(back!==1)problems.push('нажатие у левого края не вернуло назад: страница '+back);
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(350);
   if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
+  // Номер страницы стоит в углу полосы и виден при убранных панелях: только
+  // по нижней строке его не найти, когда панели спрятаны.
+  {const folio=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-folio');
+    if(!f)return null;const r=f.getBoundingClientRect();const css=getComputedStyle(f);
+    // Мало, чтобы номер был не спрятан стилями: он не должен быть ничем
+    // накрыт. Спрашиваем у браузера, что лежит в этой точке экрана. Сам номер
+    // нажатий не принимает, поэтому браузер честно возвращает полосу под ним —
+    // это его родитель, и накрытием не считается. А вот нижняя панель номеру
+    // не родня: попади она сюда, проверка её и назовёт.
+    const top=document.elementFromPoint(Math.round(r.left+r.width/2),Math.round(r.top+r.height/2));
+    return {text:f.textContent.trim(),visible:css.visibility!=='hidden'&&Number(css.opacity)>0,
+     covered:!(top===f||f.contains(top)||(top&&top.contains(f))),coveredBy:top?top.className||top.tagName:'ничего',
+     right:Math.round(innerWidth-r.right),bottom:Math.round(innerHeight-r.bottom)};});
+   if(!folio)problems.push('в углу страницы нет номера');
+   else{
+    if(!folio.visible)problems.push('номер страницы в углу не виден');
+    if(folio.covered)problems.push('номер страницы в углу накрыт: '+folio.coveredBy);
+    if(folio.text!=='1')problems.push('номер в углу не совпал со страницей: «'+folio.text+'» вместо 1');
+    if(folio.right>40||folio.bottom>40)problems.push('номер страницы не в углу: отступы '+folio.right+'/'+folio.bottom);}}
   await at(0.5);await page.waitForTimeout(350);
+  // Смахивание листает наравне с нажатием: без него человек решает, что
+  // страница не переключается вовсе.
+  {const swipe=async(from,to)=>{await page.mouse.move(box.x+box.width*from,box.y+box.height*0.55);
+    await page.mouse.down();await page.mouse.move(box.x+box.width*to,box.y+box.height*0.55,{steps:10});
+    await page.mouse.up();await page.waitForTimeout(800);};
+   await swipe(0.75,0.25);const swiped=await now();
+   if(swiped!==2)problems.push('смахивание влево не пролистало вперёд: страница '+swiped);
+   await swipe(0.25,0.75);const swipedBack=await now();
+   if(swipedBack!==1)problems.push('смахивание вправо не вернуло назад: страница '+swipedBack);}
   // Оформление: ночь и день должны давать разный фон, иначе выбор пустой.
   const paper=()=>page.evaluate(()=>getComputedStyle(document.querySelector('.tt-reader')).backgroundColor);
   await page.locator('[aria-label="Настройки чтения"]').click();await page.locator('.tt-reader-themes').waitFor();
@@ -651,10 +694,10 @@ try{
   await shot(page,'story-settings');
   await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(250);
   // Закладка и место: и то и другое должно пережить перезапуск.
-  await at(0.9);await at(0.9);await page.waitForTimeout(500);
+  await at(0.9);await page.waitForTimeout(700);await at(0.9);await page.waitForTimeout(800);
   const marked=await now();
   await page.locator('[aria-label="Поставить закладку"]').click();await page.waitForTimeout(200);
-  await page.reload();await settle(page);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(700);
+  await page.reload();await settle(page);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(900);
   const after=await now();
   if(after!==marked)problems.push('читалка открылась не на том месте: было '+marked+', стало '+after);
   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();

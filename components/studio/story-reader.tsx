@@ -1,66 +1,47 @@
 'use client';
 import './story-reader.css';
 import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {ArrowLeft,Bookmark,BookmarkCheck,Headphones,List,Minus,Pause,Plus,Settings2,Trash2,X} from 'lucide-react';
+import {ArrowLeft,Bookmark,BookmarkCheck,List,Minus,Plus,Settings2,Trash2,X} from 'lucide-react';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 import {haptic} from '@/lib/client';
 
 /**
- * Читалка на весь экран, с листанием по страницам.
+ * Читалка во весь экран, с листанием по страницам.
  *
- * Прежняя была окном поверх раздела: текст в нём прокручивался, занимал
- * половину экрана и не имел ни тем, ни закладок. Здесь читается так, как
- * читают в читалках: страница за страницей, во весь экран, с оформлением под
- * освещение и с местом, куда можно вернуться.
- *
- * Страницы делает сам браузер: текст льётся в колонки шириной ровно в экран
- * (CSS multi-column), а мы сдвигаем ленту на целую колонку. Это честная
- * разбивка по тексту, а не деление на куски по количеству букв: перенос слов,
- * абзацы и висячие строки браузер считает сам.
+ * Страницы делает сам браузер: текст льётся в колонки шириной ровно в полосу
+ * чтения (CSS multi-column), а лента сдвигается на целую колонку. Переносы,
+ * абзацы и висячие строки браузер считает сам — это разбивка по тексту, а не
+ * деление на куски по количеству букв.
  *
  * Место хранится долей прочитанного, а не номером страницы: сменил размер
  * шрифта — страниц стало другое количество, а доля осталась прежней.
  */
 
-type Bookmarkted={ratio:number;text:string;at:number};
-type Saved={ratio?:number;marks?:Bookmarkted[];size?:number};
-type Prefs={size:number;lead:number;theme:Theme;serif:boolean;dim:number};
+type Mark={ratio:number;text:string;at:number};
+type Prefs={size:number;theme:Theme;serif:boolean;dim:number};
 type Theme='day'|'sepia'|'night'|'black';
+type Turn={from:number;dir:'fwd'|'back';key:number};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
-const LEADS=[1.5,1.7,1.9,2.1];
+const LEAD=1.7;
 const PREFS_KEY='tt-reader-prefs-v1';
-const DEFAULTS:Prefs={size:20,lead:1.7,theme:'night',serif:true,dim:0};
+const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0};
 
 const readPrefs=():Prefs=>{try{
  const v=JSON.parse(localStorage.getItem(PREFS_KEY)||'null');
  if(!v||typeof v!=='object')return DEFAULTS;
  return {size:SIZES.includes(v.size)?v.size:DEFAULTS.size,
-  lead:LEADS.includes(v.lead)?v.lead:DEFAULTS.lead,
   theme:THEMES.includes(v.theme)?v.theme:DEFAULTS.theme,
   serif:typeof v.serif==='boolean'?v.serif:DEFAULTS.serif,
   dim:Number.isFinite(v.dim)?Math.min(.7,Math.max(0,v.dim)):0};
 }catch{return DEFAULTS;}};
 
-const readSaved=(id:string):Saved=>{try{
+const readSaved=(id:string):{ratio?:number;marks?:Mark[]}=>{try{
  const v=JSON.parse(localStorage.getItem('tt-reading-'+id)||'null');
  return v&&typeof v==='object'?v:{};
 }catch{return {};}};
-
-/** Текст режется на абзацы и предложения: предложение — единица чтения вслух
- *  и единица подсветки, по ней же находится страница. */
-function sentences(body:string){
- const out:{p:number;text:string}[]=[];
- body.split(/\n+/).forEach((para,p)=>{
-  const trimmed=para.trim();
-  if(!trimmed)return;
-  const parts=trimmed.match(/[^.!?…]+[.!?…]*\s*/g)??[trimmed];
-  for(const part of parts){const text=part.trim();if(text)out.push({p,text});}
- });
- return out;
-}
 
 export function StoryReader({id,title,description,body,onClose}:{
  id:string;title:string;description?:string;body:string;onClose:()=>void;
@@ -68,24 +49,15 @@ export function StoryReader({id,title,description,body,onClose}:{
  const {t}=useT();
  const stage=useRef<HTMLDivElement>(null),flow=useRef<HTMLDivElement>(null);
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
- const [page,setPage]=useState(0),[pages,setPages]=useState(1);
- const [step,setStep]=useState(0);
+ const [page,setPage]=useState(0),[pages,setPages]=useState(1),[step,setStep]=useState(0);
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
- const [marks,setMarks]=useState<Bookmarkted[]>([]);
- const [speaking,setSpeaking]=useState(false),[spoken,setSpoken]=useState(-1);
- const [rate,setRate]=useState(1),[voices,setVoices]=useState<SpeechSynthesisVoice[]>([]),[voice,setVoice]=useState('');
- // Доля прочитанного — единственная опора. Номер страницы ею не является:
- // сменил размер шрифта — страниц стало другое количество. Держим её в ref,
- // потому что пересчёт разбивки должен видеть её сразу, не дожидаясь отрисовки.
- const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
+ const [marks,setMarks]=useState<Mark[]>([]);
+ const [turn,setTurn]=useState<Turn|null>(null);
+ const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null),turnId=useRef(0);
  const [loaded,setLoaded]=useState(false);
- const lines=useMemo(()=>sentences(body),[body]);
+ const paragraphs=useMemo(()=>body.split(/\n+/).map(p=>p.trim()).filter(Boolean),[body]);
 
- // Настройки, место и закладки лежат в хранилище устройства, поэтому читаются
- // после первой отрисовки: на сервере localStorage нет. До этого момента
- // читалка ничего не записывает — иначе первый же пустой прогон затёр бы
- // сохранённое место и закладки.
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
  // другую историю она заходит новым экземпляром, а не сменой поля.
  useEffect(()=>{const timer=setTimeout(()=>{
@@ -95,14 +67,22 @@ export function StoryReader({id,title,description,body,onClose}:{
    setLoaded(true);},0);
   return()=>clearTimeout(timer);},[id]);
 
+ // Системные часы и панели убирает полноэкранный режим браузера: в приложении
+ // он доходит до оболочки, и та прячет панели Android. Просьбу нельзя подать
+ // откуда угодно — браузер требует, чтобы её вызвало действие человека,
+ // поэтому пробуем при открытии и обязательно повторяем по нажатию.
+ const goFull=useCallback(()=>{try{
+  const el=document.documentElement;
+  if(!document.fullscreenElement&&el.requestFullscreen)void el.requestFullscreen().catch(()=>{});
+ }catch{}},[]);
+ useEffect(()=>{goFull();
+  return()=>{try{if(document.fullscreenElement)void document.exitFullscreen().catch(()=>{});}catch{}};},[goFull]);
+
  const savePrefs=useCallback((next:Prefs)=>{setPrefs(next);
   try{localStorage.setItem(PREFS_KEY,JSON.stringify(next));}catch{}},[]);
- const saveMarks=useCallback((next:Bookmarkted[],ratio:number)=>{setMarks(next);
+ const saveMarks=useCallback((next:Mark[],ratio:number)=>{setMarks(next);
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks:next}));}catch{}},[id]);
 
- // Ширина колонки равна ширине полосы чтения, промежуток между колонками —
- // двойное поле. Пересчёт нужен при каждом изменении, которое меняет разбивку:
- // поворот экрана, размер шрифта, интерлиньяж, гарнитура.
  useLayoutEffect(()=>{
   const measure=()=>{
    const box=stage.current,line=flow.current;if(!box||!line)return;
@@ -116,11 +96,9 @@ export function StoryReader({id,title,description,body,onClose}:{
    // Отступы сверху и снизу берутся из стилей ОДИН раз и запоминаются. Считать
    // их заново нельзя: после первой подгонки у полосы стоит своя высота, и её
    // собственный размер — это уже высота всего текста, а не свободного места.
-   // На этом и ловилась ошибка: со второго пересчёта весь рассказ умещался в
-   // две страницы.
    if(!insets.current){const css=getComputedStyle(line);
     insets.current={top:parseFloat(css.top)||0,bottom:parseFloat(css.bottom)||0};}
-   const lead=prefs.size*prefs.lead;
+   const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
    const fits=Math.max(1,Math.floor(free/lead));
    line.style.bottom='auto';
@@ -134,112 +112,95 @@ export function StoryReader({id,title,description,body,onClose}:{
   measure();
   const observer=new ResizeObserver(measure);observer.observe(box);
   return()=>observer.disconnect();
- // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться
- // на сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[body,prefs.size,prefs.lead,prefs.serif,loaded]);
+ // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
+ // сохранённое место ровно тогда, когда это место прочитано из хранилища.
+ },[body,prefs.size,prefs.serif,loaded]);
 
  const ratio=pages>1?page/(pages-1):0;
  useEffect(()=>{if(!loaded)return;
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks}));}catch{}},[id,loaded,ratio,marks]);
 
- // Любой переход на другую страницу сразу переписывает долю прочитанного:
- // она и есть место, к которому читалка вернётся после смены шрифта.
+ // Переворот страницы. Верхний слой — уходящая страница: вперёд она
+ // поднимается от левого корешка и уходит влево, назад — от правого и вправо.
+ // Под ней уже лежит новая, поэтому номер меняется сразу.
  const go=useCallback((next:number)=>{
   const limit=Math.min(pages-1,Math.max(0,next));
-  wanted.current=pages>1?limit/(pages-1):0;
-  setPage(limit);},[pages]);
+  setPage(prev=>{
+   if(limit===prev)return prev;
+   turnId.current+=1;
+   setTurn({from:prev,dir:limit>prev?'fwd':'back',key:turnId.current});
+   wanted.current=pages>1?limit/(pages-1):0;
+   return limit;});
+ },[pages]);
 
- // Системная кнопка «назад» закрывает сначала лист, потом читалку. Слой листа
- // выше слоя читалки, поэтому порядок получается сам.
  useEffect(()=>sheet==='none'?undefined:pushBackLayer(BACK_MENU,()=>{setSheet('none');return true;}),[sheet]);
 
- // Чтение вслух. Голос берётся у устройства: он работает без сети и без
- // оплаты. Подсветка идёт по предложениям, страница переворачивается сама,
- // когда озвучка уходит за её край.
- useEffect(()=>{const synth=typeof window!=='undefined'?window.speechSynthesis:undefined;if(!synth)return;
-  const load=()=>setVoices(synth.getVoices());load();
-  synth.addEventListener('voiceschanged',load);
-  return()=>{synth.removeEventListener('voiceschanged',load);synth.cancel();};},[]);
- useEffect(()=>()=>{try{window.speechSynthesis?.cancel();}catch{}},[]);
-
- const pageOf=useCallback((index:number)=>{
-  const line=flow.current;if(!line||!step)return 0;
-  const node=line.querySelector<HTMLElement>('[data-s="'+index+'"]');if(!node)return 0;
-  const left=node.getBoundingClientRect().left-line.getBoundingClientRect().left;
-  return Math.max(0,Math.round(left/step));
- },[step]);
-
- const speakFrom=useCallback((from:number)=>{
-  const synth=window.speechSynthesis;if(!synth)return;
-  synth.cancel();
-  let index=from;
-  const next=()=>{
-   if(index>=lines.length){setSpeaking(false);setSpoken(-1);return;}
-   const say=new SpeechSynthesisUtterance(lines[index].text);
-   const picked=voices.find(v=>v.voiceURI===voice);
-   if(picked)say.voice=picked;
-   say.rate=rate;
-   const mine=index;
-   say.onstart=()=>{setSpoken(mine);const target=pageOf(mine);setPage(prev=>target!==prev?target:prev);};
-   say.onend=()=>{index+=1;next();};
-   say.onerror=()=>{setSpeaking(false);setSpoken(-1);};
-   synth.speak(say);
-  };
-  setSpeaking(true);next();
- },[lines,pageOf,rate,voice,voices]);
-
- const stopSpeaking=useCallback(()=>{try{window.speechSynthesis?.cancel();}catch{}
-  setSpeaking(false);setSpoken(-1);},[]);
-
- // Нажатие по краям листает, по середине — прячет и показывает панели. Так
- // устроены все читалки, и палец не ищет кнопок.
- const tap=(e:React.MouseEvent<HTMLDivElement>)=>{
+ // Листать можно и нажатием по краю, и смахиванием. Одного нажатия мало:
+ // человек ищет свайп первым делом и без него решает, что страница не
+ // переключается вовсе.
+ const touch=useRef<{x:number;y:number;moved:boolean}|null>(null);
+ const down=(e:React.PointerEvent<HTMLDivElement>)=>{
+  touch.current={x:e.clientX,y:e.clientY,moved:false};
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+ };
+ const move=(e:React.PointerEvent<HTMLDivElement>)=>{
+  const from=touch.current;if(!from)return;
+  if(Math.abs(e.clientX-from.x)>10||Math.abs(e.clientY-from.y)>10)from.moved=true;
+ };
+ const up=(e:React.PointerEvent<HTMLDivElement>)=>{
+  const from=touch.current;touch.current=null;if(!from)return;
+  const dx=e.clientX-from.x,dy=e.clientY-from.y;
+  if(Math.abs(dx)>=40&&Math.abs(dx)>Math.abs(dy)){haptic();go(page+(dx<0?1:-1));return;}
+  // Смахивание, которое не дотянуло до порога, страницу не листает и по
+  // краям не срабатывает: иначе палец, дрогнувший при пролистывании, открывал
+  // бы соседнюю страницу.
+  if(from.moved)return;
   const box=e.currentTarget.getBoundingClientRect();
   const x=(e.clientX-box.left)/box.width;
-  if(x<.32){haptic();go(page-1);return;}
-  if(x>.68){haptic();go(page+1);return;}
-  setChrome(v=>!v);
+  if(x<.3){haptic();go(page-1);return;}
+  if(x>.7){haptic();go(page+1);return;}
+  goFull();setChrome(v=>!v);
  };
- const swipe=useRef<{x:number;y:number}|null>(null);
- const here=marks.find(m=>Math.abs(m.ratio-ratio)<.004);
 
+ const here=marks.find(m=>Math.abs(m.ratio-ratio)<.004);
  const toggleMark=()=>{haptic();
   if(here){saveMarks(marks.filter(m=>m!==here),ratio);return;}
   const line=flow.current;
-  const first=line?.querySelector<HTMLElement>('[data-s]');
   const text=(()=>{
    if(!line||!step)return '';
-   for(const node of Array.from(line.querySelectorAll<HTMLElement>('[data-s]'))){
-    const left=node.getBoundingClientRect().left-line.getBoundingClientRect().left;
-    if(Math.round(left/step)===page)return node.textContent??'';
+   const base=line.getBoundingClientRect().left;
+   for(const node of Array.from(line.querySelectorAll<HTMLElement>('p'))){
+    if(Math.round((node.getBoundingClientRect().left-base)/step)===page)return node.textContent??'';
    }
-   return first?.textContent??'';
+   return line.querySelector('p')?.textContent??'';
   })();
   saveMarks([{ratio,text:text.trim().slice(0,90),at:Date.now()},...marks].slice(0,50),ratio);
  };
 
- const shade=prefs.theme;
- return <div className={'tt-reader tt-reader-'+shade} data-chrome={chrome?'on':'off'}>
-  <div className="tt-reader-stage" ref={stage}
-   onClick={tap}
-   onPointerDown={e=>{swipe.current={x:e.clientX,y:e.clientY};}}
-   onPointerUp={e=>{const from=swipe.current;swipe.current=null;if(!from)return;
-    const dx=e.clientX-from.x,dy=e.clientY-from.y;
-    if(Math.abs(dx)<48||Math.abs(dx)<Math.abs(dy))return;
-    haptic();go(page+(dx<0?1:-1));}}>
-   <div className="tt-reader-flow" ref={flow}
-    style={{transform:'translateX(-'+page*step+'px)',fontSize:prefs.size,lineHeight:prefs.lead,
-     fontFamily:prefs.serif?'Georgia,\'Times New Roman\',serif':'var(--font-ui)'}}>
-    <h1 className="tt-reader-title">{title}</h1>
-    {description&&<p className="tt-reader-intro">{description}</p>}
-    {lines.map((line,index)=><span key={index} data-s={index}
-     className={'tt-reader-line'+(index===spoken?' is-spoken':'')+(index===0||lines[index-1].p!==line.p?' is-first':'')}>{line.text} </span>)}
-   </div>
+ const flowStyle=(at:number):React.CSSProperties=>({transform:'translateX(-'+at*step+'px)',
+  fontSize:prefs.size,lineHeight:LEAD,
+  fontFamily:prefs.serif?'Georgia,\'Times New Roman\',serif':'var(--font-ui)'});
+ const text=<>
+  <h1 className="tt-reader-title">{title}</h1>
+  {description&&<p className="tt-reader-intro">{description}</p>}
+  {paragraphs.map((para,index)=><p key={index}>{para}</p>)}
+ </>;
+
+ return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
+  <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
+   onPointerCancel={()=>{touch.current=null;}}>
+   <div className="tt-reader-flow" ref={flow} style={flowStyle(page)}>{text}</div>
+   {turn&&<div key={turn.key} className={'tt-reader-turn is-'+turn.dir} aria-hidden="true"
+    onAnimationEnd={()=>setTurn(null)}>
+    <div className="tt-reader-turn-face"><div className="tt-reader-flow is-copy" style={flowStyle(turn.from)}>{text}</div></div>
+    <div className="tt-reader-turn-back"/>
+   </div>}
+   <span className="tt-reader-folio">{page+1}</span>
    {prefs.dim>0&&<div className="tt-reader-dim" aria-hidden="true" style={{opacity:prefs.dim}}/>}
   </div>
 
   <header className="tt-reader-top">
-   <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('common.back')} onClick={()=>{stopSpeaking();onClose();}}><ArrowLeft size={20}/></button>
+   <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('common.back')} onClick={onClose}><ArrowLeft size={20}/></button>
    <span className="tt-reader-heading">{title}</span>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={here?t('reader.removeBookmark'):t('reader.addBookmark')} aria-pressed={!!here} onClick={toggleMark}>{here?<BookmarkCheck size={20}/>:<Bookmark size={20}/>}</button>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('reader.bookmarks')} onClick={()=>{haptic();setSheet('marks');}}><List size={20}/>{marks.length>0&&<span className="tt-reader-count">{marks.length}</span>}</button>
@@ -247,12 +208,6 @@ export function StoryReader({id,title,description,body,onClose}:{
   </header>
 
   <footer className="tt-reader-bottom">
-   <button type="button" className={'tt-reader-speak tt-pressable'+(speaking?' is-on':'')}
-    aria-label={speaking?t('reader.stopListen'):t('reader.listen')}
-    onClick={()=>{haptic();if(speaking){stopSpeaking();return;}
-     const start=lines.findIndex((_,i)=>pageOf(i)>=page);speakFrom(start<0?0:start);}}>
-    {speaking?<Pause size={18}/>:<Headphones size={18}/>}
-   </button>
    <input className="tt-reader-slider" type="range" min={0} max={Math.max(0,pages-1)} value={page}
     aria-label={t('reader.page',{page:String(page+1),total:String(pages)})}
     onChange={e=>go(Number(e.target.value))}/>
@@ -281,11 +236,6 @@ export function StoryReader({id,title,description,body,onClose}:{
      </div>
     </div>
     <div className="tt-reader-row">
-     <span>{t('reader.lineHeight')}</span>
-     <div className="tt-reader-chips">{LEADS.map(value=>
-      <button key={value} type="button" className={prefs.lead===value?'is-active':''} onClick={()=>savePrefs({...prefs,lead:value})}>{value.toFixed(1)}</button>)}</div>
-    </div>
-    <div className="tt-reader-row">
      <span>{t('reader.font')}</span>
      <div className="tt-reader-chips">
       <button type="button" className={prefs.serif?'is-active':''} onClick={()=>savePrefs({...prefs,serif:true})}>{t('reader.fontSerif')}</button>
@@ -297,18 +247,6 @@ export function StoryReader({id,title,description,body,onClose}:{
      <input className="tt-reader-slider" type="range" min={0} max={70} value={Math.round(prefs.dim*100)}
       aria-label={t('reader.brightness')} onChange={e=>savePrefs({...prefs,dim:Number(e.target.value)/100})}/>
     </div>
-    <div className="tt-reader-row">
-     <span>{t('reader.speed')}</span>
-     <div className="tt-reader-chips">{[0.8,1,1.2,1.5].map(value=>
-      <button key={value} type="button" className={rate===value?'is-active':''} onClick={()=>{stopSpeaking();setRate(value);}}>{value}×</button>)}</div>
-    </div>
-    {voices.length>0?<label className="tt-reader-row">
-     <span>{t('reader.voice')}</span>
-     <select value={voice} onChange={e=>{stopSpeaking();setVoice(e.target.value);}}>
-      <option value="">{t('reader.voiceDefault')}</option>
-      {voices.map(v=><option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
-     </select>
-    </label>:<p className="tt-reader-note">{t('reader.voiceMissing')}</p>}
    </div>:<div className="tt-reader-marks">
     {marks.length===0?<p className="tt-reader-note">{t('reader.noBookmarks')}</p>:marks.map(mark=>
      <button key={mark.at} type="button" className="tt-reader-mark tt-pressable" onClick={()=>{
