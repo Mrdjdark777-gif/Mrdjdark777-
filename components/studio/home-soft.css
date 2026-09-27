@@ -84,9 +84,20 @@
 .tt-soft-home .soft-carousel>li{flex:0 0 37%;min-width:118px;max-width:170px;scroll-snap-align:start}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
+/* Карточка стоит НАД фоном, а не лежит в нём: светлый бортик отделяет её от
+   тёмной страницы, тень под ней даёт глубину. Раньше тёмная обложка на тёмном
+   фоне сливалась, и границы карточки было не видно вовсе. */
 .tt-soft-home .soft-art{position:relative;display:flex;align-items:center;justify-content:center;width:100%;
  aspect-ratio:2/3;border-radius:var(--soft-card);overflow:hidden;
- background:radial-gradient(circle at 35% 30%,#234743,#131c21);border:1px solid var(--soft-line)}
+ background:radial-gradient(circle at 35% 30%,#234743,#131c21);
+ border:1px solid rgba(255,255,255,.16);
+ box-shadow:0 12px 26px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4)}
+/* Бортик поверх обложки: снизу он темнее, сверху светлее — так читается
+   толщина карточки, а не просто нарисованная рамка. */
+.tt-soft-home .soft-art::after{content:'';position:absolute;inset:0;pointer-events:none;
+ border-radius:inherit;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.45),
+  inset 0 0 0 1px rgba(111,231,222,.10)}
 .tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
 .tt-soft-home .soft-mark{width:56px!important;height:56px!important;object-fit:contain!important;opacity:.85}
 .tt-soft-home .soft-kind{position:absolute;top:0;left:0;right:0;padding:7px 10px 16px;

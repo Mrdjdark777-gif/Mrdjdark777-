@@ -632,6 +632,21 @@ try{
   }
   const kinds=new Set(names.map(n=>faces[n]).filter(Boolean));
   if(kinds.size>1)problems.push('плашки расходятся поверхностью: '+kinds.size+' разных вместо одной');
+  // Переливание идёт только по надписи «Поддержать проект»: заливка обрезана
+  // по форме букв и едет. Владелец просил её ровно на этой фразе.
+  {const shine=await page.evaluate(()=>{
+    const n=document.querySelector('.tt-shimmer');if(!n)return null;
+    const css=getComputedStyle(n);
+    return {text:n.textContent.trim(),name:css.animationName,
+     clip:css.webkitBackgroundClip||css.backgroundClip,
+     fill:css.webkitTextFillColor,
+     others:document.querySelectorAll('.tt-shimmer').length};});
+   if(!shine)problems.push('переливающейся надписи на главной нет');
+   else{
+    if(shine.name==='none')problems.push('надпись не переливается: анимации нет');
+    if(!String(shine.clip).includes('text'))problems.push('заливка не обрезана по буквам: '+shine.clip);
+    if(!/rgba\(0, 0, 0, 0\)|transparent/.test(shine.fill))problems.push('буквы залиты цветом, а не градиентом: '+shine.fill);
+    if(shine.others!==1)problems.push('переливается не одна надпись, а '+shine.others);}}
   step('поверхность плашек');}
 
  // История. Читалка занимает весь экран, текст разбит на страницы, край
@@ -704,14 +719,54 @@ try{
     if(folio.text!=='1')problems.push('номер в углу не совпал со страницей: «'+folio.text+'» вместо 1');
     if(folio.right>40||folio.bottom>40)problems.push('номер страницы не в углу: отступы '+folio.right+'/'+folio.bottom);}}
   await at(0.5);await page.waitForTimeout(350);
+  // Изгиб. Держим палец посреди оборота — лист обязан стоять согнутым, а не
+  // висеть плоской карточкой. Согнут он или нет, видно по звеньям: у жёсткого
+  // листа все они повёрнуты одинаково, у согнутого — каждое по-своему.
+  {await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5);
+   await page.mouse.down();
+   await page.mouse.move(box.x+box.width*0.46,box.y+box.height*0.5,{steps:14});
+   await page.waitForTimeout(350);
+   await shot(page,'story-curl');
+   const bend=await page.evaluate(()=>{
+    const list=[...document.querySelectorAll('.tt-reader-strip')];
+    if(list.length<2)return {count:list.length};
+    // Первое число матрицы поворота — косинус угла вокруг вертикальной оси.
+    // Сдвиги на него не влияют, поэтому по нему и сверяем звенья.
+    // Числа берём из скобок: без этого в разбор попадала бы тройка из самого
+    // слова «matrix3d», и все звенья выглядели бы одинаковыми.
+    const parts=n=>{const m=getComputedStyle(n).transform;
+     const inside=m.slice(m.indexOf('(')+1,m.lastIndexOf(')'));
+     return inside?inside.split(',').map(v=>Number(v.trim())):[];};
+    const all=list.map(n=>{const v=parts(n);return v.length?v[0]:1;});
+    const lift=list.map(n=>{const v=parts(n);return v.length>=16?v[14]:0;});
+    return {count:list.length,spread:Math.max(...all)-Math.min(...all),
+     turned:1-Math.min(...all),lift:Math.max(...lift.map(Math.abs))};});
+   if(bend.count!==16)problems.push('лист разрезан не на шестнадцать звеньев, а на '+bend.count);
+   else{
+    if(!(bend.turned>0.05))problems.push('лист не повёрнут, хотя палец протянул больше трети экрана');
+    if(!(bend.spread>0.05))problems.push('лист не гнётся: все звенья повёрнуты одинаково (разброс '+bend.spread.toFixed(3)+')');
+    if(!(bend.lift>4))problems.push('лист не поднимается над страницей: вынос всего '+bend.lift.toFixed(1)+'px');}
+   // Возвращаем палец почти к началу и отпускаем: лист обязан лечь обратно,
+   // а номер страницы — остаться прежним. Заодно следующие проверки получают
+   // ту же страницу, с которой начинали.
+   const was=await now();
+   await page.mouse.move(box.x+box.width*0.86,box.y+box.height*0.5,{steps:10});
+   await page.mouse.up();await page.waitForTimeout(1200);
+   const after=await now();
+   if(after!==was)problems.push('недотянутый лист перевернул страницу: было '+was+', стало '+after);}
+
   // Смахивание листает наравне с нажатием: без него человек решает, что
   // страница не переключается вовсе.
-  {const swipe=async(from,to)=>{await page.mouse.move(box.x+box.width*from,box.y+box.height*0.55);
-    await page.mouse.down();await page.mouse.move(box.x+box.width*to,box.y+box.height*0.55,{steps:10});
-    await page.mouse.up();await page.waitForTimeout(1200);};
-   await swipe(0.75,0.25);const swiped=await now();
+  {const swipe=async(from,to)=>{
+    await page.mouse.move(box.x+box.width*from,box.y+box.height*0.55);
+    await page.mouse.down();
+    await page.mouse.move(box.x+box.width*to,box.y+box.height*0.55,{steps:10});
+    // Палец не отрывается в ту же миллисекунду, в которую закончил движение.
+    await page.waitForTimeout(80);
+    await page.mouse.up();await page.waitForTimeout(1400);};
+   await swipe(0.78,0.22);const swiped=await now();
    if(swiped!==2)problems.push('смахивание влево не пролистало вперёд: страница '+swiped);
-   await swipe(0.25,0.75);const swipedBack=await now();
+   await swipe(0.22,0.78);const swipedBack=await now();
    if(swipedBack!==1)problems.push('смахивание вправо не вернуло назад: страница '+swipedBack);}
   // Оформление: ночь и день должны давать разный фон, иначе выбор пустой.
   const paper=()=>page.evaluate(()=>getComputedStyle(document.querySelector('.tt-reader')).backgroundColor);
@@ -734,6 +789,15 @@ try{
   // телефоне было наоборот. И вуаль накрывает всю читалку вместе с панелями:
   // светлая полоса шапки над затемнённым текстом слепит сильнее самого текста.
   await page.locator('[aria-label="Настройки чтения"]').click();await page.locator('.tt-reader-themes').waitFor();
+  // Переключатель нарисован нами, а не браузером: системная галочка с
+   // оформлением читалки ничего общего не имеет.
+   {const box=await page.evaluate(()=>{const n=document.querySelector('.tt-reader-switch');
+     if(!n)return null;const css=getComputedStyle(n);const r=n.getBoundingClientRect();
+     return {look:css.appearance||css.webkitAppearance,w:Math.round(r.width),h:Math.round(r.height)};});
+    if(!box)problems.push('в настройках чтения нет переключателя яркости');
+    else{
+     if(box.look!=='none')problems.push('переключатель остался системной галочкой: appearance='+box.look);
+     if(box.w<40||box.h<24)problems.push('переключатель мелкий: '+box.w+'x'+box.h);}}
   await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(150);
   const veil=async(value)=>{await page.locator('.tt-reader-row .tt-reader-slider').fill(String(value));
    await page.waitForTimeout(200);
@@ -1560,8 +1624,15 @@ try{
      return {name:a.animationName||a.transitionProperty||'?',endless:t.iterations===Infinity,dur:Math.round(t.duration||0),
       el:el?(el.tagName.toLowerCase()+'.'+String(el.className||'').split(' ')[0]).slice(0,40):'—'};})
     .filter(a=>a.endless&&a.dur<8000));
-   if(moving.length)problems.push('на главной у слушателя что-то мельтешит: '+
-    moving.map(m=>m.name+' ('+m.dur+'ms, '+m.el+')').join(', '));
+   // Одно исключение, названное по имени: переливание по надписи «Поддержать
+   // проект». Его владелец попросил отдельно и именно на этой фразе. Это не
+   // мельтешение фона — светлая полоса идёт по буквам одной надписи. Для
+   // всего остального порог остаётся прежним.
+   const allowed=moving.filter(m=>m.name==='tt-shimmer'&&m.el.includes('support-strip-label'));
+   const stray=moving.filter(m=>!allowed.includes(m));
+   if(allowed.length!==1)problems.push('переливание надписи поддержки потерялось или размножилось: '+allowed.length);
+   if(stray.length)problems.push('на главной у слушателя что-то мельтешит: '+
+    stray.map(m=>m.name+' ('+m.dur+'ms, '+m.el+')').join(', '));
    await anim.close();
    step('движение на главной');}
   step('правовые страницы');}
