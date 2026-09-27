@@ -27,7 +27,7 @@ const check=(ok,message)=>{if(ok)return;if(soft)console.log('WARN:',message);els
 // переименовывали, блок молча переставал работать, а прогон оставался
 // зелёным. Каждый такой блок отмечается, а в конце сверяется со списком.
 const ran=new Set(),step=name=>ran.add(name);
-const MUST_RUN=['читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
+const MUST_RUN=['поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -606,6 +606,34 @@ try{
  // Свёрнутый плеер на главной.
  const collapse=page.locator('.player-collapse');if(await collapse.count()){await collapse.click();await page.waitForTimeout(300);}
  await page.locator('.bottom-nav-item').first().click();await page.waitForTimeout(300);await shot(page,'home-miniplayer');
+ // Плашки во всех разделах несут одну и ту же поверхность — градиент в
+ // цветах канала. Плоская заливка читалась серым прямоугольником, а когда
+ // поверхность задана в каждом месте по-своему, плашки расходятся: это уже
+ // случалось и чинилось отдельным заходом.
+ {const faces=await (async()=>{
+   const out={};
+   await page.goto(base+'/?mode=listen&view=stories');await settle(page);await page.waitForTimeout(300);
+   out['карточка выпуска']=await page.evaluate(()=>{const n=document.querySelector('.post-card');
+    return n?getComputedStyle(n).backgroundImage:null;});
+   await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
+   out['панель настроек']=await page.evaluate(()=>{const n=document.querySelector('.settings-panel');
+    return n?getComputedStyle(n).backgroundImage:null;});
+   await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(400);
+   out['поддержка на главной']=await page.evaluate(()=>{const n=document.querySelector('.soft-support');
+    return n?getComputedStyle(n).backgroundImage:null;});
+   out['строка архива']=await page.evaluate(()=>{const n=document.querySelector('.soft-archive-row>.archive-strip');
+    return n?getComputedStyle(n).backgroundImage:null;});
+   return out;})();
+  const names=Object.keys(faces);
+  for(const name of names){
+   const face=faces[name];
+   if(!face)problems.push('не нашлась плашка «'+name+'» — сверять поверхность не на чем');
+   else if(!face.includes('gradient'))problems.push('у плашки «'+name+'» плоская заливка вместо градиента: '+face);
+  }
+  const kinds=new Set(names.map(n=>faces[n]).filter(Boolean));
+  if(kinds.size>1)problems.push('плашки расходятся поверхностью: '+kinds.size+' разных вместо одной');
+  step('поверхность плашек');}
+
  // История. Читалка занимает весь экран, текст разбит на страницы, край
  // листает, середина прячет панели, место и оформление переживают перезапуск.
  {await page.goto(base+'/?mode=listen&view=stories&post='+story.id);await settle(page);

@@ -2225,3 +2225,22 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .legal-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px}
 .legal-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--teal);font-size:14px;text-decoration:none}
 .legal-links a:hover{text-decoration:underline}
+
+/* ── Поверхность плашек: градиент в цветах канала ──────────────────────────
+   Плоская заливка читалась серым прямоугольником. Здесь у поверхности есть
+   направление: тёплый бирюзовый свет падает из левого верхнего угла, синий
+   отблеск лежит в правом нижнем, между ними тёмная основа. Цвета — те же
+   #6FE7DE и #4AA8FF, что у кромки и сердца, поэтому плашки не спорят с
+   остальным экраном.
+   Правило одно на все плашки: расходиться они уже расходились, и чинить это
+   пришлось отдельным заходом. */
+:root,.dark{
+ --panel-face:
+  radial-gradient(132% 104% at 0% 0%,rgba(111,231,222,.11) 0%,rgba(111,231,222,0) 56%),
+  radial-gradient(120% 120% at 100% 100%,rgba(74,168,255,.085) 0%,rgba(74,168,255,0) 62%),
+  linear-gradient(158deg,#1b2225 0%,#171d20 46%,#14191b 100%);
+ --panel-line:rgba(255,255,255,.09);
+}
+.post-card,.settings-panel,.empty-state,.live-archive-card{
+ background:var(--panel-face)!important;border-color:var(--panel-line)!important}
+.empty-state{border-style:solid!important}
