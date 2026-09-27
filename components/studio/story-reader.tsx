@@ -19,15 +19,21 @@ import {haptic} from '@/lib/client';
  */
 
 type Mark={ratio:number;text:string;at:number};
-type Prefs={size:number;theme:Theme;serif:boolean;dim:number};
+type Prefs={size:number;theme:Theme;serif:boolean;dim:number;autoDim:boolean};
 type Theme='day'|'sepia'|'night'|'black';
-type Turn={from:number;dir:'fwd'|'back';key:number};
+/** Переворот страницы: откуда, куда, на сколько повёрнут лист и кто его
+ *  вращает — палец (drag) или доводка (run). */
+type Flip={from:number;to:number;angle:number;mode:'drag'|'run'};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
 const LEAD=1.7;
 const PREFS_KEY='tt-reader-prefs-v1';
-const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0};
+const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
+/** Насколько лист довернуть, чтобы страница считалась перевёрнутой. */
+const TURNED=172;
+/** С какого угла палец «дожимает» страницу, а не возвращает её обратно. */
+const COMMIT=55;
 
 const readPrefs=():Prefs=>{try{
  const v=JSON.parse(localStorage.getItem(PREFS_KEY)||'null');
@@ -35,6 +41,7 @@ const readPrefs=():Prefs=>{try{
  return {size:SIZES.includes(v.size)?v.size:DEFAULTS.size,
   theme:THEMES.includes(v.theme)?v.theme:DEFAULTS.theme,
   serif:typeof v.serif==='boolean'?v.serif:DEFAULTS.serif,
+  autoDim:typeof v.autoDim==='boolean'?v.autoDim:DEFAULTS.autoDim,
   dim:Number.isFinite(v.dim)?Math.min(.7,Math.max(0,v.dim)):0};
 }catch{return DEFAULTS;}};
 
@@ -53,8 +60,9 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
  const [marks,setMarks]=useState<Mark[]>([]);
- const [turn,setTurn]=useState<Turn|null>(null);
- const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null),turnId=useRef(0);
+ const [flip,setFlip]=useState<Flip|null>(null);
+ const live=useRef<Flip|null>(null);
+ const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
  const [loaded,setLoaded]=useState(false);
  const paragraphs=useMemo(()=>body.split(/\n+/).map(p=>p.trim()).filter(Boolean),[body]);
 
@@ -120,40 +128,69 @@ export function StoryReader({id,title,description,body,onClose}:{
  useEffect(()=>{if(!loaded)return;
   try{localStorage.setItem('tt-reading-'+id,JSON.stringify({ratio,marks}));}catch{}},[id,loaded,ratio,marks]);
 
- // Переворот страницы. Верхний слой — уходящая страница: вперёд она
- // поднимается от левого корешка и уходит влево, назад — от правого и вправо.
- // Под ней уже лежит новая, поэтому номер меняется сразу.
+ const put=useCallback((next:Flip|null)=>{live.current=next;setFlip(next);},[]);
+
+ // Страница доезжает сама: нажатие по краю и перемотка ползунком заводят тот
+ // же лист, что и палец, только угол ему задаёт не палец, а доводка.
  const go=useCallback((next:number)=>{
   const limit=Math.min(pages-1,Math.max(0,next));
-  setPage(prev=>{
-   if(limit===prev)return prev;
-   turnId.current+=1;
-   setTurn({from:prev,dir:limit>prev?'fwd':'back',key:turnId.current});
-   wanted.current=pages>1?limit/(pages-1):0;
-   return limit;});
- },[pages]);
+  if(limit===page||live.current)return;
+  const dir=limit>page?1:-1;
+  put({from:page,to:limit,angle:0,mode:'drag'});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+   if(!live.current)return;
+   put({...live.current,mode:'run',angle:dir===1?-TURNED:TURNED});}));
+ },[page,pages,put]);
+
+ // Лист доехал: либо страница перевернулась, либо вернулась на место.
+ const settle=useCallback(()=>{
+  const now=live.current;if(!now||now.mode!=='run')return;
+  if(Math.abs(now.angle)>=TURNED-1){
+   wanted.current=pages>1?now.to/(pages-1):0;
+   setPage(now.to);}
+  put(null);
+ },[pages,put]);
 
  useEffect(()=>sheet==='none'?undefined:pushBackLayer(BACK_MENU,()=>{setSheet('none');return true;}),[sheet]);
 
- // Листать можно и нажатием по краю, и смахиванием. Одного нажатия мало:
- // человек ищет свайп первым делом и без него решает, что страница не
- // переключается вовсе.
- const touch=useRef<{x:number;y:number;moved:boolean}|null>(null);
+ // Страница идёт за пальцем: сколько протянул — на столько лист и повёрнут.
+ // Отпустил на полпути — сама решит, довернуться или лечь обратно; держишь
+ // палец — стоит под тем углом, под каким ты её держишь.
+ const touch=useRef<{x:number;y:number;dir:0|1|-1;moved:boolean}|null>(null);
  const down=(e:React.PointerEvent<HTMLDivElement>)=>{
-  touch.current={x:e.clientX,y:e.clientY,moved:false};
+  if(live.current)return;
+  touch.current={x:e.clientX,y:e.clientY,dir:0,moved:false};
   e.currentTarget.setPointerCapture?.(e.pointerId);
  };
  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
   const from=touch.current;if(!from)return;
-  if(Math.abs(e.clientX-from.x)>10||Math.abs(e.clientY-from.y)>10)from.moved=true;
+  const dx=e.clientX-from.x,dy=e.clientY-from.y;
+  if(!from.moved&&(Math.abs(dx)>8||Math.abs(dy)>8))from.moved=true;
+  if(!from.dir){
+   if(Math.abs(dx)<10||Math.abs(dx)<=Math.abs(dy))return;
+   const dir=dx<0?1:-1 as 1|-1;
+   const to=page+dir;
+   if(to<0||to>pages-1)return;          // за краем книги листать нечего
+   from.dir=dir;
+   put({from:page,to,angle:0,mode:'drag'});
+   return;
+  }
+  const box=e.currentTarget.getBoundingClientRect();
+  const part=Math.min(1,Math.abs(dx)/(box.width*0.82));
+  const angle=from.dir===1?-part*TURNED:part*TURNED;
+  if(live.current)put({...live.current,angle,mode:'drag'});
  };
  const up=(e:React.PointerEvent<HTMLDivElement>)=>{
   const from=touch.current;touch.current=null;if(!from)return;
-  const dx=e.clientX-from.x,dy=e.clientY-from.y;
-  if(Math.abs(dx)>=40&&Math.abs(dx)>Math.abs(dy)){haptic();go(page+(dx<0?1:-1));return;}
-  // Смахивание, которое не дотянуло до порога, страницу не листает и по
-  // краям не срабатывает: иначе палец, дрогнувший при пролистывании, открывал
-  // бы соседнюю страницу.
+  const now=live.current;
+  if(from.dir&&now){
+   // Дотянул больше трети оборота — страница доворачивается; меньше —
+   // ложится обратно, и номер не меняется.
+   const done=Math.abs(now.angle)>=COMMIT;
+   if(done)haptic();
+   put({...now,mode:'run',angle:done?(from.dir===1?-TURNED:TURNED):0});
+   return;
+  }
   if(from.moved)return;
   const box=e.currentTarget.getBoundingClientRect();
   const x=(e.clientX-box.left)/box.width;
@@ -189,15 +226,23 @@ export function StoryReader({id,title,description,body,onClose}:{
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
    onPointerCancel={()=>{touch.current=null;}}>
-   <div className="tt-reader-flow" ref={flow} style={flowStyle(page)}>{text}</div>
-   {turn&&<div key={turn.key} className={'tt-reader-turn is-'+turn.dir} aria-hidden="true"
-    onAnimationEnd={()=>setTurn(null)}>
-    <div className="tt-reader-turn-face"><div className="tt-reader-flow is-copy" style={flowStyle(turn.from)}>{text}</div></div>
+   {/* Под листом лежит та страница, на которую он открывается. Когда лист
+       ложится обратно, под ним снова прежняя. */}
+   <div className="tt-reader-flow" ref={flow}
+    style={flowStyle(flip?(flip.mode==='run'&&flip.angle===0?flip.from:flip.to):page)}>{text}</div>
+   {flip&&<div className={'tt-reader-turn is-'+(flip.to>flip.from?'fwd':'back')+(flip.mode==='run'?' is-running':'')}
+    aria-hidden="true" onTransitionEnd={settle}
+    style={{transform:'rotateY('+flip.angle.toFixed(2)+'deg)','--tt-a':Math.min(1,Math.abs(flip.angle)/TURNED)} as React.CSSProperties}>
+    <div className="tt-reader-turn-face"><div className="tt-reader-flow is-copy" style={flowStyle(flip.from)}>{text}</div></div>
     <div className="tt-reader-turn-back"/>
    </div>}
    <span className="tt-reader-folio">{page+1}</span>
-   {prefs.dim>0&&<div className="tt-reader-dim" aria-hidden="true" style={{opacity:prefs.dim}}/>}
   </div>
+  {/* Вуаль яркости лежит поверх всей читалки — вместе с панелями и листом
+      настроек. Гасить только текст, оставляя панели яркими, незачем: глаза
+      слепит именно светлое пятно на тёмном экране. Остального приложения она
+      не касается: читалка — отдельный слой. */}
+  {!prefs.autoDim&&prefs.dim>0&&<div className="tt-reader-dim" aria-hidden="true" style={{opacity:prefs.dim}}/>}
 
   <header className="tt-reader-top">
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('common.back')} onClick={onClose}><ArrowLeft size={20}/></button>
@@ -242,10 +287,18 @@ export function StoryReader({id,title,description,body,onClose}:{
       <button type="button" className={prefs.serif?'':'is-active'} onClick={()=>savePrefs({...prefs,serif:false})}>{t('reader.fontSans')}</button>
      </div>
     </div>
+    <label className="tt-reader-row">
+     <span>{t('reader.systemBrightness')}</span>
+     <input type="checkbox" className="tt-reader-switch" checked={prefs.autoDim}
+      onChange={e=>savePrefs({...prefs,autoDim:e.target.checked})}/>
+    </label>
     <div className="tt-reader-row">
      <span>{t('reader.brightness')}</span>
-     <input className="tt-reader-slider" type="range" min={0} max={70} value={Math.round(prefs.dim*100)}
-      aria-label={t('reader.brightness')} onChange={e=>savePrefs({...prefs,dim:Number(e.target.value)/100})}/>
+     {/* Вправо — светлее. Хранится обратная величина — сила затемнения, —
+         поэтому ползунок её переворачивает. */}
+     <input className="tt-reader-slider" type="range" min={0} max={70} value={70-Math.round(prefs.dim*100)}
+      disabled={prefs.autoDim} aria-label={t('reader.brightness')}
+      onChange={e=>savePrefs({...prefs,dim:(70-Number(e.target.value))/100})}/>
     </div>
    </div>:<div className="tt-reader-marks">
     {marks.length===0?<p className="tt-reader-note">{t('reader.noBookmarks')}</p>:marks.map(mark=>

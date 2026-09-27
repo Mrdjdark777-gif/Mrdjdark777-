@@ -111,6 +111,7 @@ export const it: Record<keyof typeof ru, string> = {
   'reader.fontSerif': "Con grazie",
   'reader.fontSans': "Senza grazie",
   'reader.brightness': "Luminosità",
+  'reader.systemBrightness': "Come sul dispositivo",
   'reader.bookmarks': "Segnalibri",
   'reader.addBookmark': "Aggiungi segnalibro",
   'reader.removeBookmark': "Togli segnalibro",

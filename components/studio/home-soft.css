@@ -9,7 +9,7 @@
  padding:6px 16px 16px!important;background:#0d0f12;box-sizing:border-box;height:auto!important;overflow:visible!important}
 
 /* ── Кадр-постер ───────────────────────────────────────────────────────
-   Кадр — вертикальный постер 3:4, как афиша в кинотеатре: он и есть то, ради
+   Кадр — вертикальный постер 4:5, как афиша в кинотеатре: он и есть то, ради
    чего человек открыл приложение. Надпись вверху, кнопка внизу, между ними
    постер виден целиком. Главная от этого стала выше экрана — так и задумано:
    постер обязан занимать первый экран, а карусель заглядывает снизу и зовёт
@@ -24,7 +24,7 @@
    стене, а не во всю стену. */
 .tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
  width:calc(100% + 32px)!important;margin-inline:-16px!important;align-self:stretch!important;max-width:none!important;
- aspect-ratio:3/4;height:auto!important;min-height:0!important;max-height:none!important;
+ aspect-ratio:4/5;height:auto!important;min-height:0!important;max-height:none!important;
  background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка

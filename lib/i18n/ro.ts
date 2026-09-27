@@ -82,6 +82,7 @@ export const ro: Record<keyof typeof ru, string> = {
   'reader.fontSerif': "Cu serife",
   'reader.fontSans': "Fără serife",
   'reader.brightness': "Luminozitate",
+  'reader.systemBrightness': "Ca pe dispozitiv",
   'reader.bookmarks': "Semne de carte",
   'reader.addBookmark': "Pune un semn",
   'reader.removeBookmark': "Scoate semnul",

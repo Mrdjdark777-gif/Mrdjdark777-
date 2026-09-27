@@ -110,6 +110,7 @@ export const ru = {
   'reader.fontSerif': "С засечками",
   'reader.fontSans': "Без засечек",
   'reader.brightness': "Яркость",
+  'reader.systemBrightness': "Как на устройстве",
   'reader.bookmarks': "Закладки",
   'reader.addBookmark': "Поставить закладку",
   'reader.removeBookmark': "Убрать закладку",

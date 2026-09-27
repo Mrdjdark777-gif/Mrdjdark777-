@@ -649,9 +649,9 @@ try{
   const box=await page.locator('.tt-reader-stage').boundingBox();
   const at=x=>page.mouse.click(box.x+box.width*x,box.y+box.height*0.5);
   const now=()=>page.evaluate(()=>Number(document.querySelector('.tt-reader-page')?.textContent.split('/')[0]));
-  await at(0.9);await page.waitForTimeout(800);const second=await now();
+  await at(0.9);await page.waitForTimeout(1200);const second=await now();
   if(second!==2)problems.push('нажатие у правого края не пролистало вперёд: страница '+second);
-  await at(0.1);await page.waitForTimeout(800);const back=await now();
+  await at(0.1);await page.waitForTimeout(1200);const back=await now();
   if(back!==1)problems.push('нажатие у левого края не вернуло назад: страница '+back);
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(350);
@@ -680,7 +680,7 @@ try{
   // страница не переключается вовсе.
   {const swipe=async(from,to)=>{await page.mouse.move(box.x+box.width*from,box.y+box.height*0.55);
     await page.mouse.down();await page.mouse.move(box.x+box.width*to,box.y+box.height*0.55,{steps:10});
-    await page.mouse.up();await page.waitForTimeout(800);};
+    await page.mouse.up();await page.waitForTimeout(1200);};
    await swipe(0.75,0.25);const swiped=await now();
    if(swiped!==2)problems.push('смахивание влево не пролистало вперёд: страница '+swiped);
    await swipe(0.25,0.75);const swipedBack=await now();
@@ -694,7 +694,7 @@ try{
   await shot(page,'story-settings');
   await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(250);
   // Закладка и место: и то и другое должно пережить перезапуск.
-  await at(0.9);await page.waitForTimeout(700);await at(0.9);await page.waitForTimeout(800);
+  await at(0.9);await page.waitForTimeout(1200);await at(0.9);await page.waitForTimeout(1200);
   const marked=await now();
   await page.locator('[aria-label="Поставить закладку"]').click();await page.waitForTimeout(200);
   await page.reload();await settle(page);await page.locator('.tt-reader-flow').waitFor();await page.waitForTimeout(900);
@@ -702,6 +702,32 @@ try{
   if(after!==marked)problems.push('читалка открылась не на том месте: было '+marked+', стало '+after);
   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();
   if(!await page.locator('.tt-reader-mark').count())problems.push('закладка не пережила перезапуск');
+  // Яркость. Ползунок тянут вправо — становится светлее, а не темнее: на
+  // телефоне было наоборот. И вуаль накрывает всю читалку вместе с панелями:
+  // светлая полоса шапки над затемнённым текстом слепит сильнее самого текста.
+  await page.locator('[aria-label="Настройки чтения"]').click();await page.locator('.tt-reader-themes').waitFor();
+  await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(150);
+  const veil=async(value)=>{await page.locator('.tt-reader-row .tt-reader-slider').fill(String(value));
+   await page.waitForTimeout(200);
+   return page.evaluate(()=>{const d=document.querySelector('.tt-reader-dim');
+    // Нет вуали — нечему накрывать и нечему лежать поверх. Отдаём это как
+    // есть, иначе проверка «накрывает целиком» молча проходила бы на пустом
+    // месте.
+    if(!d)return {opacity:0,covers:false,above:false};
+    const r=d.getBoundingClientRect(),host=document.querySelector('.tt-reader').getBoundingClientRect();
+    const bar=document.querySelector('.tt-reader-top');
+    const z=n=>Number(getComputedStyle(n).zIndex)||0;
+    return {opacity:Number(getComputedStyle(d).opacity),
+     covers:r.top<=host.top+1&&r.bottom>=host.bottom-1&&r.left<=host.left+1&&r.right>=host.right-1,
+     above:z(d)>z(bar)};});};
+  const dark=await veil(0),light=await veil(70);
+  if(!(dark.opacity>0.01))problems.push('на самой тёмной отметке затемнения нет вовсе');
+  if(!(dark.opacity>light.opacity))problems.push('ползунок яркости работает наоборот: влево '+dark.opacity+', вправо '+light.opacity);
+  if(light.opacity>0.01)problems.push('на самой яркой отметке затемнение не снято: '+light.opacity);
+  if(!dark.covers)problems.push('затемнение не накрывает читалку целиком');
+  if(!dark.above)problems.push('затемнение лежит под панелями читалки');
+  await page.locator('.tt-reader-switch').check();await page.waitForTimeout(200);
+  if(await page.locator('.tt-reader-dim').count())problems.push('с яркостью «как на устройстве» затемнение осталось');
   await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(200);
   step('читалка');}
  // Эфир, когда его нет, и настройки.

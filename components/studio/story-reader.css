@@ -44,29 +44,39 @@
  margin:0 0 calc(var(--tt-lead) * 1em);text-align:left}
 /* Затемнение поверх текста: яркость экрана из браузера не меняется, поэтому
    «убавить свет» — это вуаль над страницей. */
-.tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none;z-index:2}
+.tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none;z-index:6}
 
 /* Переворот страницы. Верхний слой — уходящая страница: вперёд она
    поднимается от левого корешка и уходит влево, назад — от правого и вправо.
    Под ней уже лежит новая, поэтому номер меняется сразу.
    У слоя две стороны: лицо с текстом и изнанка — чистый лист бумаги того же
    оформления. Без изнанки на середине оборота страница просто исчезала бы. */
+/* Лист поворачивается ровно на тот угол, который ему задали: пальцем или
+   доводкой. Поэтому здесь нет keyframes — угол приходит в inline-стиле, а
+   переход включается только на доводке. Пока палец на экране, страница стоит
+   там, где её держат. */
 .tt-reader-turn{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;
- will-change:transform;pointer-events:none}
-.tt-reader-turn.is-fwd{transform-origin:left center;animation:tt-turn-fwd .52s cubic-bezier(.36,.02,.2,1) forwards}
-.tt-reader-turn.is-back{transform-origin:right center;animation:tt-turn-back .52s cubic-bezier(.36,.02,.2,1) forwards}
-@keyframes tt-turn-fwd{from{transform:rotateY(0)}to{transform:rotateY(-172deg)}}
-@keyframes tt-turn-back{from{transform:rotateY(0)}to{transform:rotateY(172deg)}}
+ will-change:transform;pointer-events:none;--tt-a:0}
+.tt-reader-turn.is-fwd{transform-origin:left center}
+.tt-reader-turn.is-back{transform-origin:right center}
+.tt-reader-turn.is-running{transition:transform .78s cubic-bezier(.22,.68,.24,1)}
 .tt-reader-turn-face,.tt-reader-turn-back{position:absolute;inset:0;overflow:hidden;
  backface-visibility:hidden;background:var(--tt-paper)}
-/* Тень у корешка: без неё оборот выглядит плоским сдвигом, а не страницей. */
-.tt-reader-turn-face::after,.tt-reader-turn-back::after{content:'';position:absolute;inset:0;pointer-events:none;
- background:linear-gradient(90deg,#00000059 0%,#0000 22%,#0000 78%,#0000003d 100%)}
-.tt-reader-turn-back{transform:rotateY(180deg)}
-.tt-reader-turn.is-back .tt-reader-turn-back{transform:rotateY(-180deg)}
-@media(prefers-reduced-motion:reduce){
- .tt-reader-turn{animation-duration:1ms!important}
-}
+/* Затенение у корешка. Оно тем гуще, чем сильнее повёрнут лист: так бумага
+   уходит в тень, а не просто едет плоским прямоугольником. */
+.tt-reader-turn-face::after{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,#000 0%,#0000 38%);opacity:calc(.06 + var(--tt-a) * .5)}
+.tt-reader-turn.is-back .tt-reader-turn-face::after{background:linear-gradient(270deg,#000 0%,#0000 38%)}
+.tt-reader-turn-back{transform:rotateY(180deg);
+ background:linear-gradient(270deg,color-mix(in srgb,var(--tt-paper) 86%,#000) 0%,var(--tt-paper) 42%)}
+.tt-reader-turn.is-back .tt-reader-turn-back{transform:rotateY(-180deg);
+ background:linear-gradient(90deg,color-mix(in srgb,var(--tt-paper) 86%,#000) 0%,var(--tt-paper) 42%)}
+/* Тень, которую поднятый лист роняет на страницу под собой. */
+.tt-reader-turn::before{content:'';position:absolute;top:0;bottom:0;width:46%;pointer-events:none;
+ opacity:calc(var(--tt-a) * .55);transform:translateZ(-1px)}
+.tt-reader-turn.is-fwd::before{left:0;background:linear-gradient(90deg,#000c,#0000)}
+.tt-reader-turn.is-back::before{right:0;background:linear-gradient(270deg,#000c,#0000)}
+@media(prefers-reduced-motion:reduce){.tt-reader-turn.is-running{transition-duration:1ms}}
 
 /* Номер страницы в углу — для чтения с убранными панелями. Когда панели на
    экране, номер стоит в нижней строке, и второй такой же в том же углу был бы
@@ -90,6 +100,8 @@
  background:#6fe7de;color:#08201e;font-size:10px;font-weight:700;display:grid;place-items:center}
 .tt-reader-page{font-size:12px;color:var(--tt-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
 .tt-reader-slider{flex:1;min-width:0;accent-color:#6fe7de;min-height:30px}
+.tt-reader-slider:disabled{opacity:.4}
+.tt-reader-switch{width:46px;height:28px;flex:none;accent-color:#6fe7de;margin:0}
 
 .tt-reader-sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;max-height:78%;overflow:auto;
  background:var(--tt-panel);border-top:1px solid var(--tt-edge);border-radius:22px 22px 0 0;
