@@ -1,24 +1,36 @@
 /**
- * Изгиб страницы на WebGL.
+ * Переворот страницы: лист гнётся вокруг отвесной оси.
  *
  * Здесь только поверхность: два холста со страницами и доля оборота от нуля до
  * единицы. Ни жестов, ни загрузки страниц, ни кнопок — их ведёт сама читалка,
  * и отдавать их сюда значило бы держать управление в двух местах.
  *
- * Нет WebGL — createCurl возвращает null, и читалка остаётся на прежнем
- * обороте из полос. Это не запас на всякий случай: на части устройств WebGL в
- * WebView выключен, и молча чёрный экран вместо страницы там недопустим.
+ * Нет WebGL — createCurl возвращает null, и читалка остаётся на прежнем обороте
+ * из полос. Это не запас на всякий случай: на части устройств WebGL в WebView
+ * выключен, и молча чёрный экран вместо страницы там недопустим.
  *
- * Шейдер — InvertedPageCurl из gl-transitions: Hewlett-Packard, BSD-3-Clause,
- * адаптация Sergey Kosarevsky. Текст лицензии лежит в
- * vendor/page-curl-shader.LICENSE.txt и обязан ехать вместе с поставкой.
- * Источник: https://github.com/gl-transitions/gl-transitions
+ * Почему геометрия своя, а не взятый готовым шейдер. Сначала здесь стоял
+ * InvertedPageCurl из gl-transitions: он гнёт лист по диагонали, вокруг наклонной
+ * оси. Картинка выходила объёмная, но строки на листе вставали наискосок —
+ * владелец прислал снимок, где слова едут по диагонали, и фотографии настоящей
+ * книги, на которых видно главное: ось сгиба отвесная, строки остаются
+ * горизонтальными, бумага только сжимается по ширине. Это не настройка того
+ * шейдера, а другая геометрия, поэтому она написана здесь целиком.
  *
- * Изменено против источника: цвет бумаги приходит снаружи (у нас четыре
- * оформления, и просвет между страницами обязан быть цвета бумаги, а не
- * чёрным), выборка холстов с сохранением пропорций, направление оборота,
- * сторона изгиба (лист гнётся вниз, а не вверх) и крайние состояния при нуле и
- * единице.
+ * Как устроен лист. Он закреплён у корешка и лежит на странице. Считаем всё в
+ * долях ширины: 0 — корешок, 1 — свободный край.
+ *
+ *   q          — где бумага отрывается от страницы;
+ *   R          — радиус сгиба;
+ *   πR         — сколько бумаги уходит на пол-оборота;
+ *   1 - q - πR — то, что уже легло назад поверх страницы.
+ *
+ * Пока q близко к единице, лист почти плоский и у правого края только намечается
+ * горбик. Дальше q уходит влево, горбик растёт и доезжает до корешка — ровно так
+ * это и выглядит на фотографиях настоящей книги.
+ *
+ * Сгиб описывается одной координатой по горизонтали, поэтому строки не
+ * наклоняются и не прыгают: меняется только то, насколько тесно они стоят.
  */
 
 const VERTEX =
@@ -34,277 +46,137 @@ precision mediump float;
 varying vec2 vUV;
 uniform sampler2D fromTexture;
 uniform sampler2D toTexture;
-uniform float progress;
+/** 1 — листаем вперёд (корешок слева), -1 — назад. */
 uniform float direction;
-uniform float viewportAspect;
-uniform float fromAspect;
-uniform float toAspect;
+/** Цвет бумаги: им закрашено всё, куда не попал текст. */
 uniform vec3 paperColor;
-// Цвет изнанки листа: светлее бумаги на тёмных оформлениях и темнее на светлых.
+/** Цвет изнанки листа. Считается снаружи по светлоте оформления. */
 uniform vec3 backColor;
-// Сторона изгиба. Лист обязан заворачиваться вниз, как в Play Книгах, а не
-// вверх: исходный шейдер гнёт его к верхнему углу. Приём тот же, каким уже
-// разворачивается направление листания, — координата переворачивается на
-// входе в геометрию и возвращается обратно при выборке картинки, поэтому
-// гнётся лист в другую сторону, а текст на нём остаётся ровным.
-uniform float flipY;
-vec2 sampleUV(vec2 p, float aspect) {
-  p.x = direction > 0.0 ? p.x : 1.0-p.x;
-  p.y = flipY > 0.5 ? 1.0-p.y : p.y;
-  vec2 scaleFit = vec2(min(1.0, aspect/viewportAspect), min(1.0, viewportAspect/aspect));
-  return (p-0.5)/scaleFit+0.5;
-}
-vec4 getFromColor(vec2 p) {
-  vec2 uv=sampleUV(p,fromAspect);
-  if(any(lessThan(uv,vec2(0.0)))||any(greaterThan(uv,vec2(1.0))))return vec4(paperColor,1.0);
-  vec4 c=texture2D(fromTexture,uv);return vec4(mix(paperColor,c.rgb,c.a),1.0);
-}
-vec4 getToColor(vec2 p) {
-  vec2 uv=sampleUV(p,toAspect);
-  if(any(lessThan(uv,vec2(0.0)))||any(greaterThan(uv,vec2(1.0))))return vec4(paperColor,1.0);
-  vec4 c=texture2D(toTexture,uv);return vec4(mix(paperColor,c.rgb,c.a),1.0);
-}
-// Author: Hewlett-Packard
-// License: BSD 3 Clause
-// Adapted by Sergey Kosarevsky from:
-// http://rectalogic.github.io/webvfx/examples_2transition-shader-pagecurl_8html-example.html
-
-/*
-Copyright (c) 2010 Hewlett-Packard Development Company, L.P. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-   * Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-   * Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following disclaimer
-     in the documentation and/or other materials provided with the
-     distribution.
-   * Neither the name of Hewlett-Packard nor the names of its
-     contributors may be used to endorse or promote products derived from
-     this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-in vec2 texCoord;
-*/
-
-const float MIN_AMOUNT = -0.16;
-const float MAX_AMOUNT = 1.5;
+/** Наклон листа у самого корешка. Ноль — лежит, -PI — лёг на другую сторону. */
+uniform float bendA;
+/** На сколько лист выгнут по всей своей длине. Ноль — прямой. */
+uniform float bendB;
+/** Докуда лист достаёт по горизонтали: за этой чертой начинается его тень. */
+uniform float edgeX;
 
 const float PI = 3.141592653589793;
 
-uniform float edgeScale;
-#define scale edgeScale
-const float sharpness = 3.0;
+/** Бумажная координата в координату снимка: при листании назад корешок справа. */
+float shot(float u){ return direction > 0.0 ? u : 1.0 - u; }
 
-// Радиус сгиба вынесен наружу: у источника он жёстко задан и даёт складку
-// шириной в четверть экрана. У книги сгиб узкий.
-uniform float cylinderRadius;
-
-// These depend on the progress uniform and must be computed per-fragment.
-// Global initializers with uniforms are invalid in GLSL ES and fail on Mesa.
-float amount;
-float cylinderCenter;
-float cylinderAngle;
-
-vec3 hitPoint(float hitAngle, float yc, vec3 point, mat3 rrotation)
-{
-        float hitPoint = hitAngle / (2.0 * PI);
-        point.y = hitPoint;
-        return rrotation * point;
+vec3 pageFrom(float u, float y){
+ if(u < 0.0 || u > 1.0) return paperColor;
+ vec4 c = texture2D(fromTexture, vec2(shot(u), y));
+ return mix(paperColor, c.rgb, c.a);
+}
+vec3 pageTo(float u, float y){
+ if(u < 0.0 || u > 1.0) return paperColor;
+ vec4 c = texture2D(toTexture, vec2(shot(u), y));
+ return mix(paperColor, c.rgb, c.a);
+}
+/**
+ * Изнанка листа. Текст на ней проступает еле-еле — так и на настоящей бумаге
+ * виден оборот печати. Зеркальным он выходит сам собой: по изнанке бумажная
+ * координата идёт навстречу экранной.
+ */
+vec3 pageBack(float u, float y){
+ return mix(backColor, pageFrom(u, y), 0.10);
 }
 
-vec4 antiAlias(vec4 color1, vec4 color2, float distanc)
-{
-        distanc *= scale;
-        if (distanc < 0.0) return color2;
-        if (distanc > 2.0) return color1;
-        float dd = pow(1.0 - distanc / 2.0, sharpness);
-        return ((color2 - color1) * dd) + color1;
-}
+void main(){
+ float y = vUV.y;
+ float x = direction > 0.0 ? vUV.x : 1.0 - vUV.x;
+ float a = bendA, b = bendB;
 
-float distanceToEdge(vec3 point)
-{
-        float dx = abs(point.x > 0.5 ? 1.0 - point.x : point.x);
-        float dy = abs(point.y > 0.5 ? 1.0 - point.y : point.y);
-        if (point.x < 0.0) dx = -point.x;
-        if (point.x > 1.0) dx = point.x - 1.0;
-        if (point.y < 0.0) dy = -point.y;
-        if (point.y > 1.0) dy = point.y - 1.0;
-        if ((point.x < 0.0 || point.x > 1.0) && (point.y < 0.0 || point.y > 1.0)) return sqrt(dx * dx + dy * dy);
-        return min(dx, dy);
-}
+ float bestZ = -1000.0, bestU = -1.0, bestT = 0.0;
+ bool hit = false;
 
-vec4 seeThrough(float yc, vec2 p, mat3 rotation, mat3 rrotation)
-{
-        float hitAngle = PI - (acos(clamp(yc / cylinderRadius, -1.0, 1.0)) - cylinderAngle);
-        vec3 point = hitPoint(hitAngle, yc, rotation * vec3(p, 1.0), rrotation);
-        if (yc <= 0.0 && (point.x < 0.0 || point.y < 0.0 || point.x > 1.0 || point.y > 1.0))
-        {
-            return getToColor(p);
-        }
+ if(abs(b) < 0.02){
+  // Лист прямой: он просто повёрнут у корешка и сжат по ширине.
+  float c = cos(a);
+  if(abs(c) > 0.001){
+   float u = x / c;
+   if(u >= 0.0 && u <= 1.0){ hit = true; bestU = u; bestT = a; bestZ = u * sin(a); }
+  }
+ }else{
+  // Лист — дуга: угол касательной идёт от a до a+b ровно по его длине.
+  // Одному месту экрана отвечает до трёх точек бумаги; видна самая ближняя.
+  float w = b * x + sin(a);
+  if(abs(w) <= 1.0){
+   float s = asin(w);
+   for(int i = 0; i < 3; i++){
+    float t = i == 0 ? s : (i == 1 ? PI - s : s + 2.0 * PI);
+    float u = (t - a) / b;
+    if(u >= 0.0 && u <= 1.0){
+     float z = (cos(a) - cos(t)) / b;
+     if(z > bestZ){ bestZ = z; bestU = u; bestT = t; hit = true; }
+    }
+   }
+  }
+ }
 
-        if (yc > 0.0) return getFromColor(p);
+ vec3 colour;
+ if(hit){
+  // Куда повёрнута бумага в этом месте: к нам лицом или изнанкой.
+  float face = cos(bestT);
+  colour = face >= 0.0 ? pageFrom(bestU, y) : pageBack(bestU, y);
+  // Свет падает спереди: чем круче бумага стоит, тем она темнее.
+  colour *= 0.45 + 0.55 * abs(face);
+ }else{
+  // Новая страница, открывшаяся из-под листа, и тень поднятой бумаги на ней.
+  colour = pageTo(x, y) * mix(0.38, 1.0, clamp((x - edgeX) / 0.18, 0.0, 1.0));
+ }
 
-        vec4 color = getFromColor(point.xy);
-        vec4 tcolor = vec4(0.0);
-
-        return antiAlias(color, tcolor, distanceToEdge(point));
-}
-
-vec4 seeThroughWithShadow(float yc, vec2 p, vec3 point, mat3 rotation, mat3 rrotation)
-{
-        float shadow = distanceToEdge(point) * 30.0;
-        shadow = (1.0 - shadow) / 3.0;
-
-        if (shadow < 0.0) shadow = 0.0; else shadow *= amount;
-
-        vec4 shadowColor = seeThrough(yc, p, rotation, rrotation);
-        shadowColor.r -= shadow;
-        shadowColor.g -= shadow;
-        shadowColor.b -= shadow;
-
-        return shadowColor;
-}
-
-vec4 backside(float yc, vec3 point)
-{
-        vec4 color = getFromColor(point.xy);
-        float gray = (color.r + color.b + color.g) / 15.0;
-        gray += (8.0 / 10.0) * (pow(max(0.0, 1.0 - abs(yc / cylinderRadius)), 2.0 / 10.0) / 2.0 + (5.0 / 10.0));
-        // У источника здесь paperColor * (0.70 + 0.30 * gray): на тёмной бумаге
-        // изнанка выходила почти чёрной, и оборот читался чёрной прорехой, а не
-        // перевёрнутым листом. Теперь это переход от бумаги к её оборотному
-        // тону, который считается снаружи по светлоте оформления.
-        color.rgb = mix(paperColor, backColor, clamp(gray, 0.0, 1.0));
-        return color;
-}
-
-vec4 behindSurface(vec2 p, float yc, vec3 point, mat3 rrotation)
-{
-        float safeAmount = amount >= 0.0 ? max(amount, 1e-4) : min(amount, -1e-4);
-        float shado = (1.0 - ((-cylinderRadius - yc) / safeAmount * 7.0)) / 6.0;
-        shado *= 1.0 - abs(point.x - 0.5);
-
-        yc = (-cylinderRadius - cylinderRadius - yc);
-
-        float hitAngle = (acos(clamp(yc / cylinderRadius, -1.0, 1.0)) + cylinderAngle) - PI;
-        point = hitPoint(hitAngle, yc, point, rrotation);
-
-        if (yc < 0.0 && point.x >= 0.0 && point.y >= 0.0 && point.x <= 1.0 && point.y <= 1.0 && (hitAngle < PI || amount > 0.5))
-        {
-                float dx = point.x - 0.5;
-                float dy = point.y - 0.5;
-                shado = 1.0 - (sqrt(dx * dx + dy * dy) / (71.0 / 100.0));
-                float nyc = -yc / cylinderRadius;
-                shado *= nyc * nyc * nyc;
-                shado *= 0.5;
-        }
-        else
-        {
-                shado = 0.0;
-        }
-        return vec4(getToColor(p).rgb - shado, 1.0);
-}
-
-vec4 transition(vec2 p) {
-  amount = progress * (MAX_AMOUNT - MIN_AMOUNT) + MIN_AMOUNT;
-  cylinderCenter = amount;
-  cylinderAngle = 2.0 * PI * amount;
-
-  const float angle = 100.0 * PI / 180.0;
-        float c = cos(-angle);
-        float s = sin(-angle);
-
-        mat3 rotation = mat3( c, s, 0,
-                                                                -s, c, 0,
-                                                                -0.801, 0.8900, 1
-                                                                );
-        c = cos(angle);
-        s = sin(angle);
-
-        mat3 rrotation = mat3(	c, s, 0,
-                                                                        -s, c, 0,
-                                                                        0.98500, 0.985, 1
-                                                                );
-
-        vec3 point = rotation * vec3(p, 1.0);
-
-        float yc = point.y - cylinderCenter;
-
-        if (yc < -cylinderRadius)
-        {
-                // Behind surface
-                return behindSurface(p,yc, point, rrotation);
-        }
-
-        if (yc > cylinderRadius)
-        {
-                // Flat surface
-                return getFromColor(p);
-        }
-
-        float hitAngle = (acos(clamp(yc / cylinderRadius, -1.0, 1.0)) + cylinderAngle) - PI;
-
-        float hitAngleMod = mod(hitAngle, 2.0 * PI);
-        if ((hitAngleMod > PI && amount < 0.5) || (hitAngleMod > PI/2.0 && amount < 0.0))
-        {
-                return seeThrough(yc, p, rotation, rrotation);
-        }
-
-        point = hitPoint(hitAngle, yc, point, rrotation);
-
-        if (point.x < 0.0 || point.y < 0.0 || point.x > 1.0 || point.y > 1.0)
-        {
-                return seeThroughWithShadow(yc, p, point, rotation, rrotation);
-        }
-
-        vec4 color = backside(yc, point);
-
-        vec4 otherColor;
-        if (yc < 0.0)
-        {
-                float dx2 = point.x - 0.5;
-                float dy2 = point.y - 0.5;
-                float shado = 1.0 - (sqrt(dx2 * dx2 + dy2 * dy2) / 0.71);
-                float nyc2 = -yc / cylinderRadius;
-                shado *= nyc2 * nyc2 * nyc2;
-                shado *= 0.5;
-                otherColor = vec4(0.0, 0.0, 0.0, shado);
-        }
-        else
-        {
-                otherColor = getFromColor(p);
-        }
-
-        color = antiAlias(color, otherColor, cylinderRadius - abs(yc));
-
-        vec4 cl = seeThroughWithShadow(yc, p, point, rotation, rrotation);
-        float dist = distanceToEdge(point);
-
-        return antiAlias(color, cl, dist);
-}
-
-void main() {
- vec2 p=vUV; if(direction<0.0)p.x=1.0-p.x; if(flipY>0.5)p.y=1.0-p.y;
- if(progress<=0.0){gl_FragColor=getFromColor(p);return;}
- if(progress>=1.0){gl_FragColor=getToColor(p);return;}
- vec4 c=transition(p);
- gl_FragColor=vec4(mix(paperColor,c.rgb,c.a),1.0);
+ gl_FragColor = vec4(colour, 1.0);
 }
 `;
+
+/**
+ * Насколько сильно лист выгибается посреди оборота, в радианах на всю его длину.
+ * В начале и в конце выгиба нет вовсе: лист лежит плоско и на своей стороне, и
+ * на новой. Наибольший он на середине хода — так и на фотографиях.
+ */
+const BEND = 2.0;
+
+/** Где на экране свободный край листа: от правого края до левого и дальше. */
+const freeEdge = (turn: number) => 1 - 2 * turn;
+
+/** Куда дотягивается лист по горизонтали. За этой чертой лежит его тень. */
+const reach = (a: number, b: number, edge: number) => {
+ // Дальше всего лист уходит там, где бумага стоит отвесно к взгляду. Если до
+ // такого места дуга не доходит, самая дальняя точка — один из её концов.
+ const from = Math.min(a, a + b), to = Math.max(a, a + b);
+ if (Math.abs(b) > 0.02 && from <= Math.PI / 2 && Math.PI / 2 <= to)
+  return (1 - Math.sin(a)) / b;
+ return Math.max(0, edge);
+};
+
+/**
+ * Форма листа для доли оборота.
+ *
+ * Лист закреплён у корешка, его свободный край ведёт палец. Длина листа не
+ * меняется, поэтому наклон у корешка однозначно следует из того, куда уехал
+ * край и насколько лист выгнут. Уравнение решается делением пополам — двадцати
+ * шагов хватает с запасом, и считается это раз в кадр, а не для каждой точки.
+ */
+const bend = (turn: number) => {
+ const b = BEND * Math.sin(Math.PI * turn);
+ const edge = freeEdge(turn);
+ if (Math.abs(b) < 0.02) {
+  // Прямой лист: край там, где его ставит поворот, и обратного счёта не нужно.
+  return {a: Math.acos(Math.max(-1, Math.min(1, edge))), b, edge: Math.max(0, edge)};
+ }
+ const tip = (a: number) => (Math.sin(a + b) - Math.sin(a)) / b;
+ // Чем сильнее лист повёрнут у корешка, тем левее уезжает его край, поэтому
+ // деление пополам идёт по наклону от нуля до половины оборота.
+ let low = 0, high = Math.PI;
+ for (let step = 0; step < 20; step++) {
+  const mid = (low + high) / 2;
+  if (tip(mid) > edge) low = mid; else high = mid;
+ }
+ const a = (low + high) / 2;
+ return {a, b, edge: reach(a, b, tip(a))};
+};
 
 /** Цвет бумаги: просвет между страницами и поля берут его, а не чёрный. */
 export type Paper = [number, number, number];
@@ -360,15 +232,10 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
 
  const at = (name: string) => gl.getUniformLocation(program, name);
  const uniform = {
-  progress: at('progress'), direction: at('direction'), paperColor: at('paperColor'),
-  flipY: at('flipY'), backColor: at('backColor'), cylinderRadius: at('cylinderRadius'),
-  viewportAspect: at('viewportAspect'), fromAspect: at('fromAspect'),
-  toAspect: at('toAspect'), edgeScale: at('edgeScale'),
+  direction: at('direction'), paperColor: at('paperColor'),
+  backColor: at('backColor'), bendA: at('bendA'), bendB: at('bendB'), edgeX: at('edgeX'),
  };
  gl.uniform3fv(uniform.paperColor, paper);
- // Изгиб вниз. Владелец просил как в Play Книгах: у исходного шейдера лист
- // заворачивается к верхнему углу, и это первое, что бросилось в глаза.
- gl.uniform1f(uniform.flipY, 1);
  // Изнанка листа. На тёмной бумаге она светлее бумаги, на светлой — темнее:
  // перевёрнутый лист ловит свет иначе, чем лежащая страница, и без этого
  // разворот в ночном оформлении выглядел чёрной прорехой.
@@ -376,8 +243,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
  const shift = lit < 0.5 ? 0.17 : -0.12;
  gl.uniform3fv(uniform.backColor,
   paper.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List);
- // Узкий сгиб: у источника он шириной в четверть экрана, у книги — в палец.
- gl.uniform1f(uniform.cylinderRadius, 0.085);
+
 
  const textures = [0, 1].map(unit => {
   const texture = gl.createTexture();
@@ -400,21 +266,13 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   canvas.width = Math.max(1, Math.round(box.width * density));
   canvas.height = Math.max(1, Math.round(box.height * density));
   gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.uniform1f(uniform.viewportAspect, canvas.width / canvas.height);
-  // Чем мягче эта величина, тем шире растушёвка края листа. Берётся от
-  // меньшей стороны: иначе на узком телефоне край выходил бы рваным.
-  gl.uniform1f(uniform.edgeScale, Math.min(canvas.width, canvas.height));
  };
 
  const upload = (source: TexImageSource, unit: 0 | 1) => {
-  const width = 'width' in source ? Number(source.width) : 0;
-  const height = 'height' in source ? Number(source.height) : 0;
   gl.activeTexture(gl.TEXTURE0 + unit);
   gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-  gl.uniform1f(unit === 0 ? uniform.fromAspect : uniform.toAspect,
-   height > 0 ? width / height : 1);
  };
 
  resize();
@@ -422,8 +280,11 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   resize,
   pages(from, to) {upload(from, 0); upload(to, 1);},
   draw(progress, forward) {
-   gl.uniform1f(uniform.progress, Math.min(1, Math.max(0, progress)));
+   const shape = bend(Math.min(1, Math.max(0, progress)));
    gl.uniform1f(uniform.direction, forward ? 1 : -1);
+   gl.uniform1f(uniform.bendA, shape.a);
+   gl.uniform1f(uniform.bendB, shape.b);
+   gl.uniform1f(uniform.edgeX, shape.edge);
    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   },
   destroy() {

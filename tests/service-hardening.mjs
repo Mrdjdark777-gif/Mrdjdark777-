@@ -8,7 +8,7 @@
  * только по `systemctl show`, и это отдельная работа руками.
  */
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -193,18 +193,21 @@ assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
  // Сборку обязаны называть оба ответа — и здоровый, и аварийный: выкладка
  // сверяется по этому полю, и если служба поднялась «нездоровой», знать, какой
  // код на ней, нужно тем более.
- // Заимствованный шейдер обязан ехать со своей лицензией. Он не пакет npm,
- // поэтому в описи из package-lock.json его нет и проверка лицензий его не
- // видит: BSD-3-Clause требует сохранять уведомление и в исходниках, и в
- // собранном виде, а забыть об этом легче всего именно у вложенного кода.
+ // Заимствованного шейдера в читалке больше нет — геометрия переворота своя.
+ // Проверка следит, чтобы вместе с кодом не вернулось и уведомление о чужой
+ // лицензии: возить уведомление для кода, которого в поставке нет, — та же
+ // неправда, что и умолчать о чужом коде.
  const curl = readFileSync(path.join(root, 'lib/page-curl.ts'), 'utf8');
- assert.match(curl, /vendor\/page-curl-shader\.LICENSE\.txt/,
-  'код с заимствованным шейдером должен указывать, где лежит его лицензия');
- const notice = readFileSync(path.join(root, 'vendor/page-curl-shader.LICENSE.txt'), 'utf8');
- assert.match(notice, /BSD|Hewlett-Packard/,
-  'vendor/page-curl-shader.LICENSE.txt должен содержать сам текст лицензии, а не ссылку на неё');
- assert.match(readFileSync(path.join(root, 'docs/LICENSES-RU.md'), 'utf8'), /page-curl-shader/,
-  'вложенный шейдер должен быть разобран в описи сторонних компонентов');
+ // Ищется сам код, а не упоминание. В шапке файла тот шейдер назван по имени —
+ // там объяснено, почему геометрия своя, и вычёркивать это объяснение ради
+ // прохождения проверки значило бы стереть причину. Поэтому приметы взяты из
+ // его тела: так называются только его функции и величины.
+ const borrowed = /Hewlett-Packard Development|seeThroughWithShadow|cylinderAngle|behindSurface/.test(curl);
+ const notice = existsSync(path.join(root, 'vendor/page-curl-shader.LICENSE.txt'));
+ assert.equal(borrowed, notice,
+  borrowed
+   ? 'в читалке снова заимствованный шейдер — положи рядом его лицензию и впиши в docs/LICENSES-RU.md'
+   : 'чужого шейдера в читалке нет, а уведомление о его лицензии осталось — убери его');
 
  const health = readFileSync(path.join(root, 'app/api/health/route.ts'), 'utf8');
  const says = health.match(/build:process\.env\.NEXT_PUBLIC_BUILD/g) ?? [];
