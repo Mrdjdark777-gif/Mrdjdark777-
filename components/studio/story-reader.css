@@ -98,7 +98,10 @@
 
    Ширина у огоньков своя, поэтому вся вещь шире дорожки: огоньки стоят
    снаружи, как на приборе, и в дорожку не заезжают. */
-.tt-reader-switch{position:relative;flex:none;display:block;width:82px;height:34px;cursor:pointer}
+/* Пропорции взяты с присланного образца: дорожка там вытянутая, около двух с
+   половиной к одному. У нас была почти полтора к одному — тумблер выглядел
+   сплюснутым. Огоньки стоят снаружи дорожки и в это отношение не входят. */
+.tt-reader-switch{position:relative;flex:none;display:block;width:104px;height:30px;cursor:pointer}
 .tt-reader-switch>input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;
  opacity:0;border:0;cursor:pointer;z-index:2}
 /* Огоньки по краям. Тот, что слева, горит, пока переключатель погашен. */
@@ -109,19 +112,19 @@
 .tt-reader-switch:has(>input:checked)::before{background:color-mix(in srgb,var(--tt-ink) 22%,transparent);box-shadow:none}
 .tt-reader-switch:has(>input:checked)::after{background:#6fe7de;box-shadow:0 0 8px 1px #6fe7dea6}
 /* Дорожка утоплена: тёмный колодец с обводкой и внутренней тенью. */
-.tt-reader-switch-track{position:absolute;top:0;bottom:0;left:16px;right:16px;border-radius:999px;
+.tt-reader-switch-track{position:absolute;top:0;bottom:0;left:19px;right:19px;border-radius:999px;
  background:color-mix(in srgb,var(--tt-paper) 78%,#000);
  border:1px solid var(--tt-edge);
  box-shadow:inset 0 2px 5px #00000073,inset 0 -1px 0 color-mix(in srgb,var(--tt-ink) 8%,transparent);
  transition:background .22s,border-color .22s}
 /* Клавиша. Она занимает половину дорожки и ходит из края в край. */
-.tt-reader-switch-track::before{content:'';position:absolute;top:3px;bottom:3px;left:3px;width:44%;
+.tt-reader-switch-track::before{content:'';position:absolute;top:3px;bottom:3px;left:3px;width:46%;
  border-radius:999px;background:linear-gradient(#787f83,#4a5155);
  box-shadow:0 2px 5px #00000080,inset 0 1px 0 #ffffff26;
  transition:transform .22s cubic-bezier(.32,.72,.3,1),background .22s}
 /* Прорезь посередине клавиши — по ней и видно, что это железная кнопка, а не
    кружок. Волоском в два тона: тень и блик рядом. */
-.tt-reader-switch-track::after{content:'';position:absolute;top:9px;bottom:9px;left:3px;width:44%;
+.tt-reader-switch-track::after{content:'';position:absolute;top:8px;bottom:8px;left:3px;width:46%;
  border-radius:999px;pointer-events:none;
  background:linear-gradient(90deg,#0000 calc(50% - 1.5px),#000000a6 calc(50% - 1.5px),
   #000000a6 50%,#ffffff40 50%,#ffffff40 calc(50% + 1.5px),#0000 calc(50% + 1.5px));

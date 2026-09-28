@@ -543,7 +543,7 @@ export function StoryReader({id,title,description,body,onClose}:{
      <span>{t('reader.systemBrightness')}</span>
      <span className="tt-reader-switch">
       <input type="checkbox" checked={prefs.autoDim}
-       onChange={e=>savePrefs({...prefs,autoDim:e.target.checked})}/>
+       onChange={e=>{haptic('heavy');savePrefs({...prefs,autoDim:e.target.checked});}}/>
       <span className="tt-reader-switch-track" aria-hidden="true"/>
      </span>
     </label>

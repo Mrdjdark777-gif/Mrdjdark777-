@@ -1039,6 +1039,31 @@ try{
      if(!box.track)problems.push('переключатель рисуется не разметкой: дорожки нет');
      if(box.shown>0.01)problems.push('системный флажок виден поверх нарисованного: прозрачность '+box.shown);
      if(box.w<40||box.h<24)problems.push('переключатель мелкий: '+box.w+'x'+box.h);}}
+   // Дорожка обязана быть вытянутой, как на присланном образце. Была почти
+   // полтора к одному — владелец сказал «сплюснутая».
+   {const shape=await page.evaluate(()=>{
+     const t=document.querySelector('.tt-reader-switch-track');
+     if(!t)return null;const r=t.getBoundingClientRect();
+     const knob=getComputedStyle(t,'::before');
+     return {w:Math.round(r.width),h:Math.round(r.height),knob:parseFloat(knob.width)||0};});
+    if(!shape)problems.push('у переключателя нет дорожки');
+    else{
+     if(!(shape.w/shape.h>=2))problems.push('дорожка переключателя сплюснута: '+shape.w+'x'+shape.h);
+     if(!(shape.knob>shape.w*0.35&&shape.knob<shape.w*0.6))
+      problems.push('клавиша не по образцу: '+Math.round(shape.knob)+'px при дорожке '+shape.w);}}
+   // И переключение обязано отдавать в руку. Считаем настоящие вызовы, как и в
+   // проверке на отсутствие вибрации при перелистывании.
+   {const armed=await page.evaluate(()=>{window.__ttBuzz=0;
+     try{Object.defineProperty(navigator,'vibrate',
+      {configurable:true,writable:true,value:()=>{window.__ttBuzz++;return true;}});}
+     catch{return false;}
+     navigator.vibrate(1);const ok=window.__ttBuzz===1;window.__ttBuzz=0;return ok;});
+    if(!armed)problems.push('подменить вибрацию не удалось — отклик переключателя не измерить');
+    else{
+     await page.locator('.tt-reader-switch').uncheck();await page.waitForTimeout(200);
+     await page.locator('.tt-reader-switch').check();await page.waitForTimeout(200);
+     const buzz=await page.evaluate(()=>window.__ttBuzz);
+     if(buzz<2)problems.push('переключатель не отдаёт в руку: откликов '+buzz+' на два переключения');}}
    // Он обязан быть железным переключателем из присланного образца, а не
    // гладкой пилюлей: клавиша ходит из края в край, и по краям два огонька —
    // погашенный горит слева, включённый справа.

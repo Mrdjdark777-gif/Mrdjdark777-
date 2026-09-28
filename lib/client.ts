@@ -40,14 +40,17 @@ export const parseClock=(text:string):number|null=>{
  if(long)return Number(long[1])*3600+Number(long[2])*60+Number(long[3]);
  return null;
 };
-// Короткий тактильный отклик на тап по нижней навигации. В Android-приложении
+// Тактильный отклик. В Android-приложении
 // зовёт нативный EFFECT_CLICK через мост (см. NativeBridge.haptic) — это
 // калиброванная волна, а не голая длительность, ощущается заметно чётче.
 // В обычном браузере (или на старом APK без этого метода моста) — запасной
 // вариант через Vibration API; на iOS Safari/WebView её нет, тихо не сработает.
-export const haptic=()=>{
-  if(hasNativeClient()){void nativeCall('ui.haptic').catch(()=>{});return;}
-  try{navigator.vibrate?.(25);}catch{}
+export const haptic=(strength:'click'|'heavy'='click')=>{
+  if(hasNativeClient()){void nativeCall('ui.haptic',{strength}).catch(()=>{});return;}
+  // Запасной путь в браузере: у Vibration API нет калиброванных волн, есть
+  // только длительность. Сильный отклик набирается двойным толчком — он
+  // ощущается отчётливее одного длинного и не превращается в зуд.
+  try{navigator.vibrate?.(strength==='heavy'?[30,45,60]:25);}catch{}
 };
 export function errorText(e:unknown){return e instanceof Error?serverMessage(e.message):t('err.generic');}
 export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise((resolve,reject)=>{

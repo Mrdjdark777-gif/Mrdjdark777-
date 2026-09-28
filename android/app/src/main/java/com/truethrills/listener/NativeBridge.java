@@ -64,7 +64,7 @@ final class NativeBridge {
         if (method.equals("push.settings")) {
             activity.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName())); reply.accept(new JSONObject()); return;
         }
-        if (method.equals("ui.haptic")) { haptic(); reply.accept(new JSONObject()); return; }
+        if (method.equals("ui.haptic")) { haptic(args.optString("strength", "click")); reply.accept(new JSONObject()); return; }
         if (method.equals("ui.share")) { share(args); reply.accept(new JSONObject()); return; }
         Runnable task = () -> network.execute(() -> {
             try {
@@ -139,11 +139,16 @@ final class NativeBridge {
      * современных телефонах ощущается отчётливее и «собраннее», ближе к
      * тактильному отклику клавиатуры вроде SwiftKey, чем raw one-shot.
      */
-    private void haptic() {
+    private void haptic(String strength) {
         Vibrator vibrator = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
         if (vibrator == null || !vibrator.hasVibrator()) return;
-        if (Build.VERSION.SDK_INT >= 29) vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
-        else vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+        boolean heavy = "heavy".equals(strength);
+        if (Build.VERSION.SDK_INT >= 29) {
+            vibrator.vibrate(VibrationEffect.createPredefined(
+                heavy ? VibrationEffect.EFFECT_HEAVY_CLICK : VibrationEffect.EFFECT_CLICK));
+        } else {
+            vibrator.vibrate(VibrationEffect.createOneShot(heavy ? 55 : 30, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
     }
     void close() { closed = true; permissionAction = null; permissionReply = null; network.shutdownNow(); player.close(); }
 }
