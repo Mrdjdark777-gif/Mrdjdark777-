@@ -926,6 +926,31 @@ try{
    if(!(settled.diff<0.02))
     problems.push('страница после оборота не вернулась к себе прежней: отличие '+(settled.diff*100).toFixed(1)+'% — остаточная тень или скачок текста');}
 
+  // Перелистывание не должно отдавать вибрацией. Толчок в конце оборота сбивал
+  // ощущение бумаги, и владелец попросил его убрать. Считаем настоящие вызовы
+  // к телефону, а не наличие строки в коде.
+  {const armed=await page.evaluate(()=>{window.__ttBuzz=0;
+    // Простое присваивание navigator.vibrate не проходит: свойство живёт на
+    // прототипе и без своего сеттера молча не перезаписывается — проверка
+    // тогда считает нули при любой вибрации. Поэтому defineProperty, и сразу
+    // же проверяем, что подмена встала.
+    try{Object.defineProperty(navigator,'vibrate',
+     {configurable:true,writable:true,value:()=>{window.__ttBuzz++;return true;}});}
+    catch{return false;}
+    navigator.vibrate(1);
+    const ok=window.__ttBuzz===1;window.__ttBuzz=0;return ok;});
+   if(!armed)problems.push('подменить вибрацию не удалось — проверка ничего не измерит');
+   else{
+    // Оборот в обе стороны: вперёд нажатием у правого края, назад у левого.
+    await page.mouse.click(box.x+box.width*0.9,box.y+box.height*0.5);
+    await page.waitForTimeout(1500);
+    await page.mouse.click(box.x+box.width*0.1,box.y+box.height*0.5);
+    await page.waitForTimeout(1500);
+    const seen=await page.evaluate(()=>[window.__ttBuzz,
+     Number(document.querySelector('.tt-reader-page-count')?.textContent.split('/')[0])]);
+    if(seen[1]!==1)problems.push('проверка вибрации листала вхолостую: страница '+seen[1]);
+    if(seen[0])problems.push('перелистывание отдаёт вибрацией: '+seen[0]+' раз за два оборота');}}
+
   // Смахивание листает наравне с нажатием: без него человек решает, что
   // страница не переключается вовсе.
   {const swipe=async(from,to)=>{

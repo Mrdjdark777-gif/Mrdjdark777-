@@ -6,7 +6,7 @@ import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 import {haptic} from '@/lib/client';
 import {blocksOf,paginate,type Kind,type Page} from '@/lib/page-text';
-import {createCurl,type Curl} from '@/lib/page-curl';
+import {createCurl,GONE,type Curl} from '@/lib/page-curl';
 
 /**
  * Читалка во весь экран, с листанием по страницам.
@@ -61,9 +61,11 @@ const TURNED=170,BEND=62;
 /** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно.
  *  Доля считается от полного оборота в две ширины экрана, поэтому треть экрана
  *  под пальцем — это уже шестая часть оборота. */
-const COMMIT=0.16;
-/** Сколько идёт доводка целого оборота. */
-const RUN_MS=1150;
+const COMMIT=0.11;
+/** Сколько идёт доводка целого оборота.
+ *  Целый оборот кончается не на единице, а на GONE — там лист уходит за
+ *  корешок, — поэтому на видимый ход приходится около семисот миллисекунд. */
+const RUN_MS=1500;
 
 const readPrefs=():Prefs=>{try{
  const v=JSON.parse(localStorage.getItem(PREFS_KEY)||'null');
@@ -113,7 +115,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [loaded,setLoaded]=useState(false);
  const curl=useRef<Curl|null>(null);
  const [webgl,setWebgl]=useState(false);
- const paper=useRef<(HTMLCanvasElement|null)[]>([null,null]);
+ const shots=useRef<Map<number,HTMLCanvasElement>>(new Map());
  const blocks=useMemo(()=>blocksOf(title,description,body),[title,description,body]);
 
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
@@ -312,16 +314,39 @@ export function StoryReader({id,title,description,body,onClose}:{
  },[total,put]);
 
  /** Завести оборот: нарисовать обе страницы на холсты и отдать их шейдеру. */
+ /**
+  * Готовый снимок страницы. Снимки держатся заранее нарисованными: раньше обе
+  * страницы рисовались в тот самый кадр, когда палец только тронул экран, и
+  * холст при этом ещё и заново заводился под нужный размер. Из-за этого начало
+  * оборота дёргалось — первый кадр приходил с запозданием.
+  */
+ const sheetFor=useCallback((index:number)=>{
+  const have=shots.current.get(index);
+  if(have)return have;
+  const node=document.createElement('canvas');
+  paint(index,node);
+  shots.current.set(index,node);
+  return node;
+ },[paint]);
+
+ // Соседние страницы рисуются заранее, в спокойную минуту. Кэш сбрасывается
+ // вместе с разбивкой и оформлением: иначе на экран попал бы снимок от прежнего
+ // размера шрифта.
+ useEffect(()=>{
+  shots.current.clear();
+  if(!loaded||!frame.width)return;
+  const timer=setTimeout(()=>{
+   for(const at of [page,page+1,page-1])
+    if(at>=0&&at<pages.length)sheetFor(at);
+  },0);
+  return()=>clearTimeout(timer);
+ },[page,pages,frame,fonts,loaded,sheetFor]);
+
  const begin=useCallback((next:Flip)=>{
   const gl=curl.current;
-  if(gl){
-   const from=paper.current[0]??(paper.current[0]=document.createElement('canvas'));
-   const to=paper.current[1]??(paper.current[1]=document.createElement('canvas'));
-   paint(next.from,from);paint(next.to,to);
-   gl.pages(from,to);
-  }
+  if(gl)gl.pages(sheetFor(next.from),sheetFor(next.to));
   part.current=0;put(next);
- },[paint,put]);
+ },[sheetFor,put]);
 
  // Нажатие по краю и перемотка ползунком заводят тот же лист, что и палец,
  // только гнёт его не палец, а доводка.
@@ -337,7 +362,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  useLayoutEffect(()=>{
   if(!flip)return;
   bend(part.current);
-  if(flip.auto&&!raf.current)run(1,()=>land(flip,true));
+  if(flip.auto&&!raf.current)run(GONE,()=>land(flip,true));
  // bend и run пересобираются при смене страницы, но перезапускать из-за них
  // уже идущий оборот нельзя: он бы начинался заново.
  // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -349,18 +374,20 @@ export function StoryReader({id,title,description,body,onClose}:{
  // Страница идёт за пальцем: сколько протянул — на столько лист и повёрнут.
  // Отпустил на полпути — сама решит, довернуться или лечь обратно; держишь
  // палец — стоит под тем углом, под каким ты её держишь.
- const touch=useRef<{x:number;y:number;dir:0|1|-1;moved:boolean}|null>(null);
+ const touch=useRef<{x:number;y:number;dir:0|1|-1;moved:boolean;at:number;speed:number}|null>(null);
  const down=(e:React.PointerEvent<HTMLDivElement>)=>{
   if(live.current)return;
-  touch.current={x:e.clientX,y:e.clientY,dir:0,moved:false};
+  touch.current={x:e.clientX,y:e.clientY,dir:0,moved:false,at:performance.now(),speed:0};
   e.currentTarget.setPointerCapture?.(e.pointerId);
  };
  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
   const from=touch.current;if(!from)return;
   const dx=e.clientX-from.x,dy=e.clientY-from.y;
-  if(!from.moved&&(Math.abs(dx)>8||Math.abs(dy)>8))from.moved=true;
+  if(!from.moved&&(Math.abs(dx)>6||Math.abs(dy)>6))from.moved=true;
   if(!from.dir){
-   if(Math.abs(dx)<10||Math.abs(dx)<=Math.abs(dy))return;
+   // Порог низкий намеренно: при десяти пикселях лист заводился не с каждого
+   // движения, и владелец говорил, что перелистывание срабатывает не всегда.
+   if(Math.abs(dx)<5||Math.abs(dx)<=Math.abs(dy))return;
    const dir=dx<0?1:-1 as 1|-1;
    const to=page+dir;
    if(to<0||to>total-1)return;          // за краем книги листать нечего
@@ -379,7 +406,14 @@ export function StoryReader({id,title,description,body,onClose}:{
   // ровно за собой, а не вдвое быстрее себя. Полный оборот дотягивает доводка
   // после отпускания — так же, как в книгах на телефоне.
   const along=from.dir===1?-dx:dx;
-  part.current=Math.min(1,Math.max(0,along/(box.width*2)));
+  // Дальше GONE тянуть нечего: лист уже за корешком, и картинка не меняется.
+  const next=Math.min(GONE,Math.max(0,along/(box.width*2)));
+  // Скорость пальца запоминается для рывка: короткий быстрый жест обязан
+  // перевернуть страницу, даже если палец прошёл всего ничего.
+  const now=performance.now();
+  if(now>from.at)from.speed=(next-part.current)/(now-from.at)*1000;
+  from.at=now;
+  part.current=next;
   bend(part.current);
  };
  const up=(e:React.PointerEvent<HTMLDivElement>)=>{
@@ -387,17 +421,24 @@ export function StoryReader({id,title,description,body,onClose}:{
   if(from.dir&&live.current){
    // Дотянул больше трети оборота — лист доворачивается; меньше — ложится
    // обратно, и номер не меняется.
-   const done=part.current>=COMMIT;
+   // Либо дотянул, либо дёрнул: быстрый рывок доворачивает страницу и с
+   // половины порога. Без этого короткое резкое движение не срабатывало.
+   const done=part.current>=COMMIT||(from.speed>0.5&&part.current>COMMIT*0.35);
    const now=live.current;
-   if(done)haptic();
-   run(done?1:0,()=>land(now,done));
+   // Доводка идёт не до конца оборота, а до той доли, на которой лист уходит
+   // за корешок. Дальше на экране не меняется ничего, и последняя треть хода
+   // была просто ожиданием перед неподвижной картинкой.
+   run(done?GONE:0,()=>land(now,done));
    return;
   }
   if(from.moved)return;
   const box=e.currentTarget.getBoundingClientRect();
   const x=(e.clientX-box.left)/box.width;
-  if(x<.3){haptic();go(page-1);return;}
-  if(x>.7){haptic();go(page+1);return;}
+  // Вибрации на перелистывании нет намеренно: владелец сказал, что толчок в
+  // конце оборота сбивает ощущение бумаги. На кнопках она осталась — там это
+  // отклик на нажатие, а не на движение страницы.
+  if(x<.3){go(page-1);return;}
+  if(x>.7){go(page+1);return;}
   goFull();setChrome(v=>!v);
  };
 
@@ -534,7 +575,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    </div>:<div className="tt-reader-marks">
     {marks.length===0?<p className="tt-reader-note">{t('reader.noBookmarks')}</p>:marks.map(mark=>
      <button key={mark.at} type="button" className="tt-reader-mark tt-pressable" onClick={()=>{
-      haptic();go(Math.round(mark.ratio*(total-1)));setSheet('none');setChrome(false);}}>
+      go(Math.round(mark.ratio*(total-1)));setSheet('none');setChrome(false);}}>
       <b>{Math.round(mark.ratio*100)}%</b><span>{mark.text}</span>
       <i role="button" tabIndex={0} aria-label={t('reader.removeBookmark')}
        onClick={e=>{e.stopPropagation();saveMarks(marks.filter(m=>m!==mark),ratio);}}

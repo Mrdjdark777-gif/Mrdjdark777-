@@ -50,8 +50,13 @@ const COLUMNS = 112;
  * руках поднятый лист заметно крупнее, но не настолько.
  */
 const CAMERA = 5.5;
-/** Наибольший выгиб листа, в радианах на всю его длину. */
-const BEND = 2.0;
+/**
+ * Наибольший выгиб листа, в радианах на всю его длину.
+ *
+ * Глубже, чем было: при двух дуга читалась слабо, и владелец просил, чтобы
+ * выгиб был виден именно выгибом.
+ */
+const BEND = 2.7;
 /** Шагов в счёте формы при подборе стадии: для подбора хватает грубой сетки. */
 const ROUGH = 16;
 
@@ -82,6 +87,8 @@ type Shape = {
  x: Float32Array;
  z: Float32Array;
  tilt: Float32Array;
+ /** Тот же край, но без обрезки: отрицательный — листа на экране уже нет. */
+ reach: number;
  /** Насколько высоко лист поднимается над страницей. Ноль — лист лежит. */
  lift: number;
  /** Докуда лист достаёт по экрану. За этой чертой лежит его тень. */
@@ -127,18 +134,46 @@ const shapeOf = (turn: number): Shape => {
   const seen = 0.5 + (x[i] - 0.5) * scale;
   if (seen > edge) edge = seen;
  }
- return {x, z, tilt, lift, edge: Math.max(0, edge)};
+ // Край возвращается и без обрезки: по нему видно, ушёл ли лист за корешок
+ // целиком. За корешком рисовать нечего.
+ return {x, z, tilt, lift, edge: Math.max(0, edge), reach: edge};
 };
+
+/**
+ * Доля оборота, на которой лист целиком уходит за корешок.
+ *
+ * Дальше на экране не меняется ничего: лист за левой границей, тень с него
+ * снята. Доводить ход до единицы значило бы держать человека ещё треть
+ * времени перед неподвижной картинкой — а у самого корешка от листа остаётся
+ * полоска нулевой ширины, и она мерцает. Владелец назвал это «дёрганой
+ * анимацией в конце, на левом краю».
+ *
+ * Считается один раз при загрузке по самой геометрии, а не назначается на глаз:
+ * поменяется выгиб или расстояние до глаза — величина сойдётся сама.
+ */
+export const GONE = (() => {
+ for (let i = 1; i <= 200; i++) {
+  const turn = i / 200;
+  if (shapeOf(turn).reach <= 0) return turn;
+ }
+ return 1;
+})();
 
 const SHEET_VERTEX = `
 attribute vec2 place;
 attribute vec2 paper;
 attribute float tilt;
+/** Насколько высоко поднята бумага в этом месте и как далеко она от корешка. */
+attribute vec2 form;
 varying vec2 vPaper;
 varying float vTilt;
+varying float vRise;
+varying float vAlong;
 void main(){
  vPaper = paper;
  vTilt = tilt;
+ vRise = form.x;
+ vAlong = form.y;
  gl_Position = vec4(place.x * 2.0 - 1.0, place.y * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
@@ -150,6 +185,8 @@ precision mediump float;
 #endif
 varying vec2 vPaper;
 varying float vTilt;
+varying float vRise;
+varying float vAlong;
 uniform sampler2D fromTexture;
 uniform vec3 paperColor;
 uniform vec3 backColor;
@@ -161,7 +198,15 @@ void main(){
  float face = cos(vTilt);
  vec3 base = face >= 0.0 ? ink : mix(backColor, ink, 0.10);
  // Свет падает спереди: чем круче бумага стоит, тем она темнее.
- gl_FragColor = vec4(base * (0.42 + 0.58 * abs(face)), 1.0);
+ float light = 0.38 + 0.62 * abs(face);
+ // Поднятая бумага ближе к свету, и гребень дуги светлеет. Без этого выгиб
+ // читался одной только теснотой строк, а не светом.
+ light *= 1.0 + 0.26 * vRise;
+ // У самого корешка бумага уходит в переплёт и темнеет.
+ light *= mix(0.62, 1.0, smoothstep(0.0, 0.12, vAlong));
+ // Свободный край ловит свет ребром — тонкая светлая кромка.
+ light *= 1.0 + 0.30 * smoothstep(0.97, 1.0, vAlong);
+ gl_FragColor = vec4(base * light, 1.0);
 }`;
 
 const PAGE_VERTEX = `
@@ -190,9 +235,16 @@ void main(){
  // лист лёг или ушёл, высота нулевая — и тени не остаётся ни полосы. Раньше
  // здесь стояла полоса неизменной ширины, и на открытой странице она висела.
  float side = flip > 0.5 ? 1.0 - vUV.x : vUV.x;
- float band = max(0.015, 0.30 * lift);
+ // Широкая полутень от поднятого листа.
+ float band = max(0.015, 0.34 * lift);
  float away = clamp((side - edgeX) / band, 0.0, 1.0);
- gl_FragColor = vec4(ink * mix(1.0 - 0.55 * lift, 1.0, away), 1.0);
+ float shade = mix(1.0 - 0.62 * lift, 1.0, away * away);
+ // И узкая тёмная кромка у самого края листа: место, где бумага почти
+ // касается страницы. Она и показывает, что кончик листа оторван от неё.
+ float touchBand = max(0.004, 0.055 * lift);
+ float contact = 1.0 - clamp((side - edgeX) / touchBand, 0.0, 1.0);
+ shade *= 1.0 - 0.34 * lift * contact;
+ gl_FragColor = vec4(ink * shade, 1.0);
 }`;
 
 /** Цвет бумаги: просвет между страницами и поля берут его, а не чёрный. */
@@ -261,12 +313,13 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
  // Сетка листа переписывается каждый кадр: пять чисел на точку, две точки на
  // столбец. Это несколько килобайт — против перевода экранной точки обратно в
  // бумажную для каждого пикселя ничтожно мало.
- const STRIDE = 5;
+ const STRIDE = 7;
  const mesh = new Float32Array((COLUMNS + 1) * 2 * STRIDE);
  const meshBuffer = gl.createBuffer();
 
  const sheetAt = {
   place: gl.getAttribLocation(sheet, 'place'),
+  form: gl.getAttribLocation(sheet, 'form'),
   paper: gl.getAttribLocation(sheet, 'paper'),
   tilt: gl.getAttribLocation(sheet, 'tilt'),
   from: gl.getUniformLocation(sheet, 'fromTexture'),
@@ -338,6 +391,11 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
    gl.disableVertexAttribArray(pageAt.position);
 
+   // Листа на экране может уже не быть: тогда рисовать нечего. Без этой
+   // проверки у самого корешка оставалась полоска нулевой ширины — она
+   // мерцала на последних кадрах.
+   if (form.reach <= 0) return;
+
    // Лист. Каждый столбец сетки стоит на своей точке профиля, и поднятая
    // бумага кажется крупнее — это и есть перспектива, которой раньше не было.
    // Из-за неё же строки на листе гнутся: у соседних столбцов разный масштаб
@@ -355,6 +413,8 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
      mesh[at++] = paperX;
      mesh[at++] = v;
      mesh[at++] = form.tilt[i];
+     mesh[at++] = form.z[i];
+     mesh[at++] = u;
     }
    }
    gl.useProgram(sheet);
@@ -367,10 +427,13 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
    gl.vertexAttribPointer(sheetAt.paper, 2, gl.FLOAT, false, bytes, 8);
    gl.enableVertexAttribArray(sheetAt.tilt);
    gl.vertexAttribPointer(sheetAt.tilt, 1, gl.FLOAT, false, bytes, 16);
+   gl.enableVertexAttribArray(sheetAt.form);
+   gl.vertexAttribPointer(sheetAt.form, 2, gl.FLOAT, false, bytes, 20);
    gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLUMNS + 1) * 2);
    gl.disableVertexAttribArray(sheetAt.place);
    gl.disableVertexAttribArray(sheetAt.paper);
    gl.disableVertexAttribArray(sheetAt.tilt);
+   gl.disableVertexAttribArray(sheetAt.form);
   },
   destroy() {
    for (const texture of textures) gl.deleteTexture(texture);
