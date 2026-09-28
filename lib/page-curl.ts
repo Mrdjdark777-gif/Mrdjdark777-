@@ -1,5 +1,5 @@
 /**
- * Переворот страницы: лист гнётся вокруг отвесной оси.
+ * Переворот страницы: настоящая поверхность бумаги с перспективой.
  *
  * Здесь только поверхность: два холста со страницами и доля оборота от нуля до
  * единицы. Ни жестов, ни загрузки страниц, ни кнопок — их ведёт сама читалка,
@@ -9,198 +9,191 @@
  * из полос. Это не запас на всякий случай: на части устройств WebGL в WebView
  * выключен, и молча чёрный экран вместо страницы там недопустим.
  *
- * Почему геометрия своя, а не взятый готовым шейдер. Сначала здесь стоял
- * InvertedPageCurl из gl-transitions: он гнёт лист по диагонали, вокруг наклонной
- * оси. Картинка выходила объёмная, но строки на листе вставали наискосок —
- * владелец прислал снимок, где слова едут по диагонали, и фотографии настоящей
- * книги, на которых видно главное: ось сгиба отвесная, строки остаются
- * горизонтальными, бумага только сжимается по ширине. Это не настройка того
- * шейдера, а другая геометрия, поэтому она написана здесь целиком.
+ * Путь сюда был длинным, и каждый поворот стоит помнить.
  *
- * Как устроен лист. Он закреплён у корешка и лежит на странице. Считаем всё в
- * долях ширины: 0 — корешок, 1 — свободный край.
+ * Сначала стоял готовый шейдер InvertedPageCurl из gl-transitions. Он гнёт лист
+ * вокруг наклонной оси, и строки на бумаге вставали наискосок.
  *
- *   q          — где бумага отрывается от страницы;
- *   R          — радиус сгиба;
- *   πR         — сколько бумаги уходит на пол-оборота;
- *   1 - q - πR — то, что уже легло назад поверх страницы.
+ * Потом лист считался прямо в пиксельном шейдере: экранная координата
+ * переводилась обратно в бумажную. Строки выпрямились — и это оказалось не
+ * достижением, а второй ошибкой. Высота в счёте не участвовала вовсе, бумага
+ * сжималась только по горизонтали. На записи Play Книг видно обратное: строки
+ * на поднятом листе заметно изгибаются, потому что ближний край бумаги крупнее
+ * дальнего. Прямые строки означали, что перспективы нет.
  *
- * Пока q близко к единице, лист почти плоский и у правого края только намечается
- * горбик. Дальше q уходит влево, горбик растёт и доезжает до корешка — ровно так
- * это и выглядит на фотографиях настоящей книги.
+ * Теперь лист — настоящая поверхность: сетка из сотни столбцов, натянутая на
+ * профиль бумаги, с перспективной проекцией. Текстура закреплена за материалом:
+ * буквы едут вместе с бумагой, их никто не растягивает отдельно. Вёрстка на
+ * бумаге неподвижна, а на экране она гнётся вместе с листом — строка у ближнего
+ * края идёт выше и крупнее, у дальнего ниже и мельче.
  *
- * Сгиб описывается одной координатой по горизонтали, поэтому строки не
- * наклоняются и не прыгают: меняется только то, насколько тесно они стоят.
+ * Профиль бумаги — наклон вдоль листа:
+ *
+ *   θ(u) = a + b · g(u),   g — сглаженная ступенька.
+ *
+ * У самого корешка и у свободного края g почти не меняется, значит бумага там
+ * плоская; вся кривизна собрана в середине. Это и есть широкая дуга с фотографий,
+ * а не равномерно закрученный рулон: постоянная кривизна такого профиля дать не
+ * может, и это была третья ошибка.
+ *
+ * Длина листа не меняется ни в одном кадре: x и z — интегралы косинуса и синуса
+ * наклона по длине бумаги.
  */
 
-const VERTEX =
- 'attribute vec2 position; varying vec2 vUV;' +
- 'void main(){vUV=position*0.5+0.5;gl_Position=vec4(position,0.0,1.0);}';
+/** Столбцов в сетке листа. Сотня — дуга без заметных граней даже на планшете. */
+const COLUMNS = 112;
+/**
+ * Расстояние до глаза в ширинах страницы.
+ *
+ * При двух с половиной поднятый лист вырастал за края экрана почти в полтора
+ * раза — на снимке было видно, что бумага стала больше страницы. У книги в
+ * руках поднятый лист заметно крупнее, но не настолько.
+ */
+const CAMERA = 5.5;
+/** Наибольший выгиб листа, в радианах на всю его длину. */
+const BEND = 2.0;
+/** Шагов в счёте формы при подборе стадии: для подбора хватает грубой сетки. */
+const ROUGH = 16;
 
-const FRAGMENT = `
+/**
+ * Сглаженная ступенька. Её производная равна нулю на обоих концах, поэтому у
+ * корешка и у свободного края бумага выходит плоской, а гнётся середина.
+ */
+const ease = (u: number) => u * u * (3 - 2 * u);
+
+/** Наклон бумаги у корешка и полный выгиб для стадии оборота. */
+const stage = (phase: number) => ({
+ a: Math.PI * phase,
+ b: -BEND * Math.sin(Math.PI * phase),
+});
+
+/**
+ * Где окажется свободный край листа при такой стадии. Считается тем же
+ * интегралом, что и сама форма, только по грубой сетке: подбору этого хватает.
+ */
+const tipOf = (a: number, b: number) => {
+ let x = 0;
+ for (let i = 0; i < ROUGH; i++) x += Math.cos(a + b * ease((i + 0.5) / ROUGH)) / ROUGH;
+ return x;
+};
+
+/** Готовая форма листа: точки профиля, наклон в них и две сводные величины. */
+type Shape = {
+ x: Float32Array;
+ z: Float32Array;
+ tilt: Float32Array;
+ /** Насколько высоко лист поднимается над страницей. Ноль — лист лежит. */
+ lift: number;
+ /** Докуда лист достаёт по экрану. За этой чертой лежит его тень. */
+ edge: number;
+};
+
+/**
+ * Форма листа для доли оборота.
+ *
+ * Палец ведёт свободный край листа за собой; стадия оборота подбирается под то
+ * место, куда край должен прийти. Сам по себе выгибающийся лист движется иначе —
+ * почти стоит, а потом перебрасывается разом, — и под пальцем это читалось бы
+ * как «тяну, а ничего не происходит».
+ */
+const shapeOf = (turn: number): Shape => {
+ const want = 1 - 2 * Math.min(1, Math.max(0, turn));
+ let low = 0, high = 1;
+ for (let step = 0; step < 18; step++) {
+  const mid = (low + high) / 2;
+  const at = stage(mid);
+  if (tipOf(at.a, at.b) > want) low = mid; else high = mid;
+ }
+ const {a, b} = stage((low + high) / 2);
+
+ const x = new Float32Array(COLUMNS + 1);
+ const z = new Float32Array(COLUMNS + 1);
+ const tilt = new Float32Array(COLUMNS + 1);
+ let px = 0, pz = 0, lift = 0, edge = 0;
+ tilt[0] = a;
+ for (let i = 1; i <= COLUMNS; i++) {
+  // Наклон берётся посреди шага: так ломаная ложится на дугу без перекоса.
+  const mid = a + b * ease((i - 0.5) / COLUMNS);
+  px += Math.cos(mid) / COLUMNS;
+  pz += Math.sin(mid) / COLUMNS;
+  x[i] = px; z[i] = pz;
+  tilt[i] = a + b * ease(i / COLUMNS);
+  if (pz > lift) lift = pz;
+ }
+ // Докуда лист достаёт на экране — уже с перспективой: поднятая бумага кажется
+ // шире, и тень обязана начинаться там, где её видно, а не где она в плоскости.
+ for (let i = 0; i <= COLUMNS; i++) {
+  const scale = CAMERA / (CAMERA - z[i]);
+  const seen = 0.5 + (x[i] - 0.5) * scale;
+  if (seen > edge) edge = seen;
+ }
+ return {x, z, tilt, lift, edge: Math.max(0, edge)};
+};
+
+const SHEET_VERTEX = `
+attribute vec2 place;
+attribute vec2 paper;
+attribute float tilt;
+varying vec2 vPaper;
+varying float vTilt;
+void main(){
+ vPaper = paper;
+ vTilt = tilt;
+ gl_Position = vec4(place.x * 2.0 - 1.0, place.y * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+const SHEET_FRAGMENT = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 vPaper;
+varying float vTilt;
+uniform sampler2D fromTexture;
+uniform vec3 paperColor;
+uniform vec3 backColor;
+void main(){
+ vec4 c = texture2D(fromTexture, vPaper);
+ vec3 ink = mix(paperColor, c.rgb, c.a);
+ // Куда повёрнута бумага в этом месте: к нам лицом или изнанкой. Изнанка —
+ // бумага своего оформления, текст на ней проступает еле-еле.
+ float face = cos(vTilt);
+ vec3 base = face >= 0.0 ? ink : mix(backColor, ink, 0.10);
+ // Свет падает спереди: чем круче бумага стоит, тем она темнее.
+ gl_FragColor = vec4(base * (0.42 + 0.58 * abs(face)), 1.0);
+}`;
+
+const PAGE_VERTEX = `
+attribute vec2 position;
+varying vec2 vUV;
+void main(){ vUV = position * 0.5 + 0.5; gl_Position = vec4(position, 0.0, 1.0); }`;
+
+const PAGE_FRAGMENT = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
 precision mediump float;
 #endif
 varying vec2 vUV;
-uniform sampler2D fromTexture;
 uniform sampler2D toTexture;
-/** 1 — листаем вперёд (корешок слева), -1 — назад. */
-uniform float direction;
-/** Цвет бумаги: им закрашено всё, куда не попал текст. */
 uniform vec3 paperColor;
-/** Цвет изнанки листа. Считается снаружи по светлоте оформления. */
-uniform vec3 backColor;
-/** Наклон листа у самого корешка. Ноль — лежит, -PI — лёг на другую сторону. */
-uniform float bendA;
-/** На сколько лист выгнут по всей своей длине. Ноль — прямой. */
-uniform float bendB;
-/** Докуда лист достаёт по горизонтали: за этой чертой начинается его тень. */
+/** 1 — корешок справа: листаем назад. */
+uniform float flip;
+/** Докуда достаёт лист и насколько он поднят. */
 uniform float edgeX;
-
-const float PI = 3.141592653589793;
-
-/** Бумажная координата в координату снимка: при листании назад корешок справа. */
-float shot(float u){ return direction > 0.0 ? u : 1.0 - u; }
-
-vec3 pageFrom(float u, float y){
- if(u < 0.0 || u > 1.0) return paperColor;
- vec4 c = texture2D(fromTexture, vec2(shot(u), y));
- return mix(paperColor, c.rgb, c.a);
-}
-vec3 pageTo(float u, float y){
- if(u < 0.0 || u > 1.0) return paperColor;
- vec4 c = texture2D(toTexture, vec2(shot(u), y));
- return mix(paperColor, c.rgb, c.a);
-}
-/**
- * Изнанка листа. Текст на ней проступает еле-еле — так и на настоящей бумаге
- * виден оборот печати. Зеркальным он выходит сам собой: по изнанке бумажная
- * координата идёт навстречу экранной.
- */
-vec3 pageBack(float u, float y){
- return mix(backColor, pageFrom(u, y), 0.10);
-}
-
+uniform float lift;
 void main(){
- float y = vUV.y;
- float x = direction > 0.0 ? vUV.x : 1.0 - vUV.x;
- float a = bendA, b = bendB;
-
- float bestZ = -1000.0, bestU = -1.0, bestT = 0.0;
- bool hit = false;
-
- if(abs(b) < 0.02){
-  // Лист прямой: он просто повёрнут у корешка и сжат по ширине.
-  float c = cos(a);
-  if(abs(c) > 0.001){
-   float u = x / c;
-   if(u >= 0.0 && u <= 1.0){ hit = true; bestU = u; bestT = a; bestZ = u * sin(a); }
-  }
- }else{
-  // Лист — дуга: угол касательной идёт от a до a+b ровно по его длине.
-  // Одному месту экрана отвечает до трёх точек бумаги; видна самая ближняя.
-  float w = b * x + sin(a);
-  if(abs(w) <= 1.0){
-   float s = asin(w);
-   for(int i = 0; i < 3; i++){
-    // Наклон листа идёт от a+b до a и заходит и ниже -90 градусов, и выше 90,
-    // поэтому ветвей три: средняя, верхняя и нижняя.
-    float t = i == 0 ? s : (i == 1 ? PI - s : -PI - s);
-    float u = (t - a) / b;
-    if(u >= 0.0 && u <= 1.0){
-     float z = (cos(a) - cos(t)) / b;
-     if(z > bestZ){ bestZ = z; bestU = u; bestT = t; hit = true; }
-    }
-   }
-  }
- }
-
- vec3 colour;
- if(hit){
-  // Куда повёрнута бумага в этом месте: к нам лицом или изнанкой.
-  float face = cos(bestT);
-  colour = face >= 0.0 ? pageFrom(bestU, y) : pageBack(bestU, y);
-  // Свет падает спереди: чем круче бумага стоит, тем она темнее.
-  colour *= 0.45 + 0.55 * abs(face);
- }else{
-  // Новая страница, открывшаяся из-под листа, и тень поднятой бумаги на ней.
-  colour = pageTo(x, y) * mix(0.38, 1.0, clamp((x - edgeX) / 0.18, 0.0, 1.0));
- }
-
- gl_FragColor = vec4(colour, 1.0);
-}
-`;
-
-/**
- * Насколько лист выгибается посреди оборота, в радианах на всю его длину.
- *
- * Знак отрицательный, и это главное. Наклон бумаги вдоль листа обязан убывать:
- * у корешка лист поднимается, в середине проходит верхнюю точку, дальше
- * опускается к свободному краю — это арка, и ровно её видно на фотографиях.
- * Когда наклон нарастал, получалась не арка, а завиток: на экране лист
- * распадался на две плоские половины с тёмной полосой между ними.
- */
-const BEND = 2.0;
-
-/**
- * Куда дотягивается лист по горизонтали. За этой чертой лежит его тень.
- *
- * Лист растёт вправо, пока бумага повёрнута к читателю меньше чем на прямой
- * угол. Значит дальше всего он уходит там, где наклон проходит -90 градусов, а
- * если до такого места дуга не доходит — на одном из своих концов.
- */
-const reach = (a: number, b: number) => {
- const tip = Math.abs(b) < 1e-6
-  ? Math.cos(a)
-  : (Math.sin(a + b) - Math.sin(a)) / b;
- const low = Math.min(a, a + b), high = Math.max(a, a + b);
- const steep = -Math.PI / 2;
- if (Math.abs(b) > 0.02 && low <= steep && steep <= high)
-  return Math.max(0, (-1 - Math.sin(a)) / b);
- return Math.max(0, tip);
-};
-
-/**
- * Форма листа для доли оборота.
- *
- * Лист поворачивается у корешка на половину оборота — от «лежит вправо» до
- * «лёг влево», — и по дороге выгибается аркой. Выгиба нет ни в начале, ни в
- * конце: лист лежит плоско и на своей стороне, и на новой.
- *
- * Свободный край здесь не задаётся, а получается сам из поворота и выгиба —
- * длина листа не меняется. Раньше край задавался, а поворот подбирался под
- * него делением пополам; подбор убран вместе с завитком, ради которого он и
- * понадобился.
- */
-const shape = (phase: number) => {
- const a = Math.PI * phase;
- const b = -BEND * Math.sin(Math.PI * phase);
- return {a, b};
-};
-
-/** Где оказывается свободный край листа при такой стадии оборота. */
-const tipOf = (a: number, b: number) =>
- Math.abs(b) < 1e-6 ? Math.cos(a) : (Math.sin(a + b) - Math.sin(a)) / b;
-
-const bend = (turn: number) => {
- // Палец ведёт свободный край листа ровно за собой, от правого края к левому.
- // Сам по себе лист движется иначе: пока он выгибается аркой, край почти стоит
- // на месте, а под конец перебрасывается разом. Так ведёт себя настоящая
- // бумага, но под пальцем это читается как «тяну, а ничего не происходит».
- // Поэтому стадия оборота подбирается под то место, куда пришёл палец: форма
- // остаётся аркой, а край идёт за рукой.
- const want = 1 - 2 * Math.min(1, Math.max(0, turn));
- let low = 0, high = 1;
- for (let step = 0; step < 20; step++) {
-  const mid = (low + high) / 2;
-  const at = shape(mid);
-  if (tipOf(at.a, at.b) > want) low = mid; else high = mid;
- }
- const {a, b} = shape((low + high) / 2);
- return {a, b, edge: reach(a, b)};
-};
+ vec4 c = texture2D(toTexture, vUV);
+ vec3 ink = mix(paperColor, c.rgb, c.a);
+ // Тень идёт за листом: её ширина и густота растут вместе с его высотой. Когда
+ // лист лёг или ушёл, высота нулевая — и тени не остаётся ни полосы. Раньше
+ // здесь стояла полоса неизменной ширины, и на открытой странице она висела.
+ float side = flip > 0.5 ? 1.0 - vUV.x : vUV.x;
+ float band = max(0.015, 0.30 * lift);
+ float away = clamp((side - edgeX) / band, 0.0, 1.0);
+ gl_FragColor = vec4(ink * mix(1.0 - 0.55 * lift, 1.0, away), 1.0);
+}`;
 
 /** Цвет бумаги: просвет между страницами и поля берут его, а не чёрный. */
 export type Paper = [number, number, number];
@@ -216,13 +209,13 @@ export type Curl = {
 };
 
 /**
- * Собирает поверхность изгиба на готовом холсте.
+ * Собирает поверхность оборота на готовом холсте.
  *
  * Возвращает null, если WebGL недоступен или шейдер не собрался. Молчать об
- * этом нельзя, но и падать тоже: читалка обязана открыться и без изгиба.
+ * этом нельзя, но и падать тоже: читалка обязана открыться и без оборота.
  */
 export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null {
- const gl = canvas.getContext('webgl', {alpha: false, antialias: true, depth: false, stencil: false});
+ const gl = canvas.getContext('webgl', {alpha: false, antialias: true, depth: true, stencil: false});
  if (!gl) return null;
 
  const compile = (type: number, source: string) => {
@@ -234,40 +227,60 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   gl.deleteShader(shader);
   return null;
  };
- const vertex = compile(gl.VERTEX_SHADER, VERTEX);
- const fragment = compile(gl.FRAGMENT_SHADER, FRAGMENT);
- if (!vertex || !fragment) return null;
- const program = gl.createProgram();
- if (!program) return null;
- gl.attachShader(program, vertex);
- gl.attachShader(program, fragment);
- gl.linkProgram(program);
- gl.deleteShader(vertex);
- gl.deleteShader(fragment);
- if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {gl.deleteProgram(program); return null;}
- gl.useProgram(program);
-
- const buffer = gl.createBuffer();
- gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
- gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
- const position = gl.getAttribLocation(program, 'position');
- gl.enableVertexAttribArray(position);
- gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-
- const at = (name: string) => gl.getUniformLocation(program, name);
- const uniform = {
-  direction: at('direction'), paperColor: at('paperColor'),
-  backColor: at('backColor'), bendA: at('bendA'), bendB: at('bendB'), edgeX: at('edgeX'),
+ const link = (vertexSource: string, fragmentSource: string) => {
+  const vertex = compile(gl.VERTEX_SHADER, vertexSource);
+  const fragment = compile(gl.FRAGMENT_SHADER, fragmentSource);
+  if (!vertex || !fragment) return null;
+  const program = gl.createProgram();
+  if (!program) return null;
+  gl.attachShader(program, vertex);
+  gl.attachShader(program, fragment);
+  gl.linkProgram(program);
+  gl.deleteShader(vertex);
+  gl.deleteShader(fragment);
+  if (gl.getProgramParameter(program, gl.LINK_STATUS)) return program;
+  gl.deleteProgram(program);
+  return null;
  };
- gl.uniform3fv(uniform.paperColor, paper);
+
+ const sheet = link(SHEET_VERTEX, SHEET_FRAGMENT);
+ const page = link(PAGE_VERTEX, PAGE_FRAGMENT);
+ if (!sheet || !page) return null;
+
  // Изнанка листа. На тёмной бумаге она светлее бумаги, на светлой — темнее:
  // перевёрнутый лист ловит свет иначе, чем лежащая страница, и без этого
  // разворот в ночном оформлении выглядел чёрной прорехой.
  const lit = paper[0] * 0.3 + paper[1] * 0.6 + paper[2] * 0.1;
  const shift = lit < 0.5 ? 0.17 : -0.12;
- gl.uniform3fv(uniform.backColor,
-  paper.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List);
+ const back = paper.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List;
 
+ const quad = gl.createBuffer();
+ gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+
+ // Сетка листа переписывается каждый кадр: пять чисел на точку, две точки на
+ // столбец. Это несколько килобайт — против перевода экранной точки обратно в
+ // бумажную для каждого пикселя ничтожно мало.
+ const STRIDE = 5;
+ const mesh = new Float32Array((COLUMNS + 1) * 2 * STRIDE);
+ const meshBuffer = gl.createBuffer();
+
+ const sheetAt = {
+  place: gl.getAttribLocation(sheet, 'place'),
+  paper: gl.getAttribLocation(sheet, 'paper'),
+  tilt: gl.getAttribLocation(sheet, 'tilt'),
+  from: gl.getUniformLocation(sheet, 'fromTexture'),
+  paperColor: gl.getUniformLocation(sheet, 'paperColor'),
+  backColor: gl.getUniformLocation(sheet, 'backColor'),
+ };
+ const pageAt = {
+  position: gl.getAttribLocation(page, 'position'),
+  to: gl.getUniformLocation(page, 'toTexture'),
+  paperColor: gl.getUniformLocation(page, 'paperColor'),
+  flip: gl.getUniformLocation(page, 'flip'),
+  edgeX: gl.getUniformLocation(page, 'edgeX'),
+  lift: gl.getUniformLocation(page, 'lift'),
+ };
 
  const textures = [0, 1].map(unit => {
   const texture = gl.createTexture();
@@ -277,9 +290,15 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.uniform1i(at(unit === 0 ? 'fromTexture' : 'toTexture'), unit);
   return texture;
  });
+ gl.useProgram(sheet);
+ gl.uniform1i(sheetAt.from, 0);
+ gl.uniform3fv(sheetAt.paperColor, paper);
+ gl.uniform3fv(sheetAt.backColor, back);
+ gl.useProgram(page);
+ gl.uniform1i(pageAt.to, 1);
+ gl.uniform3fv(pageAt.paperColor, paper);
 
  // Плотность ограничена двойкой: на телефоне с тройной плотностью холст втрое
  // по каждой стороне — это девять раз по памяти против одного, и рисование
@@ -304,17 +323,61 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   resize,
   pages(from, to) {upload(from, 0); upload(to, 1);},
   draw(progress, forward) {
-   const shape = bend(Math.min(1, Math.max(0, progress)));
-   gl.uniform1f(uniform.direction, forward ? 1 : -1);
-   gl.uniform1f(uniform.bendA, shape.a);
-   gl.uniform1f(uniform.bendB, shape.b);
-   gl.uniform1f(uniform.edgeX, shape.edge);
+   const turn = Math.min(1, Math.max(0, progress));
+   const form = shapeOf(turn);
+   gl.disable(gl.DEPTH_TEST);
+
+   // Новая страница лежит неподвижно, лист идёт поверх неё.
+   gl.useProgram(page);
+   gl.uniform1f(pageAt.flip, forward ? 0 : 1);
+   gl.uniform1f(pageAt.edgeX, form.edge);
+   gl.uniform1f(pageAt.lift, form.lift);
+   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+   gl.enableVertexAttribArray(pageAt.position);
+   gl.vertexAttribPointer(pageAt.position, 2, gl.FLOAT, false, 0, 0);
    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   gl.disableVertexAttribArray(pageAt.position);
+
+   // Лист. Каждый столбец сетки стоит на своей точке профиля, и поднятая
+   // бумага кажется крупнее — это и есть перспектива, которой раньше не было.
+   // Из-за неё же строки на листе гнутся: у соседних столбцов разный масштаб
+   // по высоте, и прямая на бумаге выходит на экран дугой.
+   let at = 0;
+   for (let i = 0; i <= COLUMNS; i++) {
+    const scale = CAMERA / (CAMERA - form.z[i]);
+    const seen = 0.5 + (form.x[i] - 0.5) * scale;
+    const px = forward ? seen : 1 - seen;
+    const u = i / COLUMNS;
+    const paperX = forward ? u : 1 - u;
+    for (const v of [0, 1]) {
+     mesh[at++] = px;
+     mesh[at++] = 0.5 + (v - 0.5) * scale;
+     mesh[at++] = paperX;
+     mesh[at++] = v;
+     mesh[at++] = form.tilt[i];
+    }
+   }
+   gl.useProgram(sheet);
+   gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
+   gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.DYNAMIC_DRAW);
+   const bytes = STRIDE * 4;
+   gl.enableVertexAttribArray(sheetAt.place);
+   gl.vertexAttribPointer(sheetAt.place, 2, gl.FLOAT, false, bytes, 0);
+   gl.enableVertexAttribArray(sheetAt.paper);
+   gl.vertexAttribPointer(sheetAt.paper, 2, gl.FLOAT, false, bytes, 8);
+   gl.enableVertexAttribArray(sheetAt.tilt);
+   gl.vertexAttribPointer(sheetAt.tilt, 1, gl.FLOAT, false, bytes, 16);
+   gl.drawArrays(gl.TRIANGLE_STRIP, 0, (COLUMNS + 1) * 2);
+   gl.disableVertexAttribArray(sheetAt.place);
+   gl.disableVertexAttribArray(sheetAt.paper);
+   gl.disableVertexAttribArray(sheetAt.tilt);
   },
   destroy() {
    for (const texture of textures) gl.deleteTexture(texture);
-   gl.deleteBuffer(buffer);
-   gl.deleteProgram(program);
+   gl.deleteBuffer(quad);
+   gl.deleteBuffer(meshBuffer);
+   gl.deleteProgram(sheet);
+   gl.deleteProgram(page);
    gl.getExtension('WEBGL_lose_context')?.loseContext();
   },
  };

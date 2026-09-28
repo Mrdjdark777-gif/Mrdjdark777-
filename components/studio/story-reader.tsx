@@ -58,8 +58,10 @@ const TITLE_SCALE=1.5,TITLE_ROWS=1;
 const STRIPS=16;
 /** Полный оборот листа и наибольший прогиб посреди оборота, в градусах. */
 const TURNED=170,BEND=62;
-/** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно. */
-const COMMIT=0.3;
+/** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно.
+ *  Доля считается от полного оборота в две ширины экрана, поэтому треть экрана
+ *  под пальцем — это уже шестая часть оборота. */
+const COMMIT=0.16;
 /** Сколько идёт доводка целого оборота. */
 const RUN_MS=1150;
 
@@ -368,7 +370,16 @@ export function StoryReader({id,title,description,body,onClose}:{
   }
   if(!live.current)return;
   const box=e.currentTarget.getBoundingClientRect();
-  part.current=Math.min(1,Math.abs(dx)/(box.width*1.02));
+  // Смещение берётся со знаком. По модулю оно росло и тогда, когда палец
+  // возвращался обратно через точку начала: лист продолжал заворачиваться,
+  // хотя рука шла в другую сторону.
+  //
+  // Делится на две ширины, а не на одну: свободный край листа проходит путь от
+  // правого края экрана за левый, то есть две ширины, и палец обязан вести его
+  // ровно за собой, а не вдвое быстрее себя. Полный оборот дотягивает доводка
+  // после отпускания — так же, как в книгах на телефоне.
+  const along=from.dir===1?-dx:dx;
+  part.current=Math.min(1,Math.max(0,along/(box.width*2)));
   bend(part.current);
  };
  const up=(e:React.PointerEvent<HTMLDivElement>)=>{
@@ -410,7 +421,11 @@ export function StoryReader({id,title,description,body,onClose}:{
 
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
-   onPointerCancel={()=>{touch.current=null;}}>
+   onPointerCancel={()=>{
+    // Отмена жеста оставляла заведённый лист висеть посреди оборота: холст
+    // никуда не девался, и читалка застывала. Лист обязан лечь обратно.
+    const now=live.current;touch.current=null;
+    if(now)run(0,()=>land(now,false));}}>
    {/* Страница в покое. Во время оборота её место занимает холст: показывать
        обе сразу значило бы двойной текст на просвете. */}
    {!flip&&sheetOf(page,false)}

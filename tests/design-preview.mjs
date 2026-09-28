@@ -117,7 +117,10 @@ try{
  // Картинка круга покоя: без неё круг на экране эфира пустой, и проверять
  // в нём нечего.
  await post({action:'calmArt',key:await demoCover('tile-forest.jpg')});
- const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:'Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.\n\n'.repeat(40),published:true,coverKey:await demoCover('tile-forest.jpg')});
+ // Абзацы пронумерованы намеренно. Пока они были одинаковыми, на снимке
+ // нельзя было отличить уходящую страницу от приходящей — любая проверка
+ // оборота глазами получалась слепой, и я сам на этом застрял.
+ const story=await post({kind:'story',title:'Там, где заканчивается дорога',description:'Демонстрационный текст для проверки читалки.',body:Array.from({length:40},(_,i)=>'Абзац '+(i+1)+'. Тишина у горного озера. Дорога осталась позади, и впервые за день стало слышно ветер.').join('\n\n'),published:true,coverKey:await demoCover('tile-forest.jpg')});
  // Настоящий рассказ у владельца — это сотни коротких абзацев, а не сорок
  // длинных. На коротком демонстрационном тексте изгиб страницы работал, а на
  // настоящем молча выключался порогом внутри читалки: проверки были зелёные,
@@ -834,16 +837,13 @@ try{
    const rest=await grey(page.locator('.tt-reader-stage'));
    await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5);
    await page.mouse.down();
-   // Оборот снимается по кадрам: одной картинкой середины не видно, идёт ли
-   // волна от правого края влево и растёт ли горбик.
    let early=null;
-   for(const at of [0.80,0.66,0.52,0.38,0.24]){
+   for(const at of [0.72,0.44,0.16]){
     await page.mouse.move(box.x+box.width*at,box.y+box.height*0.5,{steps:6});
     await page.waitForTimeout(220);
-    await page.locator('.tt-reader-stage').screenshot({path:'outputs/ui/story-turn-'+Math.round(at*100)+'.png'});
-    if(at===0.80)early=await grey(page.locator('.tt-reader-stage'),rest);
+    if(at===0.72)early=await grey(page.locator('.tt-reader-stage'),rest);
    }
-   await page.mouse.move(box.x+box.width*0.46,box.y+box.height*0.5,{steps:6});
+   await page.mouse.move(box.x+box.width*0.06,box.y+box.height*0.5,{steps:6});
    await page.waitForTimeout(350);
    await shot(page,'story-curl');
    const mid=await grey(page.locator('.tt-reader-stage'),rest);
@@ -894,6 +894,37 @@ try{
    await page.mouse.up();await page.waitForTimeout(1700);
    const after=await now();
    if(after!==was)problems.push('недотянутый лист перевернул страницу: было '+was+', стало '+after);}
+
+  // Полный оборот — по кадрам. Пальцем его до конца не довести: свободный край
+  // проходит две ширины экрана, а рука идёт по одной, остальное дотягивает
+  // доводка. Поэтому оборот заводится нажатием у края и снимается по ходу.
+  {const before=await grey(page.locator('.tt-reader-stage'));
+   // Оборот снимается с УДЕРЖАННЫМ пальцем, а не по ходу доводки. Снимок узла
+   // сам по себе занимает сотни миллисекунд, и кадры «по времени» выходили уже
+   // после конца оборота — на них была неподвижная новая страница, и я на этом
+   // застрял надолго. С удержанным пальцем время не бежит.
+   await page.mouse.move(box.x+box.width*0.92,box.y+box.height*0.5);
+   await page.mouse.down();
+   for(const at of [0.74,0.56,0.38,0.20,0.04]){
+    await page.mouse.move(box.x+box.width*at,box.y+box.height*0.5,{steps:6});
+    await page.waitForTimeout(160);
+    await page.locator('.tt-reader-stage')
+     .screenshot({path:'outputs/ui/story-turn-'+Math.round((0.92-at)*50)+'.png'});
+   }
+   await page.mouse.up();
+   await page.waitForTimeout(1700);
+   const clean=await page.evaluate(()=>
+    document.querySelector('.tt-reader-gl')?.getAttribute('data-on')??'нет холста');
+   if(clean!=='no')problems.push('оборот кончился, а холст остался включён: data-on='+clean);
+   // Возвращаемся назад и сверяем страницу с той же страницей до оборота,
+   // точка в точку. Так ловится и остаточная полоса тени, и скачок текста в
+   // последнем кадре: раньше затемнение имело неизменную ширину и висело на
+   // уже открытой странице.
+   await page.mouse.click(box.x+box.width*0.1,box.y+box.height*0.5);
+   await page.waitForTimeout(1700);
+   const settled=await grey(page.locator('.tt-reader-stage'),before);
+   if(!(settled.diff<0.02))
+    problems.push('страница после оборота не вернулась к себе прежней: отличие '+(settled.diff*100).toFixed(1)+'% — остаточная тень или скачок текста');}
 
   // Смахивание листает наравне с нажатием: без него человек решает, что
   // страница не переключается вовсе.
