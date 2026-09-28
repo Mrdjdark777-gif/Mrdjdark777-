@@ -810,13 +810,13 @@ try{
    {const bar=await page.evaluate(()=>{const n=document.querySelector('.tt-reader-progress');
      if(!n)return null;const fill=n.querySelector('span');
      const r=n.getBoundingClientRect(),css=getComputedStyle(n);
-     return {top:Math.round(r.top),wide:Math.round(r.width),vw:innerWidth,
+     return {top:Math.round(r.top),headerBottom:Math.round(document.querySelector('.tt-reader-top').offsetHeight),wide:Math.round(r.width),vw:innerWidth,
       shown:css.visibility!=='hidden'&&Number(css.opacity)>0,
       scale:fill?getComputedStyle(fill).transform:'нет'};});
     if(!bar)problems.push('в читалке нет полосы прочитанного');
     else{
      if(!bar.shown)problems.push('полоса прочитанного спрятана стилями');
-     if(bar.top>2)problems.push('полоса прочитанного не наверху: '+bar.top);
+     if(Math.abs(bar.top-(bar.headerBottom-3))>2)problems.push('полоса прочитанного должна быть под шапкой, вне выреза: '+bar.top);
      if(bar.wide!==bar.vw)problems.push('полоса прочитанного не во всю ширину: '+bar.wide+' из '+bar.vw);
      if(bar.scale==='нет'||bar.scale==='none')problems.push('полоса прочитанного ничего не показывает: заполнение не сдвинуто');}}
    if(!folio)problems.push('в углу страницы нет номера');

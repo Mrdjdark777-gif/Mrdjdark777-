@@ -1,5 +1,6 @@
 'use client';
 import './story-reader.css';
+import type { CSSProperties } from 'react';
 import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,Bookmark,BookmarkCheck,List,Minus,Plus,Settings2,Trash2,X} from 'lucide-react';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
@@ -90,6 +91,13 @@ export function StoryReader({id,title,description,body,onClose}:{
 }){
  const {t}=useT();
  const stage=useRef<HTMLDivElement>(null),sheetRef=useRef<HTMLDivElement>(null);
+ const headerRef=useRef<HTMLElement>(null);
+ const [headerHeight,setHeaderHeight]=useState(112);
+ const seekPointer=useRef<number|null>(null);
+ useLayoutEffect(()=>{const el=headerRef.current;if(!el)return;
+  const update=()=>setHeaderHeight(el.offsetHeight);update();
+  const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect();
+ },[]);
  const glCanvas=useRef<HTMLCanvasElement>(null);
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
  const [pages,setPages]=useState<Page[]>([[]]);
@@ -157,10 +165,10 @@ export function StoryReader({id,title,description,body,onClose}:{
    const box=stage.current;if(!box)return;
    const pad=Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
    const width=Math.max(120,box.clientWidth-pad*2);
-   if(!insets.current){
+   {
     const line=sheetRef.current;
     const css=line?getComputedStyle(line):null;
-    insets.current={top:css?parseFloat(css.top)||0:0,bottom:css?parseFloat(css.bottom)||0:0};}
+    insets.current={top:headerHeight+12,bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
    const rows=Math.max(1,Math.floor(free/lead));
@@ -186,7 +194,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[blocks,prefs.size,fonts,loaded]);
+ },[blocks,prefs.size,fonts,loaded,headerHeight]);
 
  const total=pages.length;
  const ratio=total>1?page/(total-1):0;
@@ -352,6 +360,18 @@ export function StoryReader({id,title,description,body,onClose}:{
   begin({from:page,to:limit,dir:limit>page?1:-1,auto:true});
  },[page,total,begin]);
 
+ // Scrubbing is immediate: never queue a page-turn animation for every input event.
+ const seek=useCallback((next:number)=>{
+  if(!Number.isFinite(next))return;
+  stopRun();touch.current=null;part.current=0;put(null);
+  const target=Math.min(total-1,Math.max(0,Math.round(next)));
+  wanted.current=total>1?target/(total-1):0;setPage(target);
+ },[total,stopRun,put]);
+ const seekAt=(x:number,element:HTMLElement)=>{
+  const r=element.getBoundingClientRect();
+  seek(Math.min(1,Math.max(0,(x-r.left-9)/Math.max(1,r.width-18)))*(total-1));
+ };
+
  // Полосы и холст встают на место после отрисовки, поэтому первый кадр задаём
  // здесь же: иначе лист мигнул бы плоским кадром. Сам собой оборот идёт только
  // когда его завели нажатием или ползунком; лист под пальцем ведёт палец.
@@ -454,7 +474,8 @@ export function StoryReader({id,title,description,body,onClose}:{
      style={{height:line.rows*frame.lead,font:fonts.css(line.kind)}}>{line.text}</div>)}
   </div>;
 
- return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
+ return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}
+  style={{'--tt-reader-top':headerHeight+'px'} as CSSProperties}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
    onPointerCancel={e=>{
     if(touch.current?.pointerId!==e.pointerId)return;
@@ -500,7 +521,7 @@ export function StoryReader({id,title,description,body,onClose}:{
       не касается: читалка — отдельный слой. */}
   {!prefs.autoDim&&prefs.dim>0&&<div className="tt-reader-dim" aria-hidden="true" style={{opacity:prefs.dim}}/>}
 
-  <header className="tt-reader-top">
+  <header className="tt-reader-top" ref={headerRef}>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('common.back')} onClick={onClose}><ArrowLeft size={20}/></button>
    <span className="tt-reader-heading">{title}</span>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={here?t('reader.removeBookmark'):t('reader.addBookmark')} aria-pressed={!!here} onClick={toggleMark}>{here?<BookmarkCheck size={20}/>:<Bookmark size={20}/>}</button>
@@ -509,9 +530,22 @@ export function StoryReader({id,title,description,body,onClose}:{
   </header>
 
   <footer className="tt-reader-bottom">
-   <input className="tt-reader-slider" type="range" min={0} max={Math.max(0,total-1)} value={page}
-    aria-label={t('reader.page',{page:String(page+1),total:String(total)})}
-    onChange={e=>go(Number(e.target.value))}/>
+   <div className="tt-reader-seek" onPointerDown={e=>{
+     if(!e.isPrimary||e.button!==0||total<2)return;
+     e.preventDefault();seekPointer.current=e.pointerId;
+     e.currentTarget.querySelector('input')?.focus({preventScroll:true});
+     e.currentTarget.setPointerCapture(e.pointerId);seekAt(e.clientX,e.currentTarget);
+    }} onPointerMove={e=>{if(seekPointer.current===e.pointerId)seekAt(e.clientX,e.currentTarget);}}
+    onPointerUp={e=>{if(seekPointer.current===e.pointerId){seekAt(e.clientX,e.currentTarget);seekPointer.current=null;}}}
+    onPointerCancel={()=>{seekPointer.current=null;}} onLostPointerCapture={()=>{seekPointer.current=null;}}>
+    <div className="tt-reader-seek-rail" aria-hidden="true">
+     <span className="tt-reader-seek-fill" style={{width:(ratio*100)+'%'}}/>
+     <span className="tt-reader-seek-thumb" style={{left:(ratio*100)+'%'}}/>
+    </div>
+    <input type="range" min={0} max={Math.max(0,total-1)} step={1} value={page} disabled={total<2}
+     aria-label={t('reader.page',{page:String(page+1),total:String(total)})}
+     onChange={e=>seek(Number(e.target.value))}/>
+   </div>
    <span className="tt-reader-page-count">{page+1} / {total}</span>
   </footer>
 

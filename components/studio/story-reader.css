@@ -28,7 +28,7 @@
    растягивает пробелы в дыры — это было видно на первом же снимке. */
 /* Отступ сверху больше высоты панели: буквы заголовка крупнее своей клетки
    сетки и выступают вверх, и на первом снимке название упиралось в панель. */
-.tt-reader-page{position:absolute;top:calc(70px + env(safe-area-inset-top));
+.tt-reader-page{position:absolute;top:calc(var(--tt-reader-top,112px) + 12px);
  bottom:calc(58px + env(safe-area-inset-bottom));text-align:left}
 /* Строка стоит на своём месте сетки: высоту ей задаёт скрипт целым числом
    строк, а текст в этой высоте выравнивается по середине. Ровно так же строка
@@ -57,7 +57,7 @@
 
 /* Сколько прочитано — тонкая полоса поверх всего, включая панели. Номер
    страницы в нижней строке виден только с панелями, а прогресс нужен всегда. */
-.tt-reader-progress{position:absolute;top:0;left:0;right:0;height:3px;z-index:5;pointer-events:none;
+.tt-reader-progress{position:absolute;top:calc(var(--tt-reader-top,112px) - 3px);left:0;right:0;height:3px;z-index:5;pointer-events:none;
  background:color-mix(in srgb,var(--tt-ink) 12%,transparent)}
 .tt-reader-progress>span{display:block;height:100%;transform-origin:0 50%;
  background:linear-gradient(90deg,#6fe7de,#4aa8ff);transition:transform .5s cubic-bezier(.22,.68,.24,1)}
@@ -175,3 +175,25 @@
 @media(min-width:768px){
  .tt-reader-heading{font-size:15px}
 }
+
+/* Reader controls: separate full-width title and touch-friendly exact-endpoint seek rail. */
+.tt-reader-top{display:grid;grid-template-columns:40px 1fr 40px 40px;
+ padding-top:max(8px,var(--tt-reader-safe-top,env(safe-area-inset-top)));row-gap:4px}
+.tt-reader-top>.tt-reader-heading{grid-row:2;grid-column:1/-1;
+ white-space:normal;overflow-wrap:anywhere;text-overflow:clip;
+ line-height:1.3;font-size:15px;padding:2px 6px 10px;max-height:22vh;overflow:auto}
+.tt-reader-top>.tt-reader-icon:nth-of-type(2){grid-column:2;justify-self:end}
+.tt-reader-bottom{gap:10px}
+.tt-reader-seek{position:relative;flex:1;min-width:0;height:44px;touch-action:none;cursor:pointer}
+.tt-reader-seek-rail{position:absolute;left:9px;right:9px;top:19px;height:6px;
+ border-radius:999px;background:color-mix(in srgb,var(--tt-ink) 22%,transparent);pointer-events:none}
+.tt-reader-seek-fill{position:absolute;left:0;top:0;height:100%;border-radius:inherit;background:#6fe7de}
+.tt-reader-seek-thumb{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;
+ background:#6fe7de;transform:translate(-50%,-50%)}
+.tt-reader-seek>input{position:absolute;inset:0;width:100%;height:44px;margin:0;padding:0;
+ opacity:0;cursor:pointer;touch-action:none;appearance:none;-webkit-appearance:none}
+.tt-reader-seek>input::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px}
+.tt-reader-seek>input::-moz-range-thumb{width:18px;height:18px;border:0}
+.tt-reader-seek:has(input:focus-visible){outline:2px solid #6fe7de;outline-offset:2px;border-radius:12px}
+.tt-reader-seek:has(input:disabled){opacity:.4;cursor:default}
+.tt-reader-page{bottom:calc(72px + env(safe-area-inset-bottom))}
