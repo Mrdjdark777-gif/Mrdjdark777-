@@ -301,20 +301,17 @@ try{
   // Сверяются подвал и /api/health между собой — они обязаны называть одно и
   // то же, и ни один из них не имеет права остаться словом «dev».
   if(width===390){step('штамп сборки');
-   const stamp=await page.evaluate(()=>{
-    const node=document.querySelector('.listener-main .content-footer .footer-build');
-    if(!node)return null;
-    const css=getComputedStyle(node);
-    return {text:(node.textContent||'').trim(),
-     shown:css.display!=='none'&&css.visibility!=='hidden'&&Number(css.opacity)>0};});
-   check(!!stamp,'в подвале нет штампа сборки: непонятно, какой код на экране');
-   if(stamp){
-    check(stamp.shown,'штамп сборки спрятан стилями');
-    check(/^[0-9a-f]{7,40}$/.test(stamp.text),'штамп сборки не похож на коммит: '+stamp.text);}
+   // На экране штампа больше нет — владелец попросил убрать. Ответ на вопрос
+   // «какой код доехал» остался за /api/health, и проверка обновления сервера
+   // стоит именно на нём. Здесь сторожим две вещи: что ответ называет
+   // настоящий коммит, а не слово «dev», и что штамп не вернулся в подвал.
    const health=await page.evaluate(async()=>{
     const answer=await fetch('/api/health');return answer.json();});
    check(/^[0-9a-f]{7,40}$/.test(String(health.build)),'/api/health не называет сборку: '+health.build);
-   if(stamp)check(health.build===stamp.text,'подвал и /api/health называют разные сборки: '+stamp.text+' и '+health.build);}
+   const back=await page.evaluate(()=>{
+    const node=document.querySelector('.listener-main .content-footer .footer-build');
+    return node?(node.textContent||'').trim():null;});
+   check(back===null,'штамп сборки вернулся в подвал, хотя владелец просил его убрать: '+back);}
   await shot(page,`mini-${width}`);
  }
  await page.setViewportSize({width:390,height:844});
@@ -733,6 +730,44 @@ try{
     if(!String(shine.clip).includes('text'))problems.push('заливка не обрезана по буквам: '+shine.clip);
     if(!/rgba\(0, 0, 0, 0\)|transparent/.test(shine.fill))problems.push('буквы залиты цветом, а не градиентом: '+shine.fill);
     if(shine.others!==1)problems.push('переливается не одна надпись, а '+shine.others);}}
+  // Переливание обязано идти без провалов. Разметка об этом молчит: анимация
+  // всё время «running», и проверка по getAnimations проходила и тогда, когда
+  // блик показывался треть оборота, а две трети надпись стояла ровной. Владелец
+  // это и увидел: «посветилась пару раз и сбилась». Поэтому меряем пиксели —
+  // на каждом снимке ищем, насколько ярчайший столбец букв светлее среднего.
+  // Нет полосы — нет и всплеска.
+  // Меряем не яркость, а движение. Сама по себе яркость столбцов надписи почти
+  // целиком задана буквами: у «П» и «й» вертикали светлее соседей на любом
+  // кадре, и на этом фоне полоса теряется — проверка по «самый светлый столбец
+  // против среднего» прошла и на прежнем переливании, и на новом. А вот что
+  // отличает переливание от ровной надписи — это изменение картины между
+  // соседними кадрами. Пока полоса едет, картина меняется каждый кадр; в
+  // провале она стоит.
+  {const label=page.locator('.tt-shimmer').first();
+   const shapes=[];
+   for(let i=0;i<16;i++){
+    const png=await label.screenshot();
+    const {data,info}=await sharp(png).greyscale().raw().toBuffer({resolveWithObject:true});
+    const {width,height}=info;
+    const sum=new Float64Array(width),ink=new Float64Array(width);
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+     const v=data[y*width+x];if(v>40){sum[x]+=v;ink[x]++;}}
+    const shape=[];
+    for(let x=0;x<width;x++)if(ink[x]>=3)shape.push(sum[x]/ink[x]);
+    if(shape.length)shapes.push(shape);
+    await page.waitForTimeout(40);}
+   const moves=[];
+   for(let i=1;i<shapes.length;i++){
+    const a=shapes[i-1],b=shapes[i];if(a.length!==b.length)continue;
+    let d=0;for(let x=0;x<a.length;x++)d+=Math.abs(a[x]-b[x]);
+    moves.push(d/a.length);}
+   const still=Math.min(...moves),busy=Math.max(...moves);
+   check(moves.length>=12,'переливание не удалось снять: кадров '+moves.length);
+   // Порог относительный: сколько именно меняется картина, зависит от шрифта,
+   // фона и от того, как быстро успевает сняться кадр. Сравнивается самый
+   // спокойный переход с самым живым — у надписи с провалом между ними разы.
+   check(moves.length>=12&&still>busy*0.18,'надпись переливается с провалом: между какими-то кадрами она стоит ('+
+    moves.map(v=>v.toFixed(1)).join(', ')+')');}
   step('поверхность плашек');}
 
  // История. Читалка занимает весь экран, текст разбит на страницы, край
@@ -1344,12 +1379,17 @@ try{
   // Имя анимации ничего не доказывает: прежний вариант «дышал» одной
   // прозрачностью у почти невидимой линии, имя было на месте, а на экране не
   // происходило ничего. Поэтому мерим, что кольцо реально двигается.
+  // Снимков пять, а не два. Дыхание симметрично, и два замера ровно через
+  // полпериода дают одно и то же значение на живой анимации: проверка падала
+  // без причины примерно раз на несколько прогонов. Пять замеров подряд
+  // совпадут только у неподвижного кольца.
   {const moved=await page.evaluate(async()=>{const ring=document.querySelector('.live-ring');
-    if(!ring)return null;const a=getComputedStyle(ring).transform;
-    await new Promise(r=>setTimeout(r,700));
-    return {a,b:getComputedStyle(ring).transform};});
+    if(!ring)return null;const seen=[];
+    for(let i=0;i<5;i++){seen.push(getComputedStyle(ring).transform);
+     await new Promise(r=>setTimeout(r,230));}
+    return seen;});
    if(!moved)problems.push('эфир: колец нет');
-   else if(moved.a===moved.b)problems.push('эфир: кольцо не двигается — transform не меняется ('+moved.a+')');}
+   else if(new Set(moved).size===1)problems.push('эфир: кольцо не двигается — transform не меняется ('+moved[0]+')');}
   // Полосу спектра под экраном убрали, и кольца остались единственным
   // индикатором звука — значит удар обязан быть виден по ним. Анимацию
   // останавливаем, иначе два замера отличались бы просто из-за дыхания, и

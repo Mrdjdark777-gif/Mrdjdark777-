@@ -25,15 +25,18 @@
    стене, а не во всю стену. */
 .tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
  width:calc(100% + 32px)!important;margin-inline:-16px!important;align-self:stretch!important;max-width:none!important;
- aspect-ratio:1/1;height:auto!important;min-height:0!important;max-height:none!important;
+ aspect-ratio:4/5;height:auto!important;min-height:0!important;max-height:none!important;
  background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
-   читается как настоящая афиша, а когда обложка сделана под 2:3 — не
-   обрезается вовсе ничего.
+   читается как настоящая афиша.
    Затемнение держится у самых краёв: вверху под надпись, внизу под кнопку.
    Середина постера остаётся чистой, иначе картинка тонет в тумане. */
-.tt-soft-home .scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* Обрезка идёт только снизу. Обложки рисуются афишей 2:3, и название на них
+   стоит вверху — при обрезке по центру у названия срезался воздух над ним, и
+   оно упиралось в шапку. Низ афиши такой потери не замечает: там вода, лес,
+   небо, а не смысл. */
+.tt-soft-home .scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
 /* Затемнение осталось только вверху — под надстрочную подпись. Внизу афиши
    своя надпись, и кнопка с градиентом её закрывали. */
 .tt-soft-home .scene-shade{position:absolute;inset:0;pointer-events:none;
@@ -154,8 +157,12 @@
  .tt-soft-home .soft-hero-foot{width:min(100%,340px)}
  .tt-soft-home .scene-title{font-size:36px!important}
  .tt-soft-home .scene-copy{inset:26px 24px auto!important}}
+/* На низком телефоне кадр обязан быть НИЖЕ обычного, иначе кнопка уходит за
+   край. Здесь долго стояло 3/4 — правило осталось с тех пор, когда кадр был
+   афишей 2:3, и после того как его укоротили, оно делало ровно обратное:
+   на самых маленьких экранах постер становился выше, чем на остальных. */
 @media(max-height:740px) and (max-width:767px){.immersion.tt-soft-home{gap:10px!important}
- .tt-soft-home .scene{aspect-ratio:3/4}
+ .tt-soft-home .scene{aspect-ratio:1/1}
  .tt-soft-home .scene-side{gap:10px!important}}
 @media(prefers-reduced-motion:reduce){.tt-soft-home *{scroll-behavior:auto!important}}
 

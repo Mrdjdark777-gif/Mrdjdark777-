@@ -2249,21 +2249,33 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
    Светлая полоса идёт по буквам слева направо. Делается заливкой, обрезанной
    по форме букв: градиент шире надписи вдвое, и он ездит. Отдельной
    библиотеки для этого не нужно — она бы двигала ту же background-position,
-   только из JavaScript и каждый кадр. */
+   только из JavaScript и каждый кадр.
+
+   Полос в заливке две, и стоят они ровно через ширину надписи. Это не
+   украшение, а условие непрерывности: пока одна уходит за правый край, вторая
+   уже входит слева, и надпись не остаётся без блика ни на кадр. Ход за оборот
+   равен расстоянию между полосами, поэтому последний кадр совпадает с первым —
+   на стыке ничего не дёргается.
+
+   Прежняя заливка была с одной полосой и ходом вдвое длиннее: блик пробегал
+   примерно за треть оборота, а две трети надпись стояла ровной. Со стороны это
+   читалось как «посветилась пару раз и сбилась» — измерено на снимках, провал
+   яркости был двадцатикратным. */
 .tt-shimmer{
  /* Полоса белая, а не голубая: голубая читалась как ещё один оттенок фона,
     белая на тёмном — как блик. По краям буквы тусклее самой полосы, иначе
     сияния не видно вовсе. */
- background:linear-gradient(110deg,#b9c6c6 0%,#b9c6c6 36%,#ffffff 47%,#ffffff 53%,#b9c6c6 64%,#b9c6c6 100%);
- background-size:230% 100%;background-clip:text;-webkit-background-clip:text;
+ background:linear-gradient(105deg,
+  #b9c6c6 0%,#b9c6c6 16%,#ffffff 25%,#b9c6c6 34%,
+  #b9c6c6 66%,#ffffff 75%,#b9c6c6 84%,#b9c6c6 100%);
+ background-size:200% 100%;background-clip:text;-webkit-background-clip:text;
  -webkit-text-fill-color:transparent;color:transparent;
- animation:tt-shimmer 3.6s linear infinite}
-@keyframes tt-shimmer{from{background-position:130% 0}to{background-position:-130% 0}}
+ animation:tt-shimmer 2.6s linear infinite}
+/* Ход ровно в половину заливки — это и есть расстояние между полосами. */
+@keyframes tt-shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media(prefers-reduced-motion:reduce){
  .tt-shimmer{animation:none;background:none;-webkit-text-fill-color:currentColor;color:#f0f5f4}}
 
-/* Штамп сборки в подвале. Он нужен не для красоты: пока его не было, вопрос
-   «доехал ли новый код до телефона» решался кругом переписки. Набран
-   одноширинным, приглушённый — на своё место в подвале он не тянет. */
-.footer-build{font-family:ui-monospace,monospace;letter-spacing:.06em;
- color:color-mix(in srgb,currentColor 62%,transparent)}
+/* Штамп сборки из подвала убран по просьбе владельца: на экране он не нужен.
+   Сам ответ на вопрос «доехал ли новый код» никуда не делся — его отдаёт
+   /api/health, и на нём же стоит проверка обновления сервера. */
