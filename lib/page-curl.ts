@@ -253,6 +253,15 @@ export type Paper = [number, number, number];
 export type Curl = {
  /** Подогнать холст под окно. Зовётся при смене размера и оформления. */
  resize: () => void;
+ /**
+  * Сменить цвет бумаги — при смене оформления читалки.
+  *
+  * Отдельным действием, а не пересборкой всей поверхности. Раньше при смене
+  * оформления слой собирался заново на том же холсте, а прежний перед этим
+  * намеренно терял контекст. Второй раз контекст на том же холсте уже не
+  * выдаётся: после первой же смены оформления оборот умирал до конца сеанса.
+  */
+ paper: (next: Paper) => void;
  /** Какие две страницы участвуют в обороте: та, что уходит, и та, что приходит. */
  pages: (from: TexImageSource, to: TexImageSource) => void;
  /** Нарисовать кадр. Вперёд — лист уходит влево. */
@@ -302,9 +311,11 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
  // Изнанка листа. На тёмной бумаге она светлее бумаги, на светлой — темнее:
  // перевёрнутый лист ловит свет иначе, чем лежащая страница, и без этого
  // разворот в ночном оформлении выглядел чёрной прорехой.
- const lit = paper[0] * 0.3 + paper[1] * 0.6 + paper[2] * 0.1;
- const shift = lit < 0.5 ? 0.17 : -0.12;
- const back = paper.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List;
+ const backOf = (tone: Paper) => {
+  const lit = tone[0] * 0.3 + tone[1] * 0.6 + tone[2] * 0.1;
+  const shift = lit < 0.5 ? 0.17 : -0.12;
+  return tone.map(v => Math.min(1, Math.max(0, v + shift))) as unknown as Float32List;
+ };
 
  const quad = gl.createBuffer();
  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -345,13 +356,18 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   return texture;
  });
+ const setPaper = (tone: Paper) => {
+  gl.useProgram(sheet);
+  gl.uniform3fv(sheetAt.paperColor, tone);
+  gl.uniform3fv(sheetAt.backColor, backOf(tone));
+  gl.useProgram(page);
+  gl.uniform3fv(pageAt.paperColor, tone);
+ };
  gl.useProgram(sheet);
  gl.uniform1i(sheetAt.from, 0);
- gl.uniform3fv(sheetAt.paperColor, paper);
- gl.uniform3fv(sheetAt.backColor, back);
  gl.useProgram(page);
  gl.uniform1i(pageAt.to, 1);
- gl.uniform3fv(pageAt.paperColor, paper);
+ setPaper(paper);
 
  // Плотность ограничена двойкой: на телефоне с тройной плотностью холст втрое
  // по каждой стороне — это девять раз по памяти против одного, и рисование
@@ -374,6 +390,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
  resize();
  return {
   resize,
+  paper: setPaper,
   pages(from, to) {upload(from, 0); upload(to, 1);},
   draw(progress, forward) {
    const turn = Math.min(1, Math.max(0, progress));

@@ -199,15 +199,25 @@ export function StoryReader({id,title,description,body,onClose}:{
 
  // Поверхность изгиба живёт вместе с читалкой, а не с каждым оборотом: собирать
  // программу шейдера на каждое нажатие — это подвисание на первом кадре.
- // Оформление меняет цвет бумаги, поэтому при смене оформления она пересобирается.
+ //
+ // Собирается она РОВНО ОДИН РАЗ, на всё время работы читалки. Раньше при смене
+ // оформления слой пересобирался, а прежний перед этим намеренно терял контекст
+ // — и второй раз контекст на том же холсте уже не выдавался. После первой же
+ // смены оформления оборот умирал до конца сеанса: холст прятался, страница
+ // листалась запасным способом, и владелец видел, что «анимация рушится».
  useEffect(()=>{
   const node=glCanvas.current;if(!node)return;
-  const paperColor=toRgb(getComputedStyle(node).getPropertyValue('--tt-paper'));
-  const made=createCurl(node,paperColor);
+  const made=createCurl(node,toRgb(getComputedStyle(node).getPropertyValue('--tt-paper')));
   curl.current=made;setWebgl(!!made);
   if(!made)return;
   const observer=new ResizeObserver(()=>made.resize());observer.observe(node);
   return()=>{observer.disconnect();made.destroy();curl.current=null;};
+ },[]);
+
+ // Оформление меняет только цвет бумаги — это отдельное действие, без пересборки.
+ useEffect(()=>{
+  const node=glCanvas.current;if(!node)return;
+  curl.current?.paper(toRgb(getComputedStyle(node).getPropertyValue('--tt-paper')));
  },[prefs.theme]);
 
  /** Рисует страницу на холсте — ровно теми же строками и в тех же местах, где
@@ -303,6 +313,15 @@ export function StoryReader({id,title,description,body,onClose}:{
  },[bend,stopRun]);
 
  const put=useCallback((next:Flip|null)=>{live.current=next;setFlip(next);},[]);
+
+ // Смена настроек переcчитывает разбивку: номера страниц становятся другими, и
+ // лист, заведённый под прежнюю разбивку, показывал бы уже не то. Такой оборот
+ // прекращается сразу, а не доигрывается.
+ useEffect(()=>{
+  if(!live.current)return;
+  stopRun();part.current=0;put(null);
+ },[pages,frame,fonts,prefs.theme,stopRun,put]);
+
 
  /** Лист доехал: либо страница перевернулась, либо легла обратно.
   *  Куда он ехал, берём не из текущего состояния, а из того листа, которому

@@ -951,6 +951,43 @@ try{
     if(seen[1]!==1)problems.push('проверка вибрации листала вхолостую: страница '+seen[1]);
     if(seen[0])problems.push('перелистывание отдаёт вибрацией: '+seen[0]+' раз за два оборота');}}
 
+  // Оборот обязан пережить смену настроек. Это не придирка: слой оборота
+  // пересобирался при каждой смене оформления на том же холсте, а прежний перед
+  // этим намеренно терял контекст — второй раз контекст уже не выдавался, и
+  // после первого же переключения оформления оборот умирал до конца сеанса.
+  {const settings=async(steps)=>{
+    await page.locator('[aria-label="Настройки чтения"]').click();
+    await page.locator('.tt-reader-themes').waitFor();
+    await steps();
+    await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();
+    await page.waitForTimeout(400);};
+   const alive=async(what)=>{
+    const box=await page.locator('.tt-reader-stage').boundingBox();
+    const rest=await grey(page.locator('.tt-reader-stage'));
+    await page.mouse.move(box.x+box.width*0.9,box.y+box.height*0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x+box.width*0.2,box.y+box.height*0.5,{steps:8});
+    await page.waitForTimeout(260);
+    const on=await page.evaluate(()=>
+     document.querySelector('.tt-reader-gl')?.getAttribute('data-on')??'нет холста');
+    const mid=await grey(page.locator('.tt-reader-stage'),rest);
+    await page.mouse.move(box.x+box.width*0.88,box.y+box.height*0.5,{steps:6});
+    await page.mouse.up();await page.waitForTimeout(1200);
+    if(on!=='yes')problems.push('после смены «'+what+'» оборот рисуется не холстом: data-on='+on);
+    if(!(mid.diff>0.04))problems.push('после смены «'+what+'» лист не гнётся: отличие от покоя '+(mid.diff*100).toFixed(1)+'%');};
+
+   await settings(()=>page.locator('.tt-reader-theme.is-sepia').click());
+   await alive('оформления');
+   await settings(()=>page.locator('.tt-reader-chips button').nth(1).click());
+   await alive('шрифта');
+   await settings(()=>page.locator('[aria-label="Больше"]').click());
+   await alive('размера');
+   // Возвращаем настройки, чтобы дальнейшие проверки шли на прежнем виде.
+   await settings(async()=>{
+    await page.locator('[aria-label="Меньше"]').click();
+    await page.locator('.tt-reader-chips button').first().click();
+    await page.locator('.tt-reader-theme.is-night').click();});}
+
   // Смахивание листает наравне с нажатием: без него человек решает, что
   // страница не переключается вовсе.
   {const swipe=async(from,to)=>{
