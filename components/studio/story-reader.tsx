@@ -50,14 +50,6 @@ const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
  * плотная выключка у крупного кегля читается как замысел, а не как теснота.
  */
 const TITLE_SCALE=1.5,TITLE_ROWS=1;
-/**
- * Во сколько полос режется лист на запасном обороте — том, что остаётся без
- * WebGL. Изгиб там — ломаная из полос: чем их больше, тем мягче дуга, но каждая
- * полоса несёт свою копию страницы, поэтому число ограничено.
- */
-const STRIPS=16;
-/** Полный оборот листа и наибольший прогиб посреди оборота, в градусах. */
-const TURNED=170,BEND=62;
 /** С какой доли оборота палец «дожимает» страницу, а не возвращает обратно.
  *  Доля считается от полного оборота в две ширины экрана, поэтому треть экрана
  *  под пальцем — это уже шестая часть оборота. */
@@ -108,15 +100,16 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [marks,setMarks]=useState<Mark[]>([]);
  const [flip,setFlip]=useState<Flip|null>(null);
  const live=useRef<Flip|null>(null);
- const strips=useRef<(HTMLDivElement|null)[]>([]),shades=useRef<(HTMLDivElement|null)[]>([]);
- const turnBox=useRef<HTMLDivElement>(null);
+ const slide=useRef<HTMLDivElement>(null);
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
  const [loaded,setLoaded]=useState(false);
  const curl=useRef<Curl|null>(null);
  const [webgl,setWebgl]=useState(false);
- const shots=useRef<Map<number,HTMLCanvasElement>>(new Map());
+ const shots=useRef<Map<string,HTMLCanvasElement>>(new Map());
  const blocks=useMemo(()=>blocksOf(title,description,body),[title,description,body]);
+ /** Примета текущего вида страницы: от неё зависит каждый снимок. */
+ const look=`${prefs.size}|${prefs.serif}|${prefs.theme}|${frame.width}|${frame.lead}|${pages.length}`;
 
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
  // другую историю она заходит новым экземпляром, а не сменой поля.
@@ -246,42 +239,15 @@ export function StoryReader({id,title,description,body,onClose}:{
  },[fonts,frame,pages]);
 
  /**
-  * Запасной изгиб — для устройств без WebGL.
-  *
-  * Лист разрезан на узкие вертикальные полосы. Каждая следующая повёрнута чуть
-  * сильнее предыдущей и поставлена туда, где кончилась предыдущая, — ломаная
-  * читается как дуга. Это грубее шейдера, но лучше, чем страница, которая
-  * просто подменяется.
+  * Запасной кадр — без WebGL. Страница съезжает в сторону оборота и тает.
+  * Пишется прямо в стиль узла, мимо React: перерисовывать дерево со всеми
+  * строками шестьдесят раз в секунду нельзя.
   */
- const stripBend=useCallback((p:number)=>{
-  const box=stage.current,now=live.current;if(!box||!now)return;
-  const width=box.clientWidth,span=width/STRIPS,forward=now.dir===1;
-  const turn=(forward?-1:1)*Math.pow(Math.min(1,p),1.45)*TURNED;
-  const bend=(forward?-1:1)*Math.sin(Math.min(1,p)*Math.PI)*BEND;
-  let sum=0;const weights:number[]=[];
-  for(let i=0;i<STRIPS;i++){const t=(i+0.5)/STRIPS;const w=t*t;weights.push(w);sum+=w;}
-  let angle=turn,x=forward?0:width,z=0;
-  for(let i=0;i<STRIPS;i++){
-   const node=strips.current[i];
-   const flat=forward?i*span:width-i*span;
-   const radians=angle*Math.PI/180;
-   if(node)node.style.transform='translate3d('+(x-flat).toFixed(2)+'px,0,'+z.toFixed(2)+'px) rotateY('+angle.toFixed(2)+'deg)';
-   const shade=shades.current[i];
-   if(shade)shade.style.opacity=(Math.min(1,(1-Math.cos(radians))/2)*0.58).toFixed(3);
-   x+=(forward?1:-1)*span*Math.cos(radians);
-   z+=(forward?-1:1)*span*Math.sin(radians);
-   angle+=bend*weights[i]/sum;
-  }
-  // Тень, которую поднятый лист роняет на страницу под собой. Ширина — сколько
-  // лист ещё закрывает, сила — насколько он поднят: плоский лист тени не даёт,
-  // вставший на ребро уже не роняет её на страницу.
-  const under=turnBox.current;
-  if(under){
-   const lift=Math.sin(Math.min(1,p)*Math.PI);
-   const cover=Math.max(0,Math.cos(turn*Math.PI/180))*width;
-   under.style.setProperty('--tt-a',(lift*0.55).toFixed(3));
-   under.style.setProperty('--tt-w',cover.toFixed(1)+'px');
-  }
+ const slideFrame=useCallback((p:number)=>{
+  const node=slide.current,now=live.current;if(!node||!now)return;
+  const gone=Math.min(1,Math.max(0,p));
+  node.style.transform='translateX('+(now.dir===1?-gone*38:gone*38).toFixed(2)+'%)';
+  node.style.opacity=(1-gone).toFixed(3);
  },[]);
 
  /** Кадр оборота. Куда рисовать — решает наличие WebGL. */
@@ -289,8 +255,8 @@ export function StoryReader({id,title,description,body,onClose}:{
   const now=live.current;if(!now)return;
   const gl=curl.current;
   if(gl){gl.draw(Math.min(1,Math.max(0,p)),now.dir===1);return;}
-  stripBend(p);
- },[stripBend]);
+  slideFrame(p);
+ },[slideFrame]);
 
  const stopRun=useCallback(()=>{if(raf.current)cancelAnimationFrame(raf.current);raf.current=0;},[]);
 
@@ -340,13 +306,17 @@ export function StoryReader({id,title,description,body,onClose}:{
   * оборота дёргалось — первый кадр приходил с запозданием.
   */
  const sheetFor=useCallback((index:number)=>{
-  const have=shots.current.get(index);
+  // Ключ — не только номер страницы, но и всё, от чего зависит её вид. Иначе
+  // после смены размера или оформления можно успеть завести оборот раньше, чем
+  // кэш почистится, и на лист попал бы снимок от прежних настроек.
+  const key=look+'|'+index;
+  const have=shots.current.get(key);
   if(have)return have;
   const node=document.createElement('canvas');
   paint(index,node);
-  shots.current.set(index,node);
+  shots.current.set(key,node);
   return node;
- },[paint]);
+ },[paint,look]);
 
  // Соседние страницы рисуются заранее, в спокойную минуту. Кэш сбрасывается
  // вместе с разбивкой и оформлением: иначе на экран попал бы снимок от прежнего
@@ -493,25 +463,19 @@ export function StoryReader({id,title,description,body,onClose}:{
        — это подвисание на первом кадре оборота. Видим он только в обороте. */}
    <canvas className="tt-reader-gl" ref={glCanvas} aria-hidden="true"
     data-on={flip&&webgl?'yes':'no'}/>
-   {/* Запасной оборот из полос — там, где WebGL нет. Каждая полоса — своё окно
-       в ту же страницу. Изнанка — чистая бумага того же оформления, иначе на
-       середине оборота полоса просто исчезала бы. */}
+   {/* Запасной оборот — там, где WebGL нет. Бумага там не гнётся: без шейдера
+       это честнее, чем подделка. Уходящая страница просто съезжает и тает над
+       новой.
+
+       Раньше здесь был оборот из шестнадцати полос, и каждая полоса несла свою
+       копию страницы со своими координатами. После того как страницы стали
+       построчными, координаты копий перестали сходиться со сценой, и на экране
+       получалась каша из кусков — ровно то, что владелец назвал «рушит всё по
+       пикселям». Показывать сломанный запасной оборот хуже, чем показать
+       простой и верный. */}
    {flip&&!webgl&&<>
     {sheetOf(flip.to,true)}
-    <div className={'tt-reader-turn is-'+(flip.dir===1?'fwd':'back')} ref={turnBox} aria-hidden="true">
-     {Array.from({length:STRIPS},(_,i)=><div key={i} className="tt-reader-strip"
-       ref={node=>{strips.current[i]=node;}}
-       style={{left:(flip.dir===1?i:STRIPS-1-i)*(100/STRIPS)+'%',width:'calc('+(100/STRIPS)+'% + 1.5px)',
-        transformOrigin:flip.dir===1?'0 50%':'100% 50%'} as React.CSSProperties}>
-      <div className="tt-reader-strip-face">
-       <div className="tt-reader-strip-inner" style={{width:STRIPS*100+'%',left:(flip.dir===1?-i:-(STRIPS-1-i))*100+'%'}}>
-        {sheetOf(flip.from,true)}
-       </div>
-       <div className="tt-reader-strip-shade" ref={node=>{shades.current[i]=node;}}/>
-      </div>
-      <div className="tt-reader-strip-back"/>
-     </div>)}
-    </div>
+    <div className="tt-reader-slide" ref={slide} aria-hidden="true">{sheetOf(flip.from,true)}</div>
    </>}
    <span className="tt-reader-folio">{page+1}</span>
   </div>

@@ -40,8 +40,6 @@
 .tt-reader-line{display:flex;align-items:center;white-space:pre}
 .tt-reader-line.is-title{letter-spacing:-.02em}
 .tt-reader-line.is-intro{color:var(--tt-soft)}
-/* Копия страницы для запасного оборота из полос. */
-.tt-reader-page.is-copy{top:0;bottom:auto;height:100%}
 /* Холст изгиба лежит во всю сцену и виден только во время оборота. Он стоит в
    дереве всегда: собирать программу шейдера на каждое нажатие — это подвисание
    на первом кадре. */
@@ -52,46 +50,10 @@
    «убавить свет» — это вуаль над страницей. */
 .tt-reader-dim{position:absolute;inset:0;background:#000;pointer-events:none;z-index:6}
 
-/* Переворот страницы. Верхний слой — уходящая страница: вперёд она
-   поднимается от левого корешка и уходит влево, назад — от правого и вправо.
-   Под ней уже лежит новая, поэтому номер меняется сразу.
-   У слоя две стороны: лицо с текстом и изнанка — чистый лист бумаги того же
-   оформления. Без изнанки на середине оборота страница просто исчезала бы. */
-/* Гнущийся лист.
-   Полосы — звенья ломаной, которая читается как дуга: каждая повёрнута чуть
-   сильнее предыдущей и стоит там, где кончилась предыдущая. Углы и тени
-   считает скрипт и кладёт прямо в стиль узла — здесь только неподвижное. */
-.tt-reader-turn{position:absolute;inset:0;z-index:1;transform-style:preserve-3d;pointer-events:none}
-/* Тень, которую поднятый лист роняет на страницу под собой. Она разделяет две
-   страницы светом, а не чёрной полосой поперёк текста.
-   Ширину и силу задаёт скрипт: --tt-w — сколько лист ещё закрывает, --tt-a —
-   насколько он поднят. Раньше здесь стояло calc(var(--tt-a,0) * .3) и ширина
-   в 64%, а --tt-a не приходила ниоткуда: тень была в стилях и никогда не
-   появлялась на экране.
-   Три остановки, а не одна: у самого сгиба бумага прижата к странице и тень
-   там узкая и чёрная, сразу за сгибом лист приподнят и туда попадает свет, а
-   дальше идёт широкая мягкая полутень. Именно этот просвет между двумя
-   тёмными полосами и читается как поднятая бумага. */
-.tt-reader-turn::before{content:'';position:absolute;top:0;bottom:0;pointer-events:none;
- width:var(--tt-w,0px);opacity:var(--tt-a,0);transform:translateZ(-1px)}
-.tt-reader-turn.is-fwd::before{left:0;
- background:linear-gradient(90deg,#000d 0,#0002 8%,#0008 27%,#0000 100%)}
-.tt-reader-turn.is-back::before{right:0;
- background:linear-gradient(270deg,#000d 0,#0002 8%,#0008 27%,#0000 100%)}
-/* Звено нарочно шире своей доли на полтора пикселя: соседние перекрываются, и
-   щелей между ними не видно. Без перекрытия на каждом стыке светится полоска
-   фона — это было видно на снимке. */
-.tt-reader-strip{position:absolute;top:0;bottom:0;transform-style:preserve-3d;will-change:transform}
-.tt-reader-strip-face,.tt-reader-strip-back{position:absolute;inset:0;overflow:hidden;
- backface-visibility:hidden;background:var(--tt-paper)}
-.tt-reader-strip-inner{position:absolute;top:0;bottom:0}
-/* Тень на звене: её густоту задаёт скрипт по углу поворота. */
-.tt-reader-strip-shade{position:absolute;inset:0;background:#05070a;opacity:0;pointer-events:none}
-/* Изнанка листа — чистая бумага с лёгким отливом к сгибу. */
-.tt-reader-strip-back{transform:rotateY(180deg);
- background:linear-gradient(270deg,color-mix(in srgb,var(--tt-paper) 88%,#000) 0%,var(--tt-paper) 55%)}
-.tt-reader-turn.is-back .tt-reader-strip-back{
- background:linear-gradient(90deg,color-mix(in srgb,var(--tt-paper) 88%,#000) 0%,var(--tt-paper) 55%)}
+/* Запасной оборот — там, где WebGL нет. Уходящая страница съезжает и тает над
+   новой; сдвиг и прозрачность пишет скрипт, здесь только неподвижное. */
+.tt-reader-slide{position:absolute;inset:0;z-index:1;pointer-events:none;
+ will-change:transform,opacity}
 
 /* Сколько прочитано — тонкая полоса поверх всего, включая панели. Номер
    страницы в нижней строке виден только с панелями, а прогресс нужен всегда. */
