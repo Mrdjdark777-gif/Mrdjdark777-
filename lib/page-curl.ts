@@ -6,7 +6,7 @@
  * и отдавать их сюда значило бы держать управление в двух местах.
  *
  * Нет WebGL — createCurl возвращает null, и читалка остаётся на прежнем обороте
- * из полос. Это не запас на всякий случай: на части устройств WebGL в WebView
+ * со сдвигом и затуханием. Это не запас на всякий случай: на части устройств WebGL в WebView
  * выключен, и молча чёрный экран вместо страницы там недопустим.
  *
  * Путь сюда был длинным, и каждый поворот стоит помнить.
@@ -159,6 +159,12 @@ export const GONE = (() => {
  return 1;
 })();
 
+/** Lighting is zero at both hand-offs to DOM. Geometry and timing are unchanged. */
+export const shadowEnvelope = (progress: number) => {
+ const u = Math.min(1, Math.max(0, progress / GONE));
+ return ease(Math.min(1, u / 0.09)) * ease(Math.min(1, (1 - u) / 0.22));
+};
+
 const SHEET_VERTEX = `
 attribute vec2 place;
 attribute vec2 paper;
@@ -190,13 +196,14 @@ varying float vAlong;
 uniform sampler2D fromTexture;
 uniform vec3 paperColor;
 uniform vec3 backColor;
+uniform float lighting;
 void main(){
  vec4 c = texture2D(fromTexture, vPaper);
  vec3 ink = mix(paperColor, c.rgb, c.a);
  // Куда повёрнута бумага в этом месте: к нам лицом или изнанкой. Изнанка —
  // бумага своего оформления, текст на ней проступает еле-еле.
  float face = cos(vTilt);
- vec3 base = face >= 0.0 ? ink : mix(backColor, ink, 0.10);
+ vec3 base = mix(mix(backColor, ink, 0.10), ink, smoothstep(-0.04, 0.04, face));
  // Свет падает спереди: чем круче бумага стоит, тем она темнее.
  float light = 0.38 + 0.62 * abs(face);
  // Поднятая бумага ближе к свету, и гребень дуги светлеет. Без этого выгиб
@@ -206,7 +213,10 @@ void main(){
  light *= mix(0.62, 1.0, smoothstep(0.0, 0.12, vAlong));
  // Свободный край ловит свет ребром — тонкая светлая кромка.
  light *= 1.0 + 0.30 * smoothstep(0.97, 1.0, vAlong);
- gl_FragColor = vec4(base * light, 1.0);
+ // The cyan-tinted reflected light reveals the lifting edge even on black paper.
+ float rim = smoothstep(0.86, 1.0, vAlong);
+ vec3 lit = base * light + vec3(0.435, 0.906, 0.871) * rim * 0.065;
+ gl_FragColor = vec4(mix(ink, lit, lighting), 1.0);
 }`;
 
 const PAGE_VERTEX = `
@@ -228,6 +238,7 @@ uniform float flip;
 /** Докуда достаёт лист и насколько он поднят. */
 uniform float edgeX;
 uniform float lift;
+uniform float lighting;
 void main(){
  vec4 c = texture2D(toTexture, vUV);
  vec3 ink = mix(paperColor, c.rgb, c.a);
@@ -244,7 +255,11 @@ void main(){
  float touchBand = max(0.004, 0.055 * lift);
  float contact = 1.0 - clamp((side - edgeX) / touchBand, 0.0, 1.0);
  shade *= 1.0 - 0.34 * lift * contact;
- gl_FragColor = vec4(ink * shade, 1.0);
+ // Neutral occlusion plus restrained teal reflected light. Visible on OLED black;
+ // the same envelope removes both terms before the canvas is hidden.
+ float edgeBand = 1.0 - smoothstep(0.0, max(0.012, band), abs(side - edgeX));
+ vec3 shaded = ink * shade + vec3(0.435, 0.906, 0.871) * edgeBand * 0.038;
+ gl_FragColor = vec4(mix(ink, shaded, lighting), 1.0);
 }`;
 
 /** Цвет бумаги: просвет между страницами и поля берут его, а не чёрный. */
@@ -336,6 +351,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   from: gl.getUniformLocation(sheet, 'fromTexture'),
   paperColor: gl.getUniformLocation(sheet, 'paperColor'),
   backColor: gl.getUniformLocation(sheet, 'backColor'),
+  lighting: gl.getUniformLocation(sheet, 'lighting'),
  };
  const pageAt = {
   position: gl.getAttribLocation(page, 'position'),
@@ -344,6 +360,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
   flip: gl.getUniformLocation(page, 'flip'),
   edgeX: gl.getUniformLocation(page, 'edgeX'),
   lift: gl.getUniformLocation(page, 'lift'),
+  lighting: gl.getUniformLocation(page, 'lighting'),
  };
 
  const textures = [0, 1].map(unit => {
@@ -402,6 +419,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
    gl.uniform1f(pageAt.flip, forward ? 0 : 1);
    gl.uniform1f(pageAt.edgeX, form.edge);
    gl.uniform1f(pageAt.lift, form.lift);
+   gl.uniform1f(pageAt.lighting, shadowEnvelope(turn));
    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
    gl.enableVertexAttribArray(pageAt.position);
    gl.vertexAttribPointer(pageAt.position, 2, gl.FLOAT, false, 0, 0);
@@ -435,6 +453,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
     }
    }
    gl.useProgram(sheet);
+   gl.uniform1f(sheetAt.lighting, shadowEnvelope(turn));
    gl.bindBuffer(gl.ARRAY_BUFFER, meshBuffer);
    gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.DYNAMIC_DRAW);
    const bytes = STRIDE * 4;
@@ -458,7 +477,7 @@ export function createCurl(canvas: HTMLCanvasElement, paper: Paper): Curl | null
    gl.deleteBuffer(meshBuffer);
    gl.deleteProgram(sheet);
    gl.deleteProgram(page);
-   gl.getExtension('WEBGL_lose_context')?.loseContext();
+   // Delete owned resources; do not deliberately invalidate a reusable canvas context.
   },
  };
 }

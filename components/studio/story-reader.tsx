@@ -101,6 +101,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [flip,setFlip]=useState<Flip|null>(null);
  const live=useRef<Flip|null>(null);
  const slide=useRef<HTMLDivElement>(null);
+ const touch=useRef<{pointerId:number;x:number;y:number;dir:0|1|-1;moved:boolean;at:number;speed:number}|null>(null);
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
  const [loaded,setLoaded]=useState(false);
@@ -109,13 +110,13 @@ export function StoryReader({id,title,description,body,onClose}:{
  const shots=useRef<Map<string,HTMLCanvasElement>>(new Map());
  const blocks=useMemo(()=>blocksOf(title,description,body),[title,description,body]);
  /** Примета текущего вида страницы: от неё зависит каждый снимок. */
- const look=`${prefs.size}|${prefs.serif}|${prefs.theme}|${frame.width}|${frame.lead}|${pages.length}`;
+ const look=`${prefs.size}|${prefs.serif}|${prefs.theme}|${frame.width}|${frame.height}|${frame.top}|${frame.left}|${frame.lead}|${pages.length}`;
 
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
  // другую историю она заходит новым экземпляром, а не сменой поля.
  useEffect(()=>{const timer=setTimeout(()=>{
    setPrefs(readPrefs());const s=readSaved(id);
-   setMarks(Array.isArray(s.marks)?s.marks:[]);
+   setMarks(Array.isArray(s.marks)?s.marks.filter((m):m is Mark=>!!m&&typeof m==='object'&&Number.isFinite(m.ratio)&&m.ratio>=0&&m.ratio<=1&&typeof m.text==='string'&&Number.isFinite(m.at)).slice(0,50):[]);
    wanted.current=Math.min(1,Math.max(0,Number(s.ratio)||0));
    setLoaded(true);},0);
   return()=>clearTimeout(timer);},[id]);
@@ -172,6 +173,7 @@ export function StoryReader({id,title,description,body,onClose}:{
      return gauge.measureText(text).width;},
     height:kind=>kind==='title'?TITLE_ROWS:1,
     after:()=>1});
+   shots.current.clear();
    setPages(laid);
    setFrame({width,height:rows*lead,left:pad,top:insets.current.top,lead});
    const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
@@ -180,7 +182,8 @@ export function StoryReader({id,title,description,body,onClose}:{
   const box=stage.current;if(!box)return;
   measure();
   const observer=new ResizeObserver(measure);observer.observe(box);
-  return()=>observer.disconnect();
+  document.fonts?.addEventListener('loadingdone',measure);
+  return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
  },[blocks,prefs.size,fonts,loaded]);
@@ -204,7 +207,9 @@ export function StoryReader({id,title,description,body,onClose}:{
   curl.current=made;setWebgl(!!made);
   if(!made)return;
   const observer=new ResizeObserver(()=>made.resize());observer.observe(node);
-  return()=>{observer.disconnect();made.destroy();curl.current=null;};
+  const lost=()=>{curl.current=null;setWebgl(false);};
+  node.addEventListener('webglcontextlost',lost);
+  return()=>{observer.disconnect();node.removeEventListener('webglcontextlost',lost);made.destroy();curl.current=null;};
  },[]);
 
  // Оформление меняет только цвет бумаги — это отдельное действие, без пересборки.
@@ -232,6 +237,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   let y=frame.top;
   for(const line of pages[index]??[]){
    ctx.font=fonts.css(line.kind);
+   ctx.letterSpacing=line.kind==='title'?(-fonts.size(line.kind)*0.02)+'px':'0px';
    ctx.fillStyle=line.kind==='intro'?soft:ink;
    ctx.fillText(line.text,frame.left,y+line.rows*frame.lead/2);
    y+=line.rows*frame.lead;
@@ -245,7 +251,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   */
  const slideFrame=useCallback((p:number)=>{
   const node=slide.current,now=live.current;if(!node||!now)return;
-  const gone=Math.min(1,Math.max(0,p));
+  const gone=Math.min(1,Math.max(0,p/GONE));
   node.style.transform='translateX('+(now.dir===1?-gone*38:gone*38).toFixed(2)+'%)';
   node.style.opacity=(1-gone).toFixed(3);
  },[]);
@@ -265,7 +271,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const run=useCallback((to:number,done:()=>void)=>{
   stopRun();
   const from=part.current,gap=to-from;
-  if(Math.abs(gap)<0.001){done();return;}
+  if(Math.abs(gap)<0.001||window.matchMedia('(prefers-reduced-motion: reduce)').matches){part.current=to;bend(to);done();return;}
   const ms=Math.max(180,RUN_MS*Math.abs(gap)),start=performance.now();
   const step=(now:number)=>{
    const t=Math.min(1,(now-start)/ms);
@@ -284,6 +290,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  // лист, заведённый под прежнюю разбивку, показывал бы уже не то. Такой оборот
  // прекращается сразу, а не доигрывается.
  useEffect(()=>{
+  touch.current=null;
   if(!live.current)return;
   stopRun();part.current=0;put(null);
  },[pages,frame,fonts,prefs.theme,stopRun,put]);
@@ -355,7 +362,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  // bend и run пересобираются при смене страницы, но перезапускать из-за них
  // уже идущий оборот нельзя: он бы начинался заново.
  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[flip]);
+ },[flip,webgl]);
  useEffect(()=>stopRun,[stopRun]);
 
  useEffect(()=>sheet==='none'?undefined:pushBackLayer(BACK_MENU,()=>{setSheet('none');return true;}),[sheet]);
@@ -363,14 +370,13 @@ export function StoryReader({id,title,description,body,onClose}:{
  // Страница идёт за пальцем: сколько протянул — на столько лист и повёрнут.
  // Отпустил на полпути — сама решит, довернуться или лечь обратно; держишь
  // палец — стоит под тем углом, под каким ты её держишь.
- const touch=useRef<{x:number;y:number;dir:0|1|-1;moved:boolean;at:number;speed:number}|null>(null);
  const down=(e:React.PointerEvent<HTMLDivElement>)=>{
-  if(live.current)return;
-  touch.current={x:e.clientX,y:e.clientY,dir:0,moved:false,at:performance.now(),speed:0};
-  e.currentTarget.setPointerCapture?.(e.pointerId);
+  if(live.current||touch.current||sheet!=='none'||!e.isPrimary||e.button!==0)return;
+  touch.current={pointerId:e.pointerId,x:e.clientX,y:e.clientY,dir:0,moved:false,at:performance.now(),speed:0};
+  try{e.currentTarget.setPointerCapture?.(e.pointerId);}catch{/* Pointer may already have been cancelled by the host. */}
  };
  const move=(e:React.PointerEvent<HTMLDivElement>)=>{
-  const from=touch.current;if(!from)return;
+  const from=touch.current;if(!from||from.pointerId!==e.pointerId)return;
   const dx=e.clientX-from.x,dy=e.clientY-from.y;
   if(!from.moved&&(Math.abs(dx)>6||Math.abs(dy)>6))from.moved=true;
   if(!from.dir){
@@ -382,7 +388,6 @@ export function StoryReader({id,title,description,body,onClose}:{
    if(to<0||to>total-1)return;          // за краем книги листать нечего
    from.dir=dir;stopRun();
    begin({from:page,to,dir,auto:false});
-   return;
   }
   if(!live.current)return;
   const box=e.currentTarget.getBoundingClientRect();
@@ -406,13 +411,13 @@ export function StoryReader({id,title,description,body,onClose}:{
   bend(part.current);
  };
  const up=(e:React.PointerEvent<HTMLDivElement>)=>{
-  const from=touch.current;touch.current=null;if(!from)return;
+  const from=touch.current;if(!from||from.pointerId!==e.pointerId)return;touch.current=null;
   if(from.dir&&live.current){
    // Дотянул больше трети оборота — лист доворачивается; меньше — ложится
    // обратно, и номер не меняется.
    // Либо дотянул, либо дёрнул: быстрый рывок доворачивает страницу и с
    // половины порога. Без этого короткое резкое движение не срабатывало.
-   const done=part.current>=COMMIT||(from.speed>0.5&&part.current>COMMIT*0.35);
+   const done=part.current>=COMMIT||(performance.now()-from.at<120&&from.speed>0.5&&part.current>COMMIT*0.35);
    const now=live.current;
    // Доводка идёт не до конца оборота, а до той доли, на которой лист уходит
    // за корешок. Дальше на экране не меняется ничего, и последняя треть хода
@@ -451,9 +456,12 @@ export function StoryReader({id,title,description,body,onClose}:{
 
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
-   onPointerCancel={()=>{
-    // Отмена жеста оставляла заведённый лист висеть посреди оборота: холст
-    // никуда не девался, и читалка застывала. Лист обязан лечь обратно.
+   onPointerCancel={e=>{
+    if(touch.current?.pointerId!==e.pointerId)return;
+    const now=live.current;touch.current=null;
+    if(now)run(0,()=>land(now,false));}}
+   onLostPointerCapture={e=>{
+    if(touch.current?.pointerId!==e.pointerId)return;
     const now=live.current;touch.current=null;
     if(now)run(0,()=>land(now,false));}}>
    {/* Страница в покое. Во время оборота её место занимает холст: показывать
