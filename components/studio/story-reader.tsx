@@ -35,7 +35,18 @@ type Theme='day'|'sepia'|'night'|'black';
 type Flip={from:number;to:number;dir:1|-1;auto:boolean};
 /** Полоса чтения: где она стоит и какой у неё шаг строки. Одна и та же мерка
  *  идёт и в разметку, и на холст. */
-type Frame={width:number;height:number;left:number;top:number;lead:number};
+/**
+ * Геометрия страницы на экране.
+ *
+ * `scale` — во сколько раз показанная страница крупнее той, по которой считалась
+ * разбивка. Разбивка считается один раз, по самой тесной полосе чтения, какая
+ * бывает у этой истории; когда места становится больше (ушли панели читалки, а
+ * за ними системные часы Android), та же самая страница просто растягивается.
+ * Иначе строк на странице становилось больше, текст перебивался заново, и на
+ * полном экране человек видел уже другой кусок — ровно то, на что пожаловался
+ * владелец.
+ */
+type Frame={width:number;height:number;left:number;top:number;lead:number;scale:number};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
@@ -102,7 +113,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
  const [pages,setPages]=useState<Page[]>([[]]);
  const [page,setPage]=useState(0);
- const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0});
+ const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0,scale:1});
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
  const [marks,setMarks]=useState<Mark[]>([]);
@@ -112,6 +123,9 @@ export function StoryReader({id,title,description,body,onClose}:{
  const touch=useRef<{pointerId:number;x:number;y:number;dir:0|1|-1;moved:boolean;at:number;speed:number}|null>(null);
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
+ /** Самая тесная полоса чтения, какую видели при этой ширине и этом шрифте.
+  *  По ней и только по ней считается разбивка на страницы. */
+ const base=useRef<{free:number;width:number;size:number;serif:boolean}|null>(null);
  const [loaded,setLoaded]=useState(false);
  const curl=useRef<Curl|null>(null);
  const [webgl,setWebgl]=useState(false);
@@ -158,6 +172,16 @@ export function StoryReader({id,title,description,body,onClose}:{
    css:(kind:Kind)=>(kind==='title'?'700 ':kind==='intro'?'italic ':'')+size(kind)+'px '+family};
  },[prefs.serif,prefs.size]);
 
+ /** Шрифт на экране. От того, которым считалась разбивка, отличается только
+  *  увеличением: страница растянулась — буквы вместе с ней. Разбивке этот
+  *  шрифт не показывают, иначе она поехала бы следом за экраном. */
+ const shown=useMemo(()=>{
+  const k=frame.scale||1;
+  const size=(kind:Kind)=>fonts.size(kind)*k;
+  return {size,
+   css:(kind:Kind)=>(kind==='title'?'700 ':kind==='intro'?'italic ':'')+size(kind)+'px '+fonts.family};
+ },[fonts,frame.scale]);
+
  // Разбивка. Полосу мерит холст тем же шрифтом, каким она нарисована в
  // разметке: свой перенос строк без настоящей мерки — это догадка.
  useLayoutEffect(()=>{
@@ -171,7 +195,14 @@ export function StoryReader({id,title,description,body,onClose}:{
     insets.current={top:headerHeight+12,bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
-   const rows=Math.max(1,Math.floor(free/lead));
+   // Опора запоминает САМУЮ ТЕСНУЮ полосу: когда панели уходят, места
+   // становится больше, и брать за основу его нельзя — иначе разбивка поедет
+   // туда и обратно на каждое нажатие по середине экрана.
+   const same=base.current&&base.current.width===width
+    &&base.current.size===prefs.size&&base.current.serif===prefs.serif;
+   if(!same)base.current={free,width,size:prefs.size,serif:prefs.serif};
+   else if(free<base.current!.free)base.current!.free=free;
+   const rows=Math.max(1,Math.floor(base.current!.free/lead));
    const gauge=document.createElement('canvas').getContext('2d');
    const laid=paginate(blocks,{
     width,rows,
@@ -183,7 +214,12 @@ export function StoryReader({id,title,description,body,onClose}:{
     after:()=>1});
    shots.current.clear();
    setPages(laid);
-   setFrame({width,height:rows*lead,left:pad,top:insets.current.top,lead});
+   // Во сколько раз показать. По высоте — насколько полоса шире опорной; по
+   // ширине — чтобы строки не вылезли за края экрана вместе со шрифтом.
+   const grow=Math.max(1,Math.min(free/Math.max(1,rows*lead),box.clientWidth/Math.max(1,width)));
+   const shownWidth=width*grow,shownLead=lead*grow;
+   setFrame({width:shownWidth,height:rows*shownLead,left:(box.clientWidth-shownWidth)/2,
+    top:insets.current.top,lead:shownLead,scale:grow});
    const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
    setPage(Number.isFinite(next)?Math.min(laid.length-1,Math.max(0,next)):0);
   };
@@ -194,7 +230,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[blocks,prefs.size,fonts,loaded,headerHeight]);
+ },[blocks,prefs.size,prefs.serif,fonts,loaded,headerHeight,chrome]);
 
  const total=pages.length;
  const ratio=total>1?page/(total-1):0;
@@ -244,13 +280,13 @@ export function StoryReader({id,title,description,body,onClose}:{
   ctx.textBaseline='middle';
   let y=frame.top;
   for(const line of pages[index]??[]){
-   ctx.font=fonts.css(line.kind);
-   ctx.letterSpacing=line.kind==='title'?(-fonts.size(line.kind)*0.02)+'px':'0px';
+   ctx.font=shown.css(line.kind);
+   ctx.letterSpacing=line.kind==='title'?(-shown.size(line.kind)*0.02)+'px':'0px';
    ctx.fillStyle=line.kind==='intro'?soft:ink;
    ctx.fillText(line.text,frame.left,y+line.rows*frame.lead/2);
    y+=line.rows*frame.lead;
   }
- },[fonts,frame,pages]);
+ },[shown,frame,pages]);
 
  /**
   * Запасной кадр — без WebGL. Страница съезжает в сторону оборота и тает.
@@ -471,7 +507,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    style={{left:frame.left,width:frame.width}} aria-hidden={copy?true:undefined}>
    {(pages[index]??[]).map((line,at)=>
     <div key={at} className={'tt-reader-line is-'+line.kind}
-     style={{height:line.rows*frame.lead,font:fonts.css(line.kind)}}>{line.text}</div>)}
+     style={{height:line.rows*frame.lead,font:shown.css(line.kind)}}>{line.text}</div>)}
   </div>;
 
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}

@@ -95,21 +95,31 @@
  aspect-ratio:2/3;border-radius:var(--soft-card);overflow:hidden;
  background:radial-gradient(circle at 35% 30%,#234743,#131c21);
  border:1px solid rgba(255,255,255,.16);
- /* Свечение позади карточки в цветах канала — от него она отрывается от
-    страницы, а не просто лежит на ней. Тень даёт вес, свечение даёт воздух. */
- box-shadow:0 12px 26px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4),
-  0 0 22px rgba(111,231,222,.20),0 0 46px rgba(74,168,255,.12)}
+ /* Тень трёхслойная, как у настоящего предмета на столе: узкая и плотная под
+    самой карточкой — это контакт; широкая и мягкая ниже — это расстояние до
+    страницы; холодный ореол в цветах канала — отражённый свет. Одной размытой
+    тенью такого не выходит: карточка читается как пятно, а не как предмет. */
+ box-shadow:
+  0 1px 2px rgba(0,0,0,.65),
+  0 6px 12px rgba(0,0,0,.55),
+  0 18px 34px rgba(0,0,0,.5),
+  0 0 26px rgba(111,231,222,.22),
+  0 0 54px rgba(74,168,255,.13)}
 /* Бортик поверх обложки: снизу он темнее, сверху светлее — так читается
    толщина карточки, а не просто нарисованная рамка. */
 .tt-soft-home .soft-art::after{content:'';position:absolute;inset:0;pointer-events:none;
  border-radius:inherit;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.45),
-  inset 0 0 0 1px rgba(111,231,222,.10)}
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(0,0,0,.5),
+  inset 0 0 0 1px rgba(111,231,222,.12),inset 0 -26px 30px -26px rgba(0,0,0,.6)}
 .tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
 .tt-soft-home .soft-mark{width:56px!important;height:56px!important;object-fit:contain!important;opacity:.85}
-.tt-soft-home .soft-kind{position:absolute;top:0;left:0;right:0;padding:7px 10px 16px;
+/* Подпись вида стоит по середине карточки, а не в её левом углу: у края она
+   читалась как обрезанная, особенно на узком телефоне, где до края оставалось
+   несколько пикселей. */
+.tt-soft-home .soft-kind{position:absolute;top:0;left:0;right:0;padding:8px 10px 18px;
  font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#e7f2f1;
- text-shadow:0 1px 6px #05070acc;background:linear-gradient(180deg,#05070abf,#05070a00)}
+ text-align:center;
+ text-shadow:0 1px 6px #05070acc;background:linear-gradient(180deg,#05070ac7,#05070a00)}
 .tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
  -webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 

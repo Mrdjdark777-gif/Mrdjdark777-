@@ -2279,3 +2279,21 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 /* Штамп сборки из подвала убран по просьбе владельца: на экране он не нужен.
    Сам ответ на вопрос «доехал ли новый код» никуда не делся — его отдаёт
    /api/health, и на нём же стоит проверка обновления сервера. */
+
+
+/* ── «Поделиться» рядом с действием ────────────────────────────────────────
+   Позвать друга человек хочет там, где смотрит на выпуск, а не после того как
+   его открыл. Поэтому кнопка стоит в строке действий списка, в строке архива
+   эфиров и на самом экране эфира — везде одинаковой, чтобы её узнавали. */
+.post-actions .post-share{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;
+ width:34px;height:34px;border-radius:50%;color:#9fb0b1;background:none;border:0}
+.post-actions .post-share:hover{color:#6FE7DE}
+.live-archive-item{display:flex;align-items:center;gap:4px}
+.live-archive-item>.live-archive-row{flex:1;min-width:0}
+.live-archive-share{flex:none;display:inline-flex;align-items:center;justify-content:center;
+ width:38px;height:38px;border-radius:50%;color:#9fb0b1;background:none;border:0}
+.live-archive-share:hover{color:#6FE7DE}
+.live-share{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ min-height:38px;padding:0 18px;border-radius:999px;font-size:13px;font-weight:600;
+ color:#cfdad9;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.live-share:hover{color:#6FE7DE;border-color:rgba(111,231,222,.4)}

@@ -245,22 +245,20 @@ try{
  await page.waitForFunction(()=>{const a=document.querySelector('.podcast-player audio');return a&&Number.isFinite(a.duration)&&a.duration>0;},null,{timeout:15000}).catch(()=>{});
  await page.evaluate(()=>{const a=document.querySelector('.podcast-player audio');if(a){a.currentTime=a.duration*0.38;a.pause();}});await page.waitForTimeout(400);await shot(page,'player-archive');
  // Системный Back на Android идёт через этот же мост: проверяем связку
- // целиком, а не только реестр слоёв. Меню, затем плеер, затем раздел.
+ // целиком, а не только реестр слоёв. Плеер, затем раздел.
  await page.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);await settle(page);
  await page.locator('.podcast-player.is-open').waitFor();
  const top=await page.locator('.player-sheet-top').boundingBox();assert.ok(top.width>=380,'player top bar must span the screen');
  await page.waitForFunction(()=>document.querySelector('.podcast-player audio')?.currentTime>0);
  await page.evaluate(()=>{window.__playingAudio=document.querySelector('.podcast-player audio');});
- const tactileBefore=await page.evaluate(()=>window.__hapticCalls);
- await page.locator('.player-menu-button').click();await page.locator('.player-menu').waitFor();
- assert.equal(await page.evaluate(()=>window.__hapticCalls),tactileBefore+1,'one tap -> one haptic');
- await page.keyboard.press('Escape');await page.locator('.player-menu').waitFor({state:'hidden'});
- assert.equal(await page.locator('.player-menu-button').evaluate(el=>el===document.activeElement),true,'Escape restores focus');
- await page.locator('.player-menu-button').click();
- assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back закрывает меню плеера');
- await page.waitForTimeout(150);
- assert.equal(await page.locator('.player-menu').count(),0,'меню закрылось, плеер остался развёрнутым');
- assert.equal(await page.locator('.podcast-player.is-open').count(),1);
+ // Меню «…» убрано: «поделиться» и «закрыть» стоят кнопками в том же ряду.
+ // Спрятанная команда и повторённая рядом — это не меню, а лишний шаг.
+ assert.equal(await page.locator('.player-menu-button').count(),0,'меню «…» в плеере вернулось');
+ assert.equal(await page.locator('.player-sheet-actions .player-share').count(),1,'в ряду плеера нет кнопки «поделиться»');
+ assert.equal(await page.locator('.player-sheet-actions .player-close').count(),1,'в ряду плеера нет кнопки «закрыть»');
+ await page.keyboard.press('Escape');await page.waitForTimeout(250);
+ assert.equal(await page.locator('.podcast-player.is-mini').count(),1,'Escape сворачивает плеер');
+ await page.locator('.podcast-player.is-mini').click();await page.locator('.podcast-player.is-open').waitFor();
  assert.equal(await page.evaluate(()=>window.trueThrills.back()),true,'Back сворачивает плеер');
  await page.waitForTimeout(250);
  assert.equal(await page.locator('.podcast-player.is-mini').count(),1,'плеер свернулся, а не закрылся');
@@ -744,8 +742,9 @@ try{
   // соседними кадрами. Пока полоса едет, картина меняется каждый кадр; в
   // провале она стоит.
   {const label=page.locator('.tt-shimmer').first();
-   const shapes=[];
+   const shapes=[],when=[];
    for(let i=0;i<16;i++){
+    when.push(Date.now());
     const png=await label.screenshot();
     const {data,info}=await sharp(png).greyscale().raw().toBuffer({resolveWithObject:true});
     const {width,height}=info;
@@ -756,18 +755,22 @@ try{
     for(let x=0;x<width;x++)if(ink[x]>=3)shape.push(sum[x]/ink[x]);
     if(shape.length)shapes.push(shape);
     await page.waitForTimeout(40);}
+   // Изменение делится на время между кадрами. Снимок экрана занимает то сто
+   // миллисекунд, то триста, и без деления проверка меряла не переливание, а
+   // загрузку машины: на медленном кадре картинка успевала измениться сильнее.
    const moves=[];
    for(let i=1;i<shapes.length;i++){
     const a=shapes[i-1],b=shapes[i];if(a.length!==b.length)continue;
+    const dt=Math.max(1,when[i]-when[i-1]);
     let d=0;for(let x=0;x<a.length;x++)d+=Math.abs(a[x]-b[x]);
-    moves.push(d/a.length);}
+    moves.push(d/a.length/dt*100);}
    const still=Math.min(...moves),busy=Math.max(...moves);
    check(moves.length>=12,'переливание не удалось снять: кадров '+moves.length);
    // Порог относительный: сколько именно меняется картина, зависит от шрифта,
    // фона и от того, как быстро успевает сняться кадр. Сравнивается самый
    // спокойный переход с самым живым — у надписи с провалом между ними разы.
    check(moves.length>=12&&still>busy*0.18,'надпись переливается с провалом: между какими-то кадрами она стоит ('+
-    moves.map(v=>v.toFixed(1)).join(', ')+')');}
+    moves.map(v=>v.toFixed(2)).join(', ')+')');}
   step('поверхность плашек');}
 
  // История. Читалка занимает весь экран, текст разбит на страницы, край
@@ -827,6 +830,35 @@ try{
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(350);
   if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
+
+  // Полный экран не меняет текст страницы, а только его размер.
+  //
+  // На телефоне вместе с панелями читалки уходят и системные — полоса чтения
+  // становится выше. Пока разбивка считалась по ней, строк на странице
+  // становилось больше, текст перебивался заново, и человек видел уже другой
+  // кусок: «нажимаю в центр — текст со страницы совсем другой».
+  //
+  // Здесь этот рост воспроизводится честно: окну добавляется высота, как её
+  // добавляют ушедшие панели. Текст обязан остаться тем же до буквы, а буквы —
+  // стать крупнее.
+  {const read=()=>page.evaluate(()=>{
+    const sheet=document.querySelector('.tt-reader-page:not(.is-copy)');
+    if(!sheet)return null;
+    const lines=[...sheet.querySelectorAll('.tt-reader-line')];
+    const body=lines.find(l=>!l.classList.contains('is-title'))??lines[0];
+    return {text:lines.map(l=>l.textContent).join('\n'),
+     size:body?parseFloat(getComputedStyle(body).fontSize):0};});
+   const before=await read();
+   const size=page.viewportSize();
+   await page.setViewportSize({width:size.width,height:size.height+90});
+   await page.waitForTimeout(450);
+   const after=await read();
+   if(!before||!after)problems.push('страницу читалки не удалось снять для сверки полного экрана');
+   else{
+    if(before.text!==after.text)problems.push('на полном экране текст страницы поменялся, а должен был только вырасти');
+    if(!(after.size>before.size*1.02))problems.push('места стало больше, а буквы не выросли: было '+
+     before.size.toFixed(1)+', стало '+after.size.toFixed(1));}
+   await page.setViewportSize(size);await page.waitForTimeout(450);}
   // Номер страницы стоит в углу полосы и виден при убранных панелях: только
   // по нижней строке его не найти, когда панели спрятаны.
   {const folio=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-folio');
@@ -1720,7 +1752,9 @@ try{
  // смотреть ролик. И перекрывать кнопки сохранения ему нечем.
  {const ed=await desk.newPage();await ed.setViewportSize({width:2560,height:1400});
   await ed.goto(base+'/?view=videos');await settle(ed);
-  await ed.locator('.post-actions button[title]').first().click();
+  // Не просто «первая кнопка с подписью»: рядом теперь стоит «поделиться», и
+  // она идёт раньше правки. Нужна именно правка.
+  await ed.locator('.post-actions button[title]:not(.post-share)').first().click();
   await ed.locator('.editor-dialog').waitFor({timeout:8000});
   // Мерим при прокрутке вниз: именно там кадр сходится с кнопками.
   await ed.evaluate(()=>{const d=document.querySelector('.editor-dialog');if(d)d.scrollTop=d.scrollHeight;});

@@ -1,13 +1,13 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
-import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Timer,ChevronRight,Share2} from 'lucide-react';
+import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,Timer,ChevronRight,Share2} from 'lucide-react';
 import {HeartBeam} from '@/components/ui/heart-beam';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
 import {Slider} from '@/components/ui/slider';
 import {clock,haptic} from '@/lib/client';
 import type {Presentation} from '@/lib/player-presentation';
-import {pushBackLayer,BACK_MENU,BACK_PLAYER} from '@/lib/back-stack';
+import {pushBackLayer,BACK_PLAYER} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 import {swipeAxis,swipeCloses,swipeFade} from '@/lib/swipe';
 
@@ -44,33 +44,24 @@ export type PlayerActions={
 const RING=2*Math.PI*46;
 export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
  const {t}=useT();
- const [menu,setMenu]=useState(false);
  // Описание в плеере обрезано двумя строками: нажатие раскрывает его целиком.
  const [noteOpen,setNoteOpen]=useState(false);
  const [swipe,setSwipe]=useState({x:0});
- const moreRef=useRef<HTMLButtonElement>(null),menuRef=useRef<HTMLDivElement>(null);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
  const type=view.presentation==='type',archive=view.presentation==='archive';
- // Системный Back закрывает сначала меню, потом сворачивает плеер. Слои
- // снимаются вместе с тем, что их открыло, поэтому порядок не расходится
- // с тем, что человек видит.
- useEffect(()=>menu&&expanded?pushBackLayer(BACK_MENU,()=>{setMenu(false);moreRef.current?.focus();return true;}):undefined,[menu,expanded]);
+ // Меню под тремя точками здесь было, и в нём лежали ровно две команды:
+ // «поделиться» и «закрыть». Крестик стоял рядом, снаружи, то есть меню
+ // пряталo одну команду и повторяло вторую. Обе вынесены в ряд: поделиться и
+ // закрыть — отдельными кнопками, меню нет вовсе.
  useEffect(()=>expanded?pushBackLayer(BACK_PLAYER,()=>{onExpand(false);return true;}):undefined,[expanded,onExpand]);
  useEffect(()=>{
   if(!expanded)return;
-  if(menu)menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
   const key=(event:KeyboardEvent)=>{
-   if(event.key==='Escape'){event.preventDefault();if(menu){setMenu(false);moreRef.current?.focus();}else onExpand(false);}
-   if(menu&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
-    const items=Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]')??[]);if(!items.length)return;
-    event.preventDefault();const at=items.indexOf(document.activeElement as HTMLElement);
-    const next=event.key==='Home'?0:event.key==='End'?items.length-1:(at+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next].focus();
-   }
+   if(event.key==='Escape'){event.preventDefault();onExpand(false);}
   };
-  const outside=(event:PointerEvent)=>{if(menu&&!menuRef.current?.contains(event.target as Node)&&!moreRef.current?.contains(event.target as Node))setMenu(false);};
-  document.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);
-  return()=>{document.removeEventListener('keydown',key);document.removeEventListener('pointerdown',outside);};
- },[expanded,menu,onExpand]);
+  document.addEventListener('keydown',key);
+  return()=>document.removeEventListener('keydown',key);
+ },[expanded,onExpand]);
  // Один и тот же прогресс для кольца и полосы. Без длительности кольцо
  // остаётся нейтральным: ложный процент хуже, чем его отсутствие.
  const known=view.duration>0&&Number.isFinite(view.duration);
@@ -122,16 +113,16 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   </div>}
 
   <div className="player-sheet-top">
-   <button type="button" className="player-collapse tt-pressable" aria-label={t('player.collapse')} onClick={()=>{setMenu(false);onExpand(false);}}><ChevronDown size={22}/></button>
+   <button type="button" className="player-collapse tt-pressable" aria-label={t('player.collapse')} onClick={()=>onExpand(false)}><ChevronDown size={22}/></button>
    <span className="player-kind">{view.presentation==='archive'?view.kindLabel:''}</span>
    {/* Ряд задан прямо здесь, а не только в стилях: если страница осталась от
        прежней сборки, кнопки всё равно встанут в строку, а не столбиком.
        Класс player-more на всех трёх — по той же причине: он уже есть в
        прежних стилях, поэтому размер и форма не разъедутся. */}
    <div className="player-sheet-actions" style={{display:'flex',alignItems:'center',gap:2}}>
-    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><HeartBeam size={21}/></button>}
-    <button type="button" className="player-more player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
-    <button ref={moreRef} type="button" className="player-more player-menu-button tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
+    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>act.donate!()}><HeartBeam size={21}/></button>}
+    {act.share&&<button type="button" className="player-more player-share tt-pressable" aria-label={t('share.action')} title={t('share.action')} onClick={()=>act.share!()}><Share2 size={21}/></button>}
+    <button type="button" className="player-more player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>act.close()}><X size={22}/></button>
    </div>
   </div>
 
@@ -190,9 +181,5 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
    </button>}
   </div>
 
-  {menu&&<div ref={menuRef} className="player-menu" role="menu">
-   {act.share&&<button type="button" role="menuitem" onClick={()=>{setMenu(false);act.share!();}}><Share2 size={17}/>{t('share.action')}</button>}
-   <button type="button" role="menuitem" onClick={()=>{setMenu(false);act.close();}}><X size={17}/>{t('player.close')}</button>
-  </div>}
  </section>;
 }

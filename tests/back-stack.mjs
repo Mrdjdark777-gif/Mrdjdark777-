@@ -67,7 +67,13 @@ assert.match(studio,/host\.trueThrills=\{\.\.\.host\.trueThrills,back:runBack\}/
 assert.match(studio,/pushBackLayer\(BACK_OVERLAY/,'листы поверх экрана участвуют в порядке');
 assert.match(studio,/pushBackLayer\(BACK_NAV/,'возврат на главную участвует в порядке');
 const chrome=await readFile(path.join(root,'components/studio/player-chrome.tsx'),'utf8');
-assert.match(chrome,/pushBackLayer\(BACK_MENU/,'меню плеера участвует в порядке');
 assert.match(chrome,/pushBackLayer\(BACK_PLAYER/,'развёрнутый плеер участвует в порядке');
+// Меню «…» в плеере убрано: в нём лежали «поделиться» и «закрыть», а крестик
+// стоял рядом снаружи — меню прятало одну команду и повторяло вторую. Обе
+// вынесены в ряд отдельными кнопками. Уровень BACK_MENU остаётся: под ним
+// живут меню карточки на главной и листы читалки.
+assert.doesNotMatch(chrome,/player-menu-button|role="menu"/,
+ 'меню «…» в плеере вернулось: его команды обязаны стоять кнопками в ряду');
+assert.match(chrome,/player-share/,'кнопка «поделиться» обязана остаться в ряду плеера');
 
-console.log('PASS: Back закрывает меню, затем плеер, затем навигацию и только потом уходит системе');
+console.log('PASS: Back закрывает меню, затем плеер, затем навигацию и только потом уходит системе; в плеере команды стоят кнопками, а не прячутся под «…»');

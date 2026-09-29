@@ -1,5 +1,6 @@
 'use client';
-import {Play,Pause,Loader2,Heart,ChevronRight,AudioLines} from 'lucide-react';
+import {Play,Pause,Loader2,ChevronRight,AudioLines} from 'lucide-react';
+import {HeartBeam} from '@/components/ui/heart-beam';
 import {liveStage,onAirLabelVisible,ringsPulsing,stageAction,type ListenPhase} from '@/lib/live-stage';
 import {haptic} from '@/lib/client';
 import {useT} from '@/components/i18n-provider';
@@ -16,10 +17,10 @@ import {Artwork} from './artwork';
 /** Сколько колец рисуем вокруг знака эфира. */
 const RINGS=8;
 
-export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive,volume,about=''}:{
+export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,status,hint,onListen,onPause,onArchive,support,levels=[],calmSrc='',archiveOpen=false,archive,volume,shareAction,about=''}:{
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmSrc?:string;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
- archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;about?:string;
+ archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;shareAction?:React.ReactNode;about?:string;
 }){
  const {t}=useT();
  const stage=liveStage({onAir,joined,phase});
@@ -91,6 +92,9 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   {/* Громкость идёт сразу за кнопкой: во время эфира ею пользуются чаще
       всего, и искать её под карточками архива неправильно. */}
   {volume}
+  {/* Позвать друга на эфир — там же, где слушают. Уводить за этим в меню
+      неправильно: эфир идёт сейчас, и звать надо сейчас. */}
+  {shareAction}
 
   {/* Архив эфиров раскрывается здесь же. Уводить отсюда в подкасты нельзя:
       подкаст — подготовленный выпуск, запись эфира — другое, и человек
@@ -104,6 +108,6 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
   {archiveOpen&&archive}
 
   {hint&&<p className="live-stage-hint">{hint}</p>}
-  {support??<span className="live-stage-support-missing"><Heart size={17}/>{t('donate.unavailable')}</span>}
+  {support??<span className="live-stage-support-missing"><HeartBeam size={17}/>{t('donate.unavailable')}</span>}
  </section>;
 }
