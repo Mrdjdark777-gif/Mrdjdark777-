@@ -10,12 +10,14 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {rm,mkdtemp} from 'node:fs/promises';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {tmpdir} from 'node:os';
 const dir=await mkdtemp(path.join(tmpdir(),'tt-share-'));
 try{
  const out=path.join(dir,'share.mjs');
  await build({entryPoints:['lib/share.ts'],outfile:out,format:'esm',bundle:true,platform:'node'});
- const {shareTargets,shareRoute,shareUrl}=await import(out);
+ // Путь в адрес: на Windows «C:\…» без этого читается как протокол «c:».
+ const {shareTargets,shareRoute,shareUrl}=await import(pathToFileURL(out).href);
 
  // Путь: сначала система телефона, потом браузер, и только затем своё окно.
  assert.equal(shareRoute({native:true,webShare:true}),'native');

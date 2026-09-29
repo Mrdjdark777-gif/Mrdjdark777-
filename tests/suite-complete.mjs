@@ -51,6 +51,26 @@ for (const file of files) {
  }
 }
 
+// import() берёт адрес, а не путь. Пока прогон шёл только на Linux, разницы
+// не было: абсолютный путь начинается со слэша и сходит за адрес. На Windows
+// он начинается с «C:», и Node принимает «c:» за протокол — прогон падает
+// с ERR_UNSUPPORTED_ESM_URL_SCHEME на первой же собранной связке. Владелец
+// как раз запускал проверки у себя, и весь прогон встал на этом.
+//
+// Правило: если в import() стоит не строка, а переменная, она обязана пройти
+// через pathToFileURL. Строковые адреса ('node:fs', 'data:…', имя пакета)
+// правило не трогает.
+for (const file of files.concat(separate)) {
+ const text = read(path.join(root, 'tests', file), 'utf8');
+ for (const call of text.matchAll(/\bimport\(\s*([^)\n]+)\)/g)) {
+  const argument = call[1].trim();
+  if (/^['"`]/.test(argument)) continue;              // адрес строкой — годится
+  if (argument.includes('pathToFileURL')) continue;   // путь переведён в адрес
+  assert.fail(file + ': import(' + argument + ') берёт путь как есть — на Windows он '
+   + 'читается как протокол «c:». Оберни в pathToFileURL(...).href');
+ }
+}
+
 // Playwright должен быть закреплённой зависимостью, а не случайно
 // установленным пакетом: на чистом checkout его иначе просто нет.
 const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));

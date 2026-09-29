@@ -3,6 +3,7 @@ import {build} from 'esbuild';
 import {execFileSync,spawn} from 'node:child_process';
 import {mkdir,mkdtemp,rm,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-live-'));
 Object.assign(process.env,{NODE_ENV:'test',DATABASE_PATH:path.join(dir,'db.sqlite'),STORAGE_DIR:path.join(dir,'storage'),LIVE_DIR:path.join(dir,'live'),SESSION_SECRET:'test-secret-only',ADMIN_PASSWORD:'test-pass'});
 let worker;let logs='';
@@ -11,7 +12,8 @@ async function until(fn,seconds=30){const end=Date.now()+seconds*1000;while(Date
 try{
  execFileSync('npx',['drizzle-kit','migrate'],{stdio:'pipe'});
  const outfile=path.join(dir,'routes.mjs');await build({stdin:{contents:`export * as live from '${root}/app/api/live/route.ts';export * as stream from '${root}/app/api/live-stream/route.ts';export * as peaks from '${root}/app/api/peaks/route.ts';export * as auth from '${root}/lib/auth.ts';export {getDb} from '${root}/db';`,resolveDir:root},outfile,bundle:true,format:'esm',platform:'node',packages:'external'});
- const {live,stream,peaks,auth,getDb}=await import(outfile),db=getDb().$client;
+ // Путь в адрес: на Windows «C:\…» без этого читается как протокол «c:».
+ const {live,stream,peaks,auth,getDb}=await import(pathToFileURL(outfile).href),db=getDb().$client;
  const origin='https://true-thrills.test',cookie=auth.createSessionCookie(new Request(origin)).split(';')[0];
  const sessionReq=new Request(origin,{headers:{cookie}});db.prepare('INSERT INTO settings VALUES(?,?)').run('owner',auth.sessionUserId(sessionReq));
  const call=async(route,method,body,query='',authorized=true)=>route[method](new Request(origin+'/api/'+(route===live?'live':route===peaks?'peaks':'live-stream')+query,{method,headers:{host:'true-thrills.test',origin,...(authorized?{cookie}:{}),'content-type':body instanceof Buffer?'audio/webm':'application/json'},...(body!==undefined?{body:body instanceof Buffer?body:JSON.stringify(body)}:{})}));

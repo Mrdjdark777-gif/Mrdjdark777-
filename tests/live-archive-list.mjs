@@ -13,6 +13,7 @@
 import assert from 'node:assert/strict';
 import {mkdtempSync, rmSync} from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -36,7 +37,8 @@ await build({
  },
  outfile, bundle: true, format: 'esm', platform: 'node', packages: 'external',
 });
-const {stream, auth, getDb} = await import(outfile);
+// Путь в адрес: на Windows «C:\…» без этого читается как протокол «c:».
+const {stream, auth, getDb} = await import(pathToFileURL(outfile).href);
 
 const {execFileSync} = await import('node:child_process');
 execFileSync('npx', ['drizzle-kit', 'migrate'], {cwd: root, stdio: 'ignore', env: process.env});

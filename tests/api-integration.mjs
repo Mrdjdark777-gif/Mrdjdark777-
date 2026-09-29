@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {existsSync,readdirSync} from 'node:fs';
 
 // Offline regression test for the self-hosted (Node/better-sqlite3/local
@@ -22,6 +23,11 @@ process.env.ADMIN_PASSWORD = 'test-password';
 
 execFileSync('npx', ['drizzle-kit', 'migrate'], { cwd: root, stdio: 'inherit', env: process.env });
 
+// import() берёт не путь, а адрес. На Linux абсолютный путь начинается со
+// слэша и сходит за адрес сам собой, а на Windows он начинается с «C:», и Node
+// принимает «c:» за протокол: «Only URLs with a scheme in: file, data, and node
+// are supported». Поэтому путь переводится в file:// явно — иначе весь прогон
+// на машине владельца падает на первой же сборке.
 const outfile = path.join(dir, 'routes.mjs');
 await build({
   stdin: {
@@ -51,7 +57,7 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, dicts, getDb } = await import(outfile);
+const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, dicts, getDb } = await import(pathToFileURL(outfile).href);
 const liveLimit = liveRecording.liveListenerLimit;
 const routes = { library, audio, cover, live, notifications, login, ice };
 
