@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
 import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,Timer,ChevronRight,Share2} from 'lucide-react';
+import {useUsage} from '@/hooks/use-usage';
 import {HeartBeam} from '@/components/ui/heart-beam';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
@@ -47,6 +48,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  // Описание в плеере обрезано двумя строками: нажатие раскрывает его целиком.
  const [noteOpen,setNoteOpen]=useState(false);
  const [swipe,setSwipe]=useState({x:0});
+ useUsage(view.postId,view.playing&&!view.loading);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
  const type=view.presentation==='type',archive=view.presentation==='archive';
  // Меню под тремя точками здесь было, и в нём лежали ровно две команды:

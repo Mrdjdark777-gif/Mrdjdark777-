@@ -2,6 +2,8 @@ import type { ru} from './ru';
 
 // Итальянский. Тип требует все ключи из ru.ts — забытый перевод не соберётся.
 export const it: Record<keyof typeof ru, string> = {
+ "stats.reads": "Aperture del racconto",
+ "stats.listens": "Avvii audio",
 
   "err.liveUpload": "Invio audio al server non riuscito.",
 

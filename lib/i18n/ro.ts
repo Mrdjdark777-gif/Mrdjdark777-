@@ -2,6 +2,8 @@ import type { ru} from './ru';
 
 // Română (Moldova). Tipul cere toate cheile din ru.ts — o traducere uitată nu compilează.
 export const ro: Record<keyof typeof ru, string> = {
+ "stats.reads": "Deschideri ale povestirii",
+ "stats.listens": "Porniri audio",
 
   "err.liveUpload": "Sunetul emisiunii nu a putut fi trimis pe server.",
   "err.liveRecorder": "Pentru transmisie ai nevoie de un browser cu înregistrare WebM/Opus. Actualizează Windows WebView2.",

@@ -769,7 +769,11 @@ try{
    // Порог относительный: сколько именно меняется картина, зависит от шрифта,
    // фона и от того, как быстро успевает сняться кадр. Сравнивается самый
    // спокойный переход с самым живым — у надписи с провалом между ними разы.
-   check(moves.length>=12&&still>busy*0.18,'надпись переливается с провалом: между какими-то кадрами она стоит ('+
+   // Порог низкий нарочно. Разброс между «живыми» кадрами всё равно остаётся:
+   // снимки идут не строго по таймеру, а полоса на коротких словах даёт разный
+   // вклад. Ловим не разброс, а остановку: у надписи с провалом среди кадров
+   // есть нули, и отношение падает до нуля.
+   check(moves.length>=12&&still>busy*0.08,'надпись переливается с провалом: между какими-то кадрами она стоит ('+
     moves.map(v=>v.toFixed(2)).join(', ')+')');}
   step('поверхность плашек');}
 
@@ -1540,25 +1544,23 @@ try{
    const r=scene?scene.getBoundingClientRect():null;
    return {title:b('.soft-eyebrow'),action:b('.scene-action'),carousel:!!car,
     sceneRatio:r?Number((r.width/r.height).toFixed(2)):null,
+    sceneHeight:r?r.height:null,
     sceneLeft:r?Math.round(r.left):null,sceneRight:r?Math.round(r.right):null,
     carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
     navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
   check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
-  // Кадр-постер занимает первый экран целиком — это замысел, а не поломка.
-  // Поэтому здесь проверяется не «всё поместилось», а что постер именно
-  // вертикальный и что снизу видно начало карусели: без этого человек не
-  // поймёт, что главная листается.
-  // Кадр идёт от края до края, и владелец просил его уменьшать. Квадрат —
-  // предел: ниже него афиша превращается в полосу и перестаёт быть афишей.
-  // Поэтому правило теперь «не шире, чем выше», а не «строго вертикальный».
-  check(fold.sceneRatio!==null&&fold.sceneRatio<=1,`главная ${width}×${height}: кадр шире, чем выше (отношение ${fold.sceneRatio}) — это уже полоса, а не афиша`);
+  // Пропорция 4:5 — выбор владельца: афиша рисуется 2:3, квадрат срезал у неё
+  // верх вместе с названием, а полная 2:3 уводила кнопку за первый экран.
+  check(fold.sceneRatio!==null&&Math.abs(fold.sceneRatio-.8)<.02,`главная ${width}×${height}: пропорция афиши должна быть 4:5, а она ${fold.sceneRatio}`);
   // Постер во всю ширину занимает почти весь первый экран — так просил
   // владелец. Требование к сгибу одно: кнопка запуска доступна без
   // прокрутки, за ней человек и пришёл.
-  check(fold.action!==null&&fold.navTop!==null&&fold.action<=fold.navTop,`главная ${width}×${height}: кнопка запуска уходит под панель разделов (${fold.action} против ${fold.navTop})`);
-  // Постер идёт от края до края экрана: это первое, о чём просил владелец.
+  check(fold.action!==null&&fold.navTop!==null&&fold.action<=fold.navTop,`главная ${width}×${height}: кнопка запуска ушла под панель разделов (${fold.action} против ${fold.navTop})`);
+  // Постер идёт от края до края экрана: это первое, о чём просил владелец, и
+  // он повторил это, увидев поля по бокам. Правило держится здесь, чтобы
+  // очередная правка вёрстки не вернула их молча.
   check(fold.sceneLeft===0&&fold.sceneRight===width,`главная ${width}×${height}: постер не во всю ширину (${fold.sceneLeft}…${fold.sceneRight})`);
   await shot(page,`home${width===390?'':'-'+width}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
@@ -2017,9 +2019,14 @@ try{
    // проект». Его владелец попросил отдельно и именно на этой фразе. Это не
    // мельтешение фона — светлая полоса идёт по буквам одной надписи. Для
    // всего остального порог остаётся прежним.
-   const allowed=moving.filter(m=>m.name==='tt-shimmer'&&m.el.includes('support-strip-label'));
+   // Два исключения, названных по имени: переливание надписи «Поддержать
+   // проект» и биение сердца. Оба владелец попросил отдельно, и оба про
+   // поддержку. Это не мельтешение фона — движется знак и одна надпись.
+   const allowed=moving.filter(m=>(m.name==='tt-shimmer'&&m.el.includes('support-strip-label'))
+    ||m.name==='tt-heart-beat');
    const stray=moving.filter(m=>!allowed.includes(m));
-   if(allowed.length!==1)problems.push('переливание надписи поддержки потерялось или размножилось: '+allowed.length);
+   if(!allowed.some(m=>m.name==='tt-shimmer'))problems.push('переливание надписи поддержки потерялось');
+   if(!allowed.some(m=>m.name==='tt-heart-beat'))problems.push('сердце на главной перестало биться');
    if(stray.length)problems.push('на главной у слушателя что-то мельтешит: '+
     stray.map(m=>m.name+' ('+m.dur+'ms, '+m.el+')').join(', '));
    await anim.close();

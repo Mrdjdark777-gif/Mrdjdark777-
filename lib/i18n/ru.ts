@@ -2,6 +2,8 @@
 // языках: it.ts типизирован как Record<keyof typeof ru, string>, поэтому
 // забытый перевод ломает сборку, а не всплывает у слушателя.
 export const ru = {
+ "stats.reads": "Открытия рассказа",
+ "stats.listens": "Запуски аудио",
   "err.liveUpload": "Не удалось передать звук эфира на сервер.",
 
   "err.liveRecorder": "Для передачи эфира нужен браузер с записью WebM/Opus. Обнови Windows WebView2.",
