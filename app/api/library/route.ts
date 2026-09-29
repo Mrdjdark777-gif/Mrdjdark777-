@@ -1,5 +1,5 @@
 import {enqueueNotice,siteOrigin} from '@/lib/push';
-import { desc, eq ,inArray} from 'drizzle-orm';
+import { desc, eq ,inArray,like} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, liveRecordings, posts, settings } from '@/db/schema';
 import { bucket, failure, originCheck, owner, requireOwner, result, setting, userId } from '@/lib/server';
@@ -9,13 +9,15 @@ import { parseDonations, parseLinks, parseVideo } from '@/lib/video';
 export async function GET(req: Request){try{
   const isOwner=await owner(req),db=getDb();
   const items=await db.select().from(posts).where(isOwner?undefined:eq(posts.published,1)).orderBy(desc(posts.createdAt));
+  const usage=isOwner?await db.select().from(settings).where(like(settings.key,'usage:%')):[];
+  const counts=new Map(usage.map(row=>[row.key.slice(6),Number(row.value)||0]));
   const live=await db.select({id:broadcasts.id,title:broadcasts.title,description:broadcasts.description,heartbeat:broadcasts.heartbeat,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(eq(broadcasts.active,1)).orderBy(desc(broadcasts.heartbeat)).get();
   // Запись только что закончившегося эфира появляется не сразу: воркер её
   // сшивает и перекодирует. Пока это идёт, слушателю честнее сказать «запись
   // готовится», чем показывать пустой архив, будто записей не было вовсе.
   const pending=await db.select({id:liveRecordings.id}).from(liveRecordings)
     .where(inArray(liveRecordings.state,[...LIVE_BUSY_STATES])).get();
-  return result({archivePending:!!pending,items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
+  return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
   originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb();
@@ -84,6 +86,7 @@ export async function POST(req: Request){try{
       // общей у нескольких архивов — при старте эфира переиспользуется
       // обложка предыдущего, — и безусловное удаление файла оставляло
       // соседний выпуск с ключом, по которому приходит 404.
+      await db.delete(settings).where(eq(settings.key,'usage:'+p.id));
       await db.delete(posts).where(eq(posts.id,p.id));
       await unlinkIfUnused(p.audioKey);
       await unlinkIfUnused(p.coverKey);

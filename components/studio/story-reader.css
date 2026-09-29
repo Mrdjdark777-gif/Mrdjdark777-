@@ -19,13 +19,9 @@
  /* Точка схода далеко: чем ближе она к экрану, тем сильнее звенья отличаются
     друг от друга увеличением, и тем заметнее ступеньки на строках. */
  touch-action:none;perspective:3600px;perspective-origin:50% 50%}
-/* Страница отступает сверху и снизу на высоту панелей всегда, а не только
-   когда они показаны: панели полупрозрачные и всплывают поверх, и строка,
-   оказавшаяся под ними, просто пропадала бы. Левый отступ и ширину полосы
-   дописывает скрипт: он же меряет ими текст.
-
-   Выключка по левому краю, а не по ширине: без переносов выключка по ширине
-   растягивает пробелы в дыры — это было видно на первом же снимке. */
+/* При показанных панелях текст отступает на измеренную высоту шапки.
+   В режиме чтения освобождённая высота участвует в новой разбивке.
+   Выключка по левому краю не растягивает пробелы между словами. */
 /* Отступ сверху больше высоты панели: буквы заголовка крупнее своей клетки
    сетки и выступают вверх, и на первом снимке название упиралось в панель. */
 .tt-reader-page{position:absolute;top:calc(var(--tt-reader-top,112px) + 12px);
@@ -197,3 +193,9 @@
 .tt-reader-seek:has(input:focus-visible){outline:2px solid #6fe7de;outline-offset:2px;border-radius:12px}
 .tt-reader-seek:has(input:disabled){opacity:.4;cursor:default}
 .tt-reader-page{bottom:calc(72px + env(safe-area-inset-bottom))}
+
+/* Distraction-free reading uses the space released by hidden controls. */
+.tt-reader-progress>span{background:#6fe7de}
+.tt-reader-progress{height:2px;opacity:.65}
+.tt-reader[data-chrome=off] .tt-reader-progress,.tt-reader[data-chrome=off] .tt-reader-folio{display:none}
+.tt-reader[data-chrome=off] .tt-reader-page{top:max(24px,env(safe-area-inset-top));bottom:max(20px,env(safe-area-inset-bottom))}

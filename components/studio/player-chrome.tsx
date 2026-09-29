@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState,useRef} from 'react';
 import {Play,Pause,RotateCcw,RotateCw,Loader2,X,ChevronDown,ChevronUp,MoreHorizontal,Timer,ChevronRight,Share2} from 'lucide-react';
+import {useUsage} from '@/hooks/use-usage';
 import {HeartBeam} from '@/components/ui/heart-beam';
 import {Waveform} from './waveform';
 import {Artwork} from './artwork';
@@ -49,6 +50,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  const [noteOpen,setNoteOpen]=useState(false);
  const [swipe,setSwipe]=useState({x:0});
  const moreRef=useRef<HTMLButtonElement>(null),menuRef=useRef<HTMLDivElement>(null);
+ useUsage(view.postId,view.playing&&!view.loading);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
  const type=view.presentation==='type',archive=view.presentation==='archive';
  // Системный Back закрывает сначала меню, потом сворачивает плеер. Слои
@@ -129,7 +131,8 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
        Класс player-more на всех трёх — по той же причине: он уже есть в
        прежних стилях, поэтому размер и форма не разъедутся. */}
    <div className="player-sheet-actions" style={{display:'flex',alignItems:'center',gap:2}}>
-    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><HeartBeam size={21}/></button>}
+    {act.share&&<button type="button" className="player-more player-share tt-pressable" aria-label={t('share.action')} title={t('share.action')} onClick={()=>{setMenu(false);act.share!();}}><Share2 size={21}/></button>}
+    {act.donate&&<button type="button" className="player-more player-donate tt-pressable" aria-label={t('donate.action')} title={t('donate.action')} onClick={()=>{setMenu(false);act.donate!();}}><HeartBeam size={21} beat/></button>}
     <button type="button" className="player-more player-close tt-pressable" aria-label={t('player.close')} title={t('player.close')} onClick={()=>{setMenu(false);act.close();}}><X size={22}/></button>
     <button ref={moreRef} type="button" className="player-more player-menu-button tt-pressable" aria-label={t('player.menu')} aria-haspopup="menu" aria-expanded={menu} onClick={()=>setMenu(v=>!v)}><MoreHorizontal size={22}/></button>
    </div>

@@ -51,3 +51,8 @@ export function consumeSubscribeAttempt(req: Request) {
   const ip = clientIp(req);
   return ip === null ? 0 : consume(key('subscribe', ip), 10, 3600000);
 }
+
+/** Aggregate usage events: bound abuse; does not limit media playback. */
+export function consumePublicAttempt(req:Request,bucket:string,max:number,windowMs:number){
+ return consume(key(bucket,clientIp(req)??'direct'),max,windowMs);
+}

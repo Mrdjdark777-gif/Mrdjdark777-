@@ -2,6 +2,8 @@ import type { ru} from './ru';
 
 // Українська. Тип вимагає всі ключі з ru.ts — забутий переклад не збереться.
 export const uk: Record<keyof typeof ru, string> = {
+ "stats.reads": "Відкриття оповідання",
+ "stats.listens": "Запуски аудіо",
 
   "err.liveUpload": "Не вдалося передати звук ефіру на сервер.",
   "err.liveRecorder": "Для передавання ефіру потрібен браузер із записом WebM/Opus. Онови Windows WebView2.",

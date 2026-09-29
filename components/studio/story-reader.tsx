@@ -5,6 +5,7 @@ import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'rea
 import {ArrowLeft,Bookmark,BookmarkCheck,List,Minus,Plus,Settings2,Trash2,X} from 'lucide-react';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
+import {useUsage} from '@/hooks/use-usage';
 import {haptic} from '@/lib/client';
 import {blocksOf,paginate,type Kind,type Page} from '@/lib/page-text';
 import {createCurl,GONE,type Curl} from '@/lib/page-curl';
@@ -90,13 +91,14 @@ export function StoryReader({id,title,description,body,onClose}:{
  id:string;title:string;description?:string;body:string;onClose:()=>void;
 }){
  const {t}=useT();
+ useUsage(id,true);
  const stage=useRef<HTMLDivElement>(null),sheetRef=useRef<HTMLDivElement>(null);
  const headerRef=useRef<HTMLElement>(null);
  const [headerHeight,setHeaderHeight]=useState(112);
  const seekPointer=useRef<number|null>(null);
  useLayoutEffect(()=>{const el=headerRef.current;if(!el)return;
   const update=()=>setHeaderHeight(el.offsetHeight);update();
-  const observer=new ResizeObserver(update);observer.observe(el);return()=>observer.disconnect();
+  const observer=new ResizeObserver(update);observer.observe(el,{box:'border-box'});return()=>observer.disconnect();
  },[]);
  const glCanvas=useRef<HTMLCanvasElement>(null);
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
@@ -168,7 +170,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    {
     const line=sheetRef.current;
     const css=line?getComputedStyle(line):null;
-    insets.current={top:headerHeight+12,bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
+    insets.current={top:chrome?headerHeight+12:(css?parseFloat(css.top)||24:24),bottom:css?parseFloat(css.bottom)||(chrome?72:20):(chrome?72:20)};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
    const rows=Math.max(1,Math.floor(free/lead));
@@ -194,7 +196,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[blocks,prefs.size,fonts,loaded,headerHeight]);
+ },[blocks,prefs.size,fonts,loaded,headerHeight,chrome]);
 
  const total=pages.length;
  const ratio=total>1?page/(total-1):0;
@@ -508,8 +510,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    </>}
    <span className="tt-reader-folio">{page+1}</span>
   </div>
-  {/* Сколько прочитано — тонкой полосой поверх всего. Она видна и когда
-      панели убраны: в нижней строке номер страницы есть только с панелями. */}
+  {/* Прогресс виден вместе с управлением; режим чтения скрывает его. */}
   <div className="tt-reader-progress" role="progressbar" aria-label={t('reader.progress')}
    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio*100)}>
    <span style={{transform:'scaleX('+ratio.toFixed(4)+')'}}/>

@@ -1,12 +1,13 @@
 import type {LegalPack} from './types';
 
 export const it: LegalPack = {
-  updated: '2026-09-25',
+  updated: '2026-09-29',
   privacy: {
     title: 'Informativa sulla privacy',
     intro:
       'True Thrills è un canale con podcast, video, testi e dirette. L’app e il sito girano sul server dell’autore e non mostrano pubblicità. Questo documento spiega quali dati passano dal servizio, perché e cosa puoi farci.',
     sections: [
+{"heading": "Contatori delle pubblicazioni", "paragraphs": ["Il servizio conta le aperture dei racconti e gli avvii audio, non le persone uniche né i completamenti. Vengono inviati l’ID della pubblicazione e un codice casuale della sessione conservato solo in memoria, senza cookie o archivio locale. Sul server un hash antiripetizione è valido 24 ore e viene eliminato alla successiva pulizia delle voci scadute. I totali sono visibili all’autore fino alla cancellazione della pubblicazione. Si applica il meccanismo esistente di limitazione delle richieste."]},
       {
         heading: 'Chi tratta i dati',
         paragraphs: [
@@ -39,7 +40,7 @@ export const it: LegalPack = {
         bullets: [
           'Google (Firebase Cloud Messaging) — consegna le notifiche su Android. Google riceve il token del dispositivo e il testo della notifica. Senza notifiche attive non c’è nessuna richiesta a Google.',
           'Oracle Cloud — l’hosting del server. Come ogni hosting, ha tecnicamente accesso ai dischi della macchina.',
-          'A nessun altro. Nell’app non ci sono reti pubblicitarie, contatori, pixel o analisi di terze parti.',
+          'A nessun altro. Nell’app non ci sono reti pubblicitarie, pixel pubblicitari o analisi di terze parti.',
         ],
       },
       {

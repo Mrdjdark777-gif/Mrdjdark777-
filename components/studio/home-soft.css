@@ -8,25 +8,17 @@
  display:flex!important;flex-direction:column!important;gap:12px!important;width:100%;min-width:0;
  padding:6px 16px 16px!important;background:#0d0f12;box-sizing:border-box;height:auto!important;overflow:visible!important}
 
-/* ── Кадр-постер ───────────────────────────────────────────────────────
-   Кадр — постер один к одному: во всю ширину экрана это предел, за которым
-   афиша перестаёт быть афишей: он и есть то, ради
-   чего человек открыл приложение. Надпись вверху, кнопка внизу, между ними
-   постер виден целиком. Главная от этого стала выше экрана — так и задумано:
-   постер обязан занимать первый экран, а карусель заглядывает снизу и зовёт
-   листать дальше. */
-/* Отступ сверху освобождал место наехавшей шапке. Шапка теперь стоит над
-   кадром, и отступ только съедал бы фотографию. */
+/* Афиша с полями: 4:5, не более 52.5% высоты окна на телефоне. */
 .tt-soft-home .scene,.tt-soft-home .scene-fallback{padding:0!important;margin-block:0!important}
-.immersion.tt-soft-home{padding-top:0!important}
+.immersion.tt-soft-home{padding-top:8px!important}
 /* Размер задаётся шириной, а не высотой: при ограничении по высоте кадр
    перестаёт быть два к трём и начинает резать обложку сильнее, чем нужно.
    Поэтому постер уже полосы содержимого и стоит по центру — как афиша на
    стене, а не во всю стену. */
 .tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
- width:calc(100% + 32px)!important;margin-inline:-16px!important;align-self:stretch!important;max-width:none!important;
+ width:min(100%,344px,42svh)!important;margin-inline:auto!important;align-self:center!important;max-width:100%!important;
  aspect-ratio:4/5;height:auto!important;min-height:0!important;max-height:none!important;
- background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
+ background:#090c0e;border-radius:28px!important;overflow:hidden;border:1px solid #ffffff12;box-shadow:0 12px 24px -12px #000a}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
    читается как настоящая афиша.
@@ -84,7 +76,7 @@
  color:#b7c5c5;font:inherit;font-size:14px;cursor:pointer;border-radius:999px}
 .tt-soft-home .soft-all>svg{width:17px;height:17px}
 .tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
- scroll-padding-inline:3px;padding:3px 3px 4px;margin:0;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent}
+ scroll-padding-inline:16px;padding:12px 16px 22px;margin:0 -16px;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent}
 .tt-soft-home .soft-carousel>li{flex:0 0 37%;min-width:118px;max-width:170px;scroll-snap-align:start}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
@@ -97,8 +89,9 @@
  border:1px solid rgba(255,255,255,.16);
  /* Свечение позади карточки в цветах канала — от него она отрывается от
     страницы, а не просто лежит на ней. Тень даёт вес, свечение даёт воздух. */
- box-shadow:0 12px 26px rgba(0,0,0,.55),0 2px 6px rgba(0,0,0,.4),
-  0 0 22px rgba(111,231,222,.20),0 0 46px rgba(74,168,255,.12)}
+ box-shadow:0 12px 16px -10px #000c,0 3px 5px -2px #0008;
+ transform:perspective(900px) rotateX(0) rotateY(0);transform-origin:center;
+ transition:transform .24s ease,box-shadow .24s ease}
 /* Бортик поверх обложки: снизу он темнее, сверху светлее — так читается
    толщина карточки, а не просто нарисованная рамка. */
 .tt-soft-home .soft-art::after{content:'';position:absolute;inset:0;pointer-events:none;
@@ -162,7 +155,7 @@
    афишей 2:3, и после того как его укоротили, оно делало ровно обратное:
    на самых маленьких экранах постер становился выше, чем на остальных. */
 @media(max-height:740px) and (max-width:767px){.immersion.tt-soft-home{gap:10px!important}
- .tt-soft-home .scene{aspect-ratio:1/1}
+ .tt-soft-home .scene{aspect-ratio:4/5}
  .tt-soft-home .scene-side{gap:10px!important}}
 @media(prefers-reduced-motion:reduce){.tt-soft-home *{scroll-behavior:auto!important}}
 
@@ -175,3 +168,14 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
 /* Подвал на главной: та же полоса, что в остальных разделах, но по краям
    содержимого — постер уходит под края экрана, подвал за ним не идёт. */
 .listener-main:has(.tt-soft-home) .content-footer{margin-top:18px}
+
+/* Rounded optical depth, without an external coloured glow. */
+.tt-soft-home .soft-art::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+ border-radius:inherit;background:linear-gradient(125deg,#ffffff12,transparent 35%,transparent 75%,#0002)}
+@media(hover:hover) and (pointer:fine){
+ .tt-soft-home .soft-episode:hover .soft-art{transform:perspective(900px) translateY(-3px) rotateX(2deg) rotateY(-3deg);
+ box-shadow:0 15px 18px -10px #000c,0 4px 6px -2px #0008}}
+.tt-soft-home .soft-episode:active .soft-art{transform:perspective(900px) translateY(1px) scale(.985)}
+@media(prefers-reduced-motion:reduce){.tt-soft-home .soft-art{transition:none!important;transform:none!important}}
+.tt-soft-home .scene:has(.scene-mark) .scene-title{position:static!important;width:auto!important;height:auto!important;margin:0;
+ clip-path:none;white-space:normal;overflow:visible}

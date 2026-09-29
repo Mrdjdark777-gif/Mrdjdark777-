@@ -1,12 +1,13 @@
 import type {LegalPack} from './types';
 
 export const ro: LegalPack = {
-  updated: '2026-09-25',
+  updated: '2026-09-29',
   privacy: {
     title: 'Politica de confidențialitate',
     intro:
       'True Thrills este un canal cu podcasturi, videoclipuri, texte și transmisiuni în direct. Aplicația și site-ul rulează pe serverul propriu al autorului și nu afișează reclame. Acest document explică ce date trec prin serviciu, de ce și ce se poate face cu ele.',
     sections: [
+{"heading": "Contoare de publicații", "paragraphs": ["Serviciul numără deschiderile povestirilor și pornirile audio, nu persoanele unice sau finalizările. Se trimit identificatorul publicației și un cod aleator al sesiunii păstrat doar în memorie, fără cookie sau stocare locală. Pe server, hash-ul pentru eliminarea repetărilor este valabil 24 de ore și este șters la următoarea curățare a înregistrărilor expirate. Totalurile sunt vizibile autorului până la ștergerea publicației. Se aplică limitarea existentă a cererilor."]},
       {
         heading: 'Cine prelucrează datele',
         paragraphs: [
@@ -39,7 +40,7 @@ export const ro: LegalPack = {
         bullets: [
           'Google (Firebase Cloud Messaging) — livrează notificările pe Android. Google primește tokenul dispozitivului și textul notificării. Fără notificări activate nu există nicio cerere către Google.',
           'Oracle Cloud — găzduirea serverului. Ca orice găzduire, are tehnic acces la discurile mașinii.',
-          'Nimănui altcuiva. În aplicație nu există rețele publicitare, contoare, pixeli sau analiză de la terți.',
+          'Nimănui altcuiva. În aplicație nu există rețele publicitare, pixeli publicitari sau analiză de la terți.',
         ],
       },
       {

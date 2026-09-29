@@ -827,39 +827,11 @@ try{
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(350);
   if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
-  // Номер страницы стоит в углу полосы и виден при убранных панелях: только
-  // по нижней строке его не найти, когда панели спрятаны.
-  {const folio=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-folio');
-    if(!f)return null;const r=f.getBoundingClientRect();const css=getComputedStyle(f);
-    // Мало, чтобы номер был не спрятан стилями: он не должен быть ничем
-    // накрыт. Спрашиваем у браузера, что лежит в этой точке экрана. Сам номер
-    // нажатий не принимает, поэтому браузер честно возвращает полосу под ним —
-    // это его родитель, и накрытием не считается. А вот нижняя панель номеру
-    // не родня: попади она сюда, проверка её и назовёт.
-    const top=document.elementFromPoint(Math.round(r.left+r.width/2),Math.round(r.top+r.height/2));
-    return {text:f.textContent.trim(),visible:css.visibility!=='hidden'&&Number(css.opacity)>0,
-     covered:!(top===f||f.contains(top)||(top&&top.contains(f))),coveredBy:top?top.className||top.tagName:'ничего',
-     right:Math.round(innerWidth-r.right),bottom:Math.round(innerHeight-r.bottom)};});
-   // Полоса прочитанного видна всегда, в том числе с убранными панелями:
-   // номер страницы в нижней строке без панелей не показывается.
-   {const bar=await page.evaluate(()=>{const n=document.querySelector('.tt-reader-progress');
-     if(!n)return null;const fill=n.querySelector('span');
-     const r=n.getBoundingClientRect(),css=getComputedStyle(n);
-     return {top:Math.round(r.top),headerBottom:Math.round(document.querySelector('.tt-reader-top').offsetHeight),wide:Math.round(r.width),vw:innerWidth,
-      shown:css.visibility!=='hidden'&&Number(css.opacity)>0,
-      scale:fill?getComputedStyle(fill).transform:'нет'};});
-    if(!bar)problems.push('в читалке нет полосы прочитанного');
-    else{
-     if(!bar.shown)problems.push('полоса прочитанного спрятана стилями');
-     if(Math.abs(bar.top-(bar.headerBottom-3))>2)problems.push('полоса прочитанного должна быть под шапкой, вне выреза: '+bar.top);
-     if(bar.wide!==bar.vw)problems.push('полоса прочитанного не во всю ширину: '+bar.wide+' из '+bar.vw);
-     if(bar.scale==='нет'||bar.scale==='none')problems.push('полоса прочитанного ничего не показывает: заполнение не сдвинуто');}}
-   if(!folio)problems.push('в углу страницы нет номера');
-   else{
-    if(!folio.visible)problems.push('номер страницы в углу не виден');
-    if(folio.covered)problems.push('номер страницы в углу накрыт: '+folio.coveredBy);
-    if(folio.text!=='1')problems.push('номер в углу не совпал со страницей: «'+folio.text+'» вместо 1');
-    if(folio.right>40||folio.bottom>40)problems.push('номер страницы не в углу: отступы '+folio.right+'/'+folio.bottom);}}
+  const immersive=await page.evaluate(()=>({
+   top:document.querySelector('.tt-reader-page:not(.is-copy)').getBoundingClientRect().top,
+   bar:getComputedStyle(document.querySelector('.tt-reader-progress')).display,
+   folio:getComputedStyle(document.querySelector('.tt-reader-folio')).display}));
+  if(immersive.top>25||immersive.bar!=='none'||immersive.folio!=='none')problems.push('режим чтения оставил панели или пустое место');
   await at(0.5);await page.waitForTimeout(350);
   // Изгиб. Держим палец посреди оборота — лист обязан стоять согнутым, а не
   // висеть плоской карточкой.
@@ -1508,26 +1480,17 @@ try{
    const r=scene?scene.getBoundingClientRect():null;
    return {title:b('.soft-eyebrow'),action:b('.scene-action'),carousel:!!car,
     sceneRatio:r?Number((r.width/r.height).toFixed(2)):null,
+    sceneHeight:r?r.height:null,
     sceneLeft:r?Math.round(r.left):null,sceneRight:r?Math.round(r.right):null,
     carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
     navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
   check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
-  // Кадр-постер занимает первый экран целиком — это замысел, а не поломка.
-  // Поэтому здесь проверяется не «всё поместилось», а что постер именно
-  // вертикальный и что снизу видно начало карусели: без этого человек не
-  // поймёт, что главная листается.
-  // Кадр идёт от края до края, и владелец просил его уменьшать. Квадрат —
-  // предел: ниже него афиша превращается в полосу и перестаёт быть афишей.
-  // Поэтому правило теперь «не шире, чем выше», а не «строго вертикальный».
-  check(fold.sceneRatio!==null&&fold.sceneRatio<=1,`главная ${width}×${height}: кадр шире, чем выше (отношение ${fold.sceneRatio}) — это уже полоса, а не афиша`);
-  // Постер во всю ширину занимает почти весь первый экран — так просил
-  // владелец. Требование к сгибу одно: кнопка запуска доступна без
-  // прокрутки, за ней человек и пришёл.
-  check(fold.action!==null&&fold.navTop!==null&&fold.action<=fold.navTop,`главная ${width}×${height}: кнопка запуска уходит под панель разделов (${fold.action} против ${fold.navTop})`);
-  // Постер идёт от края до края экрана: это первое, о чём просил владелец.
-  check(fold.sceneLeft===0&&fold.sceneRight===width,`главная ${width}×${height}: постер не во всю ширину (${fold.sceneLeft}…${fold.sceneRight})`);
+  check(fold.sceneRatio!==null&&Math.abs(fold.sceneRatio-.8)<.02,`главная ${width}×${height}: пропорция афиши должна быть 4:5`);
+  check(fold.sceneHeight<=height*.53,`главная ${width}×${height}: афиша заняла больше половины экрана`);
+  check(fold.action!==null&&fold.navTop!==null&&fold.action<=fold.navTop,`главная ${width}×${height}: кнопка запуска ушла под навигацию`);
+  check(fold.sceneLeft>=16&&fold.sceneRight<=width-16,`главная ${width}×${height}: поля постера потеряны`);
   await shot(page,`home${width===390?'':'-'+width}`);}
  {const page=sizes;await page.setViewportSize({width:360,height:640});await page.goto(base+'/?mode=listen');await settle(page);
   // До сгиба обязаны помещаться кадр и кнопка запуска: за ними человек и

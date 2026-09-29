@@ -1,5 +1,6 @@
 'use client';
 import './heart-beam.css';
+import {useId} from 'react';
 
 /**
  * Сердце, по контуру которого бежит свет.
@@ -17,15 +18,16 @@ import './heart-beam.css';
  */
 const HEART='M12 21S4.5 16.3 2.6 11.8C1.2 8.4 3 4.8 6.4 4.1 8.6 3.6 10.7 4.5 12 6.3c1.3-1.8 3.4-2.7 5.6-2.2 3.4.7 5.2 4.3 3.8 7.7C19.5 16.3 12 21 12 21z';
 
-export function HeartBeam({size=20}:{size?:number}){
- return <svg className="tt-heart-beam" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+export function HeartBeam({size=20,beat=false}:{size?:number;beat?:boolean}){
+ const gradientId="tt-heart-"+useId().replace(/:/g,"");
+ return <svg className={"tt-heart-beam"+(beat?" is-beating":"")} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
   <defs>
-   <linearGradient id="tt-heart-beam-line" x1="0" y1="0" x2="1" y2="1">
+   <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
     <stop offset="0%" stopColor="#6FE7DE"/>
     <stop offset="100%" stopColor="#4AA8FF"/>
    </linearGradient>
   </defs>
   <path className="tt-heart-line" d={HEART} pathLength={100}/>
-  <path className="tt-heart-spark" d={HEART} pathLength={100}/>
+  <path className="tt-heart-spark" style={{stroke:`url(#${gradientId})`}} d={HEART} pathLength={100}/>
  </svg>;
 }
