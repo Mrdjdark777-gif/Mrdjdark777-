@@ -192,9 +192,16 @@ export function StoryReader({id,title,description,body,onClose}:{
    const pad=Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
    const width=Math.max(120,box.clientWidth-pad*2);
    {
+    // Отступы полосы чтения спрашиваем у настоящих стилей, а не считаем сами:
+    // с панелями и без панелей они разные, и правило живёт в одном месте — в
+    // CSS. Раньше верхний отступ считался как высота шапки, и на полном экране
+    // текст оставался стоять там, где была шапка, оставив над собой пустую
+    // полосу.
     const line=sheetRef.current;
     const css=line?getComputedStyle(line):null;
-    insets.current={top:headerHeight+12,bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
+    insets.current={
+     top:css?parseFloat(css.top)||headerHeight+12:headerHeight+12,
+     bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
    // Опора запоминает САМУЮ ТЕСНУЮ полосу: когда панели уходят, места
@@ -220,8 +227,14 @@ export function StoryReader({id,title,description,body,onClose}:{
    // ширине — чтобы строки не вылезли за края экрана вместе со шрифтом.
    const grow=Math.max(1,Math.min(free/Math.max(1,rows*lead),box.clientWidth/Math.max(1,width)));
    const shownWidth=width*grow,shownLead=lead*grow;
+   // Увеличение упирается в ширину экрана раньше, чем в высоту: буквы нельзя
+   // растить бесконечно, иначе строки полезут за края. Остаток высоты делим
+   // поровну сверху и снизу — страница встаёт посередине свободной полосы, а
+   // не жмётся к её верху. Разметка делает то же самое (justify-content:center),
+   // и холст обязан совпасть с ней до пикселя.
+   const slack=Math.max(0,free-rows*shownLead);
    setFrame({width:shownWidth,height:rows*shownLead,left:(box.clientWidth-shownWidth)/2,
-    top:insets.current.top,lead:shownLead,scale:grow});
+    top:insets.current.top+slack/2,lead:shownLead,scale:grow});
    const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
    setPage(Number.isFinite(next)?Math.min(laid.length-1,Math.max(0,next)):0);
   };

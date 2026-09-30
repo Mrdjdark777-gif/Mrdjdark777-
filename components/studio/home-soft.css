@@ -22,7 +22,12 @@
    стене, а не во всю стену. */
 .tt-soft-home .scene{position:relative!important;inset:auto!important;flex:none!important;
  width:calc(100% + 32px)!important;margin-inline:-16px!important;align-self:stretch!important;max-width:none!important;
- aspect-ratio:4/5;height:auto!important;min-height:0!important;max-height:none!important;
+ aspect-ratio:4/5;height:auto!important;min-height:0!important;
+ /* Потолок по высоте экрана. Без него на высоком телефоне афиша съедала весь
+    первый экран, и карусель было не видно вовсе — владелец просил, чтобы
+    обложка была видна целиком И снизу заглядывала карусель. Ширина остаётся
+    во всю страницу, обрезка идёт снизу: верх афиши с названием не трогаем. */
+ max-height:48svh!important;
  background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка

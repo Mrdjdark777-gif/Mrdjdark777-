@@ -831,38 +831,31 @@ try{
   if(second!==2)problems.push('нажатие у правого края не пролистало вперёд: страница '+second);
   await at(0.1);await page.waitForTimeout(1700);const back=await now();
   if(back!==1)problems.push('нажатие у левого края не вернуло назад: страница '+back);
-  // Середина прячет панели — ради этого читалку и делали во весь экран.
-  await at(0.5);await page.waitForTimeout(350);
-  if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
-
   // Полный экран не меняет текст страницы, а только его размер.
   //
-  // На телефоне вместе с панелями читалки уходят и системные — полоса чтения
-  // становится выше. Пока разбивка считалась по ней, строк на странице
-  // становилось больше, текст перебивался заново, и человек видел уже другой
-  // кусок: «нажимаю в центр — текст со страницы совсем другой».
-  //
-  // Здесь этот рост воспроизводится честно: окну добавляется высота, как её
-  // добавляют ушедшие панели. Текст обязан остаться тем же до буквы, а буквы —
-  // стать крупнее.
-  {const read=()=>page.evaluate(()=>{
-    const sheet=document.querySelector('.tt-reader-page:not(.is-copy)');
-    if(!sheet)return null;
-    const lines=[...sheet.querySelectorAll('.tt-reader-line')];
-    const body=lines.find(l=>!l.classList.contains('is-title'))??lines[0];
-    return {text:lines.map(l=>l.textContent).join('\n'),
-     size:body?parseFloat(getComputedStyle(body).fontSize):0};});
-   const before=await read();
-   const size=page.viewportSize();
-   await page.setViewportSize({width:size.width,height:size.height+90});
-   await page.waitForTimeout(450);
-   const after=await read();
-   if(!before||!after)problems.push('страницу читалки не удалось снять для сверки полного экрана');
+  // Владелец сказал прямо: «нажимаю в центр — текст со страницы совсем другой».
+  // Так и было: с уходом панелей полоса чтения становится выше, строк
+  // помещается больше, и разбивка пересчитывалась заново. Здесь снимается
+  // страница до нажатия и после: текст обязан совпасть до буквы, а буквы —
+  // стать крупнее, потому что та же страница растягивается на освободившееся
+  // место.
+  const readPage=()=>page.evaluate(()=>{
+   const sheet=document.querySelector('.tt-reader-page:not(.is-copy)');
+   if(!sheet)return null;
+   const lines=[...sheet.querySelectorAll('.tt-reader-line')];
+   const body=lines.find(l=>!l.classList.contains('is-title'))??lines[0];
+   return {text:lines.map(l=>l.textContent).join('\n'),
+    size:body?parseFloat(getComputedStyle(body).fontSize):0};});
+  const withChrome=await readPage();
+  // Середина прячет панели — ради этого читалку и делали во весь экран.
+  await at(0.5);await page.waitForTimeout(450);
+  if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')problems.push('нажатие по середине не убрало панели');
+  {const fullScreen=await readPage();
+   if(!withChrome||!fullScreen)problems.push('страницу читалки не удалось снять для сверки полного экрана');
    else{
-    if(before.text!==after.text)problems.push('на полном экране текст страницы поменялся, а должен был только вырасти');
-    if(!(after.size>before.size*1.02))problems.push('места стало больше, а буквы не выросли: было '+
-     before.size.toFixed(1)+', стало '+after.size.toFixed(1));}
-   await page.setViewportSize(size);await page.waitForTimeout(450);}
+    if(withChrome.text!==fullScreen.text)problems.push('на полном экране текст страницы поменялся, а должен был только вырасти');
+    if(!(fullScreen.size>withChrome.size*1.02))problems.push('панели ушли, места стало больше, а буквы не выросли: было '+
+     withChrome.size.toFixed(1)+', стало '+fullScreen.size.toFixed(1));}}
   // Номер страницы стоит в углу полосы и виден при убранных панелях: только
   // по нижней строке его не найти, когда панели спрятаны.
   {const folio=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-folio');
@@ -887,7 +880,10 @@ try{
     if(!bar)problems.push('в читалке нет полосы прочитанного');
     else{
      if(!bar.shown)problems.push('полоса прочитанного спрятана стилями');
-     if(Math.abs(bar.top-(bar.headerBottom-3))>2)problems.push('полоса прочитанного должна быть под шапкой, вне выреза: '+bar.top);
+     // Полоса идёт следом за шапкой: с панелями стоит под ними, без панелей
+     // поднимается к самому верху экрана. Владелец просил именно так — стоять
+     // на месте она не может, там, где была шапка, на полном экране пустота.
+     if(Math.abs(bar.top)>2)problems.push('на полном экране полоса прочитанного не поднялась к верху: '+bar.top);
      if(bar.wide!==bar.vw)problems.push('полоса прочитанного не во всю ширину: '+bar.wide+' из '+bar.vw);
      if(bar.scale==='нет'||bar.scale==='none')problems.push('полоса прочитанного ничего не показывает: заполнение не сдвинуто');}}
    if(!folio)problems.push('в углу страницы нет номера');
@@ -1551,9 +1547,16 @@ try{
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
   check(fold.carousel,`главная ${width}×${height}: карусели свежего нет`);
-  // Пропорция 4:5 — выбор владельца: афиша рисуется 2:3, квадрат срезал у неё
-  // верх вместе с названием, а полная 2:3 уводила кнопку за первый экран.
-  check(fold.sceneRatio!==null&&Math.abs(fold.sceneRatio-.8)<.02,`главная ${width}×${height}: пропорция афиши должна быть 4:5, а она ${fold.sceneRatio}`);
+  // Пропорция кадра больше не фиксирована числом. Владелец сформулировал
+  // требование иначе: «хочу видеть обложку и ещё немножко карусели». Поэтому
+  // 4:5 осталось желаемой пропорцией, но сверху стоит потолок по высоте
+  // экрана, и на высоком телефоне кадр получается ближе к квадрату. Проверяем
+  // то, что владелец назвал словами: кадр не выше половины экрана, и карусель
+  // видна не краешком.
+  check(fold.sceneHeight!==null&&fold.sceneHeight<=height*0.52,
+   `главная ${width}×${height}: афиша выше половины экрана (${Math.round(fold.sceneHeight||0)} из ${height})`);
+  check(fold.carouselTop!==null&&fold.navTop!==null&&fold.navTop-fold.carouselTop>=120,
+   `главная ${width}×${height}: карусели видно меньше 120 точек над панелью разделов (${fold.navTop-fold.carouselTop})`);
   // Постер во всю ширину занимает почти весь первый экран — так просил
   // владелец. Требование к сгибу одно: кнопка запуска доступна без
   // прокрутки, за ней человек и пришёл.

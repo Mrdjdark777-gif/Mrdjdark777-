@@ -24,8 +24,19 @@
    Выключка по левому краю не растягивает пробелы между словами. */
 /* Отступ сверху больше высоты панели: буквы заголовка крупнее своей клетки
    сетки и выступают вверх, и на первом снимке название упиралось в панель. */
+/* Полоса чтения занимает то место, которое ей реально оставлено. С панелями —
+   под шапкой и над нижней строкой; без панелей — почти весь экран, с одним
+   отступом от краёв. Строки внутри стоят посередине: увеличение упирается в
+   ширину экрана раньше, чем в высоту, и остаток высоты нельзя оставлять одной
+   пустой полосой сверху. */
 .tt-reader-page{position:absolute;top:calc(var(--tt-reader-top,112px) + 12px);
- bottom:calc(58px + env(safe-area-inset-bottom));text-align:left}
+ bottom:calc(58px + env(safe-area-inset-bottom));text-align:left;
+ display:flex;flex-direction:column;justify-content:center}
+/* Снизу оставляем место номеру страницы в углу: он показывается как раз при
+   убранных панелях, и налезать на него полосе чтения нельзя. */
+.tt-reader[data-chrome=off] .tt-reader-page{
+ top:calc(18px + env(safe-area-inset-top));
+ bottom:calc(36px + env(safe-area-inset-bottom))}
 /* Строка стоит на своём месте сетки: высоту ей задаёт скрипт целым числом
    строк, а текст в этой высоте выравнивается по середине. Ровно так же строка
    ложится на холст — с textBaseline «middle» посреди своей высоты. Разойдись
@@ -53,8 +64,15 @@
 
 /* Сколько прочитано — тонкая полоса поверх всего, включая панели. Номер
    страницы в нижней строке виден только с панелями, а прогресс нужен всегда. */
+/* Полоса прочитанного идёт следом за шапкой: с панелями она лежит под ними,
+   без панелей поднимается к самому верху экрана. Стоять на месте она не может
+   — там, где была шапка, на полном экране просто пустота, и полоса висела бы
+   посреди текста. */
 .tt-reader-progress{position:absolute;top:calc(var(--tt-reader-top,112px) - 3px);left:0;right:0;height:3px;z-index:5;pointer-events:none;
+ transition:top .22s;
  background:color-mix(in srgb,var(--tt-ink) 12%,transparent)}
+.tt-reader[data-chrome=off] .tt-reader-progress{top:0}
+@media(prefers-reduced-motion:reduce){.tt-reader-progress{transition:none}}
 .tt-reader-progress>span{display:block;height:100%;transform-origin:0 50%;
  background:linear-gradient(90deg,#6fe7de,#4aa8ff);transition:transform .5s cubic-bezier(.22,.68,.24,1)}
 @media(prefers-reduced-motion:reduce){.tt-reader-progress>span{transition:none}}
@@ -192,7 +210,7 @@
 .tt-reader-seek>input::-moz-range-thumb{width:18px;height:18px;border:0}
 .tt-reader-seek:has(input:focus-visible){outline:2px solid #6fe7de;outline-offset:2px;border-radius:12px}
 .tt-reader-seek:has(input:disabled){opacity:.4;cursor:default}
-.tt-reader-page{bottom:calc(72px + env(safe-area-inset-bottom))}
+.tt-reader[data-chrome=on] .tt-reader-page{bottom:calc(72px + env(safe-area-inset-bottom))}
 
 /* Полосу прочитанного и номер страницы в углу при убранных панелях НЕ прячем.
    Их для того и сделали: в нижней строке номер есть только с панелями, а
