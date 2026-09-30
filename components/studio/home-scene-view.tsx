@@ -60,6 +60,19 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   let frame=0;
   const place=()=>{
    frame=0;
+   // Круг. Список выложен трижды; прокрутка живёт в среднем круге, а дойдя до
+   // соседнего — молча возвращается на круг назад или вперёд. Человек видит
+   // ленту без начала и конца, а прокрутка при этом обычная, со своей
+   // инерцией: подменять её своей анимацией значит сломать привычное
+   // поведение пальца.
+   if(node.dataset.loop==='yes'){
+    const one=node.scrollWidth/3;
+    if(one>1){
+     if(node.dataset.ready!=='yes'){node.scrollLeft=one;node.dataset.ready='yes';}
+     else if(node.scrollLeft<one*0.5)node.scrollLeft+=one;
+     else if(node.scrollLeft>one*1.5)node.scrollLeft-=one;
+    }
+   }
    const strip=node.getBoundingClientRect();
    const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
    for(const card of Array.from(node.querySelectorAll<HTMLElement>('.soft-episode'))){
@@ -89,6 +102,12 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
  const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
   .sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);
+ // Карусель идёт по кругу, когда выпусков хотя бы три: список выкладывается
+ // трижды подряд, прокрутка живёт в среднем круге и незаметно возвращается в
+ // него на краях. Меньше трёх — круга нет: прокручивать там нечего, а тройной
+ // список из двух карточек выглядел бы дублями, а не лентой.
+ const ring=latest.length>=3;
+ const reeled=ring?[...latest,...latest,...latest]:latest;
  const heroCover=hero?coverOf(hero):'';
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
@@ -164,12 +183,21 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <h3>{t('home.freshList')}</h3>
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
-   <ul className="soft-carousel" ref={reel} aria-label={t('home.freshList')}>
-    {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+   {/* Карусель идёт по кругу: список выложен трижды подряд, а прокрутка
+       незаметно возвращается в средний круг, когда доходит до края. Никакого
+       края человек не видит — лента не кончается ни вправо, ни влево.
+       Меньше трёх выпусков — круга нет: там и прокручивать нечего, а тройной
+       список из двух карточек выглядел бы дублями. */}
+   <ul className="soft-carousel" ref={reel} data-loop={ring?'yes':'no'} aria-label={t('home.freshList')}>
+    {reeled.map((p,at)=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
      // Вид публикации — значком в углу обложки, а не строкой под ней: строка
      // с подписью и длительностью отнимала место у названия и повторяла то,
      // что и так видно по значку.
-     return <li key={p.id}><button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
+     // Настоящий список — средний круг. Два соседних экранный диктор не
+     // читает: это те же выпуски, и повторять их трижды незачем.
+     const copy=ring&&(at<latest.length||at>=latest.length*2);
+     return <li key={p.id+':'+at} aria-hidden={copy?true:undefined}>
+      <button type="button" className="soft-episode tt-pressable" tabIndex={copy?-1:undefined} title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">
        {/* Без обложки — знак канала. */}
        <Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>

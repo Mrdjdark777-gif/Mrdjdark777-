@@ -10,6 +10,11 @@
 @keyframes tt-heart-run{to{stroke-dashoffset:-100}}
 @media(prefers-reduced-motion:reduce){.tt-heart-spark{animation:none;stroke-dasharray:none;opacity:.55}}
 
-.tt-heart-beam.is-beating{transform-origin:center;animation:tt-heart-beat 3.2s ease-in-out infinite}
+/* Бьётся группа внутри значка, а не сам <svg>: фон плитки в эфире висит на
+   <svg>, и масштаб на нём пульсировал плитку целиком. Центр задан в единицах
+   viewBox (12 12) — так он не зависит от того, как браузер считает
+   transform-box для SVG. */
+.tt-heart-body.is-beating{transform-box:view-box;transform-origin:12px 12px;
+ animation:tt-heart-beat 3.2s ease-in-out infinite}
 @keyframes tt-heart-beat{0%,28%,100%{transform:scale(1)}8%{transform:scale(1.13)}14%{transform:scale(1)}21%{transform:scale(1.08)}}
-@media(prefers-reduced-motion:reduce){.tt-heart-beam.is-beating{animation:none}}
+@media(prefers-reduced-motion:reduce){.tt-heart-body.is-beating{animation:none}}

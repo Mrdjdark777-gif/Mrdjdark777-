@@ -1113,6 +1113,15 @@ try{
    await page.locator('.tt-reader-mark').first().click();await page.waitForTimeout(700);
    const back=await now();
    if(back!==marked)problems.push('нажатие по закладке не вернуло на её страницу: было '+away+', ждали '+marked+', стало '+back);
+   // Переход по закладке оставляет читалку без панелей: пришёл читать, а не
+   // смотреть на шапку. Значит, обратно к списку закладок ведёт нажатие по
+   // середине — шапки на экране сейчас нет. Проверяем и то и другое: панели
+   // ушли, и середина их возвращает.
+   if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='off')
+    problems.push('переход по закладке оставил панели на экране');
+   await at(0.5);await page.waitForTimeout(450);
+   if(await page.locator('.tt-reader').getAttribute('data-chrome')!=='on')
+    problems.push('после перехода по закладке нажатие по середине не вернуло панели');
    await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();}
   // Яркость. Ползунок тянут вправо — становится светлее, а не темнее: на
   // телефоне было наоборот. И вуаль накрывает всю читалку вместе с панелями:
@@ -1232,6 +1241,28 @@ try{
   step('читалка');}
  // Эфир, когда его нет, и настройки.
  await page.goto(base+'/?mode=listen&view=live');await settle(page);await shot(page,'live-idle');
+  // В плашке поддержки эфира значок лежит в плитке: скругление и фон висят на
+  // самом <svg>. Биться должно сердце, а не плитка. Владелец сказал прямо:
+  // «бьётся не только сердце, а и вся пиктограмма».
+  //
+  // Спрашиваем у браузера размер плитки несколько раз за оборот биения.
+  // Масштаб на <svg> меняет его собственную рамку, и разброс это назовёт;
+  // масштаб внутри <svg> рамку не трогает. Заодно убеждаемся, что биение
+  // вообще есть, — иначе проверка проходила бы и на неподвижном сердце.
+  {const tile=page.locator('.live-stage .support-strip>svg').first();
+   if(!await tile.count())problems.push('эфир: в плашке поддержки нет значка сердца');
+   else{
+    const beat=await tile.evaluate(el=>{const g=el.querySelector('.tt-heart-body');
+     return {inner:g?getComputedStyle(g).animationName:'нет группы',
+      outer:getComputedStyle(el).animationName};});
+    if(beat.inner!=='tt-heart-beat')problems.push('эфир: сердце в плашке поддержки не бьётся (внутри «'+beat.inner+'»)');
+    if(beat.outer!=='none')problems.push('эфир: биение стоит на самой плитке значка («'+beat.outer+'»), поэтому пульсирует вся пиктограмма');
+    const sizes=[];
+    for(let i=0;i<14;i++){
+     sizes.push(await tile.evaluate(el=>{const r=el.getBoundingClientRect();return Math.round(r.width*100)/100;}));
+     await page.waitForTimeout(120);}
+    const spread=Math.max(...sizes)-Math.min(...sizes);
+    if(spread>0.5)problems.push('эфир: плитка значка поддержки пульсирует вместе с сердцем — рамка гуляет на '+spread.toFixed(2)+'px');}}
   // Подсказка дыхания: четыре слова на одном круге, и в каждый момент
   // горит ровно одно — иначе за ней нельзя дышать.
   {const guide=await page.evaluate(()=>{const g=document.querySelector('.breath-guide');
@@ -1592,6 +1623,30 @@ try{
   // выглядит не как приглашение листать, а как недоделанный экран.
   check(fold.cardBottom!==null&&fold.navTop!==null&&fold.cardBottom<=fold.navTop,
    `главная ${width}×${height}: карточка карусели обрезана панелью разделов (низ ${fold.cardBottom} против ${fold.navTop})`);
+  // Карусель идёт по кругу. Прокрутили до конца — лента не кончилась, а
+  // продолжилась теми же выпусками. Проверяем так, как это видит человек:
+  // уводим прокрутку к правому краю и смотрим, что она сама вернулась внутрь,
+  // а карточки на экране остались.
+  if(width===390){
+   const ring=await page.evaluate(async()=>{
+    const strip=document.querySelector('.soft-carousel');
+    if(!strip)return null;
+    const loop=strip.dataset.loop==='yes';
+    if(!loop)return {loop:false};
+    const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await wait();
+    const started=strip.scrollLeft;
+    strip.scrollLeft=strip.scrollWidth;          // до самого правого края
+    await wait();await wait();
+    return {loop:true,started,ended:strip.scrollLeft,width:strip.scrollWidth,
+     cards:strip.querySelectorAll('.soft-episode').length};});
+   check(!!ring,'карусели нет — круг проверять не на чем');
+   if(ring&&ring.loop){
+    check(ring.started>1,'карусель не встала в средний круг: прокрутка осталась в нуле');
+    check(ring.ended<ring.width*0.75,
+     'карусель не вернулась в круг: доехали до края и там и остались ('+Math.round(ring.ended)+' из '+Math.round(ring.width)+')');
+    check(ring.cards>=9,'круг не выложен трижды: карточек всего '+ring.cards);}}
+
   // Тень карточки обязана помещаться в полосу карусели.
   //
   // Полоса прокручивается, а значит обрезает всё, что выходит за её края, — и
@@ -1606,18 +1661,28 @@ try{
     const strip=document.querySelector('.soft-carousel'),art=document.querySelector('.soft-art');
     if(!strip||!art)return null;
     const s1=getComputedStyle(strip),s2=getComputedStyle(art);
-    // Из «0 8px 16px rgba(...)» берём смещение по вертикали и размытие.
-    const reach=(s2.boxShadow.match(/-?\d+(?:\.\d+)?px/g)||[]).reduce((most,_,at,all)=>{
+    // Из «0 8px 16px rgba(...)» берём смещение по вертикали и размытие. Верх и
+    // низ считаем отдельно: смещение уводит тень вниз, и вверх она достаёт
+    // меньше. Пока верхний отступ сверялся с нижним вылетом, полоса требовала
+    // воздуха там, где тени нет, — а владелец как раз просил убрать пустоту
+    // над карусели.
+    //
+    // Наружу тень выходит на половину размытия: по спецификации размытие —
+    // это ширина перехода, половина внутрь кромки, половина наружу.
+    const edges=(s2.boxShadow.match(/-?\d+(?:\.\d+)?px/g)||[]).reduce((most,_,at,all)=>{
      if(at%4!==1)return most;                       // 0 — по X, 1 — по Y, 2 — размытие
-     const down=parseFloat(all[at]),blur=parseFloat(all[at+1]||'0');
-     return Math.max(most,Math.abs(down)+blur);},0);
-    return {top:parseFloat(s1.paddingTop),bottom:parseFloat(s1.paddingBottom),reach,
-     frame:s2.borderTopWidth};});
+     const down=parseFloat(all[at]),blur=parseFloat(all[at+1]||'0')/2;
+     return {up:Math.max(most.up,blur-down),down:Math.max(most.down,blur+down)};},{up:0,down:0});
+    return {top:parseFloat(s1.paddingTop),bottom:parseFloat(s1.paddingBottom),
+     up:edges.up,low:edges.down,frame:s2.borderTopWidth};});
    check(!!depth,'карусели или карточек нет — глубину проверять не на чем');
    if(depth){
-    check(depth.top>=depth.reach*0.55&&depth.bottom>=depth.reach*0.75,
-     'тень карточки обрежется полосой карусели: тянется на '+Math.round(depth.reach)+
-     ', а отступы всего '+depth.top+' сверху и '+depth.bottom+' снизу');
+    check(depth.top>=depth.up,
+     'тень карточки обрежется сверху: вверх тянется на '+depth.up.toFixed(1)+
+     ', а отступ полосы всего '+depth.top);
+    check(depth.bottom>=depth.low,
+     'тень карточки обрежется снизу: вниз тянется на '+depth.low.toFixed(1)+
+     ', а отступ полосы всего '+depth.bottom);
     check(parseFloat(depth.frame)===0,
      'у карточки вернулась рамка по периметру — она читается как жёсткая граница: '+depth.frame);}}
   // Постер во всю ширину занимает почти весь первый экран — так просил

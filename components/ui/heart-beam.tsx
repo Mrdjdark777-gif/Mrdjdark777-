@@ -22,17 +22,25 @@ const HEART='M12 21S4.5 16.3 2.6 11.8C1.2 8.4 3 4.8 6.4 4.1 8.6 3.6 10.7 4.5 12 
  * `beat` включён по умолчанию: владелец просил, чтобы сердце билось везде, где
  * оно есть, и всё время. Выключить биение можно для отдельного места, но такого
  * места пока нет.
+ *
+ * Бьётся не сам <svg>, а группа с линиями внутри него. В эфире плашка
+ * поддержки кладёт значок в плитку: фон и скругление висят на самом <svg>
+ * (см. .live-stage .support-strip>svg:first-child). Пока масштаб стоял на
+ * <svg>, вместе с сердцем пульсировала и плитка — билась вся пиктограмма.
+ * Группа не несёт ни фона, ни рамки, поэтому двигается только рисунок.
  */
 export function HeartBeam({size=20,beat=true}:{size?:number;beat?:boolean}){
  const gradientId="tt-heart-"+useId().replace(/:/g,"");
- return <svg className={"tt-heart-beam"+(beat?" is-beating":"")} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
+ return <svg className="tt-heart-beam" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false">
   <defs>
    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
     <stop offset="0%" stopColor="#6FE7DE"/>
     <stop offset="100%" stopColor="#4AA8FF"/>
    </linearGradient>
   </defs>
-  <path className="tt-heart-line" d={HEART} pathLength={100}/>
-  <path className="tt-heart-spark" style={{stroke:`url(#${gradientId})`}} d={HEART} pathLength={100}/>
+  <g className={"tt-heart-body"+(beat?" is-beating":"")}>
+   <path className="tt-heart-line" d={HEART} pathLength={100}/>
+   <path className="tt-heart-spark" style={{stroke:`url(#${gradientId})`}} d={HEART} pathLength={100}/>
+  </g>
  </svg>;
 }
