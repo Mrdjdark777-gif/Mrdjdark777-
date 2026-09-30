@@ -844,8 +844,14 @@ try{
    if(!sheet)return null;
    const lines=[...sheet.querySelectorAll('.tt-reader-line')];
    const body=lines.find(l=>!l.classList.contains('is-title'))??lines[0];
+   const box=sheet.getBoundingClientRect();
+   const first=lines[0]?.getBoundingClientRect();
+   const last=lines[lines.length-1]?.getBoundingClientRect();
    return {text:lines.map(l=>l.textContent).join('\n'),
-    size:body?parseFloat(getComputedStyle(body).fontSize):0};});
+    size:body?parseFloat(getComputedStyle(body).fontSize):0,
+    left:Math.round(box.left),right:Math.round(innerWidth-box.right),
+    over:first?Math.round(first.top-box.top):0,
+    under:last?Math.round(box.bottom-last.bottom):0};});
   const withChrome=await readPage();
   // Середина прячет панели — ради этого читалку и делали во весь экран.
   await at(0.5);await page.waitForTimeout(450);
@@ -853,9 +859,16 @@ try{
   {const fullScreen=await readPage();
    if(!withChrome||!fullScreen)problems.push('страницу читалки не удалось снять для сверки полного экрана');
    else{
-    if(withChrome.text!==fullScreen.text)problems.push('на полном экране текст страницы поменялся, а должен был только вырасти');
-    if(!(fullScreen.size>withChrome.size*1.02))problems.push('панели ушли, места стало больше, а буквы не выросли: было '+
-     withChrome.size.toFixed(1)+', стало '+fullScreen.size.toFixed(1));}}
+    if(withChrome.text!==fullScreen.text)problems.push('на полном экране текст страницы поменялся, а должен был остаться тем же');
+    // Крупнее буквы на полном экране уже не становятся: увеличение упирается в
+    // ширину экрана раньше, чем в высоту, и запас там меньше пяти процентов.
+    // Поэтому проверяем не размер, а то, что владелец назвал словами: текст
+    // стоит посередине освободившегося места, а не жмётся к верху, и по бокам
+    // остаётся воздух, а не голая кромка.
+    if(Math.abs(fullScreen.over-fullScreen.under)>26)
+     problems.push('на полном экране текст не по центру: сверху '+fullScreen.over+', снизу '+fullScreen.under);
+    if(fullScreen.left<16||fullScreen.right<16)
+     problems.push('на полном экране у текста нет полей по бокам: слева '+fullScreen.left+', справа '+fullScreen.right);}}
   // Номер страницы стоит в углу полосы и виден при убранных панелях: только
   // по нижней строке его не найти, когда панели спрятаны.
   {const folio=await page.evaluate(()=>{const f=document.querySelector('.tt-reader-folio');

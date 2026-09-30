@@ -51,7 +51,22 @@ type Frame={width:number;height:number;left:number;top:number;lead:number;scale:
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
-const LEAD=1.7;
+/**
+ * Высота строки сетки в долях размера шрифта.
+ *
+ * Было 1.7 — между строками оставалось столько воздуха, что страница читалась
+ * разреженной, а текста на ней помещалось мало. 1.45 — обычная книжная
+ * плотность: строки уже не слипаются, но и не расползаются.
+ */
+const LEAD=1.45;
+/**
+ * Наименьшее поле слева и справа от текста, в пикселях.
+ *
+ * Увеличение на полном экране упиралось ровно в ширину экрана, и поля
+ * съедались в ноль: сверху воздух был, по бокам буквы прижимались к самой
+ * кромке. Теперь предел увеличения считается по ширине за вычетом этих полей.
+ */
+const SIDE=20;
 const PREFS_KEY='tt-reader-prefs-v1';
 const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
 /**
@@ -225,7 +240,8 @@ export function StoryReader({id,title,description,body,onClose}:{
    setPages(laid);
    // Во сколько раз показать. По высоте — насколько полоса шире опорной; по
    // ширине — чтобы строки не вылезли за края экрана вместе со шрифтом.
-   const grow=Math.max(1,Math.min(free/Math.max(1,rows*lead),box.clientWidth/Math.max(1,width)));
+   const grow=Math.max(1,Math.min(free/Math.max(1,rows*lead),
+    Math.max(1,box.clientWidth-SIDE*2)/Math.max(1,width)));
    const shownWidth=width*grow,shownLead=lead*grow;
    // Увеличение упирается в ширину экрана раньше, чем в высоту: буквы нельзя
    // растить бесконечно, иначе строки полезут за края. Остаток высоты делим
