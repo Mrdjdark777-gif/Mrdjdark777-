@@ -13,7 +13,7 @@ import path from 'node:path';
 const root=process.cwd();
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/device-tilt.ts')],
  bundle:true,write:false,format:'esm',platform:'node'});
-const {aim,ease,shadowOf,LIMIT,SPAN}=await import(
+const {aim,ease,shadowOf,turnOf,LIMIT,SPAN}=await import(
  'data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 // 1. Телефон в покое — карточка стоит прямо.
@@ -74,4 +74,15 @@ const {aim,ease,shadowOf,LIMIT,SPAN}=await import(
  assert.ok(flat.y>0,'в покое тень лежит под карточкой, а не над ней: '+flat.y);
 }
 
-console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону');
+// 8. Разворот по месту в карусели: середина стоит лицом, края повёрнуты.
+{
+ assert.ok(Math.abs(turnOf(200,200,200))<0.001,'карточка посреди полосы обязана стоять лицом');
+ const right=turnOf(400,200,200),left=turnOf(0,200,200);
+ assert.ok(right<0,'карточка справа от середины разворачивается правым краем назад: '+right);
+ assert.ok(left>0,'слева — зеркально: '+left);
+ assert.equal(Math.round(right),-Math.round(left),'развороты по краям обязаны быть зеркальными');
+ assert.ok(Math.abs(turnOf(5000,200,200))<=12.001,'дальше края разворот не растёт');
+ assert.ok(Math.abs(turnOf(100,200,0))<0.001,'без ширины полосы разворота нет, а не деление на ноль');
+}
+
+console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону; карточки в карусели разворачиваются от середины к краям зеркально');

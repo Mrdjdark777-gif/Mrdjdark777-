@@ -5,7 +5,7 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
-import {aim,ease as easeTilt,shadowOf,type Tilt} from '@/lib/device-tilt';
+import {aim,ease as easeTilt,shadowOf,turnOf,type Tilt} from '@/lib/device-tilt';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -73,6 +73,31 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   frame=requestAnimationFrame(draw);
   return()=>{alive=false;cancelAnimationFrame(frame);window.removeEventListener('deviceorientation',turn);};
  },[]);
+
+ // Разворот от прокрутки. Гироскопа может не быть вовсе — в браузере на
+ // компьютере его нет, в оболочке он может быть выключен. Объём при этом
+ // пропадать не должен: карточка в середине полосы стоит лицом, соседние
+ // развёрнуты, дальние сильнее. Считает угол lib/device-tilt.
+ useEffect(()=>{
+  const node=reel.current;if(!node)return;
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  let frame=0;
+  const place=()=>{
+   frame=0;
+   const strip=node.getBoundingClientRect();
+   const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
+   for(const card of Array.from(node.querySelectorAll<HTMLElement>('.soft-art'))){
+    const box=card.getBoundingClientRect();
+    card.style.setProperty('--turn',turnOf(box.left+box.width/2,middle,span).toFixed(2)+'deg');
+   }
+  };
+  const later=()=>{if(!frame)frame=requestAnimationFrame(place);};
+  place();
+  node.addEventListener('scroll',later,{passive:true});
+  window.addEventListener('resize',later);
+  return()=>{if(frame)cancelAnimationFrame(frame);
+   node.removeEventListener('scroll',later);window.removeEventListener('resize',later);};
+ },[posts.length]);
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со

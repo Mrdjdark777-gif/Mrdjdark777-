@@ -90,8 +90,12 @@
    рассыпается. Сами углы поворота пишет скрипт — он слушает положение
    телефона. */
 .tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
- scroll-padding-inline:16px;padding:12px 16px 22px;margin:0 -16px;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent;
- perspective:900px;perspective-origin:50% 45%}
+ scroll-padding-inline:16px;padding:14px 16px 26px;margin:0 -16px;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent;
+ perspective:900px;perspective-origin:50% 45%;
+ /* Под карточками полоса чуть светлее страницы. Без неё тень не видна вовсе:
+    чёрное на почти чёрном ничего не рисует, и глубина пропадает — именно это
+    владелец и видел, принимая за «тень» светлую рамку карточки. */
+ background:linear-gradient(180deg,#ffffff00 0%,#ffffff0a 42%,#ffffff12 78%,#ffffff00 100%)}
 .tt-soft-home .soft-carousel>li{flex:0 0 37%;min-width:118px;max-width:170px;scroll-snap-align:start}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
@@ -101,10 +105,15 @@
 .tt-soft-home .soft-art{position:relative;display:flex;align-items:center;justify-content:center;width:100%;
  aspect-ratio:2/3;border-radius:var(--soft-card);overflow:hidden;
  background:radial-gradient(circle at 35% 30%,#234743,#131c21);
- border:1px solid rgba(255,255,255,.16);
- /* Карточка поворачивается вслед за телефоном. Углы приходят из скрипта; без
-    телефона они остаются нулями, и карточка стоит прямо. */
- transform:rotateY(var(--tilt-y,0deg)) rotateX(var(--tilt-x,0deg));
+ /* Рамки в один пиксель по периметру больше нет. На тёмном фоне она читалась
+    как жёсткая прямоугольная граница и убивала всякое ощущение объёма —
+    владелец назвал это «квадратными тенями». Край карточки теперь рисуется
+    светом сверху и тенью снизу, а не линией. */
+ border:0;
+ /* Карточка поворачивается вслед за телефоном и вслед за прокруткой карусели:
+    чем дальше она от середины, тем сильнее развёрнута. Углы приходят из
+    скрипта; без него они нули, и карточка стоит прямо. */
+ transform:rotateY(calc(var(--tilt-y,0deg) + var(--turn,0deg))) rotateX(var(--tilt-x,0deg));
  transform-style:preserve-3d;
  /* Тень не рисуется прямоугольником: три слоя с разным размытием и смещением.
     Плотный и узкий у самого низа — это касание; средний — расстояние до
@@ -113,11 +122,11 @@
     что источник света остался на месте. Резких границ тут нет нигде: радиус
     размытия каждого слоя больше его смещения. */
  box-shadow:
-  var(--tilt-shadow-x,0px) 3px 6px rgba(0,0,0,.42),
-  calc(var(--tilt-shadow-x,0px) * 1.6) var(--tilt-shadow-y,14px) 26px rgba(0,0,0,.42),
-  calc(var(--tilt-shadow-x,0px) * 2.4) calc(var(--tilt-shadow-y,14px) * 1.9) 54px rgba(0,0,0,.36),
-  0 0 40px rgba(111,231,222,.16),
-  0 0 80px rgba(74,168,255,.10)}
+  var(--tilt-shadow-x,0px) 4px 10px rgba(0,0,0,.7),
+  calc(var(--tilt-shadow-x,0px) * 1.6) var(--tilt-shadow-y,14px) 30px rgba(0,0,0,.6),
+  calc(var(--tilt-shadow-x,0px) * 2.4) calc(var(--tilt-shadow-y,14px) * 2) 64px rgba(0,0,0,.5),
+  0 0 44px rgba(111,231,222,.18),
+  0 0 90px rgba(74,168,255,.11)}
 /* Пока телефон лежит неподвижно, карточка не должна «догонять» его рывком:
    сглаживание делает скрипт, а этот переход снимает ступеньку на первом кадре
    и на возврате к покою. */
@@ -129,11 +138,14 @@
    карточки. Тёмная полоса у нижнего края убрана: она давала ровно ту жёсткую
    границу, на которую жаловался владелец. Осталась мягкая тень внутрь и
    тонкий холодный контур. */
+/* Край карточки: свет ложится на верхнюю кромку и стекает вниз, нижняя кромка
+   уходит в тень. Замкнутого контура нет — именно он давал прямоугольник. */
 .tt-soft-home .soft-art::after{content:'';position:absolute;inset:0;pointer-events:none;
  border-radius:inherit;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.24),
-  inset 0 0 0 1px rgba(111,231,222,.10),
-  inset 0 -40px 46px -40px rgba(0,0,0,.42)}
+ background:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 18%,
+  rgba(0,0,0,0) 62%,rgba(0,0,0,.34) 100%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.3),
+  inset 0 -46px 52px -46px rgba(0,0,0,.5)}
 .tt-soft-home .soft-art>img{width:100%;height:100%;object-fit:cover}
 .tt-soft-home .soft-mark{width:56px!important;height:56px!important;object-fit:contain!important;opacity:.85}
 /* Подпись вида стоит по середине карточки, а не в её левом углу: у края она
