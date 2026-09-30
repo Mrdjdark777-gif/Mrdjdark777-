@@ -1570,27 +1570,34 @@ try{
    `главная ${width}×${height}: афиша выше половины экрана (${Math.round(fold.sceneHeight||0)} из ${height})`);
   check(fold.carouselTop!==null&&fold.navTop!==null&&fold.navTop-fold.carouselTop>=120,
    `главная ${width}×${height}: карусели видно меньше 120 точек над панелью разделов (${fold.navTop-fold.carouselTop})`);
-  // Карточки карусели отзываются на положение телефона: повернул телефон —
-  // повернулась карточка. Разметка об этом молчит, углы приходят из скрипта в
-  // переменные стиля, поэтому проверяем то, что видно: подаём событие о
-  // наклоне и смотрим, изменился ли поворот. Считает наклон lib/device-tilt,
-  // и знаки там проверены отдельно, числами, без браузера.
+  // Тень карточки обязана помещаться в полосу карусели.
+  //
+  // Полоса прокручивается, а значит обрезает всё, что выходит за её края, — и
+  // тень обрывалась ровной прямой линией. Именно это владелец называл
+  // «квадратными тенями с жёсткими границами», и смягчение самой тени тут не
+  // помогало ни разу. Отменить обрезку у полосы с прокруткой нельзя, поэтому
+  // проверяем единственное, что можно: отступы полосы больше, чем тянется
+  // тень. И заодно — что по периметру карточки нет рамки: она давала
+  // единственную резкую линию в этом месте.
   if(width===390){
-   const rest=await page.evaluate(()=>{const n=document.querySelector('.soft-art');
-    return n?getComputedStyle(n).transform:null;});
-   await page.evaluate(()=>{
-    const event=new Event('deviceorientation');
-    Object.assign(event,{beta:74,gamma:24});
-    window.dispatchEvent(event);});
-   await page.waitForTimeout(700);
-   const turned=await page.evaluate(()=>{const n=document.querySelector('.soft-art');
-    return n?getComputedStyle(n).transform:null;});
-   check(rest!==null&&turned!==null,'карточек карусели нет — поворот проверять не на чем');
-   check(rest!==turned,'карточки карусели не отзываются на положение телефона: поворот остался прежним ('+rest+')');
-   // Возвращаем телефон в покой, иначе следующий снимок уедет.
-   await page.evaluate(()=>{const event=new Event('deviceorientation');
-    Object.assign(event,{beta:38,gamma:0});window.dispatchEvent(event);});
-   await page.waitForTimeout(700);}
+   const depth=await page.evaluate(()=>{
+    const strip=document.querySelector('.soft-carousel'),art=document.querySelector('.soft-art');
+    if(!strip||!art)return null;
+    const s1=getComputedStyle(strip),s2=getComputedStyle(art);
+    // Из «0 8px 16px rgba(...)» берём смещение по вертикали и размытие.
+    const reach=(s2.boxShadow.match(/-?\d+(?:\.\d+)?px/g)||[]).reduce((most,_,at,all)=>{
+     if(at%4!==1)return most;                       // 0 — по X, 1 — по Y, 2 — размытие
+     const down=parseFloat(all[at]),blur=parseFloat(all[at+1]||'0');
+     return Math.max(most,Math.abs(down)+blur);},0);
+    return {top:parseFloat(s1.paddingTop),bottom:parseFloat(s1.paddingBottom),reach,
+     frame:s2.borderTopWidth};});
+   check(!!depth,'карусели или карточек нет — глубину проверять не на чем');
+   if(depth){
+    check(depth.top>=depth.reach*0.55&&depth.bottom>=depth.reach*0.75,
+     'тень карточки обрежется полосой карусели: тянется на '+Math.round(depth.reach)+
+     ', а отступы всего '+depth.top+' сверху и '+depth.bottom+' снизу');
+    check(parseFloat(depth.frame)===0,
+     'у карточки вернулась рамка по периметру — она читается как жёсткая граница: '+depth.frame);}}
   // Постер во всю ширину занимает почти весь первый экран — так просил
   // владелец. Требование к сгибу одно: кнопка запуска доступна без
   // прокрутки, за ней человек и пришёл.
