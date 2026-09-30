@@ -119,6 +119,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const {t}=useT();
  useUsage(id,true);
  const stage=useRef<HTMLDivElement>(null),sheetRef=useRef<HTMLDivElement>(null);
+ const fullGauge=useRef<HTMLSpanElement>(null);
  const headerRef=useRef<HTMLElement>(null);
  const [headerHeight,setHeaderHeight]=useState(112);
  const seekPointer=useRef<number|null>(null);
@@ -140,9 +141,6 @@ export function StoryReader({id,title,description,body,onClose}:{
  const touch=useRef<{pointerId:number;x:number;y:number;dir:0|1|-1;moved:boolean;at:number;speed:number}|null>(null);
  const part=useRef(0),raf=useRef(0);
  const wanted=useRef(0),insets=useRef<{top:number;bottom:number}|null>(null);
- /** Самая тесная полоса чтения, какую видели при этой ширине и этом шрифте.
-  *  По ней и только по ней считается разбивка на страницы. */
- const base=useRef<{free:number;width:number;size:number;serif:boolean}|null>(null);
  const [loaded,setLoaded]=useState(false);
  const curl=useRef<Curl|null>(null);
  const [webgl,setWebgl]=useState(false);
@@ -219,14 +217,17 @@ export function StoryReader({id,title,description,body,onClose}:{
      bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
    const lead=prefs.size*LEAD;
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
-   // Опора запоминает САМУЮ ТЕСНУЮ полосу: когда панели уходят, места
-   // становится больше, и брать за основу его нельзя — иначе разбивка поедет
-   // туда и обратно на каждое нажатие по середине экрана.
-   const same=base.current&&base.current.width===width
-    &&base.current.size===prefs.size&&base.current.serif===prefs.serif;
-   if(!same)base.current={free,width,size:prefs.size,serif:prefs.serif};
-   else if(free<base.current!.free)base.current!.free=free;
-   const rows=Math.max(1,Math.floor(base.current!.free/lead));
+   // Страница набирается под ПОЛНЫЙ ЭКРАН — читают именно на нём, и там она
+   // обязана быть набрана до краёв, без пустых полей сверху и снизу. Когда
+   // панели возвращаются, та же самая страница ужимается, чтобы поместиться.
+   // Текст при этом не меняется ни в ту, ни в другую сторону.
+   //
+   // Высоту полного экрана берём у мерки, а не у замера по факту. Замер по
+   // факту не годится: пока панели на экране, полного экрана ещё не было, а
+   // когда они уходят, опора поменялась бы задним числом и текст перебился бы
+   // заново — ровно то, на что владелец и жаловался.
+   const full=fullGauge.current?.getBoundingClientRect().height||free;
+   const rows=Math.max(1,Math.floor(full/lead));
    const gauge=document.createElement('canvas').getContext('2d');
    const laid=paginate(blocks,{
     width,rows,
@@ -240,20 +241,16 @@ export function StoryReader({id,title,description,body,onClose}:{
    setPages(laid);
    // Во сколько раз показать. По высоте — насколько полоса шире опорной; по
    // ширине — чтобы строки не вылезли за края экрана вместе со шрифтом.
-   const grow=Math.max(1,Math.min(free/Math.max(1,rows*lead),
-    Math.max(1,box.clientWidth-SIDE*2)/Math.max(1,width)));
+   // Во сколько раз показать страницу. Меньше единицы — когда панели вернулись
+   // и места стало меньше опорного: страница ужимается. Больше единицы —
+   // когда осталась мелочь от округления; расти дальше не даёт ширина экрана.
+   const grow=Math.min(free/Math.max(1,rows*lead),
+    Math.max(1,box.clientWidth-SIDE*2)/Math.max(1,width));
    const shownWidth=width*grow;
-   // Куда девать высоту, которая осталась после увеличения.
-   //
-   // Увеличение упирается в ширину экрана раньше, чем в высоту: на полном
-   // экране остаётся полторы сотни точек, которые буквам отдать уже нельзя.
-   // Раньше они целиком уходили в поля сверху и снизу — владелец назвал это
-   // «очень много свободного пространства». Отдать их все межстрочному тоже
-   // нельзя: он же просил строки плотнее.
-   //
-   // Поэтому межстрочное растягивается, но не больше чем на одну восьмую, а
-   // что не поместилось — делится поровну сверху и снизу.
-   const shownLead=Math.min(free/Math.max(1,rows),lead*grow*1.125);
+   // Строки занимают всю высоту полосы: страница набрана под неё и точка.
+   // Остаток от округления делится поровну сверху и снизу, но это уже единицы
+   // точек, а не пустые полосы.
+   const shownLead=Math.min(free/Math.max(1,rows),lead*grow);
    // Увеличение упирается в ширину экрана раньше, чем в высоту: буквы нельзя
    // растить бесконечно, иначе строки полезут за края. Остаток высоты делим
    // поровну сверху и снизу — страница встаёт посередине свободной полосы, а
@@ -584,6 +581,8 @@ export function StoryReader({id,title,description,body,onClose}:{
     {sheetOf(flip.to,true)}
     <div className="tt-reader-slide" ref={slide} aria-hidden="true">{sheetOf(flip.from,true)}</div>
    </>}
+   {/* Мерка полного экрана: по ней считается разбивка. См. story-reader.css. */}
+   <span className="tt-reader-gauge" ref={fullGauge} aria-hidden="true"/>
    <span className="tt-reader-folio">{page+1}</span>
   </div>
   {/* Прогресс виден вместе с управлением; режим чтения скрывает его. */}

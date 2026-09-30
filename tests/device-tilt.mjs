@@ -13,7 +13,7 @@ import path from 'node:path';
 const root=process.cwd();
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/device-tilt.ts')],
  bundle:true,write:false,format:'esm',platform:'node'});
-const {aim,ease,shadowOf,turnOf,LIMIT,SPAN}=await import(
+const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,LIMIT,SPAN}=await import(
  'data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 // 1. Телефон в покое — карточка стоит прямо.
@@ -85,4 +85,18 @@ const {aim,ease,shadowOf,turnOf,LIMIT,SPAN}=await import(
  assert.ok(Math.abs(turnOf(100,200,0))<0.001,'без ширины полосы разворота нет, а не деление на ноль');
 }
 
-console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону; карточки в карусели разворачиваются от середины к краям зеркально');
+// 9. Близость к середине полосы: масштаб и яркость карточки.
+{
+ assert.equal(nearOf(200,200,200),1,'карточка посреди полосы — самая близкая');
+ assert.equal(nearOf(400,200,200),0,'карточка у края полосы — самая дальняя');
+ assert.equal(nearOf(0,200,200),0,'у другого края — так же');
+ assert.equal(nearOf(5000,200,200),0,'дальше края ближе не становится и не уходит в минус');
+ assert.equal(nearOf(100,200,0),1,'без ширины полосы карточка считается близкой, а не делится на ноль');
+ // Масштаб и яркость растут вместе с близостью и не выходят за разумные пределы.
+ assert.ok(scaleOf(1)>scaleOf(0),'ближняя карточка обязана быть крупнее дальней');
+ assert.ok(scaleOf(0)>=0.85&&scaleOf(1)<=1.001,'масштаб обязан оставаться в пределах: '+scaleOf(0)+'…'+scaleOf(1));
+ assert.ok(litOf(1)>litOf(0),'ближняя карточка обязана быть светлее дальней');
+ assert.ok(litOf(0)>=0.5&&litOf(1)<=1.001,'яркость обязана оставаться в пределах: '+litOf(0)+'…'+litOf(1));
+}
+
+console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону; карточки в карусели разворачиваются от середины к краям зеркально; ближняя карточка крупнее и светлее дальней, и обе величины в пределах');

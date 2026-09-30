@@ -5,6 +5,7 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
+import {nearOf,scaleOf,litOf} from '@/lib/device-tilt';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -41,11 +42,41 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
  useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
 
- // Поворота карточек здесь больше нет — ни по гироскопу, ни по прокрутке.
- // Гироскоп в оболочке Android событий не даёт вовсе, а поворот по прокрутке
- // на устройстве владельца дал рассыпавшиеся пиксели: WebView перерисовывает
- // повёрнутый слой с обрезкой по скруглению и промахивается. Объём карточкам
- // даёт свет и тень — они не зависят ни от датчика, ни от отрисовки.
+ // Карточка посреди полосы ближе к нам, крайние — дальше.
+ //
+ // Поворот здесь пробовали дважды: по гироскопу и по прокрутке. Гироскоп в
+ // оболочке Android событий не даёт вовсе, а поворот по прокрутке дал на
+ // устройстве владельца рассыпавшиеся пиксели — WebView перерисовывает
+ // повёрнутый слой с обрезкой по скруглению и промахивается. Масштаб и
+ // прозрачность выполняет тот же готовый слой, без перерисовки содержимого,
+ // поэтому они не сыплются нигде.
+ //
+ // Значения пишутся прямо в стиль карточки, а не в состояние React:
+ // перерисовывать дерево на каждый кадр прокрутки незачем.
+ const reel=useRef<HTMLUListElement>(null);
+ useEffect(()=>{
+  const node=reel.current;if(!node)return;
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  let frame=0;
+  const place=()=>{
+   frame=0;
+   const strip=node.getBoundingClientRect();
+   const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
+   for(const card of Array.from(node.querySelectorAll<HTMLElement>('.soft-episode'))){
+    const box=card.getBoundingClientRect();
+    const near=nearOf(box.left+box.width/2,middle,span);
+    const art=card.querySelector<HTMLElement>('.soft-art');
+    if(art)art.style.setProperty('--near',scaleOf(near).toFixed(3));
+    card.style.setProperty('--lit',litOf(near).toFixed(3));
+   }
+  };
+  const later=()=>{if(!frame)frame=requestAnimationFrame(place);};
+  place();
+  node.addEventListener('scroll',later,{passive:true});
+  window.addEventListener('resize',later);
+  return()=>{if(frame)cancelAnimationFrame(frame);
+   node.removeEventListener('scroll',later);window.removeEventListener('resize',later);};
+ },[posts.length]);
 
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 
@@ -133,7 +164,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <h3>{t('home.freshList')}</h3>
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
-   <ul className="soft-carousel" aria-label={t('home.freshList')}>
+   <ul className="soft-carousel" ref={reel} aria-label={t('home.freshList')}>
     {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
      // Вид публикации — значком в углу обложки, а не строкой под ней: строка
      // с подписью и длительностью отнимала место у названия и повторяла то,
