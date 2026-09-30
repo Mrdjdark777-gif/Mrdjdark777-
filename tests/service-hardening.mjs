@@ -37,6 +37,14 @@ for (const name of ['truethrills.service', 'truethrills-live.service', 'truethri
  assert.match(body, /^ProtectHome=true$/m, name + ' видит домашние каталоги');
 }
 
+// Обычная остановка не должна выглядеть поломкой. next start не перехватывает
+// SIGTERM и выходит кодом 143; без этой строки systemd после каждого штатного
+// `systemctl stop` оставляет юнит в состоянии failed. Разбор аварии тогда
+// начинается с ложного следа — так уже было: служба показывала failed, хотя её
+// просто остановило обновление.
+assert.match(unit(ops, 'truethrills.service'), /^SuccessExitStatus=143$/m,
+ 'после штатной остановки truethrills.service будет показывать failed: next start выходит кодом 143');
+
 // Бэкап останавливает и запускает сервисы, то есть вызывает systemctl. Он и
 // должен оставаться от root — но осознанно, с объяснением рядом.
 const backup = unit(ops, 'truethrills-backup.service');

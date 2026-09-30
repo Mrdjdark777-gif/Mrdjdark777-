@@ -82,6 +82,12 @@ EnvironmentFile=/opt/truethrills/.env
 ExecStart=$(command -v node) /opt/truethrills/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
 Restart=always
 RestartSec=5
+# next start не перехватывает SIGTERM и выходит кодом 143. Для systemd это
+# неудача, и после обычной остановки — а обновление останавливает службу
+# каждый раз — юнит оставался в состоянии failed. Состояние ложное: служба
+# была остановлена намеренно и штатно. Но выглядит оно как поломка и уводит
+# разбор в сторону, что однажды уже случилось.
+SuccessExitStatus=143
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
