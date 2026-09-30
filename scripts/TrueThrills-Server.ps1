@@ -14,7 +14,22 @@ if($Branch -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$'){throw 'Invalid branch.'}
 if($ExpectedCommit -and $ExpectedCommit -notmatch '^[a-f0-9]{40}$'){throw 'Invalid commit SHA.'}
 $SshOptions=@()
 if($KeyPath){$KeyPath=(Resolve-Path -LiteralPath $KeyPath).Path;$SshOptions=@('-i',$KeyPath)}
-function Invoke-Remote([string]$Command){ & ssh @SshOptions $Server $Command; if($LASTEXITCODE -ne 0){throw 'SSH command failed. See the message above.'} }
+# Родные программы пишут в поток ошибок обычный ход работы, а не беду: git
+# печатает туда «From https://github.com/…», scp — строку с ходом передачи.
+# Когда поток ошибок перенаправлен — а обновление так и делает, чтобы вести
+# журнал на рабочем столе, — PowerShell 5.1 превращает такую строку в ошибку
+# NativeCommandError, и при 'Stop' работа обрывается на первой же. У владельца
+# обновление падало ровно здесь, хотя сервер отвечал нормально.
+#
+# Поэтому вокруг каждого вызова родной программы 'Stop' снимается, а судим мы о
+# ней по коду выхода — единственному, что родная программа сообщает о себе
+# честно. Для самого PowerShell 'Stop' остаётся: ошибка Resolve-Path или
+# ConvertFrom-Json обязана останавливать работу, как и раньше.
+function Invoke-Remote([string]$Command){
+ $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
+ try{ & ssh @SshOptions $Server $Command } finally{ $ErrorActionPreference=$Was }
+ if($LASTEXITCODE -ne 0){throw 'SSH command failed. See the message above.'}
+}
 if($Action -eq 'Status'){
  # Каталогом владеет системный пользователь сервиса, а входим мы под ubuntu:
  # без safe.directory git отказывается читать чужой репозиторий («dubious
@@ -39,7 +54,8 @@ if($Action -eq 'Update'){
  # покалеченной. Все строки ниже — без кавычек и без $(...).
  Invoke-Remote 'mkdir -p $HOME/.truethrills-staging'
  foreach($Name in @('update-safe.sh','backup-data.mjs','verify-backup.mjs')){
-  & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name"
+  $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
+  try{ & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name" } finally{ $ErrorActionPreference=$Was }
   if($LASTEXITCODE -ne 0){throw 'Could not stage update scripts.'}
  }
  Invoke-Remote 'sudo install -d -m 755 /opt/truethrills/.update-staging'
@@ -61,7 +77,8 @@ if($Pass){
  # sudo -E не годится: он вправе отбросить переменную, и копия уехала бы
  # открытой. Пароль читается уже под sudo, из стандартного ввода, и живёт
  # только в окружении дочернего процесса — в списке процессов его не видно.
- $Reply=$Pass | & ssh @SshOptions $Server 'cd /opt/truethrills && sudo sh -c ''read -r p; BACKUP_PASSPHRASE="$p" bash scripts/export-backup.sh'''
+ $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
+ try{ $Reply=$Pass | & ssh @SshOptions $Server 'cd /opt/truethrills && sudo sh -c ''read -r p; BACKUP_PASSPHRASE="$p" bash scripts/export-backup.sh''' } finally{ $ErrorActionPreference=$Was }
  if($LASTEXITCODE -ne 0){throw 'SSH command failed. See the message above.'}
 }else{
  Write-Warning 'Пароль не задан: копия уедет открытой, а в ней .env и приватные ключи.'
@@ -74,7 +91,8 @@ New-Item -ItemType Directory -Force -Path $BackupDirectory | Out-Null
 # Имя отражает, закрыта копия или нет: открытую нельзя принять за закрытую.
 $Suffix=if($Info.encrypted){'.tar.gz.enc'}else{'.tar.gz'}
 $Target=Join-Path $BackupDirectory ($Info.snapshot+$Suffix)
-& scp @SshOptions "${Server}:$($Info.path)" $Target
+$Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
+try{ & scp @SshOptions "${Server}:$($Info.path)" $Target } finally{ $ErrorActionPreference=$Was }
 if($LASTEXITCODE -ne 0){throw 'Download failed; the private server copy is retained.'}
 if((Get-FileHash -LiteralPath $Target -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Info.sha256){throw 'Checksum mismatch; do not use this download. Server copy retained.'}
 # Remove only the temporary export, after matching the full SHA256 locally.

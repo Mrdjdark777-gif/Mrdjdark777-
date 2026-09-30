@@ -58,4 +58,37 @@ for (const name of files) {
 
 assert.ok(checked, 'ни в одном .ps1 нет кириллицы — проверка ничего не сторожит');
 
-console.log('PASS: все ' + checked + ' скрипта PowerShell с кириллицей начинаются с метки UTF-8 — Windows прочитает их целыми, а не в cp1251');
+/**
+ * Вызов родной программы обязан быть прикрыт от её же потока ошибок.
+ *
+ * ssh, scp и git пишут туда обычный ход работы: «From https://github.com/…»,
+ * строку передачи файла. Когда поток ошибок перенаправлен — а обновление так и
+ * делает, чтобы вести журнал, — PowerShell 5.1 превращает такую строку в
+ * ошибку NativeCommandError, и при $ErrorActionPreference='Stop' обрывает
+ * работу на первой же. Обновление у владельца падало ровно здесь, хотя сервер
+ * отвечал нормально.
+ *
+ * Прикрытие — одна и та же пара строк вокруг вызова: снять 'Stop' и вернуть
+ * его обратно в finally. Судим о родной программе по $LASTEXITCODE. Здесь
+ * проверяется, что ни один вызов не остался голым.
+ */
+const NATIVE = /(^|[^\w])&\s+(ssh|scp)\b/;
+let guarded = 0;
+for (const name of files) {
+ const lines = readFileSync(path.join(folder, name), 'utf8').split(/\r?\n/);
+ lines.forEach((line, at) => {
+  if (!NATIVE.test(line)) return;
+  if (line.trimStart().startsWith('#')) return;        // в комментарии вызова нет
+  guarded += 1;
+  const where = 'scripts/' + name + ':' + (at + 1);
+  assert.match(line, /try\s*\{.*\}\s*finally\s*\{\s*\$ErrorActionPreference\s*=\s*\$Was\s*\}/,
+   where + ' — вызов родной программы не в try/finally: её поток ошибок оборвёт обновление');
+  const before = lines[at - 1] ?? '';
+  assert.match(before, /\$ErrorActionPreference\s*=\s*'Continue'/,
+   where + " — перед вызовом родной программы не снят 'Stop': строка из её потока ошибок станет остановкой");
+ });
+}
+assert.ok(guarded >= 4, 'вызовов ssh и scp нашлось всего ' + guarded + ' — проверка смотрит не туда');
+
+console.log('PASS: все ' + checked + ' скрипта PowerShell с кириллицей начинаются с метки UTF-8, а все ' + guarded +
+ ' вызова ssh и scp прикрыты от собственного потока ошибок — Windows прочитает скрипты целыми и не оборвёт обновление на строке git');
