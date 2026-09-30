@@ -1556,6 +1556,8 @@ try{
     sceneHeight:r?r.height:null,
     sceneLeft:r?Math.round(r.left):null,sceneRight:r?Math.round(r.right):null,
     carouselTop:car?Math.round(car.getBoundingClientRect().top):null,
+    cardBottom:(()=>{const one=document.querySelector('.soft-episode');
+     return one?Math.round(one.getBoundingClientRect().bottom):null;})(),
     navTop:nav?Math.round(nav.getBoundingClientRect().top):null};});
   check(fold.title!==null&&fold.title<=height,`главная ${width}×${height}: подпись вида публикации уходит за первый экран (${fold.title})`);
   check(fold.action!==null&&fold.action<=height,`главная ${width}×${height}: кнопка запуска уходит за первый экран (${fold.action})`);
@@ -1568,8 +1570,12 @@ try{
   // видна не краешком.
   check(fold.sceneHeight!==null&&fold.sceneHeight<=height*0.52,
    `главная ${width}×${height}: афиша выше половины экрана (${Math.round(fold.sceneHeight||0)} из ${height})`);
-  check(fold.carouselTop!==null&&fold.navTop!==null&&fold.navTop-fold.carouselTop>=120,
-   `главная ${width}×${height}: карусели видно меньше 120 точек над панелью разделов (${fold.navTop-fold.carouselTop})`);
+  // Карточка карусели видна целиком — вместе со своим названием. Это и есть
+  // то, о чём владелец просил словами: «нужно чтоб постер и карусель были
+  // видны сразу». Одного «карусель началась» мало: обрезанная карточка
+  // выглядит не как приглашение листать, а как недоделанный экран.
+  check(fold.cardBottom!==null&&fold.navTop!==null&&fold.cardBottom<=fold.navTop,
+   `главная ${width}×${height}: карточка карусели обрезана панелью разделов (низ ${fold.cardBottom} против ${fold.navTop})`);
   // Тень карточки обязана помещаться в полосу карусели.
   //
   // Полоса прокручивается, а значит обрезает всё, что выходит за её края, — и
