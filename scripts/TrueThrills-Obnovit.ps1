@@ -17,6 +17,12 @@ param(
  [string]$KeyPath = 'D:\True Thrills\Private SSH - Key\ssh-key-2026-09-06.key'
 )
 $ErrorActionPreference = 'Continue'
+# Сервер отвечает по-русски и в UTF-8, а консоль Windows читает вывод чужих
+# программ в кодировке системы — cp866. Русские строки от обновления
+# превращались в набор знаков, и предупреждение про осиротевшие обложки
+# владелец прочитать не мог. Переключаем только вывод и только в этом окне:
+# на саму систему и на другие окна это не влияет.
+try{ [Console]::OutputEncoding = [Text.Encoding]::UTF8 }catch{}
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $log  = Join-Path ([Environment]::GetFolderPath('Desktop')) 'TrueThrills-obnovlenie.txt'
 
