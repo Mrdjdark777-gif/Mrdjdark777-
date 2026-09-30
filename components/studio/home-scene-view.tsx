@@ -5,6 +5,7 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
+import {aim,ease as easeTilt,shadowOf,type Tilt} from '@/lib/device-tilt';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -40,6 +41,38 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  },[]);
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
  useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
+
+ // Карточки поворачиваются вслед за телефоном.
+ //
+ // Телефон знает своё положение в пространстве, и карточка, которая на это
+ // отвечает, перестаёт быть картинкой на плоскости. Поворот, а не сдвиг:
+ // повернул телефон влево — левый край карточки ушёл от тебя.
+ //
+ // Значения пишутся прямо в стиль карусели, а не в состояние React:
+ // перерисовывать дерево шестьдесят раз в секунду ради двух чисел незачем.
+ // Считает наклон lib/device-tilt — его можно проверить без телефона.
+ const reel=useRef<HTMLUListElement>(null);
+ useEffect(()=>{
+  const node=reel.current;if(!node)return;
+  if(typeof window==='undefined'||!('DeviceOrientationEvent' in window))return;
+  // Просьба «меньше движения» с системного уровня сильнее красоты.
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+  let now:Tilt={x:0,y:0},goal:Tilt={x:0,y:0},frame=0,alive=true;
+  const draw=()=>{
+   if(!alive)return;
+   now=easeTilt(now,goal);
+   const shadow=shadowOf(now);
+   node.style.setProperty('--tilt-x',now.x.toFixed(2)+'deg');
+   node.style.setProperty('--tilt-y',now.y.toFixed(2)+'deg');
+   node.style.setProperty('--tilt-shadow-x',shadow.x.toFixed(1)+'px');
+   node.style.setProperty('--tilt-shadow-y',shadow.y.toFixed(1)+'px');
+   frame=requestAnimationFrame(draw);
+  };
+  const turn=(event:DeviceOrientationEvent)=>{goal=aim(event.beta,event.gamma);};
+  window.addEventListener('deviceorientation',turn);
+  frame=requestAnimationFrame(draw);
+  return()=>{alive=false;cancelAnimationFrame(frame);window.removeEventListener('deviceorientation',turn);};
+ },[]);
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 
  // homeScene отдаёт свой узкий тип; открывать нужно исходную публикацию со
@@ -126,7 +159,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <h3>{t('home.freshList')}</h3>
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
-   <ul className="soft-carousel" aria-label={t('home.freshList')}>
+   <ul className="soft-carousel" ref={reel} aria-label={t('home.freshList')}>
     {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
      // Вид публикации — значком в углу обложки, а не строкой под ней: строка
      // с подписью и длительностью отнимала место у названия и повторяла то,

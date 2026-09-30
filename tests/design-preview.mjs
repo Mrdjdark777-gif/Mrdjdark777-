@@ -1557,6 +1557,27 @@ try{
    `главная ${width}×${height}: афиша выше половины экрана (${Math.round(fold.sceneHeight||0)} из ${height})`);
   check(fold.carouselTop!==null&&fold.navTop!==null&&fold.navTop-fold.carouselTop>=120,
    `главная ${width}×${height}: карусели видно меньше 120 точек над панелью разделов (${fold.navTop-fold.carouselTop})`);
+  // Карточки карусели отзываются на положение телефона: повернул телефон —
+  // повернулась карточка. Разметка об этом молчит, углы приходят из скрипта в
+  // переменные стиля, поэтому проверяем то, что видно: подаём событие о
+  // наклоне и смотрим, изменился ли поворот. Считает наклон lib/device-tilt,
+  // и знаки там проверены отдельно, числами, без браузера.
+  if(width===390){
+   const rest=await page.evaluate(()=>{const n=document.querySelector('.soft-art');
+    return n?getComputedStyle(n).transform:null;});
+   await page.evaluate(()=>{
+    const event=new Event('deviceorientation');
+    Object.assign(event,{beta:74,gamma:24});
+    window.dispatchEvent(event);});
+   await page.waitForTimeout(700);
+   const turned=await page.evaluate(()=>{const n=document.querySelector('.soft-art');
+    return n?getComputedStyle(n).transform:null;});
+   check(rest!==null&&turned!==null,'карточек карусели нет — поворот проверять не на чем');
+   check(rest!==turned,'карточки карусели не отзываются на положение телефона: поворот остался прежним ('+rest+')');
+   // Возвращаем телефон в покой, иначе следующий снимок уедет.
+   await page.evaluate(()=>{const event=new Event('deviceorientation');
+    Object.assign(event,{beta:38,gamma:0});window.dispatchEvent(event);});
+   await page.waitForTimeout(700);}
   // Постер во всю ширину занимает почти весь первый экран — так просил
   // владелец. Требование к сгибу одно: кнопка запуска доступна без
   // прокрутки, за ней человек и пришёл.
