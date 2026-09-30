@@ -1,4 +1,4 @@
-# Windows PowerShell 5.1 / PowerShell 7. Run from the extracted source folder.
+﻿# Windows PowerShell 5.1 / PowerShell 7. Run from the extracted source folder.
 [CmdletBinding()]
 param(
  [ValidateSet('Update','Status','Backup')][string]$Action='Status',
