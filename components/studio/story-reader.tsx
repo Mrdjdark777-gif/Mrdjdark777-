@@ -674,9 +674,15 @@ export function StoryReader({id,title,description,body,onClose}:{
       onChange={e=>savePrefs({...prefs,dim:(70-Number(e.target.value))/100})}/>
     </div>
    </div>:<div className="tt-reader-marks">
+    {/* Переход по закладке — сразу, без оборота.
+        Через оборот он не работал вовсе: `go` только заводит лист, а страница
+        меняется в конце доводки — и следом тут же прячется панель. Смена
+        панелей пересчитывает полосу чтения, пересчёт гасит начатый оборот, и
+        страница не менялась никогда. Со стороны это выглядело так, что
+        закладки не работают. Прыжок ставит страницу сам и ничего не ждёт. */}
     {marks.length===0?<p className="tt-reader-note">{t('reader.noBookmarks')}</p>:marks.map(mark=>
      <button key={mark.at} type="button" className="tt-reader-mark tt-pressable" onClick={()=>{
-      go(Math.round(mark.ratio*(total-1)));setSheet('none');setChrome(false);}}>
+      seek(Math.round(mark.ratio*(total-1)));setSheet('none');setChrome(false);}}>
       <b>{Math.round(mark.ratio*100)}%</b><span>{mark.text}</span>
       <i role="button" tabIndex={0} aria-label={t('reader.removeBookmark')}
        onClick={e=>{e.stopPropagation();saveMarks(marks.filter(m=>m!==mark),ratio);}}

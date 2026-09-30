@@ -1098,6 +1098,22 @@ try{
   if(after!==marked)problems.push('читалка открылась не на том месте: было '+marked+', стало '+after);
   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();
   if(!await page.locator('.tt-reader-mark').count())problems.push('закладка не пережила перезапуск');
+  // Нажатие по закладке возвращает на её страницу.
+  //
+  // Сама по себе закладка ставилась и переживала перезапуск — это проверялось
+  // выше и проходило. А переход по ней не работал вовсе, и проверки на него не
+  // было: переход шёл оборотом, страница менялась в конце доводки, а следом
+  // тут же пряталась панель — пересчёт полосы гасил начатый оборот. Владелец
+  // сказал коротко: закладки не работают.
+  {await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();await page.waitForTimeout(250);
+   await at(0.9);await page.waitForTimeout(1300);
+   const away=await now();
+   if(away===marked)problems.push('не удалось уйти со страницы закладки — переход проверять не с чего');
+   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();
+   await page.locator('.tt-reader-mark').first().click();await page.waitForTimeout(700);
+   const back=await now();
+   if(back!==marked)problems.push('нажатие по закладке не вернуло на её страницу: было '+away+', ждали '+marked+', стало '+back);
+   await page.locator('[aria-label="Закладки"]').click();await page.locator('.tt-reader-marks').waitFor();}
   // Яркость. Ползунок тянут вправо — становится светлее, а не темнее: на
   // телефоне было наоборот. И вуаль накрывает всю читалку вместе с панелями:
   // светлая полоса шапки над затемнённым текстом слепит сильнее самого текста.
