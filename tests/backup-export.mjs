@@ -65,12 +65,25 @@ try {
  const opened = Buffer.concat([decipher.update(blob.subarray(16)), decipher.final()]).toString();
  assert.equal(opened, secret, 'копия не открывается тем способом, которым её будет открывать Windows');
 
- // Неверный пароль обязан отказать, а не отдать мусор.
- assert.throws(() => {
+ // Неверный пароль обязан отказать, а не отдать содержимое копии.
+ //
+ // Раньше здесь стояло «обязан бросить исключение», и проверка падала примерно
+ // раз на двести прогонов на исправном коде. Причина не в коде: у AES-CBC
+ // неверный ключ даёт случайные байты, а исключение бросает только разбор
+ // дополнения в конце. Случайные байты изредка складываются в допустимое
+ // дополнение — примерно в одном случае из двухсот пятидесяти, — и разбор
+ // проходит. Требовать исключения нельзя.
+ //
+ // Требовать нужно того, что верно всегда: неверным паролём копию не открыть.
+ let leaked = null;
+ try {
   const wrong = crypto.pbkdf2Sync(Buffer.from('не тот пароль', 'utf8'), blob.subarray(8, 16), ITER, 48, 'sha256');
   const bad = crypto.createDecipheriv('aes-256-cbc', wrong.subarray(0, 32), wrong.subarray(32, 48));
-  Buffer.concat([bad.update(blob.subarray(16)), bad.final()]);
- }, 'неверный пароль не должен что-то расшифровывать');
+  leaked = Buffer.concat([bad.update(blob.subarray(16)), bad.final()]).toString();
+ } catch {
+  leaked = null;                       // отказал — это тоже верный ответ
+ }
+ assert.notEqual(leaked, secret, 'неверный пароль открыл копию');
 } finally {
  rmSync(dir, {recursive: true, force: true});
 }
