@@ -5,8 +5,8 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
-import {nearOf,scaleOf,litOf,stepOf} from '@/lib/device-tilt';
 import {useTilt} from '@/hooks/use-tilt';
+import {useDrum} from '@/hooks/use-drum';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -52,172 +52,9 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  useEffect(()=>()=>{if(hold.current)clearTimeout(hold.current);},[]);
  useEffect(()=>menu?pushBackLayer(BACK_MENU,()=>{setMenu(null);return true;}):undefined,[menu]);
 
- // Карточка посреди полосы ближе к нам, крайние — дальше.
- //
- // Поворот здесь пробовали дважды: по гироскопу и по прокрутке. Гироскоп в
- // оболочке Android событий не даёт вовсе, а поворот по прокрутке дал на
- // устройстве владельца рассыпавшиеся пиксели — WebView перерисовывает
- // повёрнутый слой с обрезкой по скруглению и промахивается. Масштаб и
- // прозрачность выполняет тот же готовый слой, без перерисовки содержимого,
- // поэтому они не сыплются нигде.
- //
- // Значения пишутся прямо в стиль карточки, а не в состояние React:
- // перерисовывать дерево на каждый кадр прокрутки незачем.
- const reel=useRef<HTMLUListElement>(null);
- useEffect(()=>{
-  const node=reel.current;if(!node)return;
-  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-  let frame=0,watch=0,still=0,was=-1,touch=false;
-
-  /**
-   * Места карточек запоминаются один раз, а не спрашиваются каждый кадр.
-   *
-   * Так было: на каждом кадре прокрутки код спрашивал у браузера положение
-   * полосы и всех восемнадцати карточек — и тут же писал им стили. Чтение
-   * после записи заставляет браузер пересчитывать раскладку заново, и так по
-   * девятнадцать раз за кадр. На телефоне это те самые подвисания при быстрой
-   * прокрутке, о которых сказал владелец.
-   *
-   * Положение карточки внутри ленты от прокрутки не зависит: лента едет,
-   * карточки в ней стоят. Значит его достаточно снять один раз — при
-   * появлении и при смене размера экрана.
-   */
-  let spots:{card:HTMLElement;art:HTMLElement|null;centre:number}[]=[];
-  const remember=()=>{
-   spots=Array.from(node.querySelectorAll<HTMLLIElement>(':scope>li')).map(li=>{
-    const card=li.querySelector<HTMLElement>('.soft-episode');
-    return card?{card,art:card.querySelector<HTMLElement>('.soft-art'),
-     centre:li.offsetLeft+li.offsetWidth/2}:null;
-   }).filter((x):x is {card:HTMLElement;art:HTMLElement|null;centre:number}=>!!x);
-  };
-
-  /** Близость карточки к середине полосы — одно число на карточку. */
-  const measure=()=>{
-   // Единственное, что читается в кадре: куда уехала лента и какой она ширины.
-   // Сначала читаем, потом пишем — тогда раскладка пересчитывается один раз.
-   const seen=node.clientWidth,at=node.scrollLeft;
-   const middle=at+seen/2,span=Math.max(1,seen/2);
-   if(!spots.length)remember();
-   return spots.map(spot=>({...spot,near:stepOf(nearOf(spot.centre,middle,span))}));
-  };
-
-  /**
-   * Во время прокрутки меняется только прозрачность.
-   *
-   * Прозрачность композитор делает над готовым слоем, ничего не перерисовывая.
-   * Масштаб — наоборот: при каждой смене WebView рисует карточку заново, вместе
-   * с обложкой, скруглением, бортиком и тенью. На быстрой прокрутке это и есть
-   * та рябь по пикселям, на которую жаловался владелец. Огрубление до ступеней
-   * её только уменьшило: реже — не значит никогда.
-   */
-  const light=()=>{
-   frame=0;
-   const now=measure();
-   for(const {card,near} of now){
-    const lit=litOf(near).toFixed(3);
-    if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
-   }
-  };
-
-  /**
-   * Когда лента встала — масштаб середины.
-   *
-   * Масштаб перерисовывает слой, поэтому на ходу его не трогаем. На остановке
-   * это безопасно, а переход в стилях делает рост середины плавным: именно он
-   * и читается как анимация.
-   */
-  const settle=()=>{
-   for(const {card,art,near} of measure()){
-    const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
-    if(art&&art.dataset.near!==scale){art.style.setProperty('--near',scale);art.dataset.near=scale;}
-    if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
-   }
-  };
-
-  /** Встать в средний круг — один раз, при появлении ленты. */
-  const centre=()=>{
-   if(node.dataset.loop!=='yes')return;
-   const one=node.scrollWidth/3;
-   if(one>1&&node.dataset.ready!=='yes'){node.scrollLeft=one;node.dataset.ready='yes';was=node.scrollLeft;}
-  };
-
-  /**
-   * Перескок круга — только по полной остановке ленты.
-   *
-   * Список выложен трижды; прокрутка живёт в среднем круге, а дойдя до
-   * соседнего — молча возвращается на круг назад или вперёд. Человек видит
-   * ленту без начала и конца, а прокрутка остаётся обычной, со своей инерцией.
-   *
-   * Так было: перескок делался вместе с масштабом, через 140 мс после
-   * последнего события прокрутки. Владелец сказал ровно то, что из этого
-   * следует: «листнул быстро и заново — зависает». Пока лента летит, события
-   * идут каждый кадр и таймер не доживает до конца; но стоит инерции
-   * выдохнуться, он срабатывает — и если палец в этот момент бросил ленту
-   * второй раз, перескок падает прямо в новый разгон. Своя запись в прокрутку
-   * гасит инерцию браузера насмерть: лента встаёт как вкопанная. Медленное
-   * листание не страдало потому, что инерции там почти нет.
-   *
-   * Теперь перескок ждёт двух условий сразу: палец снят и прокрутка не
-   * сдвинулась ни на точку три кадра подряд. Барабан крутится, пока крутится,
-   * а круг подменяется в тишине между броском и броском.
-   *
-   * Таймер для этого не годится вовсе: он знает только, когда пришло последнее
-   * событие, но не знает, летит ли лента. Поэтому смотрим на саму прокрутку
-   * покадрово.
-   */
-  const park=()=>{
-   watch=0;
-   const at=node.scrollLeft;
-   // Палец на ленте или лента ещё едет — ждём дальше, ничего не трогая.
-   if(touch||Math.abs(at-was)>0.5){was=at;still=0;watch=requestAnimationFrame(park);return;}
-   // Один неподвижный кадр ещё не остановка: между двумя кадрами инерции
-   // прокрутка может совпасть до точки. Три подряд — уже тишина.
-   if(++still<3){watch=requestAnimationFrame(park);return;}
-   if(node.dataset.loop==='yes'){
-    // Возвращаемся не «когда уже почти край», а в середину — по остатку от
-    // круга. Разница существенная: при старых порогах лента могла встать в
-    // половине круга от начала, и слева до стенки оставалось меньше тысячи
-    // точек — один сильный бросок пальцем проезжает больше. Упор в стенку
-    // выглядит точно так же, как зависание. По остатку лента всегда стоит в
-    // среднем круге, и запас разгона в обе стороны наибольший, какой вообще
-    // дают три круга.
-    const one=node.scrollWidth/3;
-    if(one>1){
-     const want=(at%one)+one;
-     if(Math.abs(want-at)>0.5)node.scrollLeft=want;
-    }
-   }
-   settle();
-   was=node.scrollLeft;
-  };
-  const guard=()=>{if(!watch){was=node.scrollLeft;still=0;watch=requestAnimationFrame(park);}};
-
-  // На ходу — только прозрачность, и один раз в кадр. Всё остальное ждёт
-  // остановки, и остановку определяет park по самой прокрутке. Таймер здесь
-  // был и оказался второй половиной той же беды: он знает лишь, когда пришло
-  // последнее событие, и срабатывал посреди следующего броска.
-  const later=()=>{
-   if(!frame)frame=requestAnimationFrame(light);
-   guard();
-  };
-  // Палец следим касаниями, а не указателем: в Chromium указатель на ленте с
-  // прокруткой отменяется (pointercancel) в тот момент, когда прокрутка
-  // забирает жест себе, — то есть ровно тогда, когда палец ещё на экране.
-  const grab=()=>{touch=true;guard();};
-  const drop=()=>{touch=false;guard();};
-  const LET=['touchend','touchcancel'];
-  // Размер экрана сменился — места карточек надо снять заново.
-  const again=()=>{remember();later();};
-  remember();centre();settle();
-  node.addEventListener('scroll',later,{passive:true});
-  node.addEventListener('touchstart',grab,{passive:true});
-  for(const event of LET)window.addEventListener(event,drop,{passive:true});
-  window.addEventListener('resize',again);
-  return()=>{if(frame)cancelAnimationFrame(frame);if(watch)cancelAnimationFrame(watch);
-   node.removeEventListener('scroll',later);node.removeEventListener('touchstart',grab);
-   for(const event of LET)window.removeEventListener(event,drop);
-   window.removeEventListener('resize',again);};
- },[posts.length]);
+ // Лента свежего — барабан на Embla; всё про бросок, круг и выделение
+ // середины живёт в hooks/use-drum.ts.
+ const {setView,view:reel}=useDrum();
 
  // Карточки живут вслед за рукой. Сдвиг пишется один раз в кадр на всю полосу,
  // карточки наследуют его переменными — см. hooks/use-tilt.ts.
@@ -241,13 +78,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
  const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
   .sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);
- // Карусель идёт по кругу, когда выпусков хотя бы три: список выкладывается
- // трижды подряд, прокрутка живёт в среднем круге и незаметно возвращается в
- // него на краях. Меньше трёх — круга нет: прокручивать там нечего, а тройной
- // список из двух карточек выглядел бы дублями, а не лентой.
- const ring=latest.length>=3;
- const reeled=ring?[...latest,...latest,...latest]:latest;
- const heroCover=hero?coverOf(hero):'';
+  const heroCover=hero?coverOf(hero):'';
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
  // Надстрочная надпись в кадре — вид публикации, он уже записан заглавными
@@ -322,21 +153,14 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     <h3>{t('home.freshList')}</h3>
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
-   {/* Карусель идёт по кругу: список выложен трижды подряд, а прокрутка
-       незаметно возвращается в средний круг, когда доходит до края. Никакого
-       края человек не видит — лента не кончается ни вправо, ни влево.
-       Меньше трёх выпусков — круга нет: там и прокручивать нечего, а тройной
-       список из двух карточек выглядел бы дублями. */}
-   <ul className="soft-carousel" ref={reel} data-loop={ring?'yes':'no'} aria-label={t('home.freshList')}>
-    {reeled.map((p,at)=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
-     // Вид публикации — значком в углу обложки, а не строкой под ней: строка
-     // с подписью и длительностью отнимала место у названия и повторяла то,
-     // что и так видно по значку.
-     // Настоящий список — средний круг. Два соседних экранный диктор не
-     // читает: это те же выпуски, и повторять их трижды незачем.
-     const copy=ring&&(at<latest.length||at>=latest.length*2);
-     return <li key={p.id+':'+at} aria-hidden={copy?true:undefined}>
-      <button type="button" className="soft-episode tt-pressable" tabIndex={copy?-1:undefined} title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
+   {/* Барабан: Embla двигает ленту переносом и переставляет крайние карточки
+       на другой конец, поэтому края нет, а карточек ровно столько, сколько
+       выпусков. Круг включается сам, когда карточек на него хватает. */}
+   <div className="soft-carousel" ref={setView} role="region" aria-roledescription="carousel" aria-label={t('home.freshList')}>
+   <ul className="soft-reel">
+    {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+     return <li key={p.id}>
+      <button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">
        {/* Без обложки — знак канала. */}
        <Artwork src={tileCover(p)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
@@ -348,6 +172,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
       <strong>{p.title}</strong>
      </button></li>;})}
    </ul>
+   </div>
   </section>}
   {/* Архив эфиров — вход в раздел, а не выпуск. Карточкой в карусели он
       выглядел как публикация, которую можно включить; строкой во всю ширину

@@ -338,7 +338,7 @@ try{
   // оттуда то, ради чего снимали.
   await page.goto(base+'/?mode=listen&view=home');await settle(page);await page.waitForTimeout(300);
   {const where=await page.evaluate(()=>({
-    carousel:[...document.querySelectorAll('.soft-carousel>li strong')].map(e=>e.textContent.trim()),
+    carousel:[...document.querySelectorAll('.soft-reel>li strong')].map(e=>e.textContent.trim()),
     hero:document.querySelector('.scene-title')?.textContent.trim()||''}));
    if(!where.carousel.includes('Истории после заката'))
     problems.push('записи эфира нет в карусели главной: '+where.carousel.join(', '));
@@ -474,7 +474,7 @@ try{
       beforeSupport:at(row)<at(support)&&at(support)>=0,
       supportInside:!!(support&&support.querySelector('.support-strip')),
       socialsBelow:!!(support&&support.querySelector('.soft-socials')),
-      cards:document.querySelectorAll('.soft-carousel>li').length};});
+      cards:document.querySelectorAll('.soft-reel>li').length};});
     if(!order.row)problems.push('на главной нет строки входа в архив эфиров');
     if(order.inCarousel)problems.push('архив эфиров снова лежит карточкой в карусели — это вход в раздел, а не выпуск');
     if(order.rowIsEpisode)problems.push('строка архива стала карточкой выпуска');
@@ -1746,168 +1746,62 @@ try{
     'на телефоне под приложением всё ещё крутится свечение: три размытых пятна и слой шума на каждом кадре ('+aurora+')');
   }
 
-  // Карусель идёт по кругу. Прокрутили до конца — лента не кончилась, а
-  // продолжилась теми же выпусками. Проверяем так, как это видит человек:
-  // уводим прокрутку к правому краю и смотрим, что она сама вернулась внутрь,
-  // а карточки на экране остались.
+  // Карусель — барабан: бросил пальцем, крутится сама, бросил ещё — крутится
+  // дальше, встаёт точно на карточку.
+  //
+  // Владелец просил это трижды: «как барабан у револьвера», «как барабан на
+  // поле чудес», «листнул быстро и заново — зависает». Прежние проверки
+  // двигали прокрутку руками и инерции не видели вовсе — поэтому зелёный
+  // прогон и уживался с лентой, которая на втором броске вставала. Причину
+  // нашёл только настоящий бросок: лента выложена трижды, и второй бросок
+  // подряд доезжал до края тройного круга (старт 3467, край 4830).
+  //
+  // Здесь бросок тот же, каким его делает палец: касание, восемь шагов по
+  // 16 мс, отпускание — с метками времени, иначе Chromium считает скорость
+  // по задержкам доставки событий и инерции не выходит даже у голой ленты.
   if(width===390){
-   const ring=await page.evaluate(async()=>{
-    const strip=document.querySelector('.soft-carousel');
-    if(!strip)return null;
-    const loop=strip.dataset.loop==='yes';
-    if(!loop)return {loop:false};
-    const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-    await wait();
-    const started=strip.scrollLeft;
-    strip.scrollLeft=strip.scrollWidth;          // до самого правого края
-    // Перескок круга делается на остановке, а не на ходу: посреди броска
-    // пальцем он перещёлкивает снап, и это видно рябью. Поэтому ждём, как
-    // ждал бы человек, отпустивший палец.
-    await sleep(400);
-    return {loop:true,started,ended:strip.scrollLeft,width:strip.scrollWidth,
-     cards:strip.querySelectorAll('.soft-episode').length};});
-   check(!!ring,'карусели нет — круг проверять не на чем');
-   if(ring&&ring.loop){
-    check(ring.started>1,'карусель не встала в средний круг: прокрутка осталась в нуле');
-    check(ring.ended<ring.width*0.75,
-     'карусель не вернулась в круг: доехали до края и там и остались ('+Math.round(ring.ended)+' из '+Math.round(ring.width)+')');
-    check(ring.cards>=9,'круг не выложен трижды: карточек всего '+ring.cards);}
-
-   // Барабан не глохнет: перескок круга ждёт, пока палец снят и лента встала.
-   //
-   // Это та самая поломка, на которую владелец показал словами: «листнул
-   // быстро и заново — зависает». Перескок круга — наша собственная запись в
-   // прокрутку, а своя запись гасит инерцию браузера насмерть. Пока перескок
-   // делался по таймеру, через 140 мс после последнего события прокрутки, он
-   // попадал прямо в следующий бросок пальцем: лента встаёт как вкопанная.
-   // Медленное листание не страдало — инерции там почти нет.
-   //
-   // Настоящую инерцию в проверке не воспроизвести: её считает сама оболочка.
-   // Зато проверяется условие, которое её охраняет. Кладём палец, уводим ленту
-   // за границу круга и ждём вчетверо дольше прежнего таймера: перескок обязан
-   // молчать. Потом снимаем палец — и он обязан случиться, иначе круга не
-   // станет вовсе и лента кончится краем.
-   {const drum=await page.evaluate(async()=>{
-     const strip=document.querySelector('.soft-carousel');
-     if(!strip||strip.dataset.loop!=='yes')return null;
-     if(typeof TouchEvent!=='function')return {skip:true};
-     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-     const one=strip.scrollWidth/3;
-     strip.scrollLeft=one;await sleep(500);          // встать в средний круг и успокоиться
-     const send=(kind)=>strip.dispatchEvent(new TouchEvent(kind,{bubbles:true,cancelable:true}));
-     send('touchstart');
-     // Положение читаем не то, которое задали, а то, которое получилось:
-     // привязка подводит прокрутку к ближайшей карточке, и своё число тут
-     // сравнивать не с чем.
-     strip.scrollLeft=one*2.4;
-     await wait();
-     const out=strip.scrollLeft;
-     await sleep(600);
-     const held=strip.scrollLeft;
-     send('touchend');
-     let free=held;
-     for(let i=0;i<40&&Math.abs(free-held)<one*0.5;i++){await sleep(50);free=strip.scrollLeft;}
-     // И с другой стороны круга. Лента, оставшаяся в первом круге, обязана
-     // вернуться в средний: иначе слева до стенки остаётся меньше круга, а
-     // упор в стенку выглядит ровно как зависание.
-     strip.scrollLeft=one*0.7;
-     await wait();
-     const low=strip.scrollLeft;
-     let back=low;
-     for(let i=0;i<40&&back<one;i++){await sleep(50);back=strip.scrollLeft;}
-     return {skip:false,one:Math.round(one),out:Math.round(out),
-      held:Math.round(held),free:Math.round(free),
-      low:Math.round(low),back:Math.round(back)};});
-    check(!!drum,'карусели с кругом нет — барабан проверять не на чем');
-    if(drum&&!drum.skip){
-     // Сначала — что лента действительно за границей круга. Иначе перескоку
-     // нечего делать, и обе проверки ниже судят ни о чём.
-     check(drum.out>drum.one*2,
-      'лента не ушла за средний круг: '+drum.out+' при круге '+drum.one+' — перескок проверять не на чем');
-     if(drum.out>drum.one*2){
-      check(Math.abs(drum.held-drum.out)<2,
-       'перескок круга сработал, пока палец на ленте: было '+drum.out+', стало '+drum.held+
-       ' — своя запись в прокрутку гасит инерцию, и быстрый бросок встанет как вкопанный');
-      check(Math.abs(drum.free-drum.held)>drum.one*0.5,
-       'палец снят, лента стоит — а перескок круга так и не случился: остались на '+drum.free+
-       ' из круга '+drum.one+', лента кончится краем');}
-     check(drum.low<drum.one,
-      'лента не встала в первый круг: '+drum.low+' при круге '+drum.one+' — возврат проверять не на чем');
-     if(drum.low<drum.one)
-      check(drum.back>=drum.one&&drum.back<drum.one*2,
-       'лента осталась вне среднего круга: '+drum.back+' при круге '+drum.one+
-       ' — до стенки с одной стороны меньше круга, и сильный бросок упрётся в неё, а упор выглядит как зависание');}}
-
-   // Во время прокрутки масштаб карточек меняться не должен вовсе.
-   //
-   // Владелец дважды сказал одно и то же: «если крутишь быстрее, рябит
-   // пикселями». Причина не в частоте, а в самом действии: при каждой смене
-   // масштаба WebView рисует карточку заново — обложку, скругление, бортик и
-   // тень. Огрубление до ступеней это только уменьшило. Поэтому на ходу
-   // меняется лишь прозрачность: её композитор делает над готовым слоем, не
-   // перерисовывая ничего.
-   //
-   // Проверяем ровно это: гоним прокрутку частыми шагами, не давая ленте
-   // встать, и смотрим на transform. Он обязан стоять. А после остановки —
-   // обязан поменяться, иначе середина перестала выделяться вовсе.
-   {const live=await page.evaluate(async()=>{
-     const strip=document.querySelector('.soft-carousel');
-     if(!strip)return null;
-     const arts=()=>[...strip.querySelectorAll('.soft-art')].map(a=>getComputedStyle(a).transform);
-     const lit=()=>[...strip.querySelectorAll('.soft-episode')].map(a=>getComputedStyle(a).opacity);
-     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-     // Встаём в начало среднего круга. Без этого проверка однажды уехала до
-     // правого края, перескок круга вернул ленту ровно в ту же точку, картина
-     // карточек совпала — и проверка обвинила код в том, чего не было.
-     const one=strip.scrollWidth/3;
-     strip.scrollLeft=one;
-     await sleep(500);                       // дать ленте встать
-     // Шаг прокрутки — ровно одна карточка с промежутком. Мелкий шаг здесь
-     // бесполезен: у полосы есть привязка к карточкам, и браузер подводит
-     // прокрутку к ближайшей точке. Проверка с шагом в сорок точек меряла не
-     // код, а привязку: лента не двигалась вовсе.
-     const card=strip.querySelector('li');
-     const pitch=card?card.getBoundingClientRect().width+12:120;
-     const from=strip.scrollLeft;
-     const was=arts(),wasLit=lit();
-     // Две карточки вперёд: этого хватает, чтобы середина сменилась, и мало,
-     // чтобы задеть край круга и вызвать перескок.
-     for(let i=0;i<2;i++){strip.scrollLeft+=pitch;await wait();}
-     const during=arts(),duringLit=lit();
-     const mid=strip.scrollLeft;
-     const moved=Math.abs(mid-from);
-     // Отпустили палец — и ждём по факту, а не по таймеру. У полосы привязка:
-     // после последнего шага браузер ещё сам доводит прокрутку до ближайшей
-     // карточки, и каждое такое движение отодвигает остановку. Жёсткие 400 мс
-     // читали масштаб раньше, чем он успевал смениться, и проверка винила код.
-     let after=arts(),waited=0;
-     while(waited<2500&&JSON.stringify(after)===JSON.stringify(during)){
-      await sleep(100);waited+=100;after=arts();}
-     return {moved:Math.round(moved),pitch:Math.round(pitch),waited,
-      from:Math.round(from),mid:Math.round(mid),to:Math.round(strip.scrollLeft),
-      one:Math.round(strip.scrollWidth/3),loop:strip.dataset.loop||'нет',
-      same:JSON.stringify(was)===JSON.stringify(during),
-      litMoved:JSON.stringify(wasLit)!==JSON.stringify(duringLit),
-      grew:JSON.stringify(during)!==JSON.stringify(after),
-      was:was.join(' | '),during:during.join(' | '),after:after.join(' | '),
-      cards:was.length};});
-    check(!!live&&live.cards>0,'карточек карусели нет — движение проверять не на чем');
-    if(live&&live.cards){
-     // Сначала убеждаемся, что лента вообще поехала. Без этого три проверки
-     // ниже судят о неподвижной ленте и врут обе стороны разом.
-     check(live.moved>=live.pitch*1.5,
-      'лента не поехала: прокрутка сдвинулась на '+live.moved+' при шаге '+live.pitch+' — проверять движение не на чем');
-     if(live.moved>=live.pitch*1.5){
-      check(live.same,'на ходу меняется масштаб карточек — WebView перерисовывает их и это идёт рябью: было «'+
-       live.was+'», стало «'+live.during+'»');
-      check(live.litMoved,'на ходу не меняется ничего: лента перестала быть живой');
-      check(live.grew,'после остановки масштаб не изменился за '+live.waited+
-       ' мс — середина больше не выделяется. Прокрутка: было '+live.from+', сразу после шагов '+live.mid+
-       ', в конце '+live.to+'; круг '+live.one+', шаг '+live.pitch+', привязка '+live.loop+
-       '. Масштабы: «'+live.after+'»');}}}
+   {const cdp=await page.context().newCDPSession(page);
+    const box=await page.locator('.soft-carousel').boundingBox();
+    const y=Math.round(box.y+box.height*0.4);
+    await page.evaluate(()=>{const v=document.querySelector('.soft-carousel'),reel=v.querySelector('.soft-reel');
+     const lis=[...reel.children];const L=lis.length*(lis[1].offsetLeft-lis[0].offsetLeft);
+     const pos=()=>{const m=/translate3d\(([-\d.]+)px/.exec(reel.style.transform);return m?+m[1]:0;};
+     // Путь ленты копится покадрово; на стыке круга перенос прыгает на длину
+     // круга — такой прыжок не движение, и он вычитается.
+     window.__drum={dist:0};let prev=pos();
+     const tick=()=>{if(!window.__drum)return;const now=pos();let d=now-prev;if(Math.abs(d)>L/2)d-=Math.sign(d)*L;
+      window.__drum.dist+=d;prev=now;requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+    const swipe=async()=>{let t=Date.now()/1000,x=300;
+     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}],timestamp:t});
+     for(let i=0;i<8;i++){x-=30;t+=0.016;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}],timestamp:t});}
+     t+=0.016;await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[],timestamp:t});};
+    const dist=()=>page.evaluate(()=>-window.__drum.dist);
+    const runs=[];
+    for(let k=1;k<=3;k++){const a=await dist();await swipe();const b=await dist();
+     await page.waitForTimeout(k<3?160:3000);const c=await dist();runs.push({finger:Math.round(b-a),after:Math.round(c-b)});}
+    const end=await page.evaluate(()=>{window.__drum=null;const v=document.querySelector('.soft-carousel'),vr=v.getBoundingClientRect();
+     const mid=vr.left+v.clientWidth/2;
+     const cards=[...v.querySelectorAll('.soft-reel>li')].map((li,i)=>{const a=li.querySelector('.soft-art'),r=a.getBoundingClientRect();
+      return {i,left:li.getBoundingClientRect().left-vr.left,off:Math.abs(r.left+r.width/2-mid),near:+(a.dataset.near||0)};});
+     const nearest=cards.reduce((p,q)=>q.off<p.off?q:p),biggest=cards.reduce((p,q)=>q.near>p.near?q:p);
+     const landed=Math.min(...cards.map(c=>Math.abs(c.left-16)));
+     return {loop:v.dataset.loop||'нет',nearest:nearest.i,biggest:biggest.i,scale:biggest.near,landed:Math.round(landed*10)/10,
+      nears:cards.map(c=>c.near).join(','),
+      lag:[...document.querySelectorAll('.soft-art,.soft-episode')].some(n=>/transform|opacity|all/.test(getComputedStyle(n).transitionProperty)&&parseFloat(getComputedStyle(n).transitionDuration)>0)};});
+    await page.waitForTimeout(300);
+    const nearsLater=await page.evaluate(()=>[...document.querySelectorAll('.soft-reel>li .soft-art')].map(a=>+(a.dataset.near||0)).join(','));
+    check(end.loop==='yes','карусель не по кругу: карточек хватает, а круга нет — лента кончится краем');
+    runs.forEach((r,k)=>check(r.finger>=150,'бросок '+(k+1)+': лента за пальцем прошла всего '+r.finger+' точек из 240 — палец её не ведёт'));
+    for(const k of [0,1])check(runs[k].after>=150,
+     'бросок '+(k+1)+' подряд: после отпускания лента прошла всего '+runs[k].after+' точек за 160 мс — не докручивается, как барабан');
+    check(runs[2].after>=600,
+     'третий бросок подряд: после отпускания лента прошла '+runs[2].after+' точек до остановки — барабан глохнет (на голой ленте с инерцией выходит больше 600)');
+    check(end.landed<=1,'лента встала мимо карточки: ближайшая карточка в '+end.landed+' точках от своего места — барабан должен вставать на сектор');
+    check(end.nearest===end.biggest,
+     'крупнее не та карточка: посередине стоит '+(end.nearest+1)+'-я, а крупная — '+(end.biggest+1)+'-я (масштаб '+end.scale+')');
+    check(end.nears===nearsLater,'после остановки масштаб ещё меняется — середина дорастает с опозданием: «'+end.nears+'» → «'+nearsLater+'»');
+    check(!end.lag,'у карточки снова переход по масштабу или свету: значение идёт каждый кадр, и переход тянет его вслед с опозданием');
+   }
 
    /**
     * В плитку приезжает уменьшенная обложка, а не оригинал.
@@ -2210,7 +2104,7 @@ try{
      sup=document.querySelector('.soft-support');
      if(!sc||!home)return null;const a=sc.getBoundingClientRect(),h=home.getBoundingClientRect();
      return {sceneH:Math.round(a.height),viewport:innerHeight,columnW:Math.round(h.width),
-      cards:document.querySelectorAll('.soft-carousel>li').length,
+      cards:document.querySelectorAll('.soft-reel>li').length,
       carousel:!!car,support:!!sup,
       overflow:Math.round(car?car.scrollWidth-car.clientWidth:0)};});
     if(!wide)problems.push('слушатель '+w+': на главной нет кадра или новой обёртки');
