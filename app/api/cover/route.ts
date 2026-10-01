@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, posts } from '@/db/schema';
 import { bucket, failure, owner, requireOwner, result, setting, userId } from '@/lib/server';
+import { askedWidth, bodyOf, thumbnail, thumbTag } from '@/lib/thumbs';
 const MAX = 12 * 1024 * 1024;
 export async function POST(req: Request) {
   try {
@@ -40,8 +41,16 @@ export async function GET(req: Request) {
       if (!isPublic && !(await owner(req))) return new Response('#err.notFound', { status: 404 });
     }
     if (!key) return new Response('#err.notFound', { status: 404 });
-    const obj = await bucket().get(key);
-    if (!obj) return new Response('#err.notFound', { status: 404 });
+    // Плитке не нужна обложка в полный размер.
+    //
+    // Браузер распаковывает картинку целиком, какой бы маленькой её ни
+    // показывали: 1080×1350 — это полтора миллиона точек и около шести
+    // мегабайт распакованного вида на каждую плитку. Брошенная лента открывает
+    // их пачкой, и телефон встаёт. Поэтому плитки просят ширину, а здесь она
+    // отдаётся — один раз уменьшается и дальше берётся с диска.
+    //
+    // Готовая уменьшенная отдаётся не читая оригинал: иначе смысл теряется.
+    const width = askedWidth(new URL(req.url).searchParams.get('w'));
     // Обложки выпусков неизменны: у каждой загрузки свой ключ, их можно
     // держать в кэше сутки. Оформление канала и картинка круга покоя живут
     // под одним адресом и меняются — закэшированное на сутки изображение
@@ -54,6 +63,25 @@ export async function GET(req: Request) {
     const cache = single ? 'no-store' : isPublic ? 'public, max-age=86400' : 'private, no-store';
     const h = new Headers({ 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' });
     if (!isPublic) h.set('Vary', 'Cookie');
+
+    if (width) {
+      const small = await thumbnail(key, width, async () => {
+        const full = await bucket().get(key);
+        if (!full) throw new Error('#err.notFound');
+        return new Uint8Array(await new Response(full.body).arrayBuffer());
+      });
+      if (small) {
+        h.set('Content-Type', 'image/webp');
+        h.set('ETag', thumbTag(key, width));
+        h.set('Content-Length', String(small.byteLength));
+        return new Response(bodyOf(small), { headers: h });
+      }
+      // Уменьшить не вышло — отдаём оригинал, как отдавали всегда. Пустая
+      // плитка хуже тяжёлой.
+    }
+
+    const obj = await bucket().get(key);
+    if (!obj) return new Response('#err.notFound', { status: 404 });
     obj.writeHttpMetadata(h); h.set('ETag', obj.httpEtag); h.set('Content-Length', String(obj.size));
     return new Response(obj.body, { headers: h });
   } catch (e) { return failure(e); }

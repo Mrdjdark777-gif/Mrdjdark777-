@@ -18,6 +18,9 @@ const dir = await mkdtemp(path.join(root, '.test-tmp-'));
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_PATH = path.join(dir, 'db.sqlite');
 process.env.STORAGE_DIR = path.join(dir, 'storage');
+// Уменьшенные обложки лежат отдельно от хранилища: это производные файлы, их
+// не считает копия и по ним не ходит уборка сирот.
+process.env.THUMB_DIR = path.join(dir, 'thumbs');
 process.env.SESSION_SECRET = 'test-secret-not-for-production-use';
 process.env.ADMIN_PASSWORD = 'test-password';
 
@@ -44,6 +47,7 @@ await build({
       export * as push from '${root}/lib/push.ts';
       export * as liveRecording from '${root}/lib/live-recording.ts';
       export * as storage from '${root}/lib/storage.ts';
+      export * as thumbs from '${root}/lib/thumbs.ts';
       export * as dicts from '${root}/lib/i18n/index.ts';
       export {getDb} from '${root}/db/index.ts';
     `,
@@ -57,7 +61,7 @@ await build({
   packages: 'external',
   tsconfig: path.join(root, 'tsconfig.json'),
 });
-const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, dicts, getDb } = await import(pathToFileURL(outfile).href);
+const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, thumbs, dicts, getDb } = await import(pathToFileURL(outfile).href);
 const liveLimit = liveRecording.liveListenerLimit;
 const routes = { library, audio, cover, live, notifications, login, ice };
 
@@ -284,6 +288,84 @@ try {
   assert.equal(await cr.text(), 'xyz');
   await request('library', { action: 'delete', id: withCover.data.id });
   assert.equal((await dispatch('cover', { search: '?id=' + withCover.data.id })).status, 404);
+
+  /**
+   * Плитке отдаётся уменьшенная обложка, а не оригинал.
+   *
+   * Браузер распаковывает картинку целиком, какой бы маленькой её ни
+   * показывали. Обложки у владельца 1080×1350 — полтора миллиона точек и около
+   * шести мегабайт распакованного вида на плитку, а плиток в карусели
+   * тридцать шесть. Медленное листание открывает их по одной и успевает;
+   * брошенная лента открывает пачкой, и телефон встаёт. Владелец описал это
+   * словами «листнул быстро и заново — зависает», и ни одна правка в коде
+   * прокрутки ничего не меняла: работа была не в прокрутке.
+   */
+  {
+   const sharp = (await import('sharp')).default;
+   const full = await sharp({ create: { width: 1080, height: 1350, channels: 3, background: { r: 18, g: 120, b: 110 } } })
+    .jpeg({ quality: 90 }).toBuffer();
+   const up = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': String(full.length) }, body: new Blob([full]).stream(), duplex: 'half' });
+   assert.equal(up.status, 200, 'настоящая обложка не загрузилась');
+   const { key: bigKey } = await up.json();
+   const shot = await request('library', { kind: 'video', title: 'Обложка 1080×1350', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: bigKey, published: true });
+   assert.equal(shot.status, 200);
+
+   // Без ширины — оригинал, как было всегда: полноэкранным местам нужен он.
+   const whole = await dispatch('cover', { search: '?id=' + shot.data.id });
+   assert.equal(whole.status, 200);
+   const wholeBytes = Buffer.from(await whole.arrayBuffer());
+   assert.equal(wholeBytes.length, full.length, 'без ширины приехал не оригинал');
+
+   // С шириной — уменьшенная, и ровно запрошенной ширины.
+   const small = await dispatch('cover', { search: '?id=' + shot.data.id + '&w=480' });
+   assert.equal(small.status, 200, 'уменьшенная обложка не отдалась');
+   assert.equal(small.headers.get('content-type'), 'image/webp', 'уменьшенная приехала не в webp');
+   const smallBytes = Buffer.from(await small.arrayBuffer());
+   const meta = await sharp(smallBytes).metadata();
+   assert.equal(meta.width, 480, 'ширина уменьшенной не та, что просили: ' + meta.width);
+   assert.ok(smallBytes.length * 3 < wholeBytes.length,
+    'уменьшенная весит не меньше втрое: ' + smallBytes.length + ' против ' + wholeBytes.length);
+   assert.equal(Number(small.headers.get('content-length')), smallBytes.length,
+    'объявленная длина не совпала с телом ответа');
+
+   /**
+    * Тело ответа — ровно картинка, а не кусок общего пула.
+    *
+    * Buffer в Node для небольших данных выдаётся куском заранее выделенного
+    * пула, и `.buffer` у него шире самих данных: у стобайтовой картинки это
+    * восемь килобайт. Отдай такой буфер целиком — и к картинке приедет хвост
+    * чужой памяти. Через маршрут это не ловится: readFile пула не трогает, и
+    * проверка молчала бы на обеих сторонах. Поэтому спрашиваем напрямую, с
+    * заведомо пуловым буфером.
+    */
+   {
+    const pooled = Buffer.allocUnsafe(100);
+    assert.ok(pooled.buffer.byteLength > pooled.byteLength,
+     'Node перестал выдавать пуловые буферы — проверка ничего не сторожит');
+    assert.equal(thumbs.bodyOf(pooled).byteLength, 100,
+     'в тело ответа уехал весь пул, а не картинка: ' + thumbs.bodyOf(pooled).byteLength + ' байт вместо 100');
+   }
+
+   // Сделанная однажды остаётся на диске: второй раз оригинал не читается.
+   assert.equal(readdirSync(process.env.THUMB_DIR).filter((f) => f.endsWith('-480.webp')).length, 1,
+    'уменьшенная не легла на диск — её будут пересжимать на каждый запрос');
+
+   // Ширина не из списка — это оригинал, а не повод пересжать что угодно.
+   // Иначе любой желающий закажет тысячу ширин и займёт сервер и диск.
+   const odd = await dispatch('cover', { search: '?id=' + shot.data.id + '&w=481' });
+   assert.equal(Buffer.from(await odd.arrayBuffer()).length, full.length, 'ширина не из списка всё-таки пересжала картинку');
+
+   // Файл, который не картинка, уменьшить нельзя — и экран от этого не пустеет.
+   const broken = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' });
+   const { key: brokenKey } = await broken.json();
+   const brokenPost = await request('library', { kind: 'video', title: 'Битая обложка', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: brokenKey, published: true });
+   const fallback = await dispatch('cover', { search: '?id=' + brokenPost.data.id + '&w=480' });
+   assert.equal(fallback.status, 200, 'на нечитаемой картинке маршрут упал, а должен отдать как есть');
+   assert.equal(await fallback.text(), 'xyz', 'на нечитаемой картинке отдалось не исходное содержимое');
+
+   await request('library', { action: 'delete', id: shot.data.id });
+   await request('library', { action: 'delete', id: brokenPost.data.id });
+  }
 
   // Архив эфира и сам эфир держат одну обложку: воркер переносит её на выпуск
   // при публикации. Удаление выпуска стирало файл и оставляло строку эфира
@@ -555,7 +637,7 @@ try {
   }
 
   console.log(
-    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion that leaves no dangling broadcast cover.',
+    'PASS: anonymous Web Push, native FCM (Android), device ownership, encryption round-trip, deduplication, preferences, retry/expiry, background live lease, owner session bootstrap, write authorization, cross-origin rejection, draft privacy, publishing, video links, social links, error keys, notification language, configurable device limit, bulk delivery inside the live notice lifetime, subscribe rate limit, donation validation, streaming upload, audio range playback including seek-to-end, suffix ranges and 416, cover upload/serving, tile covers resized once and cached on disk with the original kept for full-screen places and for files that are not images, channel art, live lifecycle, configurable listener limit, peer token isolation, deletion that leaves no dangling broadcast cover.',
   );
 } finally {
   await rm(dir, { recursive: true, force: true });

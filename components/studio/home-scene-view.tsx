@@ -20,6 +20,15 @@ import {Artwork} from './artwork';
 const HOLD_MS=500;
 type Live={id:string;title:string;cover:boolean};
 const coverOf=(p:ScenePost)=>coverSrc(p);
+/**
+ * Обложка плитки карусели.
+ *
+ * Плитка на телефоне — около 145 точек по ширине. При тройной плотности экрана
+ * это 435 настоящих точек, и 480 с запасом их покрывает. Оригинал в 1080×1350
+ * здесь не нужен ни одним пикселем, а распаковывать его браузер обязан целиком
+ * — на это и вставала лента при быстром броске.
+ */
+const tileCover=(p:ScenePost)=>coverSrc(p,480);
 
 export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned,noHero}:{
  posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;onBrowse?:()=>void;liveAction:string;
@@ -330,7 +339,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
       <button type="button" className="soft-episode tt-pressable" tabIndex={copy?-1:undefined} title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">
        {/* Без обложки — знак канала. */}
-       <Artwork src={coverOf(p)} loading="lazy" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
+       <Artwork src={tileCover(p)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
        {/* Вид публикации — словом вверху обложки. Значок владелец отверг:
            наушники и камера читаются хуже, чем «АУДИО» и «ВИДЕО». Кнопки
            воспроизведения на карточке нет — вся карточка и есть кнопка. */}

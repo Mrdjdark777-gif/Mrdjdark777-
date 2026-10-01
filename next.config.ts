@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     '/**': ['./data/**'],
   },
+  // sharp уменьшает обложки для плиток и приезжает необязательной зависимостью
+  // next. Собирать его в пакет нельзя: это нативный модуль, и внутри сборки он
+  // не заводится. Здесь сказано брать его на сервере как обычный пакет.
+  serverExternalPackages: ['sharp'],
 };
 
 export default nextConfig;

@@ -65,8 +65,14 @@ export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise
  * меняется при замене картинки, а ответ кэшируется на сутки — заменив обложку,
  * автор целый день видел старую и считал, что она не сохранилась. Ключ у
  * каждой загрузки свой, поэтому новая картинка — это новый адрес.
+ *
+ * `width` — для плиток. Браузер распаковывает картинку целиком, какой бы
+ * маленькой её ни показывали, и обложка 1080×1350 стоит полтора миллиона
+ * точек на каждую плитку. Для полноэкранных мест ширина не указывается: там
+ * нужен оригинал.
  */
-export function coverSrc(post:{id:string;coverKey?:string|null;coverUrl?:string|null}){
- if(post.coverKey)return '/api/cover?id='+encodeURIComponent(post.id)+'&v='+encodeURIComponent(post.coverKey.replace(/^cover\//,''));
+export function coverSrc(post:{id:string;coverKey?:string|null;coverUrl?:string|null},width?:number){
+ if(post.coverKey)return '/api/cover?id='+encodeURIComponent(post.id)+'&v='+encodeURIComponent(post.coverKey.replace(/^cover\//,''))+
+  (width?'&w='+width:'');
  return post.coverUrl||'';
 }
