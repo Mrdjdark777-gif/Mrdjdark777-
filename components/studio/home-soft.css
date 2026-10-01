@@ -127,9 +127,12 @@
     пустотой, из-за которой «Архив эфиров» уезжал за нижнюю кромку экрана и
     страница выглядела законченной там, где она не кончалась. */
  padding:10px 16px 10px;
- /* Полоса чуть светлее страницы: на почти чёрном фоне чёрная тень не рисует
-    ничего. */
- background:linear-gradient(180deg,#ffffff00 0%,#ffffff0a 40%,#ffffff10 74%,#ffffff00 100%)}
+ /* Фон у полосы тот же, что у страницы.
+    Своя подложка была светлее страничной — она рисовалась ради тени под
+    карточкой, но давала видимую полосу поперёк экрана. Владелец обвёл её
+    второй раз: «косяк с фоном остался». Фон один везде, а тень под карточкой
+    читается своим холодным ореолом — он остаётся. */
+ background:transparent}
 .tt-soft-home .soft-carousel>li{flex:0 0 37%;min-width:118px;max-width:170px;scroll-snap-align:start}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}

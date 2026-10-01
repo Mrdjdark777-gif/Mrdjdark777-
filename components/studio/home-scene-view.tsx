@@ -60,13 +60,36 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
   let frame=0,rest=0;
 
+  /**
+   * Места карточек запоминаются один раз, а не спрашиваются каждый кадр.
+   *
+   * Так было: на каждом кадре прокрутки код спрашивал у браузера положение
+   * полосы и всех восемнадцати карточек — и тут же писал им стили. Чтение
+   * после записи заставляет браузер пересчитывать раскладку заново, и так по
+   * девятнадцать раз за кадр. На телефоне это те самые подвисания при быстрой
+   * прокрутке, о которых сказал владелец.
+   *
+   * Положение карточки внутри ленты от прокрутки не зависит: лента едет,
+   * карточки в ней стоят. Значит его достаточно снять один раз — при
+   * появлении и при смене размера экрана.
+   */
+  let spots:{card:HTMLElement;art:HTMLElement|null;centre:number}[]=[];
+  const remember=()=>{
+   spots=Array.from(node.querySelectorAll<HTMLLIElement>(':scope>li')).map(li=>{
+    const card=li.querySelector<HTMLElement>('.soft-episode');
+    return card?{card,art:card.querySelector<HTMLElement>('.soft-art'),
+     centre:li.offsetLeft+li.offsetWidth/2}:null;
+   }).filter((x):x is {card:HTMLElement;art:HTMLElement|null;centre:number}=>!!x);
+  };
+
   /** Близость карточки к середине полосы — одно число на карточку. */
   const measure=()=>{
-   const strip=node.getBoundingClientRect();
-   const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
-   return Array.from(node.querySelectorAll<HTMLElement>('.soft-episode')).map(card=>{
-    const box=card.getBoundingClientRect();
-    return {card,near:stepOf(nearOf(box.left+box.width/2,middle,span))};});
+   // Единственное, что читается в кадре: куда уехала лента и какой она ширины.
+   // Сначала читаем, потом пишем — тогда раскладка пересчитывается один раз.
+   const seen=node.clientWidth,at=node.scrollLeft;
+   const middle=at+seen/2,span=Math.max(1,seen/2);
+   if(!spots.length)remember();
+   return spots.map(spot=>({...spot,near:stepOf(nearOf(spot.centre,middle,span))}));
   };
 
   /**
@@ -80,7 +103,8 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    */
   const light=()=>{
    frame=0;
-   for(const {card,near} of measure()){
+   const now=measure();
+   for(const {card,near} of now){
     const lit=litOf(near).toFixed(3);
     if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
    }
@@ -110,8 +134,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
      else if(node.scrollLeft>one*1.5)node.scrollLeft-=one;
     }
    }
-   for(const {card,near} of measure()){
-    const art=card.querySelector<HTMLElement>('.soft-art');
+   for(const {card,art,near} of measure()){
     const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
     if(art&&art.dataset.near!==scale){art.style.setProperty('--near',scale);art.dataset.near=scale;}
     if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
@@ -125,16 +148,25 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    if(rest)clearTimeout(rest);
    rest=window.setTimeout(settle,140);
   };
-  settle();
+  // Размер экрана сменился — места карточек надо снять заново.
+  const again=()=>{remember();later();};
+  remember();settle();
   node.addEventListener('scroll',later,{passive:true});
-  window.addEventListener('resize',later);
+  window.addEventListener('resize',again);
   return()=>{if(frame)cancelAnimationFrame(frame);if(rest)clearTimeout(rest);
-   node.removeEventListener('scroll',later);window.removeEventListener('resize',later);};
+   node.removeEventListener('scroll',later);window.removeEventListener('resize',again);};
  },[posts.length]);
 
  // Карточки живут вслед за рукой. Сдвиг пишется один раз в кадр на всю полосу,
  // карточки наследуют его переменными — см. hooks/use-tilt.ts.
- useTilt(reel);
+ //
+ // Второй довод обязателен. Подписка на датчик ставится в эффекте, а эффект
+ // без него срабатывал один раз — при первом рисовании экрана. Карусели в тот
+ // момент ещё нет: выпуски приходят с сервера позже. Подписка не находила, к
+ // чему прицепиться, и больше не повторялась — наклон не работал вовсе, и
+ // владелец это увидел. Теперь довод меняется, когда выпуски пришли, и эффект
+ // повторяется уже по готовой карусели.
+ useTilt(reel,posts.length>0);
 
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 

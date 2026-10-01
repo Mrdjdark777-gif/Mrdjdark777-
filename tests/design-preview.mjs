@@ -1824,7 +1824,36 @@ try{
      check(Math.abs(tilt.moved.scale-tilt.rest.scale)<0.001,
       'наклон меняет масштаб карточки, а должен только двигать: '+tilt.rest.scale+' против '+tilt.moved.scale);
      check(Math.abs(tilt.back.x-tilt.rest.x)<0.6&&Math.abs(tilt.back.y-tilt.rest.y)<0.6,
-      'без наклона карточка не вернулась на место: ('+tilt.back.x+', '+tilt.back.y+')');}}}
+      'без наклона карточка не вернулась на место: ('+tilt.back.x+', '+tilt.back.y+')');}}
+
+   // А теперь то же самое, но от настоящего события наклона.
+   //
+   // Прошлая проверка подставляла значение руками и поэтому пропустила
+   // настоящую ошибку: подписка на датчик ставилась один раз при первом
+   // рисовании экрана, когда карусели ещё нет — выпуски приходят с сервера
+   // позже. Подписка не находила, к чему прицепиться, и больше не
+   // повторялась. Наклон не работал вовсе, а проверка молчала, потому что
+   // переменные-то связаны.
+   //
+   // Теперь шлём странице то самое событие, которое шлёт телефон, и смотрим,
+   // доехало ли оно до карточек.
+   {const real=await page.evaluate(async()=>{
+     const strip=document.querySelector('.soft-carousel');
+     if(!strip)return null;
+     const read=()=>strip.style.getPropertyValue('--tx')||'0px';
+     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+     const rest=read();
+     if(typeof DeviceOrientationEvent!=='function')return {skip:true};
+     window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:60,gamma:22}));
+     let moved=rest;
+     for(let i=0;i<40&&moved===rest;i++){await sleep(50);moved=read();}
+     window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta:38,gamma:0}));
+     return {skip:false,rest,moved};});
+    check(!!real,'карусели нет — событие наклона проверять не на чем');
+    if(real&&!real.skip){
+     check(real.moved!==real.rest&&parseFloat(real.moved)!==0,
+      'событие наклона не дошло до карточек: подписка не прицепилась к карусели. Было «'+
+      real.rest+'», стало «'+real.moved+'»');}}}
 
   // Тень карточки обязана помещаться в полосу карусели.
   //
