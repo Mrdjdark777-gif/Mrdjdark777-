@@ -1690,6 +1690,42 @@ try{
   // выглядит не как приглашение листать, а как недоделанный экран.
   check(fold.cardBottom!==null&&fold.navTop!==null&&fold.cardBottom<=fold.navTop,
    `главная ${width}×${height}: карточка карусели обрезана панелью разделов (низ ${fold.cardBottom} против ${fold.navTop})`);
+  // Над нижней панелью не должно быть тёмной полосы.
+  //
+  // Владелец показывал на неё трижды, и трижды я чинил не то: искал её в фоне
+  // главной, а рисовал её слой под всем приложением. Содержимому на телефоне
+  // задавалась маска, гасившая его последние двадцать шесть точек; маска делает
+  // прозрачным и фон, и сквозь него проступало тёмное свечение снизу. Панель
+  // навигации своим сплошным фоном не гаснет — на её кромке выходила ступенька.
+  //
+  // Поэтому проверка смотрит не правила, а пиксели: берёт столбец у левого края
+  // и требует, чтобы последние шестьдесят точек перед панелью не темнели.
+  if(width===390){
+   const strip=await page.screenshot({clip:{x:0,y:0,width,height}});
+   const {data,info}=await sharp(strip).raw().toBuffer({resolveWithObject:true});
+   const scale=info.height/height;
+   const navTop=await page.evaluate(()=>{const n=document.querySelector('.bottom-nav');
+    return n?Math.round(n.getBoundingClientRect().top):null;});
+   check(navTop!==null,'нижней панели нет — полосу над ней проверять не на чем');
+   if(navTop!==null){
+    const at=(cssY)=>{const y=Math.min(info.height-1,Math.max(0,Math.round(cssY*scale)));
+     const i=(y*info.width+Math.round(4*scale))*info.channels;
+     return (data[i]+data[i+1]+data[i+2])/3;};
+    const above=at(navTop-70),edge=at(navTop-4),nav=at(navTop+6);
+    // Темнее на две единицы яркости глаз уже ловит как шов на почти чёрном.
+    check(Math.abs(above-edge)<=2,
+     'над нижней панелью фон темнеет: на 70 точек выше '+above.toFixed(1)+', у самой кромки '+edge.toFixed(1));
+    check(Math.abs(edge-nav)<=2,
+     'на кромке нижней панели ступенька: над ней '+edge.toFixed(1)+', на ней '+nav.toFixed(1));}
+
+   // И само свечение под приложением у слушателя на телефоне не рисуется:
+   // видно его не было, а работу видеоядра на каждом кадре оно давало.
+   const aurora=await page.evaluate(()=>{const a=document.querySelector('.app-aurora');
+    return a?getComputedStyle(a).display:'нет';});
+   check(aurora==='none'||aurora==='нет',
+    'на телефоне под приложением всё ещё крутится свечение: три размытых пятна и слой шума на каждом кадре ('+aurora+')');
+  }
+
   // Карусель идёт по кругу. Прокрутили до конца — лента не кончилась, а
   // продолжилась теми же выпусками. Проверяем так, как это видит человек:
   // уводим прокрутку к правому краю и смотрим, что она сама вернулась внутрь,
