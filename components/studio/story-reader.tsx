@@ -123,8 +123,15 @@ export function StoryReader({id,title,description,body,onClose}:{
  const headerRef=useRef<HTMLElement>(null);
  const [headerHeight,setHeaderHeight]=useState(112);
  const seekPointer=useRef<number|null>(null);
+ // Высота шапки берётся дробной, а не округлённой.
+ //
+ // offsetHeight округляет до целого, а настоящая высота дробная: на экране с
+ // вырезом к ней прибавляется системный отступ, и округление уводило число
+ // вниз на доли пикселя. Полоса прочитанного ставится под шапку по этому
+ // числу — и садилась на волосок выше её нижнего края. Глазом это тонкая
+ // линия стыка, а проверка ловила это через раз.
  useLayoutEffect(()=>{const el=headerRef.current;if(!el)return;
-  const update=()=>setHeaderHeight(el.offsetHeight);update();
+  const update=()=>setHeaderHeight(el.getBoundingClientRect().height);update();
   const observer=new ResizeObserver(update);observer.observe(el,{box:'border-box'});return()=>observer.disconnect();
  },[]);
  const glCanvas=useRef<HTMLCanvasElement>(null);

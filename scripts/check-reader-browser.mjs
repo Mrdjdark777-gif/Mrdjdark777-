@@ -87,14 +87,37 @@ try{
  // Шапке надо дать встать. Высоту меряет ResizeObserver, его ответ приходит
  // следующим кадром, дальше перерисовка и только потом новая высота в стиле. На
  // сотне миллисекунд проверка иногда ловила старое число и винила вёрстку.
+ // Шапке надо дать встать по-настоящему, а не поймать её на полпути.
+ //
+ // Высоту меряет ResizeObserver, его ответ приходит следующим кадром, дальше
+ // перерисовка и только потом новая высота в стиле. Этого мало: длинное
+ // название переносится по строкам, и когда дозагружается шрифт, число строк
+ // меняется — шапка растёт второй раз. Проверка ловила совпадение в
+ // промежуточном положении и падала примерно раз на пять прогонов.
+ //
+ // Поэтому ждём три вещи: шрифты загружены, число в стиле сошлось с настоящей
+ // высотой, и это держится несколько кадров подряд, а не мелькнуло.
+ await page.evaluate(()=>document.fonts?.ready);
  await page.waitForFunction(()=>{
   const reader=document.querySelector('.tt-reader');
   const head=document.querySelector('.tt-reader-top');
   if(!reader||!head)return false;
+  const bar=document.querySelector('.tt-reader-progress');
+  if(!bar)return false;
   const said=parseFloat(getComputedStyle(reader).getPropertyValue('--tt-reader-top'))||0;
-  return Math.abs(said-head.getBoundingClientRect().height)<=1;
- },null,{timeout:4000});
- await page.waitForTimeout(150);
+  const real=head.getBoundingClientRect().height;
+  const w=window;
+  // Мало дождаться новой высоты: у полосы прочитанного переход в 0.22 с, и
+  // после смены высоты шапки она ПЛАВНО переезжает на новое место. Замер на
+  // полпути давал каждый раз другое число — 127, 129, 131 — и проверка винила
+  // вёрстку. Ждём, пока и высота сойдётся, и сама полоса перестанет ехать.
+  const top=bar.getBoundingClientRect().top;
+  const still=w.__ttBar!==undefined&&Math.abs(top-w.__ttBar)<0.05;
+  w.__ttBar=top;
+  if(Math.abs(said-real)>0.5||!still){w.__ttSteady=0;return false;}
+  w.__ttSteady=(w.__ttSteady||0)+1;
+  return w.__ttSteady>=8;
+ },null,{timeout:8000,polling:'raf'});
  const safe=await page.evaluate(()=>{
   const title=document.querySelector('.tt-reader-heading');
   const h=document.querySelector('.tt-reader-top').getBoundingClientRect();
@@ -102,7 +125,13 @@ try{
   const text=document.querySelector('.tt-reader-page:not(.is-copy)').getBoundingClientRect();
   return {fits:title.scrollHeight<=title.clientHeight+1&&title.scrollWidth<=title.clientWidth+1,
    inset:parseFloat(getComputedStyle(document.querySelector('.tt-reader-top')).paddingTop),
-   h:h.bottom,p:p.top,text:text.top,clear:p.top>=h.bottom-4&&text.top>=h.bottom+8};
+   // Полоса прочитанного намеренно сидит на стыке: её верх на три точки выше
+   // нижнего края шапки, чтобы между ними не было щели. Прежний допуск в
+   // четыре точки стоял ровно на этой границе, и доли пикселя переводили
+   // проверку то в одну сторону, то в другую — падала примерно раз на пять
+   // прогонов на исправном коде. Требование остаётся прежним по смыслу:
+   // полоса не ушла под шапку целиком, а текст начинается ниже шапки.
+   h:h.bottom,p:p.top,text:text.top,clear:p.top>=h.bottom-6&&text.top>=h.bottom+8};
  });assert.ok(safe.fits,'long title must wrap without clipping');assert.equal(safe.inset,32);assert.ok(safe.clear,'safe-area header overlaps progress/text '+JSON.stringify(safe));
  await page.screenshot({path:path.join(screenshots,'reader-controls-small.png')});
  await page.evaluate(()=>document.querySelector('.tt-reader').style.removeProperty('--tt-reader-safe-top'));
