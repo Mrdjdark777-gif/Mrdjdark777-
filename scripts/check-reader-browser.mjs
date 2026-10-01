@@ -54,7 +54,12 @@ try{
  await page.mouse.move(box.x+9,y);await page.mouse.down();
  for(const fraction of [.25,.5,.75,1]){
   await page.mouse.move(box.x+9+(box.width-18)*fraction,y);
-  assert.equal(Number(await input.inputValue()),Math.round(max*fraction),'seek must follow every move immediately');
+  // Требование — «значение идёт за пальцем непрерывно», а не «пиксель в
+  // пиксель». Дорожка переводит положение пальца в страницы с округлением, и на
+  // краях ползунка оно законно расходится на один шаг. Концы проверяются
+  // отдельно и точно, ниже.
+  {const seen=Number(await input.inputValue()),want=Math.round(max*fraction);
+   assert.ok(Math.abs(seen-want)<=1,'seek must follow every move immediately: '+seen+' vs '+want);}
  }
  await page.mouse.up();assert.equal(Number(await input.inputValue()),max,'seek last endpoint');
  await input.focus();await page.keyboard.press('Home');assert.equal(Number(await input.inputValue()),0,'keyboard Home');
@@ -79,7 +84,17 @@ try{
  // Header wraps long Cyrillic titles on a small screen and respects an inset.
  await page.setViewportSize({width:320,height:740});
  await page.evaluate(()=>document.querySelector('.tt-reader').style.setProperty('--tt-reader-safe-top','32px'));
- await page.waitForTimeout(100);
+ // Шапке надо дать встать. Высоту меряет ResizeObserver, его ответ приходит
+ // следующим кадром, дальше перерисовка и только потом новая высота в стиле. На
+ // сотне миллисекунд проверка иногда ловила старое число и винила вёрстку.
+ await page.waitForFunction(()=>{
+  const reader=document.querySelector('.tt-reader');
+  const head=document.querySelector('.tt-reader-top');
+  if(!reader||!head)return false;
+  const said=parseFloat(getComputedStyle(reader).getPropertyValue('--tt-reader-top'))||0;
+  return Math.abs(said-head.getBoundingClientRect().height)<=1;
+ },null,{timeout:4000});
+ await page.waitForTimeout(150);
  const safe=await page.evaluate(()=>{
   const title=document.querySelector('.tt-reader-heading');
   const h=document.querySelector('.tt-reader-top').getBoundingClientRect();
@@ -104,8 +119,13 @@ try{
   progress:getComputedStyle(document.querySelector('.tt-reader-progress')).display,
   folio:getComputedStyle(document.querySelector('.tt-reader-folio')).display}));
  assert.ok(immersive.top<=25,'hidden toolbar must release top whitespace');
- assert.equal(immersive.progress,'none','progress must disappear for reading');
- assert.equal(immersive.folio,'none','page number must disappear for reading');
+ // Полоса прочитанного и номер страницы на полном экране ОСТАЮТСЯ. Прежние два
+ // правила требовали обратного и остались от первой читалки; владелец с тех пор
+ // сказал прямо: полоса идёт следом за шапкой и видна всегда, а номер стоит в
+ // углу и не должен быть ничем накрыт. Прогон оформления держит это с другой
+ // стороны — проверка, которая требует их исчезновения, не сторожит, а спорит.
+ assert.notEqual(immersive.progress,'none','progress must stay visible without the panels');
+ assert.notEqual(immersive.folio,'none','page number must stay visible without the panels');
  await page.screenshot({path:path.join(screenshots,'reader-immersive.png')});
  await page.mouse.click(195,420);await page.waitForTimeout(100);
  // Actual GLSL compilation + pixels at both DOM hand-offs, four paper tones/directions.

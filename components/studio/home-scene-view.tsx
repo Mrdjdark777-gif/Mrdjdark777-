@@ -6,6 +6,7 @@ import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dia
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
 import {nearOf,scaleOf,litOf,stepOf} from '@/lib/device-tilt';
+import {useTilt} from '@/hooks/use-tilt';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -130,6 +131,10 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   return()=>{if(frame)cancelAnimationFrame(frame);if(rest)clearTimeout(rest);
    node.removeEventListener('scroll',later);window.removeEventListener('resize',later);};
  },[posts.length]);
+
+ // Карточки живут вслед за рукой. Сдвиг пишется один раз в кадр на всю полосу,
+ // карточки наследуют его переменными — см. hooks/use-tilt.ts.
+ useTilt(reel);
 
  const picked=homeScene({posts,progress:device.progress,seen:device.seen,hidden:device.hidden,pinned,noHero});
 

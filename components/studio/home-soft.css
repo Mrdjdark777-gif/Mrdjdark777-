@@ -150,7 +150,12 @@
     обрезкой по скруглению и промахивается. Масштаб такого не делает: его
     выполняет тот же готовый слой, без перерисовки содержимого.
     Значение приходит из скрипта; без него единица, и карточки стоят ровно. */
- transform:scale(var(--near,1));
+ /* Сдвиг идёт впереди масштаба: наклон телефона двигает карточку, а не
+    растягивает её. Сдвиг композитор делает над готовым слоем, ничего не
+    перерисовывая, — поэтому он не рябит даже на быстрой прокрутке. Переменные
+    --tx и --ty приходят от полосы карусели и наследуются карточками: одна
+    запись в кадр на всю ленту. */
+ transform:translate3d(var(--tx,0px),var(--ty,0px),0) scale(var(--near,1));
  transform-origin:50% 60%;
  will-change:transform;
  transition:transform .12s linear;
@@ -267,10 +272,27 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
 /* Rounded optical depth, without an external coloured glow. */
 .tt-soft-home .soft-art::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
  border-radius:inherit;background:linear-gradient(125deg,#ffffff12,transparent 35%,transparent 75%,#0002)}
+/* Наведение мышью — только на ПК, и без объёмного поворота.
+   Прежнее правило подменяло transform целиком: вместе с поворотом пропадали и
+   масштаб середины, и сдвиг от наклона телефона. Теперь оно их сохраняет и
+   добавляет к ним один подъём. */
 @media(hover:hover) and (pointer:fine){
- .tt-soft-home .soft-episode:hover .soft-art{transform:perspective(900px) translateY(-3px) rotateX(2deg) rotateY(-3deg);
- box-shadow:0 15px 18px -10px #000c,0 4px 6px -2px #0008}}
-.tt-soft-home .soft-episode:active .soft-art{transform:perspective(900px) translateY(1px) scale(.985)}
+ .tt-soft-home .soft-episode:hover .soft-art{
+  transform:translate3d(var(--tx,0px),calc(var(--ty,0px) - 3px),0) scale(var(--near,1));
+  box-shadow:0 15px 18px -10px #000c,0 4px 6px -2px #0008}}
+
+/* Нажатие. Поворота и масштаба здесь больше нет, и это не придирка к
+   оформлению.
+   Правило срабатывает на касание, а касание есть в начале каждой прокрутки:
+   палец ложится на карточку. На ней включался perspective() со сжатием, WebView
+   переводил слой в объёмный режим и перерисовывал его заново — ровно в тот
+   момент, когда лента трогалась с места. Это и сыпало пиксели на быстрой
+   прокрутке, уже после того, как масштаб убрали из скрипта.
+   Отклик на нажатие остался, но делается прозрачностью: её композитор меняет
+   над готовым слоем, ничего не перерисовывая. */
+.tt-soft-home .soft-episode:active .soft-art{
+ transform:translate3d(var(--tx,0px),calc(var(--ty,0px) + 1px),0) scale(var(--near,1))}
+.tt-soft-home .soft-episode:active{opacity:calc(var(--lit,1) * .88)}
 @media(prefers-reduced-motion:reduce){.tt-soft-home .soft-art{transition:none!important;transform:none!important}}
 .tt-soft-home .scene:has(.scene-mark) .scene-title{position:static!important;width:auto!important;height:auto!important;margin:0;
  clip-path:none;white-space:normal;overflow:visible}

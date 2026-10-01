@@ -1785,7 +1785,38 @@ try{
       check(live.grew,'после остановки масштаб не изменился за '+live.waited+
        ' мс — середина больше не выделяется. Прокрутка: было '+live.from+', сразу после шагов '+live.mid+
        ', в конце '+live.to+'; круг '+live.one+', шаг '+live.pitch+', привязка '+live.loop+
-       '. Масштабы: «'+live.after+'»');}}}}
+       '. Масштабы: «'+live.after+'»');}}}
+
+   // Наклон телефона двигает карточку переносом, а не поворотом.
+   //
+   // Проверить сам датчик в браузере нельзя — его тут нет. Но можно проверить
+   // то, что от него зависит: придёт значение — карточка сдвинется, и сдвинется
+   // именно переносом, не тронув масштаб. Если связь переменных порвётся,
+   // наклон на телефоне просто перестанет работать молча.
+   {const tilt=await page.evaluate(async()=>{
+     const strip=document.querySelector('.soft-carousel'),art=document.querySelector('.soft-art');
+     if(!strip||!art)return null;
+     const read=()=>getComputedStyle(art).transform;
+     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     const rest=read();
+     strip.style.setProperty('--tx','6px');strip.style.setProperty('--ty','-4px');
+     await wait();await wait();
+     const moved=read();
+     strip.style.removeProperty('--tx');strip.style.removeProperty('--ty');
+     await wait();await wait();
+     const back=read();
+     const parts=(value)=>{const m=value.match(/matrix\(([^)]*)\)/);
+      if(!m)return null;const n=m[1].split(',').map(Number);
+      return {scale:n[0],x:n[4],y:n[5]};};
+     return {rest:parts(rest),moved:parts(moved),back:parts(back)};});
+    check(!!tilt&&!!tilt.rest&&!!tilt.moved,'карточки карусели нет — наклон проверять не на чем');
+    if(tilt&&tilt.rest&&tilt.moved&&tilt.back){
+     check(Math.abs(tilt.moved.x-tilt.rest.x)>1&&Math.abs(tilt.moved.y-tilt.rest.y)>1,
+      'наклон не двигает карточку: было ('+tilt.rest.x+', '+tilt.rest.y+'), стало ('+tilt.moved.x+', '+tilt.moved.y+')');
+     check(Math.abs(tilt.moved.scale-tilt.rest.scale)<0.001,
+      'наклон меняет масштаб карточки, а должен только двигать: '+tilt.rest.scale+' против '+tilt.moved.scale);
+     check(Math.abs(tilt.back.x-tilt.rest.x)<0.6&&Math.abs(tilt.back.y-tilt.rest.y)<0.6,
+      'без наклона карточка не вернулась на место: ('+tilt.back.x+', '+tilt.back.y+')');}}}
 
   // Тень карточки обязана помещаться в полосу карусели.
   //

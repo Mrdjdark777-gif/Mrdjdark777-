@@ -5,12 +5,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.webkit.WebView;
 import androidx.webkit.*;
+import androidx.webkit.JavaScriptReplyProxy;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.messaging.FirebaseMessaging;
 import java.util.Collections;
@@ -26,6 +31,9 @@ final class NativeBridge {
     private boolean closed;
     private Runnable permissionAction;
     private Consumer<JSONObject> permissionReply;
+    /** Последний канал к странице: по нему уходит поток датчика. */
+    private JavaScriptReplyProxy channel;
+    private SensorEventListener motion;
     NativeBridge(MainActivity activity, WebView view) {
         this.activity = activity; player = new PlayerBridge(activity);
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return;
@@ -33,6 +41,7 @@ final class NativeBridge {
             if (closed || !mainFrame || !"https".equals(origin.getScheme()) || !"truethrills.com".equals(origin.getHost()) || (origin.getPort() != -1 && origin.getPort() != 443)) return;
             String text = message.getData(); if (text == null || text.length() > 8192) return;
             try {
+                channel = proxy;
                 JSONObject request = new JSONObject(text); int id = request.getInt("id");
                 Consumer<JSONObject> reply = data -> activity.runOnUiThread(() -> { if (!closed) try { proxy.postMessage(new JSONObject().put("id", id).put("data", data).toString()); } catch (Exception ignored) {} });
                 String method = request.getString("method"); JSONObject args = request.optJSONObject("args");
@@ -65,6 +74,8 @@ final class NativeBridge {
             activity.startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.getPackageName())); reply.accept(new JSONObject()); return;
         }
         if (method.equals("ui.haptic")) { haptic(args.optString("strength", "click")); reply.accept(new JSONObject()); return; }
+        if (method.equals("motion.start")) { startMotion(); reply.accept(new JSONObject()); return; }
+        if (method.equals("motion.stop")) { stopMotion(); reply.accept(new JSONObject()); return; }
         if (method.equals("ui.share")) { share(args); reply.accept(new JSONObject()); return; }
         Runnable task = () -> network.execute(() -> {
             try {
@@ -150,5 +161,60 @@ final class NativeBridge {
             vibrator.vibrate(VibrationEffect.createOneShot(heavy ? 55 : 30, VibrationEffect.DEFAULT_AMPLITUDE));
         }
     }
-    void close() { closed = true; permissionAction = null; permissionReply = null; network.shutdownNow(); player.close(); }
+    /**
+     * Положение телефона — странице.
+     *
+     * WebView не поднимает службу датчиков Chromium: событие deviceorientation
+     * в странице не приходит ни разу, ни ошибки, ни значения. Поэтому датчик
+     * читает оболочка, а странице отдаёт те же два числа, что дало бы само
+     * событие: beta — наклон вперёд-назад, gamma — влево-вправо.
+     *
+     * Берём акселерометр, а не вектор поворота: акселерометр есть на любом
+     * телефоне, а вектор поворота на дешёвых аппаратах отсутствует. Нам нужно
+     * направление силы тяжести, и акселерометр его даёт напрямую.
+     *
+     * SENSOR_DELAY_UI — примерно шестнадцать значений в секунду. Для едва
+     * заметного сдвига этого с запасом, а мост не захлёбывается.
+     */
+    private void startMotion() {
+        if (closed || motion != null) return;
+        SensorManager sensors = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
+        if (sensors == null) return;
+        Sensor accelerometer = sensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        if (accelerometer == null) return;
+        motion = new SensorEventListener() {
+            private float ax, ay, az;
+            private boolean started;
+            @Override public void onSensorChanged(SensorEvent event) {
+                // Низкочастотный фильтр: сырой акселерометр дрожит вместе с
+                // рукой, и без сглаживания карточка дёргается на каждый шаг.
+                float rate = started ? 0.2f : 1f; started = true;
+                ax += (event.values[0] - ax) * rate;
+                ay += (event.values[1] - ay) * rate;
+                az += (event.values[2] - az) * rate;
+                double beta = Math.toDegrees(Math.atan2(ay, Math.hypot(ax, az)));
+                double gamma = Math.toDegrees(Math.atan2(-ax, Math.hypot(ay, az)));
+                send(beta, gamma);
+            }
+            @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        };
+        sensors.registerListener(motion, accelerometer, SensorManager.SENSOR_DELAY_UI);
+    }
+    private void stopMotion() {
+        if (motion == null) return;
+        SensorManager sensors = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
+        if (sensors != null) sensors.unregisterListener(motion);
+        motion = null;
+    }
+    private void send(double beta, double gamma) {
+        JavaScriptReplyProxy proxy = channel;
+        if (closed || proxy == null) return;
+        activity.runOnUiThread(() -> {
+            if (closed) return;
+            try { proxy.postMessage(new JSONObject().put("event", "motion")
+                .put("beta", Math.round(beta * 10) / 10.0)
+                .put("gamma", Math.round(gamma * 10) / 10.0).toString()); } catch (Exception ignored) {}
+        });
+    }
+    void close() { closed = true; stopMotion(); channel = null; permissionAction = null; permissionReply = null; network.shutdownNow(); player.close(); }
 }

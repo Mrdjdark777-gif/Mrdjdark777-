@@ -30,7 +30,7 @@ try{
  await page.waitForTimeout(100);assert.equal(events,1,'one playback must create one usage event');
  await mkdir('outputs/player-check',{recursive:true});await page.screenshot({path:'outputs/player-check/player.png'});
  await page.emulateMedia({reducedMotion:'reduce'});
- assert.equal(await page.locator('.is-beating').evaluate(e=>getComputedStyle(e).animationName),'none');
+ assert.equal(await page.locator('.is-beating').first().evaluate(e=>getComputedStyle(e).animationName),'none');
  assert.equal(await page.locator('.player-donate .tt-heart-spark').evaluate(e=>getComputedStyle(e).animationName),'none');
  assert.deepEqual(errors,[]);console.log('PASS player: share action, independent gradients, heartbeat, reduced motion, 320px targets, usage event');
 }finally{await browser?.close();await new Promise(r=>server.close(r));await rm(temp,{recursive:true,force:true});}

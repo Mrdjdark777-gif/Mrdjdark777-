@@ -13,7 +13,7 @@ import path from 'node:path';
 const root=process.cwd();
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/device-tilt.ts')],
  bundle:true,write:false,format:'esm',platform:'node'});
-const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,STEPS,LIMIT,SPAN}=await import(
+const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,SPAN,REACH}=await import(
  'data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 // 1. Телефон в покое — карточка стоит прямо.
@@ -104,6 +104,32 @@ const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,STEPS,LIMIT,SPAN}=aw
  assert.ok(litOf(0)>=0.4&&litOf(1)<=1.001,'яркость обязана оставаться в пределах: '+litOf(0)+'…'+litOf(1));
  assert.ok(litOf(1)-litOf(0)>=0.45,
   'середина притушена слабо: разница яркостей всего '+((litOf(1)-litOf(0))*100).toFixed(0)+'%');
+}
+
+// 9b. Сдвиг от наклона.
+//
+// Поворот WebView рисует заново и сыплет пиксели, сдвиг — нет: его делает
+// композитор над готовым слоем. Поэтому наклон телефона переводится в сдвиг, и
+// у этого перевода есть три обязательства: в покое не двигать ничего, на краю
+// не уезжать дальше обещанного и смотреть в противоположные стороны при
+// противоположных наклонах.
+{
+ // Ноль со знаком минус — тоже ноль: сравниваем по величине, а не побайтово.
+ {const rest=shiftOf({x:0,y:0});
+  assert.equal(Math.abs(rest.x)+Math.abs(rest.y),0,'в покое карточка обязана стоять на месте: '+JSON.stringify(rest));}
+ const right=shiftOf({x:0,y:LIMIT}),left=shiftOf({x:0,y:-LIMIT});
+ assert.ok(right.x>0&&left.x<0,'наклон вправо и влево обязан двигать карточку в разные стороны');
+ assert.equal(right.x,REACH,'на краю наклона сдвиг обязан быть ровно обещанным: '+right.x);
+ assert.equal(left.x,-REACH,'на другом краю — столько же в другую сторону: '+left.x);
+ const away=shiftOf({x:LIMIT,y:0}),near=shiftOf({x:-LIMIT,y:0});
+ assert.ok(away.y<0&&near.y>0,'наклон вперёд и назад обязан двигать карточку в разные стороны');
+ // Движение именно небольшое: владелец просил «небольшое движение», а не качели.
+ assert.ok(REACH>0&&REACH<=10,'сдвиг обязан оставаться незаметным глазу как движение, а не как качели: '+REACH);
+ for(const t of [{x:LIMIT*3,y:LIMIT*3},{x:-LIMIT*5,y:LIMIT*4}]){
+  const far=shiftOf(t);
+  assert.ok(Math.abs(far.x)<=REACH+1e-9&&Math.abs(far.y)<=REACH+1e-9,
+   'кривое значение от датчика утащило карточку за предел: '+JSON.stringify(far));
+ }
 }
 
 // 10. Ступени. Прокрутка даёт новое значение каждый кадр, и каждое из них —

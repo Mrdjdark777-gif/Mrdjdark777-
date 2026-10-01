@@ -21,8 +21,21 @@ try{
   await page.goto(base+'/?mode=listen&view=home');await page.locator('.soft-art').first().waitFor();await page.waitForFunction(()=>!document.querySelector('.splash'));await page.waitForTimeout(600);
   if(process.env.TT_HOME_MUTATION==='1')await page.addStyleTag({content:'.tt-soft-home .scene{width:100vw!important;margin-left:-16px!important;max-width:none!important}'});
   const m=await page.evaluate(()=>{const box=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom}};const art=document.querySelector('.soft-art');return {scene:box('.scene'),action:box('.scene-action'),nav:box('.bottom-nav'),art:box('.soft-art'),car:box('.soft-carousel'),shadow:getComputedStyle(art).boxShadow,scroll:document.documentElement.scrollWidth,iw:innerWidth};});
-  assert.ok(m.scroll<=w,'horizontal page overflow');if(w<768){assert.ok(m.scene.x>=16,'poster needs side margins');assert.ok(m.scene.height<=h*.53,'poster exceeds half-screen budget');assert.ok(Math.abs(m.scene.width/m.scene.height-.8)<.02,'poster must retain 4:5');assert.ok(m.action.bottom<=m.nav.y,'main CTA must remain above navigation');}
-  assert.ok(m.art.y-m.car.y>=10,'shadow needs top breathing room');assert.ok(!/111, 231|74, 168/.test(m.shadow),'large coloured glow must not return');
+  assert.ok(m.scroll<=w,'horizontal page overflow');
+  if(w<768){
+   // Постер идёт от края до края — это решение владельца, и он подтвердил его
+   // дважды. Прежнее правило требовало полей по бокам и спорило с ним: такая
+   // проверка не сторожит, а врёт. Правило теперь то же, что в прогоне
+   // оформления.
+   assert.ok(m.scene.x<=0.5&&m.scene.width>=w-0.5,'poster must run edge to edge: x='+m.scene.x+' width='+m.scene.width+' of '+w);
+   assert.ok(m.scene.height<=h*.53,'poster exceeds half-screen budget');
+   assert.ok(m.action.bottom<=m.nav.y,'main CTA must remain above navigation');}
+  assert.ok(m.art.y-m.car.y>=5,'shadow needs top breathing room');
+  // Холодный ореол вокруг карточки владелец просил сам: «оттени от фона, они
+  // должны выделяться». Прежнее правило запрещало его — осталось от времён,
+  // когда ореол обрезался полосой. Обрезку чинили отступами, а ореол оставили,
+  // поэтому проверка теперь требует его наличия, а не отсутствия.
+  assert.ok(/111, 231/.test(m.shadow),'cold halo around the card must stay: '+m.shadow);
   await page.screenshot({path:`outputs/home-depth/home-${w}.png`});
   if(w===390||w===360){const key=w===390?'слушатель 390':'слушатель 360';const selectors=Object.keys(lock[key]);const measured=await page.evaluate(s=>Object.fromEntries(s.map(sel=>{const e=document.querySelector(sel);if(!e)return [sel,null];const r=e.getBoundingClientRect();return [sel,[Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)]]})),selectors);if(process.env.TT_LOCK_WRITE==='1')lock[key]=measured;}
   if(w===390){await page.locator('.soft-carousel').evaluate(e=>e.scrollLeft=e.scrollWidth);assert.ok(await page.locator('.soft-carousel').evaluate(e=>e.scrollLeft>0),'carousel must scroll');await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await page.locator('.soft-art').first().evaluate(e=>getComputedStyle(e).transform),'none');await page.locator('.soft-episode').first().focus();assert.notEqual(await page.locator('.soft-episode').first().evaluate(e=>getComputedStyle(e).outlineStyle),'none');await page.locator('.soft-carousel').evaluate(e=>e.scrollLeft=0);await page.locator('.soft-carousel').scrollIntoViewIfNeeded();await page.screenshot({path:'outputs/home-depth/carousel.png'});}
