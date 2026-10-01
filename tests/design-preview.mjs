@@ -1798,13 +1798,21 @@ try{
      if(!strip||!art)return null;
      const read=()=>getComputedStyle(art).transform;
      const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     // Ждём не по таймеру, а по факту: у карточки переход в 0.12 с, и замер
+     // через пару кадров ловит её на полпути — сдвиг виден меньше настоящего.
+     const settled=async(from)=>{
+      let last=null,same=0;
+      for(let i=0;i<120;i++){
+       const now=read();
+       same=(now===last&&now!==from)?same+1:0;
+       if(same>=4)return now;
+       last=now;await wait();}
+      return read();};
      const rest=read();
      strip.style.setProperty('--tx','6px');strip.style.setProperty('--ty','-4px');
-     await wait();await wait();
-     const moved=read();
+     const moved=await settled(rest);
      strip.style.removeProperty('--tx');strip.style.removeProperty('--ty');
-     await wait();await wait();
-     const back=read();
+     const back=await settled(moved);
      const parts=(value)=>{const m=value.match(/matrix\(([^)]*)\)/);
       if(!m)return null;const n=m[1].split(',').map(Number);
       return {scale:n[0],x:n[4],y:n[5]};};
