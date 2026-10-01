@@ -39,31 +39,35 @@ if($Action -eq 'Status'){
  exit
 }
 if($Action -eq 'Update'){
- # Файлы обслуживания должны лежать РЯДОМ с node_modules сервера:
- # backup-data.mjs подключает better-sqlite3, а Node ищет пакеты рядом с самим
- # файлом. Из домашнего каталога он их не находит, и копия данных не делается.
+ # Файлы обслуживания берутся из кода, который уже лежит на сервере, а не с
+ # этого компьютера.
  #
- # Но каталогом /opt/truethrills с обновления 0.9.1 владеет системный
- # пользователь сервиса, и класть туда файлы напрямую под ubuntu нельзя.
- # Поэтому в два шага: scp кладёт файлы в домашний каталог (туда он пишет
- # всегда), а на место их переносит root. Владельцем каталог остаётся у
- # сервиса — ничего чужого в его дереве не появляется.
+ # Так было: scp увозил update-safe.sh, backup-data.mjs и verify-backup.mjs из
+ # папки рядом с этим скриптом. У владельца эта папка — распакованный архив, а
+ # не рабочая копия: обновлять её нечем, и она отстала. Сервер получал старый
+ # скрипт обслуживания при каждом обновлении, и все мои правки в нём — тихие
+ # строки чужих объявлений, придержанный вывод проверки здоровья — до него не
+ # доезжали. Владелец видел красную стену и спрашивал, что сломалось; чинил я
+ # при этом файл, который до сервера не доходил.
+ #
+ # Теперь источник один — /opt/truethrills/scripts, куда они приезжают вместе с
+ # кодом. Папка на компьютере на обновление больше не влияет никак.
+ #
+ # Копия в сторону всё равно нужна: обновление само же переписывает
+ # /opt/truethrills/scripts через git merge, а bash дочитывает скрипт с диска по
+ # ходу работы. Исполняемый файл не должен меняться у себя под ногами.
+ #
+ # Запускать из scripts напрямую было бы ещё и неверно по правам: каталог сервиса
+ # читается всеми, но принадлежит root — выполняем мы заведомо свой файл.
  #
  # Передавать сюда подстановки оболочки нельзя: старый PowerShell ломает
  # кавычки при передаче в внешние программы, и команда уезжает на сервер
  # покалеченной. Все строки ниже — без кавычек и без $(...).
- Invoke-Remote 'mkdir -p $HOME/.truethrills-staging'
- foreach($Name in @('update-safe.sh','backup-data.mjs','verify-backup.mjs')){
-  $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
-  try{ & scp @SshOptions (Join-Path $PSScriptRoot $Name) "${Server}:.truethrills-staging/$Name" } finally{ $ErrorActionPreference=$Was }
-  if($LASTEXITCODE -ne 0){throw 'Could not stage update scripts.'}
- }
  Invoke-Remote 'sudo install -d -m 755 /opt/truethrills/.update-staging'
- Invoke-Remote 'sudo cp $HOME/.truethrills-staging/update-safe.sh $HOME/.truethrills-staging/backup-data.mjs $HOME/.truethrills-staging/verify-backup.mjs /opt/truethrills/.update-staging/'
+ Invoke-Remote 'sudo cp /opt/truethrills/scripts/update-safe.sh /opt/truethrills/scripts/backup-data.mjs /opt/truethrills/scripts/verify-backup.mjs /opt/truethrills/.update-staging/'
  $Command="cd /opt/truethrills && sudo bash .update-staging/update-safe.sh '$Branch' '$ExpectedCommit'"
  Invoke-Remote $Command
- # Ни в дереве сервиса, ни в домашнем каталоге временных файлов не остаётся.
- Invoke-Remote 'rm -rf $HOME/.truethrills-staging'
+ # Временных файлов в дереве сервиса не остаётся.
  Invoke-Remote 'sudo rm -rf /opt/truethrills/.update-staging'
  exit
 }
