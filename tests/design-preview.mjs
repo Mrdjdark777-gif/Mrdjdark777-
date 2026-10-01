@@ -1655,6 +1655,26 @@ try{
  // публикаций, чтобы карточка-герой была на месте, как у нового слушателя.
  const fresh=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});const sizes=await fresh.newPage();sizes.on('pageerror',e=>errors.push(e.message));
  for(const width of [360,390,412,768,1366]){const page=sizes;await page.setViewportSize({width,height:844});await page.goto(base+'/?mode=listen');await settle(page);const m=await metrics(page);check(m.scrollW<=m.innerW,`главная переполняет ширину ${width}: ${m.scrollW}>${m.innerW}`);}
+ // Кадр постера — ровно 15:7 на любом телефоне.
+ //
+ // Владелец рисует постеры сам и спросил прямо, где должно быть главное. Пока
+ // кадр на каждом телефоне выходил своим — три к двум с потолком по высоте
+ // экрана, а на низких ещё и четыре к пяти, — честный ответ был «смотря какой
+ // телефон»: на 390×844 от холста 1800×1200 оставались верхние 849 точек. Он
+ // попросил: «Зафиксируй кадр, чтоб обрезки не было». Проверка держит ровно
+ // это: одна пропорция на всех экранах, и телефон боком тоже — там кадр ещё и
+ // не выше половины экрана, иначе под ним не видно ничего.
+ for(const [width,height] of [[360,640],[390,844],[412,915],[740,360]]){
+  const page=sizes;await page.setViewportSize({width,height});await page.goto(base+'/?mode=listen');await settle(page);
+  const f=await page.evaluate(()=>{const s=document.querySelector('.tt-soft-home .scene');if(!s)return null;
+   const r=s.getBoundingClientRect();return {w:r.width,h:r.height};});
+  check(!!f,`главная ${width}×${height}: постера нет — пропорцию кадра проверять не на чем`);
+  if(f){
+   check(Math.abs(f.w/f.h-15/7)<0.01,
+    `главная ${width}×${height}: кадр постера ${f.w.toFixed(1)}×${f.h.toFixed(1)}, пропорция ${(f.w/f.h).toFixed(3)} вместо 15:7 (2.143) — нарисованный под 1800×840 постер здесь обрежется`);
+   if(width>height)check(f.h<=height*0.5+1,
+    `телефон боком ${width}×${height}: постер занимает ${Math.round(f.h)} из ${height} по высоте — под ним не видно ничего`);}
+ }
  // На обычном телефоне главная умещается целиком. На самом маленьком экране
  // требование мягче и честнее: владелец попросил вернуть на главную блок
  // площадок, и прятать то, о чём он просил, хуже, чем дать пролистнуть один
@@ -1903,11 +1923,18 @@ try{
     * настоящий размер после распаковки. Он и есть мера работы.
     */
    {const art=await page.evaluate(async()=>{
-     const img=document.querySelector('.soft-carousel .soft-art img');
+     // Только обложки. У выпуска без обложки в плитке стоит знак канала
+     // (.soft-mark) — первая версия проверки взяла его, увидела логотип
+     // 256 точек и обвинила плитку в том, что она просит обложку без ширины.
+     const img=[...document.querySelectorAll('.soft-carousel .soft-art img')].find(i=>!i.classList.contains('soft-mark'));
      if(!img)return null;
-     if(!img.complete)await new Promise(r=>{img.onload=r;img.onerror=r;});
+     // Обложки грузятся лениво: плитка за краем экрана не загрузится сама, и
+     // ожидание без этого висело бы вечно.
+     img.loading='eager';
+     if(!img.complete||!img.naturalWidth)await new Promise(r=>{
+      img.addEventListener('load',r,{once:true});img.addEventListener('error',r,{once:true});setTimeout(r,8000);});
      return {src:img.currentSrc||img.src,natural:img.naturalWidth,shown:Math.round(img.getBoundingClientRect().width)};});
-    check(!!art,'в плитке карусели нет картинки — размер обложки проверять не на чем');
+    check(!!art,'в карусели нет ни одной обложки — размер проверять не на чем');
     if(art){
      check(/[?&]w=\d+/.test(art.src),
       'плитка карусели просит обложку без ширины — приедет оригинал, и быстрый бросок будет вставать: '+art.src);
