@@ -51,6 +51,12 @@ export function useTilt(target: {current: HTMLElement | null}, enabled = true) {
   const wake = () => {if (alive && !frame) frame = requestAnimationFrame(step);};
   const take = (beta: number | null, gamma: number | null) => {goal = aim(beta, gamma); wake();};
 
+  const handler = (event: DeviceOrientationEvent) => take(event.beta, event.gamma);
+  const browser = () => {
+   window.addEventListener('deviceorientation', handler);
+   return () => window.removeEventListener('deviceorientation', handler);
+  };
+
   let stop = () => {};
   if (hasNativeClient()) {
    const off = onNative(message => {
@@ -58,12 +64,18 @@ export function useTilt(target: {current: HTMLElement | null}, enabled = true) {
     take(typeof message.beta === 'number' ? message.beta : null,
          typeof message.gamma === 'number' ? message.gamma : null);
    });
-   void nativeCall('motion.start').catch(() => {});
-   stop = () => {off(); void nativeCall('motion.stop').catch(() => {});};
+   let back = () => {};
+   // Оболочка старее страницы — обычное дело: страница приезжает с сервера
+   // сама, а APK ставится руками. Старая оболочка про motion.start не знает и
+   // отвечает отказом. Молчать на это нельзя: получится ровно то, что увидел
+   // владелец, — «движения нет вообще» и ни одной зацепки почему. Поэтому на
+   // отказ переходим на путь браузера. В WebView он, скорее всего, тоже
+   // промолчит, но тогда это уже не наша догадка, а известное свойство
+   // оболочки, и чинится оно установкой свежего APK.
+   void nativeCall('motion.start').catch(() => {if (alive) back = browser();});
+   stop = () => {off(); back(); void nativeCall('motion.stop').catch(() => {});};
   } else {
-   const handler = (event: DeviceOrientationEvent) => take(event.beta, event.gamma);
-   window.addEventListener('deviceorientation', handler);
-   stop = () => window.removeEventListener('deviceorientation', handler);
+   stop = browser();
   }
 
   // Ушёл с экрана — датчик больше не нужен. Иначе он читается в фоне и ест

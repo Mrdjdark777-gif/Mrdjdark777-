@@ -43,7 +43,16 @@ umask 077
 node --env-file=.env "$script_dir/backup-data.mjs" /var/backups/truethrills
 mutated=1
 git merge --ff-only "$target"
-npm ci --include=dev
+# Из вывода установки убираются только строки «npm warn deprecated» — это
+# объявления о чужих пакетах внутри наших зависимостей: @esbuild-kit приходит
+# с drizzle-kit, prebuild-install с better-sqlite3. Сделать с ними ничего
+# нельзя, не подняв драйвер базы на две старшие версии, а владелец видит их
+# красной стеной при каждом обновлении и каждый раз спрашивает, что сломалось.
+#
+# Фильтр нарочно узкий: отбрасывается ровно это начало строки. Любое другое
+# предупреждение npm и любая ошибка проходят как есть, и код возврата не
+# теряется — иначе неудачная установка стала бы незаметной.
+npm ci --include=dev --no-audit --no-fund 2> >(grep -v '^npm warn deprecated ' >&2)
 # Сборка с нуля. Next иногда оставляет в .next прежние куски стилей и отдаёт
 # их после обновления: код новый, а на экране всё по-старому. Ловится это
 # только глазами и стоит дороже, чем лишняя минута сборки.
@@ -58,7 +67,14 @@ const fs=require('node:fs');let text=fs.readFileSync('.env','utf8');text=/^LIVE_
 JS
 bash scripts/install-operations.sh
 systemctl start truethrills
-health=$(curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 2 --max-time 10 http://127.0.0.1:3000/api/health)
+# Служба поднимается не мгновенно, и первая попытка законно не достаёт до
+# порта: curl печатал «Failed to connect to 127.0.0.1 port 3000», потом
+# повторял и получал ответ. Строка пугала владельца на каждом обновлении,
+# хотя означала только «ещё секунду». Теперь сообщения попыток придерживаются
+# и показываются, только если не ответила ни одна.
+health=$(curl --fail --silent --retry 12 --retry-all-errors --retry-delay 2 --max-time 10 http://127.0.0.1:3000/api/health 2>/tmp/truethrills-health.err) || {
+ echo 'Служба не ответила на проверку здоровья:' >&2; cat /tmp/truethrills-health.err >&2; rm -f /tmp/truethrills-health.err; exit 1; }
+rm -f /tmp/truethrills-health.err
 echo "$health"
 # Служба обязана отдавать ровно тот код, который сейчас выложен. Иначе сборка
 # отстала от кода, а на экране остаётся прежнее приложение — именно так трижды
