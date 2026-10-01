@@ -57,15 +57,51 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  useEffect(()=>{
   const node=reel.current;if(!node)return;
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-  let frame=0;
-  const place=()=>{
+  let frame=0,rest=0;
+
+  /** Близость карточки к середине полосы — одно число на карточку. */
+  const measure=()=>{
+   const strip=node.getBoundingClientRect();
+   const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
+   return Array.from(node.querySelectorAll<HTMLElement>('.soft-episode')).map(card=>{
+    const box=card.getBoundingClientRect();
+    return {card,near:stepOf(nearOf(box.left+box.width/2,middle,span))};});
+  };
+
+  /**
+   * Во время прокрутки меняется только прозрачность.
+   *
+   * Прозрачность композитор делает над готовым слоем, ничего не перерисовывая.
+   * Масштаб — наоборот: при каждой смене WebView рисует карточку заново, вместе
+   * с обложкой, скруглением, бортиком и тенью. На быстрой прокрутке это и есть
+   * та рябь по пикселям, на которую жаловался владелец. Огрубление до ступеней
+   * её только уменьшило: реже — не значит никогда.
+   */
+  const light=()=>{
    frame=0;
-   // Круг. Список выложен трижды; прокрутка живёт в среднем круге, а дойдя до
-   // соседнего — молча возвращается на круг назад или вперёд. Человек видит
-   // ленту без начала и конца, а прокрутка при этом обычная, со своей
-   // инерцией: подменять её своей анимацией значит сломать привычное
-   // поведение пальца.
+   for(const {card,near} of measure()){
+    const lit=litOf(near).toFixed(3);
+    if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
+   }
+  };
+
+  /**
+   * Когда лента встала — масштаб и перескок круга.
+   *
+   * Оба действия трогать на ходу нельзя. Масштаб перерисовывает слой;
+   * перескок двигает прокрутку, и посреди броска пальцем снап
+   * перещёлкивается — это вторая половина той же ряби. На остановке и то и
+   * другое безопасно, а переход в стилях делает рост середины плавным: именно
+   * он и читается как анимация.
+   */
+  const settle=()=>{
+   rest=0;
    if(node.dataset.loop==='yes'){
+    // Круг. Список выложен трижды; прокрутка живёт в среднем круге, а дойдя
+    // до соседнего — молча возвращается на круг назад или вперёд. Человек
+    // видит ленту без начала и конца, а прокрутка остаётся обычной, со своей
+    // инерцией: подменять её своей анимацией значит сломать привычное
+    // поведение пальца.
     const one=node.scrollWidth/3;
     if(one>1){
      if(node.dataset.ready!=='yes'){node.scrollLeft=one;node.dataset.ready='yes';}
@@ -73,27 +109,25 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
      else if(node.scrollLeft>one*1.5)node.scrollLeft-=one;
     }
    }
-   const strip=node.getBoundingClientRect();
-   const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
-   for(const card of Array.from(node.querySelectorAll<HTMLElement>('.soft-episode'))){
-    const box=card.getBoundingClientRect();
-    // Близость огрубляем до ступеней. Без этого масштаб менялся каждый кадр,
-    // слой карточки перерисовывался вместе со скруглением, тенью и бортиком,
-    // и на быстрой прокрутке это шло рябью по пикселям. И записываем только
-    // то, что действительно изменилось: лишняя запись в стиль — это лишний
-    // пересчёт вёрстки, даже когда значение то же самое.
-    const near=stepOf(nearOf(box.left+box.width/2,middle,span));
+   for(const {card,near} of measure()){
     const art=card.querySelector<HTMLElement>('.soft-art');
     const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
     if(art&&art.dataset.near!==scale){art.style.setProperty('--near',scale);art.dataset.near=scale;}
     if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
    }
   };
-  const later=()=>{if(!frame)frame=requestAnimationFrame(place);};
-  place();
+
+  // Остановкой считаем 140 мс без событий прокрутки. Событие scrollend знают
+  // не все оболочки, и полагаться на него одно нельзя.
+  const later=()=>{
+   if(!frame)frame=requestAnimationFrame(light);
+   if(rest)clearTimeout(rest);
+   rest=window.setTimeout(settle,140);
+  };
+  settle();
   node.addEventListener('scroll',later,{passive:true});
   window.addEventListener('resize',later);
-  return()=>{if(frame)cancelAnimationFrame(frame);
+  return()=>{if(frame)cancelAnimationFrame(frame);if(rest)clearTimeout(rest);
    node.removeEventListener('scroll',later);window.removeEventListener('resize',later);};
  },[posts.length]);
 

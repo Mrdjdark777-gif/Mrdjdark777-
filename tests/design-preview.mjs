@@ -1643,10 +1643,14 @@ try{
     const loop=strip.dataset.loop==='yes';
     if(!loop)return {loop:false};
     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
     await wait();
     const started=strip.scrollLeft;
     strip.scrollLeft=strip.scrollWidth;          // до самого правого края
-    await wait();await wait();
+    // Перескок круга делается на остановке, а не на ходу: посреди броска
+    // пальцем он перещёлкивает снап, и это видно рябью. Поэтому ждём, как
+    // ждал бы человек, отпустивший палец.
+    await sleep(400);
     return {loop:true,started,ended:strip.scrollLeft,width:strip.scrollWidth,
      cards:strip.querySelectorAll('.soft-episode').length};});
    check(!!ring,'карусели нет — круг проверять не на чем');
@@ -1654,7 +1658,44 @@ try{
     check(ring.started>1,'карусель не встала в средний круг: прокрутка осталась в нуле');
     check(ring.ended<ring.width*0.75,
      'карусель не вернулась в круг: доехали до края и там и остались ('+Math.round(ring.ended)+' из '+Math.round(ring.width)+')');
-    check(ring.cards>=9,'круг не выложен трижды: карточек всего '+ring.cards);}}
+    check(ring.cards>=9,'круг не выложен трижды: карточек всего '+ring.cards);}
+
+   // Во время прокрутки масштаб карточек меняться не должен вовсе.
+   //
+   // Владелец дважды сказал одно и то же: «если крутишь быстрее, рябит
+   // пикселями». Причина не в частоте, а в самом действии: при каждой смене
+   // масштаба WebView рисует карточку заново — обложку, скругление, бортик и
+   // тень. Огрубление до ступеней это только уменьшило. Поэтому на ходу
+   // меняется лишь прозрачность: её композитор делает над готовым слоем, не
+   // перерисовывая ничего.
+   //
+   // Проверяем ровно это: гоним прокрутку частыми шагами, не давая ленте
+   // встать, и смотрим на transform. Он обязан стоять. А после остановки —
+   // обязан поменяться, иначе середина перестала выделяться вовсе.
+   {const live=await page.evaluate(async()=>{
+     const strip=document.querySelector('.soft-carousel');
+     if(!strip)return null;
+     const arts=()=>[...strip.querySelectorAll('.soft-art')].map(a=>getComputedStyle(a).transform);
+     const lit=()=>[...strip.querySelectorAll('.soft-episode')].map(a=>getComputedStyle(a).opacity);
+     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+     await sleep(400);                       // дать ленте встать
+     const was=arts(),wasLit=lit();
+     // Быстрая прокрутка: шаги чаще, чем срабатывает остановка.
+     let moved=0;
+     for(let i=0;i<10;i++){strip.scrollLeft+=40;moved+=40;await wait();}
+     const during=arts(),duringLit=lit();
+     await sleep(400);                       // отпустили палец
+     const after=arts();
+     return {moved,same:JSON.stringify(was)===JSON.stringify(during),
+      litMoved:JSON.stringify(wasLit)!==JSON.stringify(duringLit),
+      grew:JSON.stringify(during)!==JSON.stringify(after),
+      cards:was.length};});
+    check(!!live&&live.cards>0,'карточек карусели нет — движение проверять не на чем');
+    if(live&&live.cards){
+     check(live.same,'на ходу меняется масштаб карточек — WebView перерисовывает их и это идёт рябью');
+     check(live.litMoved,'на ходу не меняется ничего: лента перестала быть живой');
+     check(live.grew,'после остановки масштаб не изменился — середина больше не выделяется');}}}
 
   // Тень карточки обязана помещаться в полосу карусели.
   //
