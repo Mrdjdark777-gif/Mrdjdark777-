@@ -6,7 +6,13 @@
    сколько ни прокручивай. Сжиматься ей нельзя — она растёт по содержимому. */
 .immersion.tt-soft-home{flex:0 0 auto!important;--soft-radius:32px;--soft-card:26px;--soft-line:#ffffff14;--soft-surface:#141b1f;
  display:flex!important;flex-direction:column!important;gap:12px!important;width:100%;min-width:0;
- padding:6px 16px 16px!important;background:#0d0f12;box-sizing:border-box;height:auto!important;overflow:visible!important}
+ padding:6px 16px 16px!important;
+ /* Фон главной — тот же, что у страницы.
+    Был свой, #0d0f12, темнее страничного #121619. Блок главной кончается под
+    плашкой поддержки, и там цвет обрывался ровной линией: выше темнее, ниже
+    обычный фон. Владелец обвёл эту границу красным. Разницы в четыре единицы
+    яркости хватает, чтобы шов был виден, а пользы от неё нет никакой. */
+ background:var(--background);box-sizing:border-box;height:auto!important;overflow:visible!important}
 
 /* ── Кадр-постер ───────────────────────────────────────────────────────
    Кадр идёт от края до края экрана — это решение владельца, и оно не раз

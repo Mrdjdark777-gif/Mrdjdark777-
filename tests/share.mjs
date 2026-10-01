@@ -17,13 +17,37 @@ try{
  const out=path.join(dir,'share.mjs');
  await build({entryPoints:['lib/share.ts'],outfile:out,format:'esm',bundle:true,platform:'node'});
  // Путь в адрес: на Windows «C:\…» без этого читается как протокол «c:».
- const {shareTargets,shareRoute,shareUrl}=await import(pathToFileURL(out).href);
+ const {shareTargets,shareRoute,shareUrl,shareHere,viewPath,postPath}=await import(pathToFileURL(out).href);
 
  // Путь: сначала система телефона, потом браузер, и только затем своё окно.
  assert.equal(shareRoute({native:true,webShare:true}),'native');
  assert.equal(shareRoute({native:true,webShare:false}),'native');
  assert.equal(shareRoute({native:false,webShare:true}),'web');
  assert.equal(shareRoute({native:false,webShare:false}),'sheet');
+
+ // Кнопка делится тем, над чем стоит.
+ //
+ // Владелец спросил: «она делится какой ссылкой и чем вообще я делюсь?» Шапка
+ // отдавала канал всегда, в каком бы разделе человек ни стоял: из «Историй»
+ // уходила ссылка на главную.
+ for(const [view,expect,key] of [
+  ['stories','view=stories','heading.stories'],
+  ['videos','view=videos','heading.videos'],
+  ['podcasts','view=podcasts','heading.podcasts'],
+  ['live','view=live','share.live'],
+  ['home','view=home','share.channel'],
+ ]){
+  const here=shareHere(view);
+  assert.equal(viewPath(here.view),'/?mode=listen&'+expect,'раздел «'+view+'» делится не собой');
+  assert.equal(here.titleKey,key,'у раздела «'+view+'» не то название при отправке');
+ }
+ // Настройки своей ссылки не имеют: делиться чужим экраном настроек незачем.
+ assert.equal(shareHere('settings').view,'home','из настроек обязан уходить канал');
+ assert.equal(shareHere('чего-то такого нет').view,'home','неизвестный раздел обязан падать на канал, а не ломать ссылку');
+ // Выпуск, история и запись эфира делятся собой, и имя в адресе экранируется.
+ assert.equal(postPath('abc'),'/?mode=listen&post=abc');
+ assert.equal(postPath('a b&c=d'),'/?mode=listen&post=a%20b%26c%3Dd',
+  'имя выпуска обязано экранироваться: иначе чужой параметр уедет в адрес');
 
  // Адрес всегда абсолютный: относительный в чужом мессенджере бесполезен.
  assert.equal(shareUrl('/?mode=listen&view=home','https://truethrills.com'),'https://truethrills.com/?mode=listen&view=home');

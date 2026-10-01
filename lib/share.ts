@@ -39,3 +39,35 @@ export function shareRoute(env:{native:boolean;webShare:boolean}):ShareRoute{
  if(env.webShare)return 'web';
  return 'sheet';
 }
+
+/**
+ * Чем делится кнопка в шапке.
+ *
+ * Владелец спросил прямо: «она делится какой ссылкой и чем вообще я делюсь?» —
+ * и это был справедливый вопрос. Кнопка отдавала канал всегда, в каком бы
+ * разделе человек ни стоял: из «Историй» уходила ссылка на главную.
+ *
+ * Правило теперь одно и общее для всех кнопок: делимся тем, над чем кнопка
+ * стоит. Шапка стоит над разделом — значит разделом. У выпуска, у записи
+ * эфира и у плеера есть свои кнопки, и они делятся своим; шапка в их дела не
+ * лезет.
+ *
+ * Настройки своей ссылки не имеют: делиться чужим экраном настроек незачем,
+ * поэтому оттуда уходит канал.
+ */
+export type ShareHere={view:string;titleKey:string};
+export function shareHere(view:string):ShareHere{
+ switch(view){
+  case 'live':    return {view:'live',titleKey:'share.live'};
+  case 'podcasts':return {view:'podcasts',titleKey:'heading.podcasts'};
+  case 'videos':  return {view:'videos',titleKey:'heading.videos'};
+  case 'stories': return {view:'stories',titleKey:'heading.stories'};
+  default:        return {view:'home',titleKey:'share.channel'};
+ }
+}
+
+/** Путь раздела для «поделиться». Открывается у слушателя, а не в студии. */
+export function viewPath(view:string){return '/?mode=listen&view='+view;}
+
+/** Путь выпуска, истории или записи эфира. Имя в адресе экранируется. */
+export function postPath(id:string){return '/?mode=listen&post='+encodeURIComponent(id);}

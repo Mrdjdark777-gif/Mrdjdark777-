@@ -682,6 +682,64 @@ try{
    if(cover.режим!=='contain')problems.push('видео у слушателя: обложка подрезается (object-fit: '+cover.режим+')');
    if(cover.зазор>14)problems.push('видео у слушателя: под обложкой пусто на '+cover.зазор+'px');
   }}
+
+ // «Поделиться» отдаёт то, над чем стоит кнопка.
+ //
+ // Владелец спросил: «она делится какой ссылкой и чем вообще я делюсь?» Кнопка
+ // в шапке отдавала канал всегда, в каком бы разделе человек ни стоял. Разметка
+ // об этом молчит, поэтому проверяем концом: нажимаем кнопку и читаем адрес,
+ // который приложение показывает в окне «поделиться».
+ {const opened=async()=>{
+   await page.locator('.share-link input').waitFor({timeout:4000});
+   const value=await page.locator('.share-link input').inputValue();
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+   return value;};
+  for(const [view,tail] of [['stories','view=stories'],['videos','view=videos'],
+   ['podcasts','view=podcasts'],['live','view=live'],['home','view=home']]){
+   await page.goto(base+'/?mode=listen&view='+view);await settle(page);await page.waitForTimeout(200);
+   const button=page.locator('button.quiet-button[aria-label="Поделиться"]').first();
+   if(!await button.count()){problems.push('в разделе «'+view+'» нет кнопки «поделиться» в шапке');continue;}
+   await button.click();
+   const link=await opened();
+   if(!link.includes(tail))problems.push('кнопка в шапке раздела «'+view+'» делится не этим разделом: '+link);
+   if(!/^https?:\/\//.test(link))problems.push('ссылка «поделиться» не абсолютная: '+link);}
+  // Кнопка у выпуска делится выпуском, а не разделом.
+  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(200);
+  const one=page.locator('.post-share').first();
+  if(!await one.count())problems.push('в списке выпусков нет кнопки «поделиться»');
+  else{await one.click();const link=await opened();
+   if(!link.includes('post='))problems.push('кнопка у выпуска делится не выпуском: '+link);}}
+
+ // Фон главной — тот же, что у страницы.
+ //
+ // Был свой, темнее страничного. Блок главной кончается под плашкой поддержки,
+ // и там цвет обрывался ровной линией: выше темнее, ниже обычный фон. Владелец
+ // обвёл эту границу красным.
+ {await page.goto(base+'/?mode=listen');await settle(page);
+  const seam=await page.evaluate(()=>{const home=document.querySelector('.tt-soft-home');
+   if(!home)return null;
+   const paint=(el)=>{for(let n=el;n;n=n.parentElement){const c=getComputedStyle(n).backgroundColor;
+    if(c&&c!=='rgba(0, 0, 0, 0)'&&c!=='transparent')return c;}return 'нет';};
+   return {home:getComputedStyle(home).backgroundColor,page:paint(document.body)};});
+  if(!seam)problems.push('главной на экране нет — шов проверять не на чем');
+  else if(seam.home!=='rgba(0, 0, 0, 0)'&&seam.home!==seam.page)
+   problems.push('под главной обрывается цвет: у блока '+seam.home+', у страницы '+seam.page);}
+
+ // Вход в студию — только на широком экране.
+ //
+ // Владелец сказал: «если я открываю сайт на телефоне и захожу в настройки,
+ // там всё ещё есть возможность войти в студию, убери это». Студия на телефоне
+ // не работает: там пульт эфира, загрузка файлов и редактор.
+ {await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(200);
+  const onPhone=await page.locator('a[href="/login"]').count();
+  if(onPhone)problems.push('на телефоне в настройках остался вход в студию');
+  const was=page.viewportSize();
+  await page.setViewportSize({width:1280,height:900});
+  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
+  const onDesk=await page.locator('a[href="/login"]').count();
+  if(!onDesk)problems.push('на ПК вход в студию пропал вместе с телефонным');
+  if(was)await page.setViewportSize(was);
+  await page.goto(base+'/?mode=listen');await settle(page);}
  await page.goto(base+'/?mode=listen');await settle(page);
 
  // Свёрнутый плеер на главной.
@@ -1679,23 +1737,55 @@ try{
      const lit=()=>[...strip.querySelectorAll('.soft-episode')].map(a=>getComputedStyle(a).opacity);
      const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
      const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-     await sleep(400);                       // дать ленте встать
+     // Встаём в начало среднего круга. Без этого проверка однажды уехала до
+     // правого края, перескок круга вернул ленту ровно в ту же точку, картина
+     // карточек совпала — и проверка обвинила код в том, чего не было.
+     const one=strip.scrollWidth/3;
+     strip.scrollLeft=one;
+     await sleep(500);                       // дать ленте встать
+     // Шаг прокрутки — ровно одна карточка с промежутком. Мелкий шаг здесь
+     // бесполезен: у полосы scroll-snap-type:x mandatory, и браузер тут же
+     // возвращает прокрутку на ближайшую точку привязки. Проверка с шагом в
+     // сорок точек меряла не код, а привязку: лента не двигалась вовсе.
+     const card=strip.querySelector('li');
+     const pitch=card?card.getBoundingClientRect().width+12:120;
+     const from=strip.scrollLeft;
      const was=arts(),wasLit=lit();
-     // Быстрая прокрутка: шаги чаще, чем срабатывает остановка.
-     let moved=0;
-     for(let i=0;i<10;i++){strip.scrollLeft+=40;moved+=40;await wait();}
+     // Две карточки вперёд: этого хватает, чтобы середина сменилась, и мало,
+     // чтобы задеть край круга и вызвать перескок.
+     for(let i=0;i<2;i++){strip.scrollLeft+=pitch;await wait();}
      const during=arts(),duringLit=lit();
-     await sleep(400);                       // отпустили палец
-     const after=arts();
-     return {moved,same:JSON.stringify(was)===JSON.stringify(during),
+     const mid=strip.scrollLeft;
+     const moved=Math.abs(mid-from);
+     // Отпустили палец — и ждём по факту, а не по таймеру. У полосы привязка:
+     // после последнего шага браузер ещё сам доводит прокрутку до ближайшей
+     // карточки, и каждое такое движение отодвигает остановку. Жёсткие 400 мс
+     // читали масштаб раньше, чем он успевал смениться, и проверка винила код.
+     let after=arts(),waited=0;
+     while(waited<2500&&JSON.stringify(after)===JSON.stringify(during)){
+      await sleep(100);waited+=100;after=arts();}
+     return {moved:Math.round(moved),pitch:Math.round(pitch),waited,
+      from:Math.round(from),mid:Math.round(mid),to:Math.round(strip.scrollLeft),
+      one:Math.round(strip.scrollWidth/3),loop:strip.dataset.loop||'нет',
+      same:JSON.stringify(was)===JSON.stringify(during),
       litMoved:JSON.stringify(wasLit)!==JSON.stringify(duringLit),
       grew:JSON.stringify(during)!==JSON.stringify(after),
+      was:was.join(' | '),during:during.join(' | '),after:after.join(' | '),
       cards:was.length};});
     check(!!live&&live.cards>0,'карточек карусели нет — движение проверять не на чем');
     if(live&&live.cards){
-     check(live.same,'на ходу меняется масштаб карточек — WebView перерисовывает их и это идёт рябью');
-     check(live.litMoved,'на ходу не меняется ничего: лента перестала быть живой');
-     check(live.grew,'после остановки масштаб не изменился — середина больше не выделяется');}}}
+     // Сначала убеждаемся, что лента вообще поехала. Без этого три проверки
+     // ниже судят о неподвижной ленте и врут обе стороны разом.
+     check(live.moved>=live.pitch*1.5,
+      'лента не поехала: прокрутка сдвинулась на '+live.moved+' при шаге '+live.pitch+' — проверять движение не на чем');
+     if(live.moved>=live.pitch*1.5){
+      check(live.same,'на ходу меняется масштаб карточек — WebView перерисовывает их и это идёт рябью: было «'+
+       live.was+'», стало «'+live.during+'»');
+      check(live.litMoved,'на ходу не меняется ничего: лента перестала быть живой');
+      check(live.grew,'после остановки масштаб не изменился за '+live.waited+
+       ' мс — середина больше не выделяется. Прокрутка: было '+live.from+', сразу после шагов '+live.mid+
+       ', в конце '+live.to+'; круг '+live.one+', шаг '+live.pitch+', привязка '+live.loop+
+       '. Масштабы: «'+live.after+'»');}}}}
 
   // Тень карточки обязана помещаться в полосу карусели.
   //
