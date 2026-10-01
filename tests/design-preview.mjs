@@ -1754,6 +1754,72 @@ try{
      'карусель не вернулась в круг: доехали до края и там и остались ('+Math.round(ring.ended)+' из '+Math.round(ring.width)+')');
     check(ring.cards>=9,'круг не выложен трижды: карточек всего '+ring.cards);}
 
+   // Барабан не глохнет: перескок круга ждёт, пока палец снят и лента встала.
+   //
+   // Это та самая поломка, на которую владелец показал словами: «листнул
+   // быстро и заново — зависает». Перескок круга — наша собственная запись в
+   // прокрутку, а своя запись гасит инерцию браузера насмерть. Пока перескок
+   // делался по таймеру, через 140 мс после последнего события прокрутки, он
+   // попадал прямо в следующий бросок пальцем: лента встаёт как вкопанная.
+   // Медленное листание не страдало — инерции там почти нет.
+   //
+   // Настоящую инерцию в проверке не воспроизвести: её считает сама оболочка.
+   // Зато проверяется условие, которое её охраняет. Кладём палец, уводим ленту
+   // за границу круга и ждём вчетверо дольше прежнего таймера: перескок обязан
+   // молчать. Потом снимаем палец — и он обязан случиться, иначе круга не
+   // станет вовсе и лента кончится краем.
+   {const drum=await page.evaluate(async()=>{
+     const strip=document.querySelector('.soft-carousel');
+     if(!strip||strip.dataset.loop!=='yes')return null;
+     if(typeof TouchEvent!=='function')return {skip:true};
+     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     const one=strip.scrollWidth/3;
+     strip.scrollLeft=one;await sleep(500);          // встать в средний круг и успокоиться
+     const send=(kind)=>strip.dispatchEvent(new TouchEvent(kind,{bubbles:true,cancelable:true}));
+     send('touchstart');
+     // Положение читаем не то, которое задали, а то, которое получилось:
+     // привязка подводит прокрутку к ближайшей карточке, и своё число тут
+     // сравнивать не с чем.
+     strip.scrollLeft=one*2.4;
+     await wait();
+     const out=strip.scrollLeft;
+     await sleep(600);
+     const held=strip.scrollLeft;
+     send('touchend');
+     let free=held;
+     for(let i=0;i<40&&Math.abs(free-held)<one*0.5;i++){await sleep(50);free=strip.scrollLeft;}
+     // И с другой стороны круга. Лента, оставшаяся в первом круге, обязана
+     // вернуться в средний: иначе слева до стенки остаётся меньше круга, а
+     // упор в стенку выглядит ровно как зависание.
+     strip.scrollLeft=one*0.7;
+     await wait();
+     const low=strip.scrollLeft;
+     let back=low;
+     for(let i=0;i<40&&back<one;i++){await sleep(50);back=strip.scrollLeft;}
+     return {skip:false,one:Math.round(one),out:Math.round(out),
+      held:Math.round(held),free:Math.round(free),
+      low:Math.round(low),back:Math.round(back)};});
+    check(!!drum,'карусели с кругом нет — барабан проверять не на чем');
+    if(drum&&!drum.skip){
+     // Сначала — что лента действительно за границей круга. Иначе перескоку
+     // нечего делать, и обе проверки ниже судят ни о чём.
+     check(drum.out>drum.one*2,
+      'лента не ушла за средний круг: '+drum.out+' при круге '+drum.one+' — перескок проверять не на чем');
+     if(drum.out>drum.one*2){
+      check(Math.abs(drum.held-drum.out)<2,
+       'перескок круга сработал, пока палец на ленте: было '+drum.out+', стало '+drum.held+
+       ' — своя запись в прокрутку гасит инерцию, и быстрый бросок встанет как вкопанный');
+      check(Math.abs(drum.free-drum.held)>drum.one*0.5,
+       'палец снят, лента стоит — а перескок круга так и не случился: остались на '+drum.free+
+       ' из круга '+drum.one+', лента кончится краем');}
+     check(drum.low<drum.one,
+      'лента не встала в первый круг: '+drum.low+' при круге '+drum.one+' — возврат проверять не на чем');
+     if(drum.low<drum.one)
+      check(drum.back>=drum.one&&drum.back<drum.one*2,
+       'лента осталась вне среднего круга: '+drum.back+' при круге '+drum.one+
+       ' — до стенки с одной стороны меньше круга, и сильный бросок упрётся в неё, а упор выглядит как зависание');}}
+
    // Во время прокрутки масштаб карточек меняться не должен вовсе.
    //
    // Владелец дважды сказал одно и то же: «если крутишь быстрее, рябит
@@ -1780,9 +1846,9 @@ try{
      strip.scrollLeft=one;
      await sleep(500);                       // дать ленте встать
      // Шаг прокрутки — ровно одна карточка с промежутком. Мелкий шаг здесь
-     // бесполезен: у полосы scroll-snap-type:x mandatory, и браузер тут же
-     // возвращает прокрутку на ближайшую точку привязки. Проверка с шагом в
-     // сорок точек меряла не код, а привязку: лента не двигалась вовсе.
+     // бесполезен: у полосы есть привязка к карточкам, и браузер подводит
+     // прокрутку к ближайшей точке. Проверка с шагом в сорок точек меряла не
+     // код, а привязку: лента не двигалась вовсе.
      const card=strip.querySelector('li');
      const pitch=card?card.getBoundingClientRect().width+12:120;
      const from=strip.scrollLeft;

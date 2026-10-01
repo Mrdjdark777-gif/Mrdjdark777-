@@ -58,7 +58,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  useEffect(()=>{
   const node=reel.current;if(!node)return;
   if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-  let frame=0,rest=0;
+  let frame=0,watch=0,still=0,was=-1,touch=false;
 
   /**
    * Места карточек запоминаются один раз, а не спрашиваются каждый кадр.
@@ -111,29 +111,13 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   };
 
   /**
-   * Когда лента встала — масштаб и перескок круга.
+   * Когда лента встала — масштаб середины.
    *
-   * Оба действия трогать на ходу нельзя. Масштаб перерисовывает слой;
-   * перескок двигает прокрутку, и посреди броска пальцем снап
-   * перещёлкивается — это вторая половина той же ряби. На остановке и то и
-   * другое безопасно, а переход в стилях делает рост середины плавным: именно
-   * он и читается как анимация.
+   * Масштаб перерисовывает слой, поэтому на ходу его не трогаем. На остановке
+   * это безопасно, а переход в стилях делает рост середины плавным: именно он
+   * и читается как анимация.
    */
   const settle=()=>{
-   rest=0;
-   if(node.dataset.loop==='yes'){
-    // Круг. Список выложен трижды; прокрутка живёт в среднем круге, а дойдя
-    // до соседнего — молча возвращается на круг назад или вперёд. Человек
-    // видит ленту без начала и конца, а прокрутка остаётся обычной, со своей
-    // инерцией: подменять её своей анимацией значит сломать привычное
-    // поведение пальца.
-    const one=node.scrollWidth/3;
-    if(one>1){
-     if(node.dataset.ready!=='yes'){node.scrollLeft=one;node.dataset.ready='yes';}
-     else if(node.scrollLeft<one*0.5)node.scrollLeft+=one;
-     else if(node.scrollLeft>one*1.5)node.scrollLeft-=one;
-    }
-   }
    for(const {card,art,near} of measure()){
     const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
     if(art&&art.dataset.near!==scale){art.style.setProperty('--near',scale);art.dataset.near=scale;}
@@ -141,20 +125,89 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    }
   };
 
-  // Остановкой считаем 140 мс без событий прокрутки. Событие scrollend знают
-  // не все оболочки, и полагаться на него одно нельзя.
+  /** Встать в средний круг — один раз, при появлении ленты. */
+  const centre=()=>{
+   if(node.dataset.loop!=='yes')return;
+   const one=node.scrollWidth/3;
+   if(one>1&&node.dataset.ready!=='yes'){node.scrollLeft=one;node.dataset.ready='yes';was=node.scrollLeft;}
+  };
+
+  /**
+   * Перескок круга — только по полной остановке ленты.
+   *
+   * Список выложен трижды; прокрутка живёт в среднем круге, а дойдя до
+   * соседнего — молча возвращается на круг назад или вперёд. Человек видит
+   * ленту без начала и конца, а прокрутка остаётся обычной, со своей инерцией.
+   *
+   * Так было: перескок делался вместе с масштабом, через 140 мс после
+   * последнего события прокрутки. Владелец сказал ровно то, что из этого
+   * следует: «листнул быстро и заново — зависает». Пока лента летит, события
+   * идут каждый кадр и таймер не доживает до конца; но стоит инерции
+   * выдохнуться, он срабатывает — и если палец в этот момент бросил ленту
+   * второй раз, перескок падает прямо в новый разгон. Своя запись в прокрутку
+   * гасит инерцию браузера насмерть: лента встаёт как вкопанная. Медленное
+   * листание не страдало потому, что инерции там почти нет.
+   *
+   * Теперь перескок ждёт двух условий сразу: палец снят и прокрутка не
+   * сдвинулась ни на точку три кадра подряд. Барабан крутится, пока крутится,
+   * а круг подменяется в тишине между броском и броском.
+   *
+   * Таймер для этого не годится вовсе: он знает только, когда пришло последнее
+   * событие, но не знает, летит ли лента. Поэтому смотрим на саму прокрутку
+   * покадрово.
+   */
+  const park=()=>{
+   watch=0;
+   const at=node.scrollLeft;
+   // Палец на ленте или лента ещё едет — ждём дальше, ничего не трогая.
+   if(touch||Math.abs(at-was)>0.5){was=at;still=0;watch=requestAnimationFrame(park);return;}
+   // Один неподвижный кадр ещё не остановка: между двумя кадрами инерции
+   // прокрутка может совпасть до точки. Три подряд — уже тишина.
+   if(++still<3){watch=requestAnimationFrame(park);return;}
+   if(node.dataset.loop==='yes'){
+    // Возвращаемся не «когда уже почти край», а в середину — по остатку от
+    // круга. Разница существенная: при старых порогах лента могла встать в
+    // половине круга от начала, и слева до стенки оставалось меньше тысячи
+    // точек — один сильный бросок пальцем проезжает больше. Упор в стенку
+    // выглядит точно так же, как зависание. По остатку лента всегда стоит в
+    // среднем круге, и запас разгона в обе стороны наибольший, какой вообще
+    // дают три круга.
+    const one=node.scrollWidth/3;
+    if(one>1){
+     const want=(at%one)+one;
+     if(Math.abs(want-at)>0.5)node.scrollLeft=want;
+    }
+   }
+   settle();
+   was=node.scrollLeft;
+  };
+  const guard=()=>{if(!watch){was=node.scrollLeft;still=0;watch=requestAnimationFrame(park);}};
+
+  // На ходу — только прозрачность, и один раз в кадр. Всё остальное ждёт
+  // остановки, и остановку определяет park по самой прокрутке. Таймер здесь
+  // был и оказался второй половиной той же беды: он знает лишь, когда пришло
+  // последнее событие, и срабатывал посреди следующего броска.
   const later=()=>{
    if(!frame)frame=requestAnimationFrame(light);
-   if(rest)clearTimeout(rest);
-   rest=window.setTimeout(settle,140);
+   guard();
   };
+  // Палец следим касаниями, а не указателем: в Chromium указатель на ленте с
+  // прокруткой отменяется (pointercancel) в тот момент, когда прокрутка
+  // забирает жест себе, — то есть ровно тогда, когда палец ещё на экране.
+  const grab=()=>{touch=true;guard();};
+  const drop=()=>{touch=false;guard();};
+  const LET=['touchend','touchcancel'];
   // Размер экрана сменился — места карточек надо снять заново.
   const again=()=>{remember();later();};
-  remember();settle();
+  remember();centre();settle();
   node.addEventListener('scroll',later,{passive:true});
+  node.addEventListener('touchstart',grab,{passive:true});
+  for(const event of LET)window.addEventListener(event,drop,{passive:true});
   window.addEventListener('resize',again);
-  return()=>{if(frame)cancelAnimationFrame(frame);if(rest)clearTimeout(rest);
-   node.removeEventListener('scroll',later);window.removeEventListener('resize',again);};
+  return()=>{if(frame)cancelAnimationFrame(frame);if(watch)cancelAnimationFrame(watch);
+   node.removeEventListener('scroll',later);node.removeEventListener('touchstart',grab);
+   for(const event of LET)window.removeEventListener(event,drop);
+   window.removeEventListener('resize',again);};
  },[posts.length]);
 
  // Карточки живут вслед за рукой. Сдвиг пишется один раз в кадр на всю полосу,

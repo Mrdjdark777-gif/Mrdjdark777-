@@ -106,11 +106,13 @@
 .tt-soft-home .soft-all{display:inline-flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;border:0;background:none;
  color:#b7c5c5;font:inherit;font-size:14px;cursor:pointer;border-radius:999px}
 .tt-soft-home .soft-all>svg{width:17px;height:17px}
-/* Точка схода общая на всю карусель: карточки стоят в одном пространстве, а не
-   каждая в своей коробке. Иначе крайние поворачиваются «в себя» и ряд
-   рассыпается. Сами углы поворота пишет скрипт — он слушает положение
-   телефона. */
-.tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;
+/* Привязка мягкая (proximity), а не жёсткая (mandatory).
+   Жёсткая привязка тормозит бросок пальцем насильно: браузер выбирает
+   ближайшую карточку и доводит прокрутку до неё, гася инерцию. Владелец просил
+   обратное — «крутанул и оно ещё крутится». Мягкая привязка доводит ленту до
+   карточки, когда бросок и так закончился рядом с ней, и не мешает долгому
+   броску идти до конца. */
+.tt-soft-home .soft-carousel{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;
  scroll-padding-inline:16px;margin:0 -16px;list-style:none;scrollbar-width:thin;scrollbar-color:#6fe7de55 transparent;
  /* Отступы сверху и снизу больше самой тени. Вот где была «жёсткая
     прямоугольная граница»: полоса прокручивается, а значит обрезает всё, что
