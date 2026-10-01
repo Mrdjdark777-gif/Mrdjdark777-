@@ -1673,16 +1673,28 @@ try{
      if(at%4!==1)return most;                       // 0 — по X, 1 — по Y, 2 — размытие
      const down=parseFloat(all[at]),blur=parseFloat(all[at+1]||'0')/2;
      return {up:Math.max(most.up,blur-down),down:Math.max(most.down,blur+down)};},{up:0,down:0});
-    return {top:parseFloat(s1.paddingTop),bottom:parseFloat(s1.paddingBottom),
-     up:edges.up,low:edges.down,frame:s2.borderTopWidth};});
+    // Снизу отступ полосы ни при чём: тень падает не на её край, а на подпись,
+    // которая стоит в карточке под обложкой. Поэтому меряем не отступ, а
+    // настоящее расстояние — от низа обложки до низа полосы. И отдельно
+    // пустоту под подписью: она ничего не держит, а из-за неё «Архив эфиров»
+    // уезжает за кромку экрана и страница кажется законченной.
+    const card=art.closest('.soft-episode')||art;
+    const b1=art.getBoundingClientRect(),b2=card.getBoundingClientRect(),b3=strip.getBoundingClientRect();
+    return {top:parseFloat(s1.paddingTop),
+     up:edges.up,low:edges.down,
+     room:Math.round(b3.bottom-b1.bottom),
+     dead:Math.round(b3.bottom-b2.bottom),
+     frame:s2.borderTopWidth};});
    check(!!depth,'карусели или карточек нет — глубину проверять не на чем');
    if(depth){
     check(depth.top>=depth.up,
      'тень карточки обрежется сверху: вверх тянется на '+depth.up.toFixed(1)+
      ', а отступ полосы всего '+depth.top);
-    check(depth.bottom>=depth.low,
+    check(depth.room>=depth.low,
      'тень карточки обрежется снизу: вниз тянется на '+depth.low.toFixed(1)+
-     ', а отступ полосы всего '+depth.bottom);
+     ', а до низа полосы от обложки всего '+depth.room);
+    check(depth.dead<=14,
+     'под подписями в карусели пустая полоса на '+depth.dead+'px — «Архив эфиров» из-за неё уходит за кромку экрана');
     check(parseFloat(depth.frame)===0,
      'у карточки вернулась рамка по периметру — она читается как жёсткая граница: '+depth.frame);}}
   // Постер во всю ширину занимает почти весь первый экран — так просил

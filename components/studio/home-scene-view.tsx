@@ -5,7 +5,7 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,type ScenePost} from '@/lib/home-scene';
-import {nearOf,scaleOf,litOf} from '@/lib/device-tilt';
+import {nearOf,scaleOf,litOf,stepOf} from '@/lib/device-tilt';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {readSeen,readHidden,hideHighlight} from '@/lib/seen-posts';
 import {useT} from '@/components/i18n-provider';
@@ -77,10 +77,16 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
    const middle=strip.left+strip.width/2,span=Math.max(1,strip.width/2);
    for(const card of Array.from(node.querySelectorAll<HTMLElement>('.soft-episode'))){
     const box=card.getBoundingClientRect();
-    const near=nearOf(box.left+box.width/2,middle,span);
+    // Близость огрубляем до ступеней. Без этого масштаб менялся каждый кадр,
+    // слой карточки перерисовывался вместе со скруглением, тенью и бортиком,
+    // и на быстрой прокрутке это шло рябью по пикселям. И записываем только
+    // то, что действительно изменилось: лишняя запись в стиль — это лишний
+    // пересчёт вёрстки, даже когда значение то же самое.
+    const near=stepOf(nearOf(box.left+box.width/2,middle,span));
     const art=card.querySelector<HTMLElement>('.soft-art');
-    if(art)art.style.setProperty('--near',scaleOf(near).toFixed(3));
-    card.style.setProperty('--lit',litOf(near).toFixed(3));
+    const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
+    if(art&&art.dataset.near!==scale){art.style.setProperty('--near',scale);art.dataset.near=scale;}
+    if(card.dataset.lit!==lit){card.style.setProperty('--lit',lit);card.dataset.lit=lit;}
    }
   };
   const later=()=>{if(!frame)frame=requestAnimationFrame(place);};
