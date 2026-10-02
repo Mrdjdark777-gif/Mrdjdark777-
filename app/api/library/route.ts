@@ -6,6 +6,16 @@ import { bucket, failure, originCheck, owner, requireOwner, result, setting, use
 import { unlinkIfUnused } from '@/lib/media-unlink';
 import { LIVE_BUSY_STATES } from '@/lib/live-states.mjs';
 import { parseDonations, parseLinks, parseVideo } from '@/lib/video';
+/**
+ * Постер главной — только если он загружен для того выпуска, что сейчас
+ * закреплён. `v` — версия для адреса картинки: адрес у постера один, и без
+ * версии телефон показывал бы прежний.
+ */
+async function posterOf(){
+  const key=await setting('heroArt'),post=await setting('heroArtPost');
+  if(!key||!post||post!==await setting('heroPost'))return null;
+  return {post,v:key.replace(/^cover\//,'')};
+}
 export async function GET(req: Request){try{
   const isOwner=await owner(req),db=getDb();
   const items=await db.select().from(posts).where(isOwner?undefined:eq(posts.published,1)).orderBy(desc(posts.createdAt));
@@ -17,7 +27,7 @@ export async function GET(req: Request){try{
   // готовится», чем показывать пустой архив, будто записей не было вовсе.
   const pending=await db.select({id:liveRecordings.id}).from(liveRecordings)
     .where(inArray(liveRecordings.state,[...LIVE_BUSY_STATES])).get();
-  return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
+  return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,poster:await posterOf(),...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
   originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb();
@@ -72,6 +82,27 @@ export async function POST(req: Request){try{
       value=id;
     }
     await db.insert(settings).values({key:'heroPost',value}).onConflictDoUpdate({target:settings.key,set:{value}});return result({ok:true});
+  }
+  // Постер главной и то, что открывает нажатие на него. Постер рисуется под
+  // кадр 15:7 и держится отдельно от обложки выпуска: обложка 4:5 нужна
+  // карусели, каталогу и плееру, а постер — только кадру.
+  //
+  // Постер привязан к выпуску, для которого его загрузили. Выбрал другой
+  // выпуск и не загрузил новый постер — в кадре обложка нового выпуска, а не
+  // чужая афиша с чужим названием. Пустой id возвращает кадру обычный выбор.
+  if(d.action==='hero'){
+    const id=String(d.id??'');
+    const put=(key:string,value:string)=>db.insert(settings).values({key,value}).onConflictDoUpdate({target:settings.key,set:{value}});
+    if(!id){await put('heroPost','');await put('heroArt','');await put('heroArtPost','');return result({ok:true});}
+    const p=await db.select().from(posts).where(eq(posts.id,id)).get();
+    if(!p)throw new Error('#err.notFound');
+    if(!p.published)throw new Error('#err.pinDraft');
+    if(typeof d.key==='string'){
+      const key=d.key.trim();
+      if(key){if(!key.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(key);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
+      await put('heroArt',key);await put('heroArtPost',key?id:'');
+    }
+    await put('heroPost',id);return result({ok:true});
   }
   if(d.action==='links'){
     // parseLinks отбрасывает всё, что не HTTPS и не из известного списка площадок.

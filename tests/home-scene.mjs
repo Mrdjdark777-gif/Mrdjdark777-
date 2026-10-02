@@ -8,7 +8,7 @@ import path from 'node:path';
 import {build} from 'esbuild';
 const root = path.resolve(import.meta.dirname, '..');
 const {outputFiles} = await build({entryPoints: [path.join(root, 'lib/home-scene.ts')], bundle: true, write: false, format: 'esm', platform: 'node'});
-const {homeScene, freshSections} = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
+const {homeScene, freshSections, heroPicture} = await import('data:text/javascript;base64,' + Buffer.from(outputFiles[0].text).toString('base64'));
 
 const post = (id, over = {}) => ({id, kind: 'podcast', title: 'Выпуск ' + id, description: '', duration: 600, published: 1, createdAt: Number(id), coverKey: null, coverUrl: null, ...over});
 const base = {posts: [post('3'), post('2'), post('1')], progress: [], seen: [], hidden: []};
@@ -73,6 +73,18 @@ assert.equal(homeScene({...base, noHero: ['3', '2', '1']}).hero, null, 'запр
 assert.equal(homeScene({...base, noHero: ['3'], pinned: '3'}).hero.id, '3', 'закрепление автора сильнее запрета');
 assert.equal(homeScene({...base, noHero: ['3'], progress: [{id: '3', position: 50, duration: 600}]}).resume.post.id, '3', 'продолжить запись эфира можно: запрет только на кадр');
 
+// Постер главной стоит в кадре только над тем выпуском, для которого его
+// загрузили. Иначе в кадре обложка выпуска: чужая афиша с чужим названием —
+// это враньё, а не оформление.
+const poster = {post: '1', src: '/api/cover?id=hero&v=a'};
+assert.equal(heroPicture('1', poster, '/api/cover?id=1'), poster.src, 'над своим выпуском стоит постер');
+assert.equal(heroPicture('3', poster, '/api/cover?id=3'), '/api/cover?id=3', 'над чужим выпуском постера нет — обложка выпуска');
+assert.equal(heroPicture('1', null, '/api/cover?id=1'), '/api/cover?id=1', 'без постера — обложка выпуска');
+assert.equal(heroPicture('1', {post: '1', src: ''}, '/api/cover?id=1'), '/api/cover?id=1', 'пустой адрес постера — не постер');
+// Слушатель убрал закреплённый выпуск с главной: кадр уходит к другому, и
+// постер вместе с ним не переезжает.
+assert.equal(heroPicture(homeScene({...base, pinned: '1', hidden: ['1']}).hero.id, poster, 'cover'), 'cover', 'постер не переезжает на чужой выпуск');
+
 // Метки «новое» рассказывают про другие разделы, раз кадр занят одним.
 const mixed = [post('9', {kind: 'video'}), post('8', {kind: 'story'}), post('7')];
 assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: [], heroId: '9'})].sort(), ['podcast', 'story'], 'публикация в кадре меткой не считается');
@@ -80,4 +92,4 @@ assert.deepEqual([...freshSections({posts: mixed, seen: ['8'], hidden: [], heroI
 assert.deepEqual([...freshSections({posts: mixed, seen: [], hidden: ['7', '8'], heroId: '9'})], [], 'убранное с главной меток не даёт');
 assert.deepEqual([...freshSections({posts: [post('6', {published: 0})], seen: [], hidden: []})], [], 'черновик не обещает нового');
 
-console.log('PASS: кадром распоряжается автор, иначе в нём самая свежая неоткрытая публикация; записи эфиров в кадр сами не встают, но закрепить их можно; «Продолжить» — отдельный выпуск со своей позицией; метки «новое» рассказывают про другие разделы');
+console.log('PASS: постер главной стоит только над своим выпуском; кадром распоряжается автор, иначе в нём самая свежая неоткрытая публикация; записи эфиров в кадр сами не встают, но закрепить их можно; «Продолжить» — отдельный выпуск со своей позицией; метки «новое» рассказывают про другие разделы');

@@ -120,3 +120,16 @@ export function freshSections(input: {
   }
   return fresh;
 }
+
+/**
+ * Картинка кадра: постер главной или обложка выпуска.
+ *
+ * Постер рисуется под кадр 15:7 и загружается отдельно; обложка 4:5 остаётся
+ * карусели, каталогу и плееру. Постер стоит в кадре, только если в кадре тот
+ * выпуск, для которого его загрузили. Слушатель убрал этот выпуск с главной
+ * или автор снял его с публикации — кадр уходит к другому выпуску, и чужая
+ * афиша с чужим названием на нём была бы враньём.
+ */
+export function heroPicture(heroId: string, poster: {post: string; src: string} | null | undefined, cover: string): string {
+  return poster && poster.post === heroId && poster.src ? poster.src : cover;
+}

@@ -45,7 +45,7 @@ import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type
 import {useT} from '@/components/i18n-provider';
 
 type Post={usageCount?:number;id:string;kind:string;title:string;description:string;body:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number};
-type Data={archivePending?:boolean;items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];legal?:{name:string;contact:string};live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;calmArt?:string|null};
+type Data={archivePending?:boolean;items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];legal?:{name:string;contact:string};live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;poster?:{post:string;v:string}|null;calmArt?:string|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
@@ -86,14 +86,22 @@ export default function Studio(){
  const [profileOpen,setProfileOpen]=useState(false);
  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[body,setBody]=useState(''),[editing,setEditing]=useState<Post|null>(null),[editor,setEditor]=useState<'story'|'podcast'|'video'|null>(null),[saving,setSaving]=useState(false),[donationDraft,setDonationDraft]=useState<Record<string,string>>({}),[linkDraft,setLinkDraft]=useState<Record<string,string>>({}),[videoUrl,setVideoUrl]=useState(''),[coverFile,setCoverFile]=useState<File|null>(null),[coverPreview,setCoverPreview]=useState(''),[channelArtFile,setChannelArtFile]=useState<File|null>(null),[channelArtPreview,setChannelArtPreview]=useState('/api/cover?id=channel'),[artMissing,setArtMissing]=useState(false),[liveCoverFile,setLiveCoverFile]=useState<File|null>(null),[liveCoverPreview,setLiveCoverPreview]=useState(''),[watching,setWatching]=useState<Post|null>(null),[liveTitle,setLiveTitle]=useState(''),[liveNote,setLiveNote]=useState(''),[filter,setFilter]=useState('published'),[reading,setReading]=useState<Post|null>(null),[playing,setPlaying]=useState<Post|null>(null),[playerAutoplay,setPlayerAutoplay]=useState(true),[playerExpanded,setPlayerExpanded]=useState(true),[query,setQuery]=useState(''),[sort,setSort]=useState<'new'|'old'>('new'),[confirmDelete,setConfirmDelete]=useState<Post|null>(null),[dirty,setDirty]=useState(false),[replaceRecording,setReplaceRecording]=useState(false),[videoDuration,setVideoDuration]=useState(''),[legalName,setLegalName]=useState(''),[legalContact,setLegalContact]=useState('')
  ,[calmFile,setCalmFile]=useState<File|null>(null),[calmPreview,setCalmPreview]=useState(''),[calmMissing,setCalmMissing]=useState(false);
+ // Постер главной: тип и выпуск, который открывается нажатием, и сам постер.
+ const [heroKind,setHeroKind]=useState<'podcast'|'video'|'story'>('podcast'),[heroTarget,setHeroTarget]=useState(''),[heroFile,setHeroFile]=useState<File|null>(null),[heroPreview,setHeroPreview]=useState('');
  // Картинка круга покоя живёт под одним адресом, поэтому в ссылку идёт версия:
  // иначе браузер и WebView показывают прежнюю, пока не истечёт их кэш.
  const calmSrc=data?.calmArt?'/api/cover?id=calm&v='+encodeURIComponent(data.calmArt):'';
+ // Постер главной — по тому же правилу: адрес один, версия в ссылке.
+ const posterSrc=data?.poster?'/api/cover?id=hero&v='+encodeURIComponent(data.poster.v):'';
+ // Форма постера встаёт на то, что сейчас закреплено, всякий раз, когда это
+ // меняется: сохранили здесь или закрепили кнопкой в каталоге.
+ useEffect(()=>{const id=data?.pinned??'',p=id?data?.items.find(x=>x.id===id):undefined;
+  setHeroTarget(p?id:'');if(p&&(p.kind==='podcast'||p.kind==='video'||p.kind==='story'))setHeroKind(p.kind);},[data?.pinned,data?.items]);
  const wideScreen=useWideScreen();
  // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
  const shell=useDesktopApp();
  const [shellOpen,setShellOpen]=useState(false);
- const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
+ const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),heroInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  useEffect(()=>{const update=()=>setSeen(readSeen());update();
   window.addEventListener('tt-seen',update);
@@ -319,7 +327,7 @@ export default function Studio(){
   onBrowse={()=>{haptic();goto('podcasts');}}
   support={heartLink?<a className="support-strip support-card tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><span className="support-card-copy"><span className="support-strip-label tt-shimmer">{t('home.supportTitle')}</span><span className="support-card-note">{t('home.supportNote')}</span></span><span className="support-card-heart" aria-hidden="true"><HeartBeam size={24}/></span></a>:<span className="support-strip support-card is-empty"><span className="support-card-copy"><span className="support-strip-label">{t('home.supportTitle')}</span><span className="support-card-note">{t('donate.unavailable')}</span></span><span className="support-card-heart" aria-hidden="true"><HeartBeam size={22}/></span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
-  pinned={data.pinned}/>}
+  pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null}/>}
  {(view==='podcasts'||view==='stories'||view==='videos')&&<>
  {!author&&view==='podcasts'&&<VoiceHeader haptic={haptic}
   latest={(()=>{const fresh=visible.filter(p=>p.kind==='podcast'&&!isLiveArchive(p.audioKey)&&!seen.includes(p.id)).sort((a,b)=>b.createdAt-a.createdAt)[0];return fresh?{id:fresh.id,title:fresh.title,duration:fresh.duration}:null;})()}
@@ -412,6 +420,34 @@ export default function Studio(){
   <div className="legal-links"><a href="/privacy">{t('legal.privacy')}</a><a href="/rules">{t('legal.rules')}</a></div>
  </section>}
  {view==='settings'&&<section className="settings-panel wide-panel"><div className="section-icon"><HeartBeam size={22}/></div><h2>{t('settings.supportTitle')}</h2><p>{t('settings.supportText')}</p><div className="links-grid">{DONATIONS.map(dp=><label className="field" key={dp.kind}>{t(dp.labelKey)}<input type="url" value={donationDraft[dp.kind]??''} placeholder="https://…" onChange={e=>setDonationDraft(prev=>({...prev,[dp.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'donations',links:DONATIONS.map(dp=>({kind:dp.kind,url:(donationDraft[dp.kind]??'').trim()})).filter(l=>l.url)}),t('settings.donationSaved'))}><Check size={17}/>{t('settings.saveDonation')}</button><small>{t('settings.donationNote')}</small></section>}
+ {/* Постер главной. Что открывается нажатием — выбирается здесь же: постер
+     ведёт на выпуск, а у выпуска своя обложка для карусели и каталога. */}
+ {view==='home'&&(()=>{
+  const choices=data.items.filter(p=>p.kind===heroKind&&p.published===1).sort((a,b)=>b.createdAt-a.createdAt);
+  const bound=!!data.poster&&data.poster.post===heroTarget;
+  const shown=heroPreview||(bound?posterSrc:'');
+  return <section className="settings-panel wide-panel hero-poster-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.posterTitle')}</h2><p>{t('settings.posterText')}</p>
+   {shown?<img className="channel-art-preview hero-poster-preview" src={shown} alt=""/>:heroTarget?<small className="hero-poster-none">{t('settings.posterNone')}</small>:null}
+   <div className="links-grid">
+    <label className="field">{t('settings.posterKind')}<select value={heroKind} onChange={e=>{setHeroKind(e.target.value as 'podcast'|'video'|'story');setHeroTarget('');}}>
+     <option value="podcast">{t('settings.posterKindPodcast')}</option><option value="video">{t('settings.posterKindVideo')}</option><option value="story">{t('settings.posterKindStory')}</option></select></label>
+    <label className="field">{t('settings.posterTarget')}<select value={heroTarget} onChange={e=>setHeroTarget(e.target.value)} disabled={!choices.length}>
+     <option value="">{choices.length?t('settings.posterAuto'):t('settings.posterEmpty')}</option>
+     {choices.map(p=><option key={p.id} value={p.id}>{p.title}{isLiveArchive(p.audioKey)?' · '+t('live.archiveTitle'):''}</option>)}</select></label>
+   </div>
+   <div className="hero-poster-actions">
+    <button type="button" className="secondary-button" onClick={()=>heroInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button>
+    <input type="file" accept="image/jpeg,image/png,image/webp" ref={heroInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setHeroFile(f);setHeroPreview(URL.createObjectURL(f));}e.target.value='';}}/>
+    {bound&&!heroFile&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:heroTarget,key:''});},t('settings.posterRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}
+    <button type="button" className="primary-button" onClick={()=>void run(async()=>{
+      if(!heroTarget){if(heroFile)throw new Error(t('settings.posterPick'));await api('library',{action:'hero',id:''});return;}
+      const key=heroFile?await uploadCover(heroFile):undefined;
+      await api('library',{action:'hero',id:heroTarget,...(key?{key}:{})});
+      setHeroFile(null);setHeroPreview('');
+     },heroTarget?t('settings.posterSaved'):t('settings.posterResetDone'))}><Check size={17}/>{t('settings.posterSave')}</button>
+    {data.pinned&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:''});setHeroFile(null);setHeroPreview('');},t('settings.posterResetDone'))}>{t('settings.posterReset')}</button>}
+   </div>
+   <small>{t('settings.posterNote')}</small></section>;})()}
  {view==='home'&&<section className="settings-panel"><div className="section-icon"><Wind size={22}/></div><h2>{t('settings.calmTitle')}</h2><p>{t('settings.calmText')}</p>{!calmMissing&&(calmPreview||calmSrc)&&<img className="channel-art-preview calm-art-preview" src={calmPreview||calmSrc} alt="" onError={()=>setCalmMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>calmInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={calmInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setCalmFile(f);setCalmPreview(URL.createObjectURL(f));setCalmMissing(false);}e.target.value='';}}/>{!calmMissing&&(calmPreview||calmSrc)&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'calmArt',key:''});setCalmFile(null);setCalmPreview('');setCalmMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{calmFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(calmFile);await api('library',{action:'calmArt',key});setCalmFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.calmNote')}</small></section>}
  {view==='settings'&&<section className="settings-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.artTitle')}</h2><p>{t('settings.artText')}</p>{!artMissing&&<img className="channel-art-preview" src={channelArtPreview} alt="" onError={()=>setArtMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>channelArtInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={channelArtInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setChannelArtFile(f);setChannelArtPreview(URL.createObjectURL(f));setArtMissing(false);}e.target.value='';}}/>{!artMissing&&channelArtPreview&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'channelArt',key:''});setChannelArtFile(null);setChannelArtPreview('');setArtMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{channelArtFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(channelArtFile);await api('library',{action:'channelArt',key});setChannelArtFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.artNote')}</small></section>}
  {view==='settings'&&<section className="settings-panel wide-panel"><div className="section-icon"><Link2 size={22}/></div><h2>{t('settings.linksTitle')}</h2><p>{t('settings.linksText')}</p><div className="links-grid">{SOCIALS.map(sc=><label className="field" key={sc.kind}>{t(sc.labelKey)}<input type="url" value={linkDraft[sc.kind]??''} placeholder="https://…" onChange={e=>setLinkDraft(prev=>({...prev,[sc.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'links',links:SOCIALS.map(sc=>({kind:sc.kind,url:(linkDraft[sc.kind]??'').trim()})).filter(l=>l.url)}),t('settings.linksSaved'))}><Check size={17}/>{t('settings.saveLinks')}</button><small>{t('settings.linksNote')}</small></section>}

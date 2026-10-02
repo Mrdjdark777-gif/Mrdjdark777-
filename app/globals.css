@@ -2325,3 +2325,14 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  min-height:38px;padding:0 18px;border-radius:999px;font-size:13px;font-weight:600;
  color:#cfdad9;background:rgba(255,255,255,.05);border:1px solid var(--line)}
 .live-share:hover{color:#6FE7DE;border-color:rgba(111,231,222,.4)}
+/* Постер главной в студии. Превью — в той же пропорции, что кадр на
+   телефоне, 15:7: что видно здесь, то и увидит слушатель. Списки выбора
+   набраны как поля ввода рядом, чтобы панель не выглядела собранной из
+   разных наборов. */
+.hero-poster-panel .hero-poster-preview{aspect-ratio:15/7;max-width:540px}
+.hero-poster-panel .hero-poster-none{margin:0 0 14px!important}
+.hero-poster-panel select{background:#141518;border:1px solid #3a3b40;border-radius:7px;padding:12px 14px;color:#f4f3f1;font-size:16px;outline:none;width:100%;line-height:1.5}
+.hero-poster-panel select:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.hero-poster-panel select option{background:#141518;color:#f4f3f1}
+.hero-poster-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}
+.hero-poster-actions>button{margin-top:0!important}

@@ -25,6 +25,7 @@ const read = (f) => readFileSync(path.join(root, f), 'utf8');
 // Настройка с картинкой, забытая в списке, — это и есть исходная поломка.
 assert.ok(MEDIA_SETTING_KEYS.includes('channelArt'), 'channelArt пропал из списка настроек с медиа');
 assert.ok(MEDIA_SETTING_KEYS.includes('calmArt'), 'calmArt пропал из списка настроек с медиа');
+assert.ok(MEDIA_SETTING_KEYS.includes('heroArt'), 'heroArt (постер главной) пропал из списка настроек с медиа — уборка удалит постер как ничей');
 
 // Каждая настройка, которую маршрут библиотеки принимает как ключ обложки,
 // обязана быть в списке: иначе уборка снова начнёт считать её файл ничьим.

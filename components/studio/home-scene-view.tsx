@@ -4,7 +4,7 @@ import {useEffect,useRef,useState} from 'react';
 import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
-import {homeScene,type ScenePost} from '@/lib/home-scene';
+import {homeScene,heroPicture,type ScenePost} from '@/lib/home-scene';
 import {useTilt} from '@/hooks/use-tilt';
 import {useDrum} from '@/hooks/use-drum';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
@@ -30,9 +30,11 @@ const coverOf=(p:ScenePost)=>coverSrc(p);
  */
 const tileCover=(p:ScenePost)=>coverSrc(p,480);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned,noHero}:{
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned,poster,noHero}:{
  posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;onBrowse?:()=>void;liveAction:string;
  archive?:React.ReactNode;support:React.ReactNode;links?:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
+ /** Постер главной и выпуск, для которого он загружен. */
+ poster?:{post:string;src:string}|null;
  /** Публикации, которые не встают в кадр сами: записи эфиров. */
  noHero?:string[];
 }){
@@ -78,7 +80,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
  const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
   .sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);
-  const heroCover=hero?coverOf(hero):'';
+  const heroCover=hero?heroPicture(hero.id,poster,coverOf(hero)):'';
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
  // Надстрочная надпись в кадре — вид публикации, он уже записан заглавными
@@ -95,11 +97,15 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   onContextMenu:(e:React.MouseEvent)=>e.preventDefault(),
  }:{};
  return <div className="immersion tt-soft-home">
-  <section className={'scene'+(heroCover?'':' scene-fallback')} {...press}>
+  {/* Нажатие на сам постер открывает то, что автор к нему привязал, — как
+      кнопка под ним. Долгое нажатие по-прежнему открывает меню выпуска, и
+      после него обычное нажатие не срабатывает. */}
+  <section className={'scene'+(heroCover?'':' scene-fallback')+(hero?' is-tappable':'')} {...press}
+   onClick={hero?()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}:undefined}>
    <Artwork className="scene-photo" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="scene-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/>
    <div className="scene-shade" aria-hidden="true"/>
    {hero?<>
-    <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={()=>{haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
+    <button type="button" className="scene-menu tt-pressable" aria-label={t('player.menu')} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();haptic();setMenu({id:hero.id,title:hero.title});}}><MoreHorizontal size={20}/></button>
     {/* На постере название уже нарисовано — своё мы поверх не кладём. Оно
         остаётся в разметке для экранных дикторов и для проверок, но не
         показывается. Видна только надстрочная подпись: по ней понятно,

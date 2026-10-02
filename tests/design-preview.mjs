@@ -2430,7 +2430,7 @@ try{
  const settings=await panelTitles();
  check(await studio.evaluate(()=>!!document.querySelector('.bottom-nav-settings[data-active=true]')),'кнопка «Настройки» не ведёт на страницу настроек');
  // Каждая карточка живёт в одном месте: дублей между главной и настройками нет.
- const onHome=['Картинка круга покоя'],inSettings=['Твои площадки','Кнопка поддержки','Фон уведомлений'];
+ const onHome=['Картинка круга покоя','Постер на главной'],inSettings=['Твои площадки','Кнопка поддержки','Фон уведомлений'];
  for(const name of onHome){
   check(home.includes(name),`на главной автора пропала карточка «${name}»: `+home.join(', '));
   check(!settings.includes(name),`карточка «${name}» дублируется в настройках`);
@@ -2439,6 +2439,46 @@ try{
   check(settings.includes(name),`в настройках пропала карточка «${name}»: `+settings.join(', '));
   check(!home.includes(name),`карточка «${name}» осталась на главной автора`);
  }
+ // Постер главной. Владелец: «отдельную настройку, куда я буду загружать
+ // постер на главную, и в этой же настройке буду указывать ресурс, что должно
+ // открываться, с указанием типа контента». Проходим путь автора целиком —
+ // тип, выпуск, файл, «Сохранить» — и смотрим глазами слушателя: постер в
+ // кадре, а нажатие на него открывает выбранное.
+ {await studio.goto(base+'/');await settle(studio);
+  const panel=studio.locator('.hero-poster-panel');
+  if(!(await panel.count()))problems.push('в студии нет панели «Постер на главной»');
+  else{
+   const kind=panel.locator('select').nth(0),target=panel.locator('select').nth(1);
+   const kinds=(await kind.locator('option').allTextContents()).join(', ');
+   check(kinds==='Подкаст, Видео, История','в постере главной не те типы контента: '+kinds);
+   await kind.selectOption('story');
+   const titles=await target.locator('option').allTextContents();
+   check(titles.includes('Там, где заканчивается дорога'),'среди историй для постера нет опубликованной истории: '+titles.join(' | '));
+   check(!titles.includes('Наедине с горами'),'среди историй для постера оказалось видео');
+   await target.selectOption(story.id);
+   await panel.locator('input[type=file]').setInputFiles(path.join(root,'tests/fixtures/demo-covers/hero-lake.jpg'));
+   check(await panel.locator('.hero-poster-preview').count()===1,'выбранный постер не показан в студии до сохранения');
+   await panel.getByRole('button',{name:'Сохранить',exact:true}).click();
+   let lib={};
+   for(let i=0;i<40&&!lib.poster;i++){await studio.waitForTimeout(200);lib=await (await fetch(base+'/api/library')).json();}
+   check(lib.pinned===story.id,'после «Сохранить» нажатие на постер ведёт не на выбранную историю: '+lib.pinned);
+   check(lib.poster?.post===story.id,'после «Сохранить» постер не сохранился: '+JSON.stringify(lib.poster));
+   const look=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+   const lp=await look.newPage();lp.on('pageerror',e=>errors.push(e.message));
+   await lp.goto(base+'/?mode=listen');await settle(lp);
+   const seen=await lp.evaluate(()=>{const img=document.querySelector('.scene-photo');
+    return {src:img?.getAttribute('src')||'',kind:document.querySelector('.scene .soft-eyebrow')?.textContent||''};});
+   check(/[?&]id=hero(&|$)/.test(seen.src)&&/[?&]v=/.test(seen.src),'в кадре главной не постер, а '+(seen.src||'пусто'));
+   check(/истори/i.test(seen.kind),'подпись над постером не говорит, что это история: «'+seen.kind+'»');
+   // Нажимаем на сам постер, а не на кнопку под ним: владелец спросил прямо,
+   // можно ли будет на него нажать.
+   const box=await lp.locator('.scene').boundingBox();
+   await lp.mouse.click(box.x+box.width/2,box.y+box.height*0.6);
+   const opened=await lp.locator('.tt-reader-stage').waitFor({timeout:8000}).then(()=>true,()=>false);
+   check(opened,'нажатие на постер не открыло выбранную историю');
+   await look.close();
+  }
+  await post({action:'hero',id:''});}
  await desk.close();
  check(errors.length===0,'ошибки страницы: '+errors.join(' | '));
  // Политика и правила: четыре языка, живые ссылки, и честное предупреждение,

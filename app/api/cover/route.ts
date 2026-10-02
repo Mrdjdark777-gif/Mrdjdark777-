@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return result({ key });
   } catch (e) { return failure(e); }
 }
-// id=channel обслуживает общий фон для эфира (настраивается в Settings), иначе — обложку конкретного поста.
+// id=channel обслуживает общий фон для эфира (настраивается в Settings), id=hero — постер главной, иначе — обложку конкретного поста.
 export async function GET(req: Request) {
   try {
     const id = new URL(req.url).searchParams.get('id') ?? '';
@@ -26,6 +26,8 @@ export async function GET(req: Request) {
     if (id === 'channel') { key = (await setting('channelArt')) || null; isPublic = true; }
     // Картинка круга покоя: её видит любой, кто открыл экран эфира без эфира.
     else if (id === 'calm') { key = (await setting('calmArt')) || null; isPublic = true; }
+    // Постер главной: его видит каждый, кто открыл приложение.
+    else if (id === 'hero') { key = (await setting('heroArt')) || null; isPublic = true; }
     // Обложка конкретного эфира: сам эфир публичный, значит и она тоже.
     else if (id.startsWith('live:')) {
       const b = await getDb().select().from(broadcasts).where(eq(broadcasts.id, id.slice(5))).get();
@@ -55,12 +57,18 @@ export async function GET(req: Request) {
     // держать в кэше сутки. Оформление канала и картинка круга покоя живут
     // под одним адресом и меняются — закэшированное на сутки изображение
     // возвращалось даже после замены, пока кэш не истечёт.
-    const single = id === 'channel' || id === 'calm';
+    const single = id === 'channel' || id === 'calm' || id === 'hero';
     // Черновик виден только автору, и его обложка не должна оседать в общих
     // кэшах: прежний `public, max-age=86400` разрешал прокси или CDN отдать
     // её кому угодно, кто спросит тот же адрес. Ответ приватный — значит и
     // политика кэша приватная.
-    const cache = single ? 'no-store' : isPublic ? 'public, max-age=86400' : 'private, no-store';
+    // Постер главной открывается при каждом запуске приложения, и качать его
+    // заново каждый раз незачем. Адрес из приложения несёт версию — ключ
+    // загрузки. Совпала с нынешней — этот ответ не изменится никогда, его можно
+    // держать сколько угодно; заменили постер — у нового другая версия и
+    // другой адрес. Без версии или со старой — как прежде, без кэша.
+    const pinnedVersion = id === 'hero' && new URL(req.url).searchParams.get('v') === key.replace(/^cover\//, '');
+    const cache = pinnedVersion ? 'public, max-age=31536000, immutable' : single ? 'no-store' : isPublic ? 'public, max-age=86400' : 'private, no-store';
     const h = new Headers({ 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' });
     if (!isPublic) h.set('Vary', 'Cookie');
 

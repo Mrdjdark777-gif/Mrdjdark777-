@@ -407,6 +407,58 @@ try {
   assert.equal(cr.status, 200);
   assert.equal(await cr.text(), 'channl');
 
+  // Постер главной. Загружается отдельно от обложки выпуска и привязан к
+  // выпуску, который открывается нажатием на него.
+  {
+   const up = async (text) => (await (await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': String(text.length) }, body: new Blob([text]).stream(), duplex: 'half' })).json()).key;
+   const posterKey = await up('poster');
+   const a = await request('library', { kind: 'video', title: 'Постер А', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
+   const b = await request('library', { kind: 'video', title: 'Постер Б', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
+   const draft = await request('library', { kind: 'video', title: 'Постер черновик', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: false });
+   assert.equal((await dispatch('cover', { search: '?id=hero' })).status, 404, 'постера ещё нет — отдавать нечего');
+   // Чужой ключ, неизвестный выпуск, черновик и слушатель — отказ.
+   assert.equal((await request('library', { action: 'hero', id: a.data.id, key: 'audio/not-a-cover' })).status, 400, 'постер принят не из загруженных обложек');
+   assert.equal((await request('library', { action: 'hero', id: 'нет такого', key: posterKey })).status, 400, 'постер привязан к несуществующему выпуску');
+   assert.equal((await request('library', { action: 'hero', id: draft.data.id, key: posterKey })).status, 400, 'постер ведёт на черновик — слушатель упрётся в пустоту');
+   assert.equal((await request('library', { action: 'hero', id: a.data.id, key: posterKey }, false)).status, 403, 'постер главной поставил не автор');
+   assert.equal((await request('library', undefined, false)).data.poster, null, 'отказы не должны были ничего сохранить');
+
+   assert.equal((await request('library', { action: 'hero', id: a.data.id, key: posterKey })).status, 200);
+   let lib = (await request('library', undefined, false)).data;
+   assert.equal(lib.pinned, a.data.id, 'нажатие на постер ведёт не на выбранный выпуск');
+   assert.deepEqual(lib.poster, { post: a.data.id, v: posterKey.replace(/^cover\//, '') }, 'слушатель не получил постер главной');
+   cr = await dispatch('cover', { search: '?id=hero' });
+   assert.equal(cr.status, 200);
+   assert.equal(await cr.text(), 'poster');
+   assert.match(cr.headers.get('cache-control'), /no-store/, 'постер без версии в адресе закэширован — замена не будет видна');
+   cr = await dispatch('cover', { search: '?id=hero&v=' + encodeURIComponent(lib.poster.v) });
+   assert.match(cr.headers.get('cache-control'), /immutable/, 'постер с нынешней версией в адресе качается заново при каждом запуске');
+   cr = await dispatch('cover', { search: '?id=hero&v=old' });
+   assert.match(cr.headers.get('cache-control'), /no-store/, 'постер со старой версией закэширован навсегда');
+
+   // Другой выпуск без нового постера: постер остаётся у своего выпуска и в
+   // кадр над чужим не попадает.
+   assert.equal((await request('library', { action: 'hero', id: b.data.id })).status, 200);
+   lib = (await request('library', undefined, false)).data;
+   assert.equal(lib.pinned, b.data.id);
+   assert.equal(lib.poster, null, 'постер выпуска А встал над выпуском Б');
+   // Вернулся к А — постер снова его.
+   await request('library', { action: 'hero', id: a.data.id });
+   assert.equal((await request('library', undefined, false)).data.poster?.post, a.data.id, 'постер потерялся при возврате к своему выпуску');
+   // Убрать постер, оставив выпуск.
+   await request('library', { action: 'hero', id: a.data.id, key: '' });
+   lib = (await request('library', undefined, false)).data;
+   assert.equal(lib.pinned, a.data.id, 'удаление постера сняло и выпуск');
+   assert.equal(lib.poster, null, 'постер не удалился');
+   // Автоматический выбор: снято всё.
+   await request('library', { action: 'hero', id: a.data.id, key: posterKey });
+   await request('library', { action: 'hero', id: '' });
+   lib = (await request('library', undefined, false)).data;
+   assert.equal(lib.pinned, null, 'автоматический выбор не снял закрепление');
+   assert.equal(lib.poster, null, 'автоматический выбор оставил постер');
+   for (const p of [a, b, draft]) await request('library', { action: 'delete', id: p.data.id });
+  }
+
   assert.equal((await request('live', { action: 'start', title: 'Unauthorized' }, false)).status, 403);
   const liveRes = await request('live', { action: 'start', title: 'Test broadcast' });
   assert.equal(liveRes.status, 200);
