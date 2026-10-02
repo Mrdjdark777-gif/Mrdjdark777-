@@ -121,6 +121,14 @@ try{
  const cover=await page.evaluate(()=>{const n=document.querySelector('.immersion.tt-soft-home');
   return n?getComputedStyle(n).backgroundColor:'нет главной';});
  assert.match(cover,/^(transparent|rgba\(0, 0, 0, 0\))$/,'главная закрашена своим фоном ('+cover+') — сетку под ней не видно');
+ // На главной сетка слегка размыта — так попросил владелец, — а на остальных
+ // экранах остаётся чёткой: размывать велено только главную.
+ const blurOf=()=>page.evaluate(()=>{const f=getComputedStyle(document.querySelector('canvas.kinetic-grid')).filter;
+  const m=/blur\(([\d.]+)px\)/.exec(f);return m?Number(m[1]):0;});
+ const homeBlur=await blurOf();
+ assert.ok(homeBlur>=1&&homeBlur<=3,'сетка на главной не размыта слегка: размытие '+homeBlur+'px (нужно 1–3)');
+ await page.goto(base+'/?mode=listen&view=podcasts');await page.waitForTimeout(1500);
+ assert.equal(await blurOf(),0,'сетка размыта и вне главной — владелец просил только главную');
 
- console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия и видна на главной');
+ console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия, видна на главной и там слегка размыта, а на других экранах чёткая');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

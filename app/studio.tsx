@@ -467,8 +467,9 @@ export default function Studio(){
      её убирали, когда обложка лежала там во весь экран и сетки под ней не
      было видно. Теперь кадр — полоса 15:7, ниже карусель и плашки, и без
      сетки главная выглядела чужой остальному приложению: владелец попросил
-     вернуть. В студии фон не нужен вовсе: там работают. */}
- {!author&&data&&!data.needsSetup&&<KineticGrid/>}
+     вернуть. На главной она слегка размыта — тоже по его просьбе. В студии
+     фон не нужен вовсе: там работают. */}
+ {!author&&data&&!data.needsSetup&&<KineticGrid soft={view==='home'}/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>

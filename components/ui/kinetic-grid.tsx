@@ -31,7 +31,7 @@ const LIVE_ALPHA=.42;       // сетка под волной
 type Ripple={x:number;y:number;born:number;push:number};
 type Pointer={x:number;y:number;down:boolean};
 
-export function KineticGrid(){
+export function KineticGrid({soft=false}:{soft?:boolean}={}){
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const ripples=useRef<Ripple[]>([]);
  const pointer=useRef<Pointer>({x:-9999,y:-9999,down:false});
@@ -220,6 +220,10 @@ export function KineticGrid(){
   };
  },[]);
 
- return <canvas ref={canvasRef} className="kinetic-grid" aria-hidden="true"/>;
+ // soft — сетка слегка размыта. Так на главной: владелец попросил оставить
+ // этот фон, но размыть его — там над сеткой постер и карусель, и чёткие
+ // линии спорили с ними. Размывает композитор поверх готового холста, сам
+ // рисунок и волна от касания не меняются.
+ return <canvas ref={canvasRef} className={soft?'kinetic-grid is-soft':'kinetic-grid'} aria-hidden="true"/>;
 }
 export default KineticGrid;
