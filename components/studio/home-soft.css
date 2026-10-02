@@ -104,17 +104,21 @@
 
 /* ── Карусель ───────────────────────────────────────────────────────── */
 .tt-soft-home .soft-catalog{min-width:0}
-.tt-soft-home .soft-catalog-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 7px}
+.tt-soft-home .soft-catalog-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0}
 .tt-soft-home .soft-catalog-head h3{font-size:21px;font-weight:650;letter-spacing:-.025em;margin:0;color:#f0f5f4}
 .tt-soft-home .soft-all{display:inline-flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;border:0;background:none;
  color:#b7c5c5;font:inherit;font-size:14px;cursor:pointer;border-radius:999px}
 .tt-soft-home .soft-all>svg{width:17px;height:17px}
+/* Кнопка «Все» не раздувает строку заголовка: поля под палец остаются, но
+   отрицательным отступом не толкают карусель вниз. Владелец просил поднять
+   карусель ближе к «Новое». */
+.tt-soft-home .soft-catalog-head .soft-all{margin-block:-6px}
 /* Лента свежего — окно барабана. Своей прокрутки у неё больше нет: ленту
    двигает Embla переносом (hooks/use-drum.ts). Прокрутка с перескоком круга
    упиралась в край на втором быстром броске подряд — замер: старт 3467, край
    4830, второй бросок доехал до 4830 и встал.
    Окно выходит под края экрана, как и прежде: карточки уезжают за кромку, а
-   первая стоит на отступе страницы — его задаёт выравнивание в барабане. */
+   выбранная стоит посередине — это задаёт выравнивание в барабане. */
 .tt-soft-home .soft-carousel{overflow:hidden;margin:0 -16px;
  /* Вертикаль страницы остаётся странице, горизонталь — барабану. */
  touch-action:pan-y pinch-zoom;
@@ -123,16 +127,24 @@
     называл это «жёсткой прямоугольной границей». Сверху мало, потому что тень
     уходит вниз; снизу — ровно столько, сколько нужно: тень лежит на подписи,
     а лишняя пустота уводила «Архив эфиров» за кромку экрана. */
- padding:10px 0;
+ padding:6px 0 10px;
+ /* Сверху шесть: тень карточки вверх тянется на пять, и это нижняя граница —
+    меньше, и тень обрежется по прямой. Было десять плюс семь у заголовка;
+    владелец попросил поднять карусель ближе к «Новое». */
  /* Фон тот же, что у страницы: своя подложка давала полосу поперёк экрана. */
  background:transparent}
-/* До запуска барабана лента уже стоит там, где он её поставит, — на отступе
-   страницы. Иначе первая карточка прыгала бы на 16 точек при загрузке. */
-.tt-soft-home .soft-reel{position:relative;display:flex;margin:0;padding:0;list-style:none;transform:translate3d(16px,0,0)}
+/* До запуска барабана лента уже стоит так, как он её поставит: первая
+   карточка посередине окна. Иначе при загрузке карточки прыгали бы. Проценты
+   в translate считаются от ширины самой ленты — она равна окну. */
+.tt-soft-home .soft-reel{position:relative;display:flex;margin:0;padding:0;list-style:none;
+ transform:translate3d(calc((100% - clamp(130px,37%,182px)) / 2),0,0)}
 /* Промежуток — правым отступом самой ячейки, а не gap: на замыкании круга
    Embla считает длину ленты по ячейкам, и промежуток после последней карточки
    обязан в неё входить, иначе на стыке круга карточки слипнутся. */
-.tt-soft-home .soft-reel>li{flex:0 0 37%;min-width:130px;max-width:182px;padding-right:12px;box-sizing:border-box}
+/* Промежуток поровну по обе стороны карточки: Embla ставит по центру окна всю
+   ячейку, и при отступе только справа карточка стояла бы на шесть точек левее
+   середины. */
+.tt-soft-home .soft-reel>li{flex:0 0 37%;min-width:130px;max-width:182px;padding:0 6px;box-sizing:border-box}
 .tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
  background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
 /* Карточка стоит НАД фоном, а не лежит в нём: светлый бортик отделяет её от
@@ -206,7 +218,10 @@
  font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#e7f2f1;
  text-align:center;
  text-shadow:0 1px 6px #05070acc;background:linear-gradient(180deg,#05070ac7,#05070a00)}
-.tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;
+/* Название — по середине карточки: короткое стоит в центре, длинное
+   переносится на две строки, и каждая строка тоже по центру — симметрично
+   обложке. Так просил владелец. */
+.tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;text-align:center;width:100%;display:-webkit-box;-webkit-line-clamp:2;
  -webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 
 /* ── Архив эфиров: строка во всю ширину, вход в раздел ───────────────── */
@@ -243,6 +258,7 @@
 
 @media(min-width:768px){.immersion.tt-soft-home{max-width:980px;margin-inline:auto;padding:24px!important}
  .tt-soft-home .soft-reel>li{flex-basis:172px;max-width:192px}
+ .tt-soft-home .soft-reel{transform:translate3d(calc((100% - 172px) / 2),0,0)}
  /* На мониторе тот же постер 15:7, той же картинкой, шириной до 340 точек.
     Экран бывает низким (1024×573), поэтому ширина ограничена и высотой окна:
     высота кадра — это 7/15 ширины, и она не должна выйти за окно за вычетом

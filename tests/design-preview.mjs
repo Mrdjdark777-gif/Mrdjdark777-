@@ -1784,7 +1784,10 @@ try{
      const cards=[...v.querySelectorAll('.soft-reel>li')].map((li,i)=>{const a=li.querySelector('.soft-art'),r=a.getBoundingClientRect();
       return {i,left:li.getBoundingClientRect().left-vr.left,off:Math.abs(r.left+r.width/2-mid),near:+(a.dataset.near||0)};});
      const nearest=cards.reduce((p,q)=>q.off<p.off?q:p),biggest=cards.reduce((p,q)=>q.near>p.near?q:p);
-     const landed=Math.min(...cards.map(c=>Math.abs(c.left-16)));
+     // Встаёт посередине экрана: середина ближайшей обложки — в середине окна.
+     // Масштаб у обложки идёт от середины по горизонтали, поэтому её центр от
+     // него не уезжает.
+     const landed=Math.min(...cards.map(c=>c.off));
      return {loop:v.dataset.loop||'нет',nearest:nearest.i,biggest:biggest.i,scale:biggest.near,landed:Math.round(landed*10)/10,
       nears:cards.map(c=>c.near).join(','),
       lag:[...document.querySelectorAll('.soft-art,.soft-episode')].some(n=>/transform|opacity|all/.test(getComputedStyle(n).transitionProperty)&&parseFloat(getComputedStyle(n).transitionDuration)>0)};});
@@ -1796,7 +1799,10 @@ try{
      'бросок '+(k+1)+' подряд: после отпускания лента прошла всего '+runs[k].after+' точек за 160 мс — не докручивается, как барабан');
     check(runs[2].after>=600,
      'третий бросок подряд: после отпускания лента прошла '+runs[2].after+' точек до остановки — барабан глохнет (на голой ленте с инерцией выходит больше 600)');
-    check(end.landed<=1,'лента встала мимо карточки: ближайшая карточка в '+end.landed+' точках от своего места — барабан должен вставать на сектор');
+    check(end.landed<=1,'лента встала не по центру: середина ближайшей карточки в '+end.landed+' точках от середины экрана — владелец просил, чтобы выделенная карточка вставала ровно посередине');
+    // Название под карточкой — по её середине: так просил владелец.
+    const titles=await page.evaluate(()=>[...document.querySelectorAll('.soft-reel>li .soft-episode strong')].map(n=>getComputedStyle(n).textAlign));
+    check(titles.length>0&&titles.every(a=>a==='center'),'названия под карточками не по центру: '+[...new Set(titles)].join(', '));
     check(end.nearest===end.biggest,
      'крупнее не та карточка: посередине стоит '+(end.nearest+1)+'-я, а крупная — '+(end.biggest+1)+'-я (масштаб '+end.scale+')');
     check(end.nears===nearsLater,'после остановки масштаб ещё меняется — середина дорастает с опозданием: «'+end.nears+'» → «'+nearsLater+'»');
