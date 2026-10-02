@@ -2336,3 +2336,6 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .hero-poster-panel select option{background:#141518;color:#f4f3f1}
 .hero-poster-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}
 .hero-poster-actions>button{margin-top:0!important}
+/* Размер постера — сразу под описанием и заметнее его: владелец искал эти
+   цифры и не нашёл в мелкой строке внизу панели. */
+.hero-poster-panel .hero-poster-size{color:#6fe7de;font-weight:600;margin-top:-10px}

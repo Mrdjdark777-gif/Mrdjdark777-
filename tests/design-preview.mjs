@@ -2449,6 +2449,13 @@ try{
   if(!(await panel.count()))problems.push('в студии нет панели «Постер на главной»');
   else{
    const kind=panel.locator('select').nth(0),target=panel.locator('select').nth(1);
+   // Размер постера стоит под описанием, над выбором, а не мелкой строкой
+   // внизу: владелец искал его и просил «напиши, где стоит описание».
+   const size=await panel.evaluate(n=>{const s=n.querySelector('.hero-poster-size'),sel=n.querySelector('select');
+    return s?{text:s.textContent,above:s.getBoundingClientRect().bottom<=sel.getBoundingClientRect().top,
+     after:s.previousElementSibling?.tagName==='P'}:null;});
+   check(!!size&&/1800×840/.test(size.text),'в панели постера под описанием нет размера 1800×840: '+(size?.text||'строки нет'));
+   if(size)check(size.above&&size.after,'размер постера стоит не сразу под описанием');
    const kinds=(await kind.locator('option').allTextContents()).join(', ');
    check(kinds==='Подкаст, Видео, История','в постере главной не те типы контента: '+kinds);
    await kind.selectOption('story');

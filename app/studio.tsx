@@ -426,7 +426,7 @@ export default function Studio(){
   const choices=data.items.filter(p=>p.kind===heroKind&&p.published===1).sort((a,b)=>b.createdAt-a.createdAt);
   const bound=!!data.poster&&data.poster.post===heroTarget;
   const shown=heroPreview||(bound?posterSrc:'');
-  return <section className="settings-panel wide-panel hero-poster-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.posterTitle')}</h2><p>{t('settings.posterText')}</p>
+  return <section className="settings-panel wide-panel hero-poster-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.posterTitle')}</h2><p>{t('settings.posterText')}</p><p className="hero-poster-size">{t('settings.posterSize')}</p>
    {shown?<img className="channel-art-preview hero-poster-preview" src={shown} alt=""/>:heroTarget?<small className="hero-poster-none">{t('settings.posterNone')}</small>:null}
    <div className="links-grid">
     <label className="field">{t('settings.posterKind')}<select value={heroKind} onChange={e=>{setHeroKind(e.target.value as 'podcast'|'video'|'story');setHeroTarget('');}}>
