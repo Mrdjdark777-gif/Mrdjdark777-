@@ -1769,8 +1769,20 @@ try{
      // Путь ленты копится покадрово; на стыке круга перенос прыгает на длину
      // круга — такой прыжок не движение, и он вычитается.
      window.__drum={dist:0};let prev=pos();
+     // Вибрация на каждую карточку. Владелец просил: «переход каждой карточки
+     // должен сопровождаться вибрацией… чтоб была отчётливая тактильная отдача
+     // от каждой карточки». Подменяем вибромотор счётчиком и сами, покадрово,
+     // считаем, сколько раз сменилась карточка посередине. Щелчков должно быть
+     // столько же: меньше — карточки проходят молча, больше — мотор жужжит.
+     window.__buzz={calls:[],passed:0,mid:-1};
+     navigator.vibrate=(v)=>{window.__buzz.calls.push({at:performance.now(),v});return true;};
+     const midOf=()=>{const vr=v.getBoundingClientRect(),m=vr.left+v.clientWidth/2;let best=-1,off=Infinity;
+      v.querySelectorAll('.soft-reel>li .soft-art').forEach((a,i)=>{const r=a.getBoundingClientRect(),o=Math.abs(r.left+r.width/2-m);if(o<off){off=o;best=i;}});return best;};
+     window.__buzz.mid=midOf();
      const tick=()=>{if(!window.__drum)return;const now=pos();let d=now-prev;if(Math.abs(d)>L/2)d-=Math.sign(d)*L;
-      window.__drum.dist+=d;prev=now;requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+      window.__drum.dist+=d;prev=now;
+      const m=midOf();if(m!==window.__buzz.mid){window.__buzz.passed++;window.__buzz.mid=m;}
+      requestAnimationFrame(tick);};requestAnimationFrame(tick);});
     const swipe=async()=>{let t=Date.now()/1000,x=300;
      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}],timestamp:t});
      for(let i=0;i<8;i++){x-=30;t+=0.016;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}],timestamp:t});}
@@ -1791,8 +1803,22 @@ try{
      return {loop:v.dataset.loop||'нет',nearest:nearest.i,biggest:biggest.i,scale:biggest.near,landed:Math.round(landed*10)/10,
       nears:cards.map(c=>c.near).join(','),
       lag:[...document.querySelectorAll('.soft-art,.soft-episode')].some(n=>/transform|opacity|all/.test(getComputedStyle(n).transitionProperty)&&parseFloat(getComputedStyle(n).transitionDuration)>0)};});
+    const buzzAtStop=await page.evaluate(()=>window.__buzz.calls.length);
     await page.waitForTimeout(300);
     const nearsLater=await page.evaluate(()=>[...document.querySelectorAll('.soft-reel>li .soft-art')].map(a=>+(a.dataset.near||0)).join(','));
+    const buzz=await page.evaluate(()=>{const b=window.__buzz;window.__buzz=null;
+     const gaps=b.calls.slice(1).map((c,i)=>c.at-b.calls[i].at);
+     return {ticks:b.calls.length,passed:b.passed,longest:Math.max(0,...b.calls.map(c=>Array.isArray(c.v)?c.v.reduce((x,y)=>x+y,0):+c.v)),
+      tightest:gaps.length?Math.round(Math.min(...gaps)):Infinity};});
+    check(buzz.passed>=3,'за три броска середину прошло всего '+buzz.passed+' карточек — вибрацию проверять не на чем');
+    check(buzz.ticks>0,'лента прошла '+buzz.passed+' карточек, а вибрации не было ни разу — барабан крутится без отдачи');
+    check(buzz.ticks>=Math.floor(buzz.passed*0.8),
+     'карточек прошло '+buzz.passed+', а щелчков '+buzz.ticks+' — часть карточек проходит без вибрации');
+    check(buzz.ticks<=buzz.passed+1,
+     'карточек прошло '+buzz.passed+', а щелчков '+buzz.ticks+' — вибрация чаще, чем идут карточки, мотор жужжит');
+    check(buzz.longest<=20,'щелчок карусели длится '+buzz.longest+' мс — на быстром броске щелчки сольются в сплошное жужжание');
+    check(buzz.tightest>=20,'два щелчка через '+buzz.tightest+' мс — второй обрывает первый, отдельных толчков рука не различит');
+    check(buzz.ticks===buzzAtStop,'лента встала, а вибрация продолжается: '+buzzAtStop+' → '+buzz.ticks+' щелчков');
     check(end.loop==='yes','карусель не по кругу: карточек хватает, а круга нет — лента кончится краем');
     runs.forEach((r,k)=>check(r.finger>=150,'бросок '+(k+1)+': лента за пальцем прошла всего '+r.finger+' точек из 240 — палец её не ведёт'));
     for(const k of [0,1])check(runs[k].after>=150,
@@ -1931,30 +1957,42 @@ try{
       'событие наклона не дошло до карточек: подписка не прицепилась к карусели. Было «'+
       real.rest+'», стало «'+real.moved+'»');}}
 
-   // Держишь телефон круче привычного — наклон всё равно двигает карточку.
+   // Держишь телефон не так, как привычно, — наклон всё равно двигает карточку.
    //
-   // Прежде «ровно» было зашито числом, 38°. Держишь под 65° — сдвиг сразу
-   // упирался в предел, и наклон дальше не отвечал: карточка стояла у края.
-   // Это одна из двух причин, по которым владелец не видел движения вовсе.
-   // Теперь нейтраль за пару секунд подтягивается к руке. Проверка: три
-   // секунды держим под 65°, потом наклоняем до 75° — сдвиг обязан смениться.
+   // Прежде «ровно» было зашито числом. Держишь иначе — сдвиг сразу упирался
+   // в предел, и наклон дальше не отвечал: карточка стояла у края. Это одна из
+   // двух причин, по которым владелец не видел движения вовсе. Теперь нейтраль
+   // за пару секунд подтягивается к руке. Проверяем по боковой оси: вверх-вниз
+   // карточка ходит всего на 2 точки, там смену не измерить. Три секунды
+   // держим телефон повёрнутым на 25° вбок, потом доворачиваем до 35°.
+   //
+   // И по вертикали — не дальше 2 точек при любом наклоне. Владелец: «карточки
+   // заходят за плашку „Читать“, а внизу за „Архив эфиров“ заходят названия».
    {const steep=await page.evaluate(async()=>{
      const strip=document.querySelector('.soft-carousel');
      if(!strip||typeof DeviceOrientationEvent!=='function')return null;
-     const read=()=>parseFloat(strip.style.getPropertyValue('--ty')||'0');
+     const read=(name)=>parseFloat(strip.style.getPropertyValue(name)||'0');
      const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-     const hold=async(beta,ms)=>{for(let t=0;t<ms;t+=60){window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta,gamma:0}));await sleep(60);}};
-     await hold(65,3000);const held=read();
-     await hold(75,900);const tipped=read();
-     await hold(38,200);
+     let tall=0;
+     const hold=async(beta,gamma,ms)=>{for(let t=0;t<ms;t+=60){window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta,gamma}));
+      await sleep(60);tall=Math.max(tall,Math.abs(read('--ty')));}};
+     await hold(38,25,3000);const held=read('--tx');
+     await hold(38,35,900);const tipped=read('--tx');
+     // Резкий наклон вперёд и назад до упора: вертикальный сдвиг обязан
+     // остаться в своих 2 точках.
+     await hold(90,0,900);await hold(-10,0,900);
+     await hold(38,0,200);
      // Наклон несёт карточку целиком, и следующие проверки меряют её место.
      // Даём доводке встать и возвращаем сдвиг в ноль — иначе остаток наклона
      // читался бы как «пустая полоса под подписями».
      await sleep(1500);strip.style.setProperty('--tx','0px');strip.style.setProperty('--ty','0px');
-     return {held,tipped};});
-    if(steep)check(Math.abs(steep.tipped-steep.held)>2,
-     'держишь телефон под 65° и наклоняешь до 75° — карточка не сдвинулась: '+steep.held.toFixed(1)+' → '+steep.tipped.toFixed(1)+
-     ' точек. Нейтраль не идёт за рукой, и наклон упирается в предел');}
+     return {held,tipped,tall};});
+    if(steep){check(Math.abs(steep.tipped-steep.held)>2,
+     'держишь телефон повёрнутым на 25° и доворачиваешь до 35° — карточка не сдвинулась: '+steep.held.toFixed(1)+' → '+steep.tipped.toFixed(1)+
+     ' точек. Нейтраль не идёт за рукой, и наклон упирается в предел');
+     check(steep.tall>0.5&&steep.tall<=2.01,
+      steep.tall>2.01?'наклон двигает карточки вверх-вниз на '+steep.tall.toFixed(1)+' точек — они заходят под «Читать», а названия под «Архив эфиров»; предел 2'
+       :'наклон вперёд-назад не двигает карточки вовсе ('+steep.tall.toFixed(2)+' точек) — ось отвалилась');}}
   }
 
   // Тень карточки обязана помещаться в полосу карусели.

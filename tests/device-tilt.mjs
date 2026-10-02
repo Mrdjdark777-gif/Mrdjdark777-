@@ -13,7 +13,7 @@ import path from 'node:path';
 const root=process.cwd();
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/device-tilt.ts')],
  bundle:true,write:false,format:'esm',platform:'node'});
-const {aim,follow,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,SPAN,REACH}=await import(
+const {REACH_Y,aim,follow,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,SPAN,REACH}=await import(
  'data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 // 1. Телефон в покое — карточка стоит прямо.
@@ -169,5 +169,16 @@ const {aim,follow,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS
  assert.equal(fixed.x,fixedTipped.x,'контроль: с зашитыми 38° этот наклон упирается в предел — проверка смотрит туда');
  assert.equal(follow(null,50),50,'без прежней нейтрали берётся первое значение');
  assert.equal(follow(40,null),40,'пустое значение нейтраль не двигает');
+}
+// По вертикали — не больше двух точек при любом наклоне: окно ленты сверху и
+// снизу держит лишь несколько точек под тень, а дальше обрезает — карточки
+// уходили под кнопку, названия под «Архив эфиров».
+{
+ for(const t of [{x:LIMIT,y:0},{x:-LIMIT,y:0},{x:LIMIT*4,y:LIMIT*4}]){
+  const v=shiftOf(t);
+  assert.ok(Math.abs(v.y)<=REACH_Y+1e-9,'по вертикали карточка уходит на '+v.y.toFixed(2)+' точек — дальше окна ленты');
+ }
+ assert.ok(REACH_Y<=3,'вертикальный сдвиг '+REACH_Y+' точек — окно ленты держит не больше трёх');
+ assert.ok(Math.abs(shiftOf({x:LIMIT,y:0}).y)>0,'по вертикали карточка не двигается вовсе — наклон вперёд-назад пропал');
 }
 console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону; карточки в карусели разворачиваются от середины к краям зеркально; ближняя карточка крупнее и светлее дальней, разница видна глазом, а близость огрубляется до ступеней, чтобы слой не перерисовывался каждый кадр');

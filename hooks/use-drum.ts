@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef} from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import type {EmblaCarouselType,EmblaOptionsType} from 'embla-carousel';
 import {nearOf,scaleOf,litOf} from '@/lib/device-tilt';
+import {haptic} from '@/lib/client';
 
 /**
  * Карусель свежего — барабан: бросил пальцем, она крутится сама, бросил ещё
@@ -88,8 +89,37 @@ export function useDrum(){
    * владелец видел раньше, давали поворот и объёмный режим (perspective) — их
    * в карточке нет и проверка не пускает их обратно.
    */
-  const paint=(a:EmblaCarouselType)=>{
-   if(still)return;
+  /**
+   * Щелчок на каждую карточку, как трещотка у барабана.
+   *
+   * Следим, какая карточка ближе всех к середине. Сменилась — щелчок. Так
+   * число щелчков равно числу пройденных карточек, а частота сама идёт за
+   * скоростью: медленно тянешь — редкие, бросил сильно — частая дробь, и она
+   * стихает вместе с лентой. Щёлкаем по смене, а не по расстоянию: на стыке
+   * круга Embla переставляет карточки, и путь там прыгает, а «кто в середине»
+   * не прыгает никогда.
+   *
+   * Запас в 4 точки. Ровно на границе между двумя карточками палец дрожит,
+   * и без запаса середина металась бы туда-обратно, щёлкая на месте.
+   *
+   * Пауза не меньше 24 мс. EFFECT_CLICK длится около 10–20 мс; если карточки
+   * идут чаще, новый щелчок обрывал бы предыдущий, и вместо дроби выходило бы
+   * жужжание. На таком ходу пропуск одной карточки рука не различает.
+   */
+  let centred=-1,clicked=0;
+  const MARGIN=4,GAP=24;
+  const click=(i:number,off:number,prevOff:number,quiet:boolean)=>{
+   if(i===centred||i<0)return;
+   // Прежняя середина ещё почти так же близко — это граница, а не переход.
+   if(!quiet&&centred>=0&&off>prevOff-MARGIN)return;
+   centred=i;
+   if(quiet)return;
+   const now=performance.now();
+   if(now-clicked<GAP)return;
+   clicked=now;haptic('tick');
+  };
+
+  const paint=(a:EmblaCarouselType,quiet=false)=>{
    const e=a.internalEngine();
    // Ровно то число, на которое Embla сейчас сдвинул ленту на экране:
    // offsetLocation — сглаженное положение, его и рисует перенос. location —
@@ -100,11 +130,23 @@ export function useDrum(){
    // круга. Без этой поправки она считалась бы там, где стояла до перестановки.
    const shift=new Map<number,number>();
    for(const point of e.slideLooper.loopPoints){const by=point.target();if(by)shift.set(point.index,by);}
+   // Кто сейчас в середине: и для щелчка, и для масштаба нужны одни и те же
+   // числа, поэтому считаются один раз.
+   let best=-1,bestOff=Infinity,prevOff=Infinity;
+   const centres=parts.map((part,i)=>{
+    const centre=part.mid+at+(shift.get(i)??0),off=Math.abs(centre-half);
+    if(off<bestOff){bestOff=off;best=i;}
+    if(i===centred)prevOff=off;
+    return centre;
+   });
+   click(best,bestOff,prevOff,quiet);
+   // Кто отключил анимацию в системе, тому масштаб не меняем, а щелчок
+   // оставляем: это не движение на экране.
+   if(still)return;
    for(let i=0;i<parts.length;i++){
     const part=parts[i];
     if(!part)continue;
-    const centre=part.mid+at+(shift.get(i)??0);
-    const near=nearOf(centre,half,half);
+    const near=nearOf(centres[i]!,half,half);
     const scale=scaleOf(near).toFixed(3),lit=litOf(near).toFixed(3);
     if(part.art&&part.art.dataset.near!==scale){part.art.style.setProperty('--near',scale);part.art.dataset.near=scale;}
     if(part.card&&part.card.dataset.lit!==lit){part.card.style.setProperty('--lit',lit);part.card.dataset.lit=lit;}
@@ -120,12 +162,14 @@ export function useDrum(){
   // нужен проверкам и стилям, поэтому берётся у движка, а не из числа выпусков.
   const ready=(a:EmblaCarouselType)=>{
    a.rootNode().dataset.loop=a.internalEngine().options.loop?'yes':'no';
-   remember(a);paint(a);
+   // Сборка и смена размера — не движение: середину запоминаем молча.
+   remember(a);centred=-1;paint(a,true);
   };
+  const scroll=(a:EmblaCarouselType)=>paint(a);
 
   ready(api);
-  api.on('reInit',ready).on('resize',ready).on('scroll',paint).on('pointerUp',land);
-  return()=>{api.off('reInit',ready).off('resize',ready).off('scroll',paint).off('pointerUp',land);};
+  api.on('reInit',ready).on('resize',ready).on('scroll',scroll).on('pointerUp',land);
+  return()=>{api.off('reInit',ready).off('resize',ready).off('scroll',scroll).off('pointerUp',land);};
  },[api]);
 
  return {setView,view,api};

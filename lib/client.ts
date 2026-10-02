@@ -45,12 +45,18 @@ export const parseClock=(text:string):number|null=>{
 // калиброванная волна, а не голая длительность, ощущается заметно чётче.
 // В обычном браузере (или на старом APK без этого метода моста) — запасной
 // вариант через Vibration API; на iOS Safari/WebView её нет, тихо не сработает.
-export const haptic=(strength:'click'|'heavy'='click')=>{
+//
+// 'tick' — щелчок барабана карусели, по одному на каждую карточку. В
+// приложении это тот же EFFECT_CLICK: мост не знает слова 'tick' и берёт
+// обычный щелчок, а он короткий и чёткий, как раз для частой серии. В
+// браузере длительность урезана до 12 мс: 25 мс подряд на быстром броске
+// сливаются в сплошное жужжание, а короткие толчки остаются раздельными.
+export const haptic=(strength:'click'|'heavy'|'tick'='click')=>{
   if(hasNativeClient()){void nativeCall('ui.haptic',{strength}).catch(()=>{});return;}
   // Запасной путь в браузере: у Vibration API нет калиброванных волн, есть
   // только длительность. Сильный отклик набирается двойным толчком — он
   // ощущается отчётливее одного длинного и не превращается в зуд.
-  try{navigator.vibrate?.(strength==='heavy'?[30,45,60]:25);}catch{}
+  try{navigator.vibrate?.(strength==='heavy'?[30,45,60]:strength==='tick'?12:25);}catch{}
 };
 export function errorText(e:unknown){return e instanceof Error?serverMessage(e.message):t('err.generic');}
 export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise((resolve,reject)=>{
