@@ -82,12 +82,20 @@ try{
   assert.equal(await page2.locator('.soft-support .support-strip').getAttribute('href'),'https://paypal.me/truethrills','итальянский интерфейс — PayPal');
   await italian.close();}
  await page.goto(base+'/?mode=listen');await page.locator('.support-strip').first().waitFor();
- // Вход в студию: на ПК и в браузере он есть, в приложении на Android его
- // нет намеренно. Проверяем не текст исходника, а то, что видно на экране:
- // мост TrueThrillsNative подставляем до загрузки страницы, как это делает
- // само приложение.
+ // Вход в студию — только на широком экране. Владелец: «если я открываю сайт
+ // на телефоне и захожу в настройки, там всё ещё есть возможность войти в
+ // студию, убери это, вход в студию должен быть только в программе на ПК».
+ // Эта проверка требовала вход и в браузере телефона и после той правки
+ // упала — её не прогнали вместе с правкой. Теперь: телефон в браузере — входа
+ // нет, широкий экран — есть, приложение на Android — нет. Проверяем то, что
+ // видно на экране: мост TrueThrillsNative подставляем до загрузки страницы,
+ // как это делает само приложение.
  await page.goto(base+'/?mode=listen&view=settings');await page.locator('.settings-panel').first().waitFor();
- assert.equal(await page.locator('.settings-panel a[href="/login"]').count(),1,'в браузере вход для автора должен быть');
+ assert.equal(await page.locator('.settings-panel a[href="/login"]').count(),0,'в браузере телефона входа в студию быть не должно — владелец просил его только на ПК');
+ {const wide=await browser.newPage({viewport:{width:1280,height:900}});
+  await wide.goto(base+'/?mode=listen&view=settings');await wide.locator('.settings-panel').first().waitFor();
+  assert.equal(await wide.locator('.settings-panel a[href="/login"]').count(),1,'на широком экране вход для автора должен быть');
+  await wide.close();}
  {const phone=await browser.newContext({viewport:{width:390,height:844}});
   await phone.addInitScript(()=>{window.TrueThrillsNative={postMessage(){}};});
   const app=await phone.newPage();await app.goto(base+'/?mode=listen&view=settings');await app.locator('.settings-panel').first().waitFor();

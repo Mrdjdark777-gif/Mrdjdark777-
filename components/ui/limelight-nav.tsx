@@ -35,7 +35,7 @@ const defaults: NavItem[] = [
 /** Controlled by activeId in the app; standalone demos can use local selection. */
 export function LimelightNav({items=defaults, activeId, defaultActiveIndex=0,
   onTabChange, className, limelightClassName, iconContainerClassName,
-  iconClassName, 'aria-label': ariaLabel='Основная навигация'}: LimelightNavProps) {
+  iconClassName, 'aria-label': ariaLabel}: LimelightNavProps) {
   const [selected, setSelected] = useState<string|number|undefined>(()=>items[defaultActiveIndex]?.id);
   const current = activeId === undefined ? selected : activeId;
   const navRef = useRef<HTMLElement>(null);

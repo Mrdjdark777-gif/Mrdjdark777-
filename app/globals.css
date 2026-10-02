@@ -1465,6 +1465,19 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    картинки, а строки остаются предсказуемой высоты. */
 .main-content:not(.listener-main) .post-cover-image{position:static;inset:auto;
  width:auto;height:auto;max-height:190px;max-width:240px;object-fit:contain}
+/* Выпуск без обложки. Рамка обложки идёт за картинкой, а картинки нет — и
+   колонка схлопывалась до значка: на 1280 у рассказа без обложки она была
+   шириной 30 точек, книга смята, номер «02» налезал на неё, а текст карточки
+   начинался на полторы сотни точек левее соседних. Пустой обложке даём рамку
+   стоячей обложки 4:5 той же высоты, 190 точек, — значок в середине. */
+.main-content:not(.listener-main) .post-cover:not(:has(.post-cover-image)){width:152px;height:190px;flex:none;
+ background:var(--surface-2,#17221f)}
+/* Счётчик прослушиваний и прочтений. Владелец его не нашёл: он стоял серой
+   строчкой мелким шрифтом под описанием и терялся. Теперь это плашка с
+   бирюзовым числом — видно с первого взгляда. */
+.main-content:not(.listener-main) .post-usage{display:inline-flex;align-items:baseline;gap:6px;margin:8px 0 0;
+ padding:4px 11px;border-radius:999px;background:#6fe7de17;border:1px solid #6fe7de33;color:#bfe9e5;font-size:12.5px}
+.main-content:not(.listener-main) .post-usage strong{color:#6fe7de;font-size:14px;font-weight:700}
 
 @media(min-width:1024px){
  /* Каталог сеткой. Одной колонкой во всю ширину карточка выпуска пустовала

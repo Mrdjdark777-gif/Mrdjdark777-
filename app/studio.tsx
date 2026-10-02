@@ -25,7 +25,6 @@ import {HeartBeam} from '@/components/ui/heart-beam';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
 import {KineticGrid} from '@/components/ui/kinetic-grid';
-import {TiltCheck} from '@/components/studio/tilt-check';
 import {useWideScreen} from '@/hooks/use-wide-screen';
 import {sendDesktopCommand} from '@/lib/desktop-shell';
 import {useDesktopApp} from '@/hooks/use-desktop-app';
@@ -402,9 +401,6 @@ export default function Studio(){
   <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>
    <h2>{t('settings.ownerTitle')}</h2><p>{t('settings.ownerText')}</p>
    <a className="secondary-button" href="/login">{t('common.login')}</a></section>}
- {/* Проверка наклона — только в приложении: датчик читает оболочка, и
-     только по ней видно, на каком звене рвётся наклон карточек. */}
- {view==='settings'&&!author&&hasNativeClient()&&<TiltCheck/>}
  {!author&&<NotificationSettings author={author}/>}
  {author?<>
  {view==='settings'&&<section className="settings-panel wide-panel"><div className="section-icon"><ShieldCheck size={22}/></div><h2>{t('settings.legalTitle')}</h2><p>{t('settings.legalText')}</p>
@@ -443,7 +439,7 @@ export default function Studio(){
  <a className="site-footer-link" href="/rules">{t('legal.rules')}</a>
  <span className="site-footer-note">{t('app.footerNote')}</span>
 </footer>}
-{data&&!data.needsSetup&&<LimelightNav className="bottom-nav" activeId={view} items={[
+{data&&!data.needsSetup&&<LimelightNav className="bottom-nav" aria-label={t('nav.aria')} activeId={view} items={[
  {id:'podcasts',label:t('nav.podcasts'),className:'bottom-nav-item bottom-nav-podcasts tt-pressable',onClick:()=>{haptic();goto('podcasts');},icon:wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<Headphones size={18} color="#6FE7DE"/>}/>: <Headphones size={22}/>},
  {id:'videos',label:t('nav.videos'),className:'bottom-nav-item bottom-nav-videos tt-pressable',onClick:()=>{haptic();goto('videos');},icon:wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<Video size={18} color="#6FE7DE"/>}/>: <Video size={22}/>},
  {id:'home',label:t('nav.home'),className:'bottom-nav-item bottom-nav-home tt-pressable',onClick:()=>{haptic();goto('home');},lamp:false,icon:wide?<LiquidMetalButton viewMode="icon" size={38} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>}/>: <img className="nav-brand-mark" src="/brand/logo.png?v=0.4.1" width="30" height="30" alt=""/>},

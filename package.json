@@ -20,7 +20,8 @@
     "test:design": "node tests/design-preview.mjs",
     "test:reader": "node scripts/check-reader-browser.mjs",
     "test:player-enhancements": "node scripts/check-player-enhancements.mjs",
-    "test:home-depth": "node scripts/check-home-depth.mjs"
+    "test:home-depth": "node scripts/check-home-depth.mjs",
+    "test:phones": "node scripts/check-all-phones.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "2.0.0",
