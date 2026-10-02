@@ -1802,6 +1802,20 @@ try{
     check(end.landed<=1,'лента встала не по центру: середина ближайшей карточки в '+end.landed+' точках от середины экрана — владелец просил, чтобы выделенная карточка вставала ровно посередине');
     // Название под карточкой — по её середине: так просил владелец.
     const titles=await page.evaluate(()=>[...document.querySelectorAll('.soft-reel>li .soft-episode strong')].map(n=>getComputedStyle(n).textAlign));
+    // Название — прямо под обложкой, на одном расстоянии у всех карточек, не
+    // шире своей обложки и не в её тени. Так просил владелец: «чтоб не
+    // попадали в тени и были чёткими и не с чем не пересекались при этом чтоб
+    // были прям рядом с плашками».
+    const pairs=await page.evaluate(()=>[...document.querySelectorAll('.soft-reel>li')].map(li=>{
+     const a=li.querySelector('.soft-art'),t=li.querySelector('strong');const ar=a.getBoundingClientRect(),tr=t.getBoundingClientRect();
+     const sh=getComputedStyle(a).boxShadow.match(/-?\d+(?:\.\d+)?px/g)||[];let reach=0;
+     for(let i=0;i+2<sh.length;i+=4){const y=parseFloat(sh[i+1]),blur=parseFloat(sh[i+2]);reach=Math.max(reach,y+blur/2);}
+     return {gap:Math.round((tr.top-ar.bottom)*10)/10,over:Math.round(tr.width-ar.width),reach};}));
+    const gaps=pairs.map(p=>p.gap);
+    check(Math.max(...gaps)-Math.min(...gaps)<=1,'названия стоят на разном расстоянии от своих обложек: '+[...new Set(gaps)].join(', ')+' точек — под боковыми карточкой они «висят»');
+    check(gaps.every(g=>g>=0&&g<=14),'название не рядом с обложкой: зазоры '+[...new Set(gaps)].join(', '));
+    check(pairs.every(p=>p.over<=0),'название шире своей обложки — выступает за её края: на '+Math.max(...pairs.map(p=>p.over))+' точек');
+    check(pairs.every(p=>p.reach<=p.gap+0.5),'тень обложки тянется вниз на '+pairs[0].reach+' точек и ложится на название (зазор '+pairs[0].gap+')');
     check(titles.length>0&&titles.every(a=>a==='center'),'названия под карточками не по центру: '+[...new Set(titles)].join(', '));
     check(end.nearest===end.biggest,
      'крупнее не та карточка: посередине стоит '+(end.nearest+1)+'-я, а крупная — '+(end.biggest+1)+'-я (масштаб '+end.scale+')');
@@ -1854,7 +1868,10 @@ try{
    {const tilt=await page.evaluate(async()=>{
      const strip=document.querySelector('.soft-carousel'),art=document.querySelector('.soft-art');
      if(!strip||!art)return null;
-     const read=()=>getComputedStyle(art).transform;
+     // Сдвиг наклона несёт карточка целиком (обложка с названием), масштаб —
+     // одна обложка. Читаем оба: сдвиг у карточки, масштаб у обложки.
+     const card=art.closest('.soft-episode');
+     const read=()=>getComputedStyle(card).transform+'|'+getComputedStyle(art).transform;
      const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
      // Ждём не по таймеру, а по факту: у карточки переход в 0.12 с, и замер
      // через пару кадров ловит её на полпути — сдвиг виден меньше настоящего.
@@ -1871,9 +1888,10 @@ try{
      const moved=await settled(rest);
      strip.style.removeProperty('--tx');strip.style.removeProperty('--ty');
      const back=await settled(moved);
-     const parts=(value)=>{const m=value.match(/matrix\(([^)]*)\)/);
-      if(!m)return null;const n=m[1].split(',').map(Number);
-      return {scale:n[0],x:n[4],y:n[5]};};
+     const parts=(value)=>{const [moved,scaled]=value.split('|');
+      const num=(v)=>{const m=(v||'').match(/matrix\(([^)]*)\)/);return m?m[1].split(',').map(Number):[1,0,0,1,0,0];};
+      const a=num(moved),b=num(scaled);
+      return {scale:b[0],x:a[4],y:a[5]};};
      return {rest:parts(rest),moved:parts(moved),back:parts(back)};});
     check(!!tilt&&!!tilt.rest&&!!tilt.moved,'карточки карусели нет — наклон проверять не на чем');
     if(tilt&&tilt.rest&&tilt.moved&&tilt.back){
@@ -1929,6 +1947,10 @@ try{
      await hold(65,3000);const held=read();
      await hold(75,900);const tipped=read();
      await hold(38,200);
+     // Наклон несёт карточку целиком, и следующие проверки меряют её место.
+     // Даём доводке встать и возвращаем сдвиг в ноль — иначе остаток наклона
+     // читался бы как «пустая полоса под подписями».
+     await sleep(1500);strip.style.setProperty('--tx','0px');strip.style.setProperty('--ty','0px');
      return {held,tipped};});
     if(steep)check(Math.abs(steep.tipped-steep.held)>2,
      'держишь телефон под 65° и наклоняешь до 75° — карточка не сдвинулась: '+steep.held.toFixed(1)+' → '+steep.tipped.toFixed(1)+

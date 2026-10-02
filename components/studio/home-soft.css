@@ -84,7 +84,7 @@
  margin:0!important;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
  color:#f4f6f5;text-shadow:0 2px 14px #0d0f1299}
 .tt-soft-home .soft-hero-foot{display:flex;flex-direction:column;align-items:center;gap:8px;
- width:100%;margin-inline:auto;margin-top:12px}
+ width:100%;margin-inline:auto;margin-top:6px}
 /* Кнопка по содержимому, а не во всю ширину: растянутая на весь кадр
    она выглядела заплаткой поверх снимка. */
 .tt-soft-home .soft-hero-foot .scene-action{align-self:stretch!important;width:100%!important;
@@ -104,8 +104,12 @@
 
 /* ── Карусель ───────────────────────────────────────────────────────── */
 .tt-soft-home .soft-catalog{min-width:0}
-.tt-soft-home .soft-catalog-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0}
-.tt-soft-home .soft-catalog-head h3{font-size:21px;font-weight:650;letter-spacing:-.025em;margin:0;color:#f0f5f4}
+.tt-soft-home .soft-catalog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;
+ /* Строка ровно по высоте заголовка. Была 34 точки: её раздувала кнопка «Все».
+    Владелец просил поднять карусель так, чтобы «Архив эфиров» помещался на
+    главном экране целиком. */
+ height:26px}
+.tt-soft-home .soft-catalog-head h3{font-size:21px;line-height:26px;font-weight:650;letter-spacing:-.025em;margin:0;color:#f0f5f4}
 .tt-soft-home .soft-all{display:inline-flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;border:0;background:none;
  color:#b7c5c5;font:inherit;font-size:14px;cursor:pointer;border-radius:999px}
 .tt-soft-home .soft-all>svg{width:17px;height:17px}
@@ -127,7 +131,7 @@
     называл это «жёсткой прямоугольной границей». Сверху мало, потому что тень
     уходит вниз; снизу — ровно столько, сколько нужно: тень лежит на подписи,
     а лишняя пустота уводила «Архив эфиров» за кромку экрана. */
- padding:6px 0 10px;
+ padding:6px 0 4px;
  /* Сверху шесть: тень карточки вверх тянется на пять, и это нижняя граница —
     меньше, и тень обрежется по прямой. Было десять плюс семь у заголовка;
     владелец попросил поднять карусель ближе к «Новое». */
@@ -145,8 +149,12 @@
    ячейку, и при отступе только справа карточка стояла бы на шесть точек левее
    середины. */
 .tt-soft-home .soft-reel>li{flex:0 0 37%;min-width:130px;max-width:182px;padding:0 6px;box-sizing:border-box}
-.tt-soft-home .soft-episode{display:flex;flex-direction:column;gap:7px;width:100%;padding:0;border:0;text-align:left;
- background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit}
+.tt-soft-home .soft-episode{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;padding:0;border:0;text-align:left;
+ background:none;color:#eff5f4;cursor:pointer;border-radius:var(--soft-card);font:inherit;
+ /* Наклон телефона сдвигает карточку целиком — обложку вместе с названием.
+    Пока сдвигалась одна обложка, на наклоне она до 14 точек наезжала на
+    подпись. Сдвиг — перенос: композитор делает его над готовым слоем. */
+ transform:translate3d(var(--tx,0px),var(--ty,0px),0);will-change:transform}
 /* Карточка стоит НАД фоном, а не лежит в нём: светлый бортик отделяет её от
    тёмной страницы, тень под ней даёт глубину. Раньше тёмная обложка на тёмном
    фоне сливалась, и границы карточки было не видно вовсе. */
@@ -169,8 +177,12 @@
     перерисовывая, — поэтому он не рябит даже на быстрой прокрутке. Переменные
     --tx и --ty приходят от полосы карусели и наследуются карточками: одна
     запись в кадр на всю ленту. */
- transform:translate3d(var(--tx,0px),var(--ty,0px),0) scale(var(--near,1));
- transform-origin:50% 60%;
+ transform:scale(var(--near,1));
+ /* Уменьшается от низа: низ обложки у всех карточек на одной линии, и
+    название стоит под каждой на одном и том же расстоянии. От 60 % высоты
+    боковые обложки поднимались, а названия оставались на месте — под
+    боковыми зазор выходил вдвое больше, чем под средней. */
+ transform-origin:50% 100%;
  will-change:transform;
  /* Тень не рисуется прямоугольником: три слоя с разным размытием и смещением.
     Плотный и узкий у самого низа — это касание; средний — расстояние до
@@ -184,11 +196,13 @@
     больше двадцати четырёх при отступе тридцать четыре. Холодный ореол тоже
     смещён вниз: пока он стоял по центру, он один и упирался в верхнюю кромку
     полосы, а держать ради него воздух над карусели владелец не просил. */
+ /* Вниз тень тянется не дальше десяти точек — ровно до названия. Прежние
+    слои уходили на двадцать четыре и ложились на подпись: владелец просил,
+    чтобы названия не попадали в тени и были чёткими. */
  box-shadow:
-  0 2px 6px rgba(0,0,0,.65),
-  0 8px 16px rgba(0,0,0,.5),
-  0 14px 20px rgba(0,0,0,.34),
-  0 6px 22px rgba(111,231,222,.16)}
+  0 2px 4px rgba(0,0,0,.65),
+  0 4px 12px rgba(0,0,0,.5),
+  0 3px 14px rgba(111,231,222,.16)}
 
 /* Бортик поверх обложки: снизу он темнее, сверху светлее — так читается
    толщина карточки, а не просто нарисованная рамка. */
@@ -221,7 +235,9 @@
 /* Название — по середине карточки: короткое стоит в центре, длинное
    переносится на две строки, и каждая строка тоже по центру — симметрично
    обложке. Так просил владелец. */
-.tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;text-align:center;width:100%;display:-webkit-box;-webkit-line-clamp:2;
+/* Не шире самой маленькой обложки (масштаб крайней — 0,84): иначе на боковой
+   карточке название выступало за края уменьшенной обложки. */
+.tt-soft-home .soft-episode strong{font-size:13px;line-height:1.3;text-align:center;width:84%;display:-webkit-box;-webkit-line-clamp:2;
  -webkit-box-orient:vertical;overflow:hidden;min-height:32px}
 
 /* ── Архив эфиров: строка во всю ширину, вход в раздел ───────────────── */
@@ -296,7 +312,7 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
    добавляет к ним один подъём. */
 @media(hover:hover) and (pointer:fine){
  .tt-soft-home .soft-episode:hover .soft-art{
-  transform:translate3d(var(--tx,0px),calc(var(--ty,0px) - 3px),0) scale(var(--near,1));
+  transform:translateY(-3px) scale(var(--near,1));
   box-shadow:0 15px 18px -10px #000c,0 4px 6px -2px #0008}}
 
 /* Нажатие. Поворота и масштаба здесь больше нет, и это не придирка к
@@ -309,8 +325,8 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
    Отклик на нажатие остался, но делается прозрачностью: её композитор меняет
    над готовым слоем, ничего не перерисовывая. */
 .tt-soft-home .soft-episode:active .soft-art{
- transform:translate3d(var(--tx,0px),calc(var(--ty,0px) + 1px),0) scale(var(--near,1))}
+ transform:translateY(1px) scale(var(--near,1))}
 .tt-soft-home .soft-episode:active{opacity:calc(var(--lit,1) * .88)}
-@media(prefers-reduced-motion:reduce){.tt-soft-home .soft-art{transition:none!important;transform:none!important}}
+@media(prefers-reduced-motion:reduce){.tt-soft-home .soft-art,.tt-soft-home .soft-episode{transition:none!important;transform:none!important}}
 .tt-soft-home .scene:has(.scene-mark) .scene-title{position:static!important;width:auto!important;height:auto!important;margin:0;
  clip-path:none;white-space:normal;overflow:visible}
