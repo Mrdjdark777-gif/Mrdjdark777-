@@ -25,6 +25,7 @@ import {HeartBeam} from '@/components/ui/heart-beam';
 import {LiquidMetalButton} from '@/components/ui/liquid-metal-button';
 import {BeamsBackground} from '@/components/ui/beams-background';
 import {KineticGrid} from '@/components/ui/kinetic-grid';
+import {TiltCheck} from '@/components/studio/tilt-check';
 import {useWideScreen} from '@/hooks/use-wide-screen';
 import {sendDesktopCommand} from '@/lib/desktop-shell';
 import {useDesktopApp} from '@/hooks/use-desktop-app';
@@ -401,6 +402,9 @@ export default function Studio(){
   <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>
    <h2>{t('settings.ownerTitle')}</h2><p>{t('settings.ownerText')}</p>
    <a className="secondary-button" href="/login">{t('common.login')}</a></section>}
+ {/* Проверка наклона — только в приложении: датчик читает оболочка, и
+     только по ней видно, на каком звене рвётся наклон карточек. */}
+ {view==='settings'&&!author&&hasNativeClient()&&<TiltCheck/>}
  {!author&&<NotificationSettings author={author}/>}
  {author?<>
  {view==='settings'&&<section className="settings-panel wide-panel"><div className="section-icon"><ShieldCheck size={22}/></div><h2>{t('settings.legalTitle')}</h2><p>{t('settings.legalText')}</p>

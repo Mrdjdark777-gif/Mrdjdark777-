@@ -1905,7 +1905,29 @@ try{
     if(real&&!real.skip){
      check(real.moved!==real.rest&&parseFloat(real.moved)!==0,
       'событие наклона не дошло до карточек: подписка не прицепилась к карусели. Было «'+
-      real.rest+'», стало «'+real.moved+'»');}}}
+      real.rest+'», стало «'+real.moved+'»');}}
+
+   // Держишь телефон круче привычного — наклон всё равно двигает карточку.
+   //
+   // Прежде «ровно» было зашито числом, 38°. Держишь под 65° — сдвиг сразу
+   // упирался в предел, и наклон дальше не отвечал: карточка стояла у края.
+   // Это одна из двух причин, по которым владелец не видел движения вовсе.
+   // Теперь нейтраль за пару секунд подтягивается к руке. Проверка: три
+   // секунды держим под 65°, потом наклоняем до 75° — сдвиг обязан смениться.
+   {const steep=await page.evaluate(async()=>{
+     const strip=document.querySelector('.soft-carousel');
+     if(!strip||typeof DeviceOrientationEvent!=='function')return null;
+     const read=()=>parseFloat(strip.style.getPropertyValue('--ty')||'0');
+     const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+     const hold=async(beta,ms)=>{for(let t=0;t<ms;t+=60){window.dispatchEvent(new DeviceOrientationEvent('deviceorientation',{beta,gamma:0}));await sleep(60);}};
+     await hold(65,3000);const held=read();
+     await hold(75,900);const tipped=read();
+     await hold(38,200);
+     return {held,tipped};});
+    if(steep)check(Math.abs(steep.tipped-steep.held)>2,
+     'держишь телефон под 65° и наклоняешь до 75° — карточка не сдвинулась: '+steep.held.toFixed(1)+' → '+steep.tipped.toFixed(1)+
+     ' точек. Нейтраль не идёт за рукой, и наклон упирается в предел');}
+  }
 
   // Тень карточки обязана помещаться в полосу карусели.
   //

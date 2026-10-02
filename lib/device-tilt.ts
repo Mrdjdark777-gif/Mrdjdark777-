@@ -32,9 +32,9 @@ const clamp = (value: number, limit: number) =>
  * а привычное положение телефона в руке: человек держит его не плашмя, а
  * наклонённым к себе. Без этой поправки карточка в покое стоит завёрнутой.
  */
-export function aim(beta: number | null, gamma: number | null, rest = 38): Tilt {
+export function aim(beta: number | null, gamma: number | null, rest = 38, restSide = 0): Tilt {
  const forward = Number.isFinite(beta as number) ? (beta as number) - rest : 0;
- const side = Number.isFinite(gamma as number) ? (gamma as number) : 0;
+ const side = Number.isFinite(gamma as number) ? (gamma as number) - restSide : 0;
  return {
   // Наклон влево-вправо крутит карточку вокруг вертикальной оси: телефон
   // повернули влево — левый край карточки уходит от нас.
@@ -57,7 +57,36 @@ export function ease(now: Tilt, goal: Tilt, rate = EASE): Tilt {
  * не как качели: на телефоне сдвиг в шесть точек заметен краем глаза и не
  * мешает читать названия.
  */
-export const REACH = 6;
+/**
+ * Предельный сдвиг карточки, в точках.
+ *
+ * Было 6. На телефоне владельца движения не было видно вовсе, и это одна из
+ * двух причин: шесть точек на карточке шириной 132 глаз не ловит. 14 — уже
+ * заметное «плавание», но ещё не качка.
+ */
+export const REACH = 14;
+
+/**
+ * Нейтраль следует за рукой.
+ *
+ * Прежде «ровное» положение было зашито числом — 38° наклона. Держишь
+ * телефон круче, градусов под 65, и сдвиг по вертикали сразу упирается в
+ * предел: карточка стоит у края и на наклон больше не отвечает. Это вторая
+ * причина «движения нет вообще».
+ *
+ * Теперь нейтраль — медленное среднее того, как телефон держат на самом
+ * деле: за несколько секунд она подтягивается к руке, а быстрый наклон
+ * относительно неё карточку двигает. Так устроен параллакс на домашнем экране
+ * телефонов.
+ *
+ * `rate` — доля пути за одно значение датчика. При шестнадцати значениях в
+ * секунду 0.03 — это около двух секунд на то, чтобы нейтраль догнала руку.
+ */
+export function follow(rest: number | null, value: number | null, rate = 0.03): number | null {
+ if (!Number.isFinite(value as number)) return rest;
+ if (rest === null || !Number.isFinite(rest)) return value as number;
+ return rest + ((value as number) - rest) * rate;
+}
 
 /**
  * Наклон телефона в сдвиг карточки.

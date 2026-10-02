@@ -13,7 +13,7 @@ import path from 'node:path';
 const root=process.cwd();
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/device-tilt.ts')],
  bundle:true,write:false,format:'esm',platform:'node'});
-const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,SPAN,REACH}=await import(
+const {aim,follow,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,SPAN,REACH}=await import(
  'data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 
 // 1. Телефон в покое — карточка стоит прямо.
@@ -124,7 +124,9 @@ const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,
  const away=shiftOf({x:LIMIT,y:0}),near=shiftOf({x:-LIMIT,y:0});
  assert.ok(away.y<0&&near.y>0,'наклон вперёд и назад обязан двигать карточку в разные стороны');
  // Движение именно небольшое: владелец просил «небольшое движение», а не качели.
- assert.ok(REACH>0&&REACH<=10,'сдвиг обязан оставаться незаметным глазу как движение, а не как качели: '+REACH);
+ // Нижняя граница — тоже требование: при шести точках на телефоне владельца
+ // движения не было видно вовсе. Верхняя — чтобы это было плавание, а не качели.
+ assert.ok(REACH>=10&&REACH<=16,'сдвиг карточки '+REACH+' точек: меньше десяти глаз не ловит, больше шестнадцати — уже качка');
  for(const t of [{x:LIMIT*3,y:LIMIT*3},{x:-LIMIT*5,y:LIMIT*4}]){
   const far=shiftOf(t);
   assert.ok(Math.abs(far.x)<=REACH+1e-9&&Math.abs(far.y)<=REACH+1e-9,
@@ -152,4 +154,20 @@ const {aim,ease,shadowOf,turnOf,nearOf,scaleOf,litOf,stepOf,shiftOf,STEPS,LIMIT,
  assert.equal(stepOf(0.42,0),0.42,'без ступеней значение обязано проходить как есть');
 }
 
+// Нейтраль идёт за рукой. Держишь телефон круче привычного — через пару
+// секунд это и есть «ровно», и наклон отсчитывается от него. С зашитыми 38°
+// наклон вперёд упирался в предел и дальше не отвечал вовсе: держишь под 65°
+// и наклоняешь до 75° — карточка стоит, как стояла.
+{
+ let rest=38;
+ for(let i=0;i<48;i++)rest=follow(rest,65);                 // три секунды при шестнадцати значениях
+ assert.ok(Math.abs(rest-65)<15,'за три секунды нейтраль не дошла до руки: '+rest.toFixed(1));
+ const held=aim(65,0,rest),tipped=aim(75,0,rest);
+ assert.ok(Math.abs(tipped.x-held.x)>LIMIT*0.2,
+  'держишь телефон под 65° и наклоняешь до 75° — карточка обязана сдвинуться, а сдвиг '+(tipped.x-held.x).toFixed(2));
+ const fixed=aim(65,0,38),fixedTipped=aim(75,0,38);
+ assert.equal(fixed.x,fixedTipped.x,'контроль: с зашитыми 38° этот наклон упирается в предел — проверка смотрит туда');
+ assert.equal(follow(null,50),50,'без прежней нейтрали берётся первое значение');
+ assert.equal(follow(40,null),40,'пустое значение нейтраль не двигает');
+}
 console.log('PASS: наклон телефона переводится в поворот карточки с верными знаками, упирается в предел, сглаживается к цели и уводит тень в противоположную сторону; карточки в карусели разворачиваются от середины к краям зеркально; ближняя карточка крупнее и светлее дальней, разница видна глазом, а близость огрубляется до ступеней, чтобы слой не перерисовывался каждый кадр');

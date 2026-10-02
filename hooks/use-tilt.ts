@@ -1,6 +1,6 @@
 'use client';
 import {useEffect} from 'react';
-import {aim,ease,shiftOf,type Tilt} from '@/lib/device-tilt';
+import {aim,ease,follow,shiftOf,type Tilt} from '@/lib/device-tilt';
 import {hasNativeClient,nativeCall,onNative} from '@/lib/native-client';
 
 /**
@@ -49,7 +49,17 @@ export function useTilt(target: {current: HTMLElement | null}, enabled = true) {
    if (Math.abs(goal.x - now.x) > 0.01 || Math.abs(goal.y - now.y) > 0.01) wake();
   };
   const wake = () => {if (alive && !frame) frame = requestAnimationFrame(step);};
-  const take = (beta: number | null, gamma: number | null) => {goal = aim(beta, gamma); wake();};
+  // Нейтраль стартует с привычного положения (38° от стола, без крена) и дальше
+  // медленно идёт за рукой — см. follow в lib/device-tilt.ts. Наклон считается
+  // от неё, а не от зашитого числа: держишь телефон круче — карточка не
+  // упирается в край навсегда.
+  let restForward: number | null = 38, restSide: number | null = 0;
+  const take = (beta: number | null, gamma: number | null) => {
+   goal = aim(beta, gamma, restForward ?? 38, restSide ?? 0);
+   restForward = follow(restForward, beta);
+   restSide = follow(restSide, gamma);
+   wake();
+  };
 
   const handler = (event: DeviceOrientationEvent) => take(event.beta, event.gamma);
   const browser = () => {
