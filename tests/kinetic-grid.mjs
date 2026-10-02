@@ -112,10 +112,15 @@ try{
  assert.notEqual(afterSwipe,beforeSwipe,'ведение пальцем при прокрутке не поднимает волну');
  await page.waitForTimeout(3200);
 
- // На главной сетки нет: там во весь кадр обложка, под ней её не видно.
+ // На главной сетка есть, как на всех экранах слушателя, и её видно: у блока
+ // главной нет своей заливки, которая легла бы поверх. Владелец попросил
+ // вернуть её туда — без неё главная выглядела чужой остальному приложению.
  await page.goto(base+'/?mode=listen&view=home');
  await page.waitForTimeout(1800);
- assert.equal(await page.locator('canvas.kinetic-grid').count(),0,'на главной сетка лишняя: под обложкой её не видно');
+ assert.equal(await page.locator('canvas.kinetic-grid').count(),1,'на главной нет фона-сетки');
+ const cover=await page.evaluate(()=>{const n=document.querySelector('.immersion.tt-soft-home');
+  return n?getComputedStyle(n).backgroundColor:'нет главной';});
+ assert.match(cover,/^(transparent|rgba\(0, 0, 0, 0\))$/,'главная закрашена своим фоном ('+cover+') — сетку под ней не видно');
 
- console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия и не рисуется на главной');
+ console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия и видна на главной');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

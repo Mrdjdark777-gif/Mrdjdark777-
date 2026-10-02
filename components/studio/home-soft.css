@@ -7,12 +7,14 @@
 .immersion.tt-soft-home{flex:0 0 auto!important;--soft-radius:32px;--soft-card:26px;--soft-line:#ffffff14;--soft-surface:#141b1f;
  display:flex!important;flex-direction:column!important;gap:12px!important;width:100%;min-width:0;
  padding:6px 16px 16px!important;
- /* Фон главной — тот же, что у страницы.
+ /* Своего фона у главной нет: под ней видна фон-сетка, как на остальных
+    экранах. Шва снизу, о котором ниже, так тоже не бывает — нечему обрываться.
+    Прежде фон главной был тот же, что у страницы.
     Был свой, #0d0f12, темнее страничного #121619. Блок главной кончается под
     плашкой поддержки, и там цвет обрывался ровной линией: выше темнее, ниже
     обычный фон. Владелец обвёл эту границу красным. Разницы в четыре единицы
     яркости хватает, чтобы шов был виден, а пользы от неё нет никакой. */
- background:var(--background);box-sizing:border-box;height:auto!important;overflow:visible!important}
+ background:transparent;box-sizing:border-box;height:auto!important;overflow:visible!important}
 
 /* ── Кадр-постер ───────────────────────────────────────────────────────
    Кадр идёт от края до края экрана — это решение владельца, и оно не раз
@@ -331,3 +333,11 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
 .tt-soft-home .scene:has(.scene-mark) .scene-title{position:static!important;width:auto!important;height:auto!important;margin:0;
  clip-path:none;white-space:normal;overflow:visible}
 .tt-soft-home .scene.is-tappable{cursor:pointer}
+/* Постер чуть ниже, ближе к кнопке под ним; кнопка и всё, что ниже, стоят на
+   прежних местах. Владелец: «обложку опусти немного ниже, чтоб она была ближе
+   к кнопке, кнопку оставь на том же месте». Постер сдвигается на 10 точек, и
+   ровно на столько же уменьшается зазор до кнопки: 18 → 8. Только телефон
+   стоя: боком и на широком экране кадр стоит по-другому. */
+@media (max-width:767px) and (orientation:portrait){
+ .tt-soft-home .scene{margin-top:10px!important}
+ .tt-soft-home .soft-hero-foot{margin-top:-4px}}

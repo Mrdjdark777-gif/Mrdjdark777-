@@ -667,20 +667,42 @@ try{
    if(now===was)problems.push('карточка нового выпуска предлагает тот же выпуск после прослушивания: «'+now+'»');
   }else problems.push('каталог: карточки нового выпуска нет вовсе');
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
- // Обложка в списке у слушателя — наш стандарт 4:5 и целиком, без подрезки.
- // Место под неё подобрано так, чтобы при этой пропорции её высота совпадала
- // с высотой текста: иначе под обложкой остаётся дыра.
- {await page.goto(base+'/?mode=listen&view=videos');await settle(page);await page.waitForTimeout(250);
-  const cover=await page.evaluate(()=>{const card=document.querySelector('.post-card'),c=document.querySelector('.post-cover');
-   if(!card||!c)return null;const a=card.getBoundingClientRect(),b=c.getBoundingClientRect();
-   const img=c.querySelector('img');
-   return{зазор:Math.round(a.height-b.height),пропорция:b.width/b.height,
-    режим:img?getComputedStyle(img).objectFit:'нет картинки'};});
-  if(!cover)problems.push('видео у слушателя: карточки нет');
+ // Обложка в списке у слушателя заполняет плашку целиком, от верха карточки
+ // до низа, в каждом разделе. Владелец: «во вкладке Слушать она идеально
+ // становится в размеры плашки, а во вкладках видео и истории они там стоят
+ // криво». Там тексты длиннее, карточка выше обложки 4:5, и обложка висела
+ // посередине с пустыми полосами. Меряем каждую карточку: верх и низ
+ // картинки — у краёв карточки, картинка заполняет рамку, короткая карточка
+ // не ниже 4:5.
+ for(const [view,name] of [['podcasts','подкасты'],['videos','видео'],['stories','истории']]){
+  await page.goto(base+'/?mode=listen&view='+view);await settle(page);await page.waitForTimeout(250);
+  const covers=await page.evaluate(()=>[...document.querySelectorAll('.post-card')].map(card=>{
+   const c=card.querySelector('.post-cover'),img=c?.querySelector('img.post-cover-image');if(!c||!img)return null;
+   const a=card.getBoundingClientRect(),b=c.getBoundingClientRect(),i=img.getBoundingClientRect(),st=getComputedStyle(card);
+   const top=a.top+parseFloat(st.borderTopWidth),bottom=a.bottom-parseFloat(st.borderBottomWidth);
+   return {title:card.querySelector('.post-title')?.textContent?.trim().slice(0,30)||'',
+    сверху:Math.round(Math.max(b.top,i.top)-top),снизу:Math.round(bottom-Math.min(b.bottom,i.bottom)),
+    картинка:Math.round(Math.abs(i.height-b.height)+Math.abs(i.width-b.width)),
+    режим:getComputedStyle(img).objectFit,высота:b.height/b.width};}).filter(Boolean));
+  if(!covers.length){problems.push(name+' у слушателя: ни одной карточки с обложкой — проверять нечего');continue;}
+  for(const c of covers){
+   if(c.сверху>1||c.снизу>1)problems.push(name+' у слушателя: обложка «'+c.title+'» не на всю плашку — пусто сверху '+c.сверху+'px, снизу '+c.снизу+'px');
+   if(c.картинка>1)problems.push(name+' у слушателя: картинка «'+c.title+'» меньше своей рамки на '+c.картинка+'px');
+   if(c.режим!=='cover')problems.push(name+' у слушателя: обложка «'+c.title+'» вписана с полями (object-fit: '+c.режим+'), а не заполняет плашку');
+   if(c.высота<1.24)problems.push(name+' у слушателя: плашка обложки «'+c.title+'» ниже 4:5 (высота/ширина '+c.высота.toFixed(2)+')');
+  }}
+ // Постер на главной опущен ближе к кнопке, кнопка — на прежнем месте.
+ // Владелец: «обложку опусти немного ниже, чтоб она была ближе к кнопке
+ // читать, кнопку оставь на том же месте». Место кнопки держит замок
+ // раскладки; здесь — зазоры над постером и под ним.
+ {await page.goto(base+'/?mode=listen');await settle(page);
+  const gaps=await page.evaluate(()=>{const h=document.querySelector('.top-header')?.getBoundingClientRect(),
+   p=document.querySelector('.scene')?.getBoundingClientRect(),a=document.querySelector('.soft-hero-foot .scene-action')?.getBoundingClientRect();
+   return h&&p&&a?{над:Math.round(p.top-h.bottom),под:Math.round(a.top-p.bottom)}:null;});
+  if(!gaps)problems.push('главная: нет шапки, постера или кнопки под ним');
   else{
-   if(Math.abs(cover.пропорция-0.8)>0.02)problems.push('видео у слушателя: рамка обложки не 4:5, а '+cover.пропорция.toFixed(2));
-   if(cover.режим!=='contain')problems.push('видео у слушателя: обложка подрезается (object-fit: '+cover.режим+')');
-   if(cover.зазор>14)problems.push('видео у слушателя: под обложкой пусто на '+cover.зазор+'px');
+   if(gaps.над<8||gaps.над>12)problems.push('главная: постер не опущен — над ним '+gaps.над+'px вместо 10');
+   if(gaps.под<6||gaps.под>10)problems.push('главная: постер далеко от кнопки — между ними '+gaps.под+'px вместо 8');
   }}
 
  // «Поделиться» отдаёт то, над чем стоит кнопка.
