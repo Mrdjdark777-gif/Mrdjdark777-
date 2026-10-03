@@ -463,13 +463,11 @@ export default function Studio(){
  {view==='home'&&!author&&<div className="soft-tail" aria-hidden="true"/>}
  </main>
  {wide&&<div className="tt-beams" aria-hidden="true"><BeamsBackground><></></BeamsBackground></div>}
- {/* Фон-сетка — у слушателя на всех экранах, и на главной тоже. С главной
-     её убирали, когда обложка лежала там во весь экран и сетки под ней не
-     было видно. Теперь кадр — полоса 15:7, ниже карусель и плашки, и без
-     сетки главная выглядела чужой остальному приложению: владелец попросил
-     вернуть. На главной она слегка размыта — тоже по его просьбе. В студии
-     фон не нужен вовсе: там работают. */}
- {!author&&data&&!data.needsSetup&&<KineticGrid soft={view==='home'}/>}
+ {/* Фон-сетка — у слушателя и не на главной. На главную её возвращали
+     (размытой, потом затемнённой), и владелец решил: «верни тот фон, что был
+     до этого, без этой анимации, просто обычный статичный фон». В студии фон
+     не нужен вовсе: там работают. */}
+ {!author&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>

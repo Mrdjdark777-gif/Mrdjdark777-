@@ -112,34 +112,16 @@ try{
  assert.notEqual(afterSwipe,beforeSwipe,'ведение пальцем при прокрутке не поднимает волну');
  await page.waitForTimeout(3200);
 
- // На главной сетка есть, как на всех экранах слушателя, и её видно: у блока
- // главной нет своей заливки, которая легла бы поверх. Владелец попросил
- // вернуть её туда — без неё главная выглядела чужой остальному приложению.
+ // На главной сетки нет: там обычный статичный фон страницы. Сетку туда
+ // возвращали — размытой, потом затемнённой, — и владелец решил: «верни тот
+ // фон, что был до этого, без этой анимации, просто обычный статичный фон».
  await page.goto(base+'/?mode=listen&view=home');
  await page.waitForTimeout(1800);
- assert.equal(await page.locator('canvas.kinetic-grid').count(),1,'на главной нет фона-сетки');
- const cover=await page.evaluate(()=>{const n=document.querySelector('.immersion.tt-soft-home');
-  return n?getComputedStyle(n).backgroundColor:'нет главной';});
- assert.match(cover,/^(transparent|rgba\(0, 0, 0, 0\))$/,'главная закрашена своим фоном ('+cover+') — сетку под ней не видно');
- // На главной сетка слегка размыта — так попросил владелец, — а на остальных
- // экранах остаётся чёткой: размывать велено только главную.
- const blurOf=()=>page.evaluate(()=>{const f=getComputedStyle(document.querySelector('canvas.kinetic-grid')).filter;
-  const m=/blur\(([\d.]+)px\)/.exec(f);return m?Number(m[1]):0;});
- const homeBlur=await blurOf();
- assert.ok(homeBlur>=1&&homeBlur<=3,'сетка на главной не размыта слегка: размытие '+homeBlur+'px (нужно 1–3)');
- // И затемнена: «фон обязательно затемнить, чтоб оттенить всё остальное».
- // Считаем то, что видит глаз: заливку холста с учётом яркости фильтра против
- // фона страницы на остальных экранах.
- const dark=await page.evaluate(()=>{const c=document.querySelector('canvas.kinetic-grid'),st=getComputedStyle(c);
-  const rgb=s=>{const m=/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/.exec(s);return m&&(m[4]===undefined||+m[4]>0)?[+m[1],+m[2],+m[3]]:null;};
-  const light=v=>v?v[0]*.2126+v[1]*.7152+v[2]*.0722:null;
-  const k=/brightness\(([\d.]+)\)/.exec(st.filter);
-  const own=light(rgb(st.backgroundColor));
-  return {home:own===null?null:own*(k?+k[1]:1),page:light(rgb(getComputedStyle(document.body).backgroundColor))};});
- assert.ok(dark.home!==null,'у сетки на главной нет своей тёмной заливки — фон главной не затемнён');
- assert.ok(dark.home<=dark.page*0.7,'фон главной почти не темнее остальных экранов: '+dark.home.toFixed(1)+' против '+dark.page.toFixed(1));
- await page.goto(base+'/?mode=listen&view=podcasts');await page.waitForTimeout(1500);
- assert.equal(await blurOf(),0,'сетка размыта и вне главной — владелец просил только главную');
+ assert.equal(await page.locator('canvas.kinetic-grid').count(),0,'на главной снова анимированная сетка — владелец просил обычный статичный фон');
+ const home=await page.evaluate(()=>{const n=document.querySelector('.immersion.tt-soft-home');
+  return n?{own:getComputedStyle(n).backgroundColor,page:getComputedStyle(document.body).backgroundColor}:null;});
+ assert.ok(home,'главной нет на экране');
+ assert.equal(home.own,home.page,'фон главной не совпадает с обычным фоном страницы: '+home.own+' против '+home.page);
 
- console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия, видна на главной и там слегка размыта и затемнена, а на других экранах чёткая');
+ console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия, а на главной её нет — там обычный статичный фон страницы');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}
