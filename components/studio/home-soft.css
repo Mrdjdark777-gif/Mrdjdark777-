@@ -341,3 +341,15 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
 @media (max-width:767px) and (orientation:portrait){
  .tt-soft-home .scene{margin-top:10px!important}
  .tt-soft-home .soft-hero-foot{margin-top:-4px}}
+/* Верх постера растворяется в фоне, а не обрывается ровной линией.
+   Пока под главной был сплошной фон, тёмный верх постера (затемнение под
+   подпись) сливался с ним сам. Вернулась сетка — и прямой край картинки на
+   ней стал резать глаз: владелец сказал «слишком резко идёт переход, когда
+   тач-фона не было, оно красиво сливалось». Маска делает верхнюю четверть
+   постера прозрачной к краю — снимок и его затемнение уходят в фон, какой бы
+   он ни был. Подпись и кнопка «…» не маскируются: они должны читаться. Своя
+   заливка кадра снята, иначе на месте прозрачного верха осталась бы полоса;
+   у пустого кадра (без обложки) она остаётся. */
+.tt-soft-home .scene:not(.scene-fallback){background:transparent}
+.tt-soft-home .scene-photo,.tt-soft-home .scene-shade{
+ -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%);mask-image:linear-gradient(180deg,transparent 0,#000 26%)}

@@ -127,8 +127,19 @@ try{
   const m=/blur\(([\d.]+)px\)/.exec(f);return m?Number(m[1]):0;});
  const homeBlur=await blurOf();
  assert.ok(homeBlur>=1&&homeBlur<=3,'сетка на главной не размыта слегка: размытие '+homeBlur+'px (нужно 1–3)');
+ // И затемнена: «фон обязательно затемнить, чтоб оттенить всё остальное».
+ // Считаем то, что видит глаз: заливку холста с учётом яркости фильтра против
+ // фона страницы на остальных экранах.
+ const dark=await page.evaluate(()=>{const c=document.querySelector('canvas.kinetic-grid'),st=getComputedStyle(c);
+  const rgb=s=>{const m=/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/.exec(s);return m&&(m[4]===undefined||+m[4]>0)?[+m[1],+m[2],+m[3]]:null;};
+  const light=v=>v?v[0]*.2126+v[1]*.7152+v[2]*.0722:null;
+  const k=/brightness\(([\d.]+)\)/.exec(st.filter);
+  const own=light(rgb(st.backgroundColor));
+  return {home:own===null?null:own*(k?+k[1]:1),page:light(rgb(getComputedStyle(document.body).backgroundColor))};});
+ assert.ok(dark.home!==null,'у сетки на главной нет своей тёмной заливки — фон главной не затемнён');
+ assert.ok(dark.home<=dark.page*0.7,'фон главной почти не темнее остальных экранов: '+dark.home.toFixed(1)+' против '+dark.page.toFixed(1));
  await page.goto(base+'/?mode=listen&view=podcasts');await page.waitForTimeout(1500);
  assert.equal(await blurOf(),0,'сетка размыта и вне главной — владелец просил только главную');
 
- console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия, видна на главной и там слегка размыта, а на других экранах чёткая');
+ console.log('PASS: фон-сетка неподвижна в покое, отвечает волной на касание пустого места, отвечает и на ведение пальцем, молчит на кнопках, не перехватывает нажатия, видна на главной и там слегка размыта и затемнена, а на других экранах чёткая');
 }finally{if(browser)await browser.close();server.kill();await rm(dir,{recursive:true,force:true});}

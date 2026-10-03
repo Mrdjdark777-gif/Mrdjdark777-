@@ -2499,6 +2499,21 @@ try{
     return {src:img?.getAttribute('src')||'',kind:document.querySelector('.scene .soft-eyebrow')?.textContent||''};});
    check(/[?&]id=hero(&|$)/.test(seen.src)&&/[?&]v=/.test(seen.src),'в кадре главной не постер, а '+(seen.src||'пусто'));
    check(/истори/i.test(seen.kind),'подпись над постером не говорит, что это история: «'+seen.kind+'»');
+   // Верх постера уходит в фон плавно, без ровной линии. Владелец: «там, где
+   // обложка наверху, слишком резко идёт переход». Меряем пикселями полосу от
+   // шапки до трети постера по середине экрана: соседние строки не должны
+   // отличаться скачком — край картинки как раз и есть такой скачок. Здесь,
+   // а не раньше: в кадре настоящий постер, а не пустой кадр с названием.
+   {await lp.waitForFunction(()=>{const i=document.querySelector('.scene-photo');return i&&i.complete&&i.naturalWidth>0;},null,{timeout:8000}).catch(()=>{});
+    const box=await lp.locator('.scene').boundingBox();
+    const png=await lp.screenshot({clip:{x:Math.round(box.x+box.width*.2),y:Math.max(0,Math.round(box.y-8)),width:Math.round(box.width*.6),height:Math.round(8+box.height*.35)}});
+    const {data,info}=await sharp(png).greyscale().raw().toBuffer({resolveWithObject:true});
+    const rows=[];for(let y=0;y<info.height;y++){let sum=0;for(let x=0;x<info.width;x++)sum+=data[y*info.width+x];rows.push(sum/info.width);}
+    let jump=0,at=0;for(let y=1;y<rows.length;y++){const d=Math.abs(rows[y]-rows[y-1]);if(d>jump){jump=d;at=y;}}
+    const lift=rows[rows.length-1]-rows[0];
+    if(lift<10)problems.push('главная: проверка края постера слепая — постер не светлее фона ('+lift.toFixed(1)+'), перехода не видно вовсе');
+    if(jump>6){await writeFile(path.join(root,'outputs/ui/poster-edge.png'),png);
+     problems.push('главная: верх постера обрывается ровной линией — скачок яркости '+jump.toFixed(1)+' на строке '+at+' от шапки (снимок outputs/ui/poster-edge.png)');}}
    // Нажимаем на сам постер, а не на кнопку под ним: владелец спросил прямо,
    // можно ли будет на него нажать.
    const box=await lp.locator('.scene').boundingBox();
