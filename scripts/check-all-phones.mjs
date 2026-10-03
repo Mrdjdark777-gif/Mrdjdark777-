@@ -71,8 +71,12 @@ try{
  ids.vid2=(await post({kind:'video',title:long,description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-forest.jpg')})).id;
  ids.story=(await post({kind:'story',title:'Там, где заканчивается дорога',description:'Рассказ.',body:Array.from({length:30},(_,i)=>'Абзац '+(i+1)+'. Тишина у горного озера. Дорога осталась позади.').join('\n\n'),published:true,coverKey:await cover('tile-mountains.jpg')})).id;
  ids.story2=(await post({kind:'story',title:long,description:'Рассказ.',body:'Море не кончалось.\n\n'.repeat(40),published:true})).id;
+ // Ещё выпуски, чтобы карусель на широком планшете шла по кругу: при шести
+ // карточках Embla круг выключает, и ошибка круга (карточки наезжали друг на
+ // друга) на снимке не появляется вовсе — проверка была бы слепой.
+ for(let n=1;n<=6;n++)await post({kind:'podcast',title:'Выпуск '+n,description:'Ещё один.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover(n%2?'tile-forest.jpg':'tile-mountains.jpg')});
  ids.hero=(await post({kind:'video',title:'Постер',description:'Кадр.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('hero-lake.jpg')})).id;
- corpus.push('Тишина','Короткое.',long,'Описание выпуска.','Голос северного ветра','Без обложки.','Наедине с горами','Видео.',
+ corpus.push('Выпуск 1','Выпуск 2','Выпуск 3','Выпуск 4','Выпуск 5','Выпуск 6','Выпуск','Ещё один.','Тишина','Короткое.',long,'Описание выпуска.','Голос северного ветра','Без обложки.','Наедине с горами','Видео.',
   'Там, где заканчивается дорога','Рассказ.','Абзац Тишина у горного озера. Дорога осталась позади.','Море не кончалось.','Постер','Кадр.');
  // Счётчики: так, как их пишет сервер, — сумма в settings под usage:<id>.
  {const Database=(await import('better-sqlite3')).default;const db=new Database(env.DATABASE_PATH);
@@ -112,7 +116,7 @@ try{
      found.push('за краем экрана ('+Math.round(b.left)+'…'+Math.round(b.right)+' при ширине '+W+'): '+label(el));
     // Обрезанный по живому текст: внутри шире коробки, обрезка без многоточия и без переноса строк.
     if(el.children.length===0&&el.textContent.trim().length>1&&el.scrollWidth>el.clientWidth+1&&/(hidden|clip)/.test(s.overflowX)
-       &&s.textOverflow!=='ellipsis'&&s.webkitLineClamp==='none'&&!el.closest('.soft-carousel .soft-kind'))
+       &&s.textOverflow!=='ellipsis'&&s.webkitLineClamp==='none'&&!el.closest('.soft-carousel .soft-kind')&&!el.matches('.sr-only'))
      found.push('текст обрезан без многоточия: '+label(el)+' ('+el.scrollWidth+' в '+el.clientWidth+')');
    }
    // Текст мимо словаря: в итальянском и румынском — никакой кириллицы,
@@ -146,10 +150,58 @@ try{
   }
  };
 
+ // Планшет: приложение, а не растянутый телефон и не сайт.
+ //  — нижняя панель на месте (раскладка сайта с верхними вкладками — только ПК);
+ //  — ни один блок раздела не шире колонки 1160 точек;
+ //  — каталог колонками, если карточек больше одной;
+ //  — постер на главной не марка на пустом поле, а крупный;
+ //  — карточки карусели не наезжают друг на друга;
+ //  — обложка в плеере карточкой, а не фотографией во весь экран.
+ const inspectTablet=async(page,where,w,h)=>{
+  const r=await page.evaluate(()=>{
+   const box=n=>{const b=n.getBoundingClientRect();return {l:b.left,r:b.right,t:b.top,b:b.bottom,w:b.width,h:b.height};};
+   const nav=document.querySelector('.bottom-nav');const navOk=!!nav&&getComputedStyle(nav).display!=='none'&&box(nav).b>=innerHeight-2;
+   const main=document.querySelector('.listener-main');
+   const wide=[];
+   if(main&&!document.querySelector('.podcast-player.is-open,.tt-reader')){
+    for(const n of main.children){if(n.matches('.content-footer,.soft-tail,style,script')||getComputedStyle(n).display==='none')continue;
+     const inner=n.matches('.immersion')?[...n.children]:[n];
+     for(const k of inner){if(k.matches('.scene-side'))continue;const b=box(k);if(b.w>1162)wide.push((k.className||k.tagName)+' '+Math.round(b.w));}
+     for(const k of n.querySelectorAll?.('.scene-side>*')||[]){if(k.matches('.soft-catalog'))continue;const b=box(k);if(b.w>1162)wide.push((k.className||k.tagName)+' '+Math.round(b.w));}}
+   }
+   const cards=[...document.querySelectorAll('.post-list>.post-card')].map(box);
+   // Колонок столько, сколько карточек стоит в первом ряду — на одной высоте с первой.
+   const cols=cards.length?cards.filter(c=>Math.abs(c.t-cards[0].t)<2).length:0;
+   const open=!!document.querySelector('.podcast-player.is-open,.tt-reader,[role=dialog]');
+   const scene=document.querySelector('.tt-soft-home .scene');
+   const arts=[...document.querySelectorAll('.soft-reel>li .soft-art')].map(box).filter(b=>b.r>0&&b.l<innerWidth).sort((a,b)=>a.l-b.l);
+   let overlap=0;for(let i=1;i<arts.length;i++)overlap=Math.max(overlap,arts[i-1].r-arts[i].l);
+   // Первый экран главной: названия под карточками карусели не под панелью.
+   const navTop=nav?box(nav).t:innerHeight;
+   const names=[...document.querySelectorAll('.soft-reel>li strong')].map(box).filter(b=>b.r>0&&b.l<innerWidth);
+   const hidden=names.length?Math.max(...names.map(b=>b.b))-navTop:0;
+   const stage=document.querySelector('.podcast-player.is-open .player-stage');
+   const page=document.querySelector('.tt-reader-page');
+   const dbg=[...document.querySelectorAll('.soft-reel>li')].map(li=>Math.round(li.getBoundingClientRect().left)+':'+(li.style.transform||'-')).join(' ')+' reel='+(document.querySelector('.soft-reel')?.style.transform||'-')+' loop='+(document.querySelector('.soft-carousel')?.dataset.loop||'?')+' view='+Math.round(document.querySelector('.soft-carousel')?.getBoundingClientRect().width||0);
+   return {hidden:Math.round(hidden),reader:page?page.getBoundingClientRect().width:null,dbg,open,navOk,wide,cards:cards.length,cols,scene:scene?box(scene).w:null,overlap:Math.round(overlap),
+    stage:stage&&getComputedStyle(stage).display!=='none'?box(stage):null,colWidth:main?Math.min(main.clientWidth-64,1160):0};
+  });
+  // Плеер, читалка и окна закрывают панель нарочно — там её и не должно быть.
+  if(!r.navOk&&!r.open)note(where+': нет нижней панели — на планшете открылась раскладка сайта, а не приложение');
+  for(const x of r.wide)note(where+': блок «'+x+'» шире колонки 1160 — растянут на весь экран');
+  if(r.cards>1&&r.cols<2&&!r.open)note(where+': каталог одной колонкой — карточки растянуты на всю ширину');
+  if(r.scene!==null&&r.scene<r.colWidth*0.4)note(where+': постер на главной '+Math.round(r.scene)+' точек — марка на пустом поле');
+  if(r.hidden>2)note(where+': названия под карточками карусели уходят под нижнюю панель на '+r.hidden+' точек — первый экран главной не помещается');
+  if(r.overlap>2)note(where+': карточки карусели наезжают друг на друга на '+r.overlap+' точек'+(process.env.TT_PHONES_DEBUG?' ['+r.dbg+']':''));
+  // Строка читалки не длиннее книжной меры: 680 точек и запас на увеличение.
+  if(r.reader!==null&&r.reader>760)note(where+': строка читалки '+Math.round(r.reader)+' точек — длиннее книжной, глаз теряет начало следующей');
+  if(r.stage&&(r.stage.w>660||r.stage.h>820))note(where+': обложка в плеере '+Math.round(r.stage.w)+'×'+Math.round(r.stage.h)+' — растянута, выйдет мылом');
+ };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
  const views=[['главная','/?mode=listen'],['слушать','/?mode=listen&view=podcasts'],['видео','/?mode=listen&view=videos'],
   ['истории','/?mode=listen&view=stories'],['эфир','/?mode=listen&view=live'],['настройки','/?mode=listen&view=settings'],
   ['плеер','/?mode=listen&view=podcasts&post='+ids.pod2],['читалка','/?mode=listen&view=stories&post='+ids.story]];
+ const tabletViews=[...views,['видеоплеер','/?mode=listen&view=videos&post='+ids.vid]];
  const langs={ru:'ru-RU',it:'it-IT',uk:'uk-UA',ro:'ro-RO'};
  let screens=0;
  const run=async(w,h,lang,list,shots)=>{
@@ -165,12 +217,40 @@ try{
   }
   await ctx.close();
  };
+ // Планшеты — от 10 до 13 дюймов, стоя и боком. Владелец: «проверь, как себя
+ // ведёт приложение на 10 дюймах… максимальный планшет 12–13 дюймов; дальше и
+ // выше — уже сайт, его дизайн отдельно». В точках CSS: Galaxy Tab 10–11"
+ // 800×1280, iPad Pro 11" 834×1194, iPad Pro 12.9" 1024×1366.
+ // Потом владелец поднял границу до 15 дюймов: у него Galaxy Tab S8 Ultra
+ // 14,6" — 924×1480 стоя и 1480×924 боком.
+ const tablets=[[800,1280],[834,1194],[1024,1366],[924,1480],[1280,800],[1194,834],[1366,1024],[1480,924]];
+ const runTablet=async(w,h,lang,list,shots)=>{
+  const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  const page=await ctx.newPage();page.on('pageerror',e=>note(lang+' планшет '+w+'×'+h+': ошибка на странице: '+e.message));
+  for(const [name,url] of list){
+   await page.goto(base+url);
+   if(process.env.TT_PHONES_CSS)await page.addStyleTag({content:process.env.TT_PHONES_CSS});
+   if(process.env.TT_PHONES_JS)await page.evaluate(process.env.TT_PHONES_JS);
+   await settle(page);screens++;
+   await inspect(page,lang+' планшет '+w+'×'+h+' '+name,lang);
+   await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h);
+   if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-${name}.png`)});
+  }
+  await ctx.close();
+ };
+ if(process.env.TT_PHONES_TABLETS==='only'){
+  const only=process.env.TT_PHONES_SIZE;const pick=process.env.TT_PHONES_VIEW;
+  for(const [w,h] of tablets.filter(([w,h])=>!only||only===w+'x'+h))await runTablet(w,h,'ru',tabletViews.filter(([n])=>!pick||n===pick),true);
+ }else{
  // Все размеры — на русском; все языки — на самом узком и на обычном экране.
  const quick=process.env.TT_PHONES_QUICK==='1';
  for(const [w,h] of quick?[[320,568],[390,844]]:phones)await run(w,h,'ru',views,!quick&&(w===320||w===390||w===480));
  for(const lang of quick?['it']:['it','uk','ro'])for(const [w,h] of quick?[[320,568]]:[[320,568],[390,844]])await run(w,h,lang,views,!quick&&w===320);
  // Телефон боком.
  if(!quick)await run(740,360,'ru',views.slice(0,6),true);
+ for(const [w,h] of quick?[[800,1280]]:tablets)await runTablet(w,h,'ru',tabletViews,!quick);
+ if(!quick)for(const lang of ['it','uk','ro'])await runTablet(1024,1366,lang,views,false);
+ }
 
  // Студия на ПК: статистика у автора.
  for(const [w,h] of [[1280,720],[1440,900]]){

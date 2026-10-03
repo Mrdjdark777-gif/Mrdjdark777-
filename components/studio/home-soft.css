@@ -124,7 +124,15 @@
    4830, второй бросок доехал до 4830 и встал.
    Окно выходит под края экрана, как и прежде: карточки уезжают за кромку, а
    выбранная стоит посередине — это задаёт выравнивание в барабане. */
-.tt-soft-home .soft-carousel{overflow:hidden;margin:0 -16px;
+/* position:relative у окна карусели обязателен. Embla меряет ленту и
+   карточки через offsetLeft. Карточки отсчитываются от ленты (она
+   позиционирована), а сама лента — от ближайшего позиционированного предка.
+   Пока окно не было им, лента отсчитывалась от далёкого предка, и на
+   планшете боком, где главная стоит по центру экрана, её offsetLeft был
+   44…129 точек вместо нуля. На ровно эту величину Embla ошибался в длине
+   круга, и карточки, переставленные на другой конец, наезжали на соседние.
+   На телефоне главная во всю ширину, сдвиг нулевой — поэтому там было ровно. */
+.tt-soft-home .soft-carousel{position:relative;overflow:hidden;margin:0 -16px;
  /* Вертикаль страницы остаётся странице, горизонталь — барабану. */
  touch-action:pan-y pinch-zoom;
  /* Отступы сверху и снизу больше самой тени. Окно обрезает всё, что выходит
@@ -354,3 +362,29 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
 .tt-soft-home .scene:not(.scene-fallback){background:transparent}
 .tt-soft-home .scene-photo,.tt-soft-home .scene-shade{
  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%);mask-image:linear-gradient(180deg,transparent 0,#000 26%)}
+
+/* ══ Главная на планшете (сенсорный экран от 768 точек, до 15 дюймов) ══════
+   На мониторе постер ограничен 340 точками — на планшете это марка на
+   пустом поле. Здесь постер крупный, во всю колонку до 920 точек, но не выше,
+   чем позволяет экран: боком под ним должны остаться кнопка и карусель с
+   названиями (560 точек на шапку, кнопку, «Новое», карусель и панель). Кнопка не тянется за постером — 440 точек хватает пальцу. */
+@media (min-width:768px) and (hover:none) and (pointer:coarse) and (min-height:600px){
+ /* Своих полей у раздела на главной нет (их держит сама главная, чтобы
+    постер на телефоне шёл от края до края), поэтому колонка и поля — здесь:
+    1160 точек содержимого и по 32 по бокам. */
+ .immersion.tt-soft-home{max-width:1224px;padding:12px 32px 24px!important;gap:16px!important}
+ .tt-soft-home .scene{width:min(100%,920px,calc((100svh - 560px) * 15 / 7))!important;
+  margin-inline:auto!important;align-self:center!important;border-radius:var(--soft-radius)!important}
+ .tt-soft-home .soft-hero-foot{width:min(100%,440px)}
+ .tt-soft-home .scene-copy{inset:26px 26px auto!important}
+ .tt-soft-home .soft-reel>li{flex-basis:200px;max-width:220px}
+ .tt-soft-home .soft-reel{transform:translate3d(calc((100% - 200px) / 2),0,0)}
+ .tt-soft-home .soft-episode strong{font-size:14px}
+ .tt-soft-home .soft-catalog-head h3{font-size:24px}
+}
+/* Боком экран низкий: карточки карусели помельче, чтобы постер, кнопка и
+   карусель с названиями вошли в первый экран над нижней панелью. */
+@media (min-width:768px) and (hover:none) and (pointer:coarse) and (min-height:600px) and (orientation:landscape){
+ .tt-soft-home .soft-reel>li{flex-basis:170px;max-width:186px}
+ .tt-soft-home .soft-reel{transform:translate3d(calc((100% - 170px) / 2),0,0)}
+}

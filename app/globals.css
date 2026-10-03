@@ -96,8 +96,8 @@ body {
 *{box-sizing:border-box}body{margin:0;color:var(--foreground);background:var(--background);font-family:var(--font-ui);font-size:16px;-webkit-font-smoothing:antialiased}button,a,input,textarea{ -webkit-tap-highlight-color:transparent}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,a:focus-visible{outline:2px solid var(--primary);outline-offset:4px}a{text-decoration:none;color:inherit}button svg{flex-shrink:0}input,textarea{background:#141518;border:1px solid #3a3b40;border-radius:7px;padding:12px 14px;color:#f4f3f1;font-size:16px;outline:none;width:100%;line-height:1.5}input:focus,textarea:focus{border-color:#6FE7DE;box-shadow:0 0 0 2px #6fe7de18}input::placeholder,textarea::placeholder{color:#777a83}textarea{resize:vertical}label{font-size:14px;color:#bebec4;line-height:1.5}audio{height:40px;color-scheme:dark;max-width:100%}.led{display:inline-block;width:6px;height:6px;min-width:6px;border-radius:50%;background:#70737b}.led.on{background:#87c79e}.quiet-button{border:none;background:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;color:#c6c7cd;font-size:13px;white-space:nowrap;padding:8px 4px}.quiet-button:hover{color:white}.main-content{width:100%;max-width:1450px;padding:45px 44px 36px;margin:0 auto;min-height:calc(100vh - 78px)}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:33px}.eyebrow{font-size:12px;letter-spacing:.16em;color:#b0a099;font-weight:600;margin:0 0 14px}.page-heading h1{font-family:var(--font-display),var(--font-display-fallback);font-size:clamp(28px,2.7vw,40px);font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.14}.heading-description{font-size:14px;color:#9699a2;margin:13px 0 0;line-height:1.6}.primary-button,.secondary-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:43px;padding:11px 18px;border-radius:7px;font-size:14px;font-weight:600;line-height:1.35;transition:background .2s;white-space:normal}.primary-button{background:linear-gradient(135deg,#6FE7DE,#54D9C6);color:#08201E;border:1px solid #6FE7DE}.primary-button:hover:not(:disabled){background:linear-gradient(135deg,#8FEFE8,#6FE7DE)}.secondary-button{border:1px solid #3d3e44;color:#e4e3e7;background:#26272b}.secondary-button:hover:not(:disabled){background:#34353c}.waveform{display:flex;align-items:center;justify-content:space-between;gap:3px;height:77px;margin-top:18px;padding:0 3px;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),#ffffff05 calc(25% - 1px),#ffffff05 25%)}.waveform>span{background:#ed7867;width:3px;min-width:1px;border-radius:2px;transition:height .07s linear}.meter-labels{display:flex;justify-content:space-between;font-size:12px;color:#858894;font-family:ui-monospace,monospace;margin-top:10px}.library-heading{display:flex;align-items:baseline;gap:15px;margin:35px 0 17px}.library-heading h2{font-size:18px;font-weight:500;letter-spacing:-.02em}.library-heading>span{font-size:12px;color:#92959f}.library-tiles{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:15px}.library-tiles>button{display:flex;align-items:center;gap:17px;text-align:left;background:#18191d;border:1px solid #303137;border-radius:9px;padding:23px 19px}.tile-icon{display:grid;place-items:center;width:40px;height:42px;border-radius:7px;background:#28292e;color:#bbbcc4;flex-shrink:0}.tile-icon svg{width:20px}.library-tiles>button div{display:flex;flex-direction:column;gap:5px}.library-tiles strong{font-size:25px;font-weight:500;line-height:1}.library-tiles div>span{font-size:12px;color:#9498a2;line-height:1.5}.library-tiles>button>svg{margin-left:auto;color:#81848e;width:15px;flex-shrink:0}.content-footer{display:flex;justify-content:space-between;padding-top:40px;margin-top:45px;border-top:1px solid #24262a;font-size:12px;color:#747985}.content-footer>span:first-child{letter-spacing:.13em;font-weight:bold}.loading-state{padding:100px 0;display:flex;justify-content:center;align-items:center;gap:12px;color:#acb0ba}.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error-box{padding:16px 20px;border:1px solid #7b4237;background:#37231f;border-radius:8px;margin-bottom:25px;color:#ffc0b2;display:flex;gap:15px;justify-content:space-between;line-height:1.6;font-size:14px}.error-box button{text-decoration:underline;flex-shrink:0}.setup-card{max-width:780px;background:#191a1e;border:1px solid #3a3838;padding:45px;border-radius:12px;margin:30px auto}.setup-card h1{font-family:var(--font-display),var(--font-display-fallback);font-size:clamp(28px,4vw,45px);font-weight:700;line-height:1.12;letter-spacing:-.015em;margin:22px 0}.setup-card p{color:#aaadb6;line-height:1.8;max-width:580px;margin-bottom:30px}.setup-card small{display:block;color:#989ca7;font-size:12px;line-height:1.7;margin-top:24px}.filter-tabs{margin:0 0 22px;background:#1e2024;border:1px solid #33353d;height:43px!important;gap:4px;padding:4px}.filter-tabs button{padding:8px 16px;color:#a8aab4;font-size:13px}.filter-tabs button[data-state=active]{color:#08201E!important;background:#6FE7DE!important}.empty-state{border:1px dashed #3a3d44;border-radius:12px;padding:65px 22px;display:flex;align-items:center;flex-direction:column;text-align:center;background:#17191c}.empty-icon{width:76px;height:76px;border-radius:20px;display:grid;place-items:center;color:#6FE7DE;background:#123330}.empty-state h2{font-size:23px;font-weight:500;margin:24px 0 12px;letter-spacing:-.02em}.empty-state p{color:#a0a4af;line-height:1.7;font-size:14px;margin-bottom:24px;max-width:490px}.post-list{display:grid;gap:16px}.post-card{display:flex;gap:0;align-items:stretch;background:#1a1b20;border:1px solid #33353c;border-radius:12px;padding:0;overflow:hidden}.post-cover{position:relative;width:150px;min-height:0;aspect-ratio:4/5;align-self:flex-start;flex-shrink:0;background:#123330;color:#6FE7DE;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;overflow:hidden}.post-cover>span{position:absolute;left:0;right:0;bottom:0;padding:20px 11px 9px;font-family:ui-monospace,monospace;font-size:15px;letter-spacing:.08em;text-align:left;color:#fff;text-shadow:0 1px 3px #000c;background:linear-gradient(#0000,#000a)}.story-cover{background:#292d36;color:#acbdd6}.post-content{min-width:0;flex:1;align-self:center;padding:22px}.post-meta{font-size:12px;letter-spacing:.03em;color:#a7a9b3;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.publish-tag{padding:3px 7px;border-radius:4px;background:#333139;color:#bfbbc8;letter-spacing:0;font-size:12px}.publish-tag.published{background:#273b30;color:#aad6ba}.post-title{font-size:23px;font-weight:500;text-align:left;letter-spacing:-.025em;line-height:1.4;margin:9px 0 5px;overflow-wrap:anywhere}.post-content>p{font-size:14px;color:#a0a4ad;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.post-actions{display:flex;align-items:center;gap:20px;margin-top:15px}.post-actions button{color:#adb2bd;padding:5px 0}.post-actions .text-button{color:#6FE7DE;display:flex;align-items:center;gap:7px;font-size:13px;margin-right:auto}.text-button span{color:#9298a4;font-family:ui-monospace,monospace;margin-left:8px}.editor-dialog{max-width:720px!important;max-height:90dvh;overflow:auto;background:#1b1d22;border-color:#41414b;padding:28px!important}.field{display:flex;flex-direction:column;gap:7px;font-size:14px}.editor-dialog .field{margin-top:8px}.editor-dialog textarea{font-size:15px;line-height:1.6}.editor-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap}.editor-actions .quiet-button{margin-right:auto}.audio-editor-preview{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#29292f;padding:15px;border-radius:7px;color:#d5bbc0;font-size:13px}.audio-editor-preview audio{width:100%}
 .cover-picker{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.cover-preview{width:96px;aspect-ratio:4/5;height:auto;object-fit:cover;border-radius:8px;background:#141518;border:1px solid #3a3b40;flex-shrink:0}.live-cover-preview{width:118px}.cover-picker-actions{display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px}
 .channel-art-preview{width:100%;max-width:360px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#141518;border:1px solid #3a3b40;margin-bottom:14px}.reading-dialog{max-width:800px!important;max-height:90dvh;overflow:auto;padding:45px!important}.reading-dialog [data-slot=dialog-title]{font-family:var(--font-display),var(--font-display-fallback);font-size:36px;line-height:1.25;margin-top:20px}.reading-intro{font-size:18px;line-height:1.8;color:#b8acaa}.reading-body{font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:15px;color:#e0ddda}.live-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:25px}.live-main-panel{display:flex;align-items:center;flex-direction:column;border:1px solid #35363c;background:linear-gradient(#202024,#191a1e);border-radius:12px;padding:40px 30px;gap:22px}.live-main-panel .eyebrow{margin:0;color:#8fb5b2}.live-main-panel h2{font-size:29px;text-align:center;font-weight:500;letter-spacing:-.03em}.live-main-panel>.field,.live-main-panel>.input-grid{width:100%}.live-main-panel>p{font-size:14px;color:#a7a7ac;text-align:center;line-height:1.7}.live-info{padding:20px 5px}.live-info h3{font-size:17px;font-weight:500;margin-bottom:22px}.live-info>p{display:flex;align-items:flex-start;gap:11px;font-size:13px;color:#a9abb6;line-height:1.8;margin:18px 0}.live-info>p svg{flex-shrink:0;color:#6FE7DE;margin-top:3px}.pilot-note{padding:18px;border:1px solid #33353a;background:#1c1e21;border-radius:8px;margin-top:28px}.pilot-note strong{font-size:13px;font-weight:600;color:#6FE7DE}.pilot-note p{font-size:12px;line-height:1.8;color:#a5a5aa;margin-top:10px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.settings-panel{padding:29px;background:#1a1c20;border:1px solid #33363e;border-radius:12px}.section-icon{color:#6FE7DE;margin-bottom:20px}.settings-panel h2{font-size:23px;font-weight:500;letter-spacing:-.025em;margin-bottom:15px}.settings-panel p{font-size:14px;color:#a5a9b3;line-height:1.8;margin-bottom:22px}.settings-panel .primary-button,.settings-panel .secondary-button{margin-top:18px}.settings-panel small{display:block;font-size:12px;color:#9298a3;line-height:1.8;margin-top:18px}.wide-panel{grid-column:1/-1}
-@media(min-width:1500px){.main-content{padding-top:55px}.waveform{height:90px}}
-@media(max-width:1190px){.main-content{padding:33px 26px}.library-tiles{gap:12px}.library-tiles>button{padding:19px 13px;gap:10px}.tile-icon{width:33px;height:37px}.live-layout{grid-template-columns:minmax(0,1fr)}.live-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 25px}.live-info h3{grid-column:1/-1;margin-bottom:2px}.pilot-note{margin-top:0}.settings-grid{grid-template-columns:1fr}}
+@media(min-width:1500px) and (hover:hover){.main-content{padding-top:55px}.waveform{height:90px}}
+@media(max-width:1190px),(hover:none) and (pointer:coarse){.main-content{padding:33px 26px}.library-tiles{gap:12px}.library-tiles>button{padding:19px 13px;gap:10px}.tile-icon{width:33px;height:37px}.live-layout{grid-template-columns:minmax(0,1fr)}.live-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 25px}.live-info h3{grid-column:1/-1;margin-bottom:2px}.pilot-note{margin-top:0}.settings-grid{grid-template-columns:1fr}}
 @media(max-width:767px){.quiet-button{font-size:12px}.main-content{padding:22px 18px 100px;min-height:calc(100dvh - 64px)}.page-heading{margin-bottom:16px;align-items:flex-start;flex-direction:column;gap:20px}.page-heading h1{font-size:28px;letter-spacing:-.04em}.eyebrow{font-size:12px;line-height:1.6;margin-bottom:8px}.heading-description{font-size:14px;line-height:1.6;margin-top:6px}.waveform{gap:2px}.library-heading{margin-top:30px;flex-direction:column;gap:6px}.library-heading h2{font-size:20px}.library-tiles{grid-template-columns:1fr}.library-tiles>button{padding:18px 20px;gap:19px}.library-tiles>button div{flex:1;flex-direction:row;align-items:center;gap:15px}.library-tiles>button div>span{font-size:13px}.content-footer{padding-top:10px;margin-top:8px;font-size:12px;gap:15px}.setup-card{padding:27px 23px;margin:0}.setup-card h1{font-size:32px}.setup-card p{font-size:15px}.setup-card small{font-size:12px}.post-card{gap:0;padding:0;align-items:stretch}.post-cover{width:104px;min-height:0;aspect-ratio:4/5}.post-cover svg{width:30px}.post-content{padding:15px 14px}.post-meta{font-size:12px;gap:7px}.post-title{font-size:20px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.post-content>p{font-size:13px}.post-actions{gap:18px}.post-actions .text-button{font-size:12px}.post-actions .text-button span{display:none}.filter-tabs button{padding:8px 13px;font-size:12px}.empty-state{padding:48px 20px}.empty-state h2{font-size:23px}.live-main-panel{padding:32px 21px}.live-main-panel h2{font-size:26px}.live-info{display:block;padding:7px 3px}.live-info h3{margin-bottom:19px}.live-info>p{font-size:14px}.pilot-note p{font-size:13px}.settings-panel{padding:25px 21px}.settings-panel h2{font-size:24px}.settings-panel p{font-size:15px}.editor-dialog{padding:23px 18px!important;max-height:92dvh}.editor-actions{gap:8px}.editor-actions .primary-button,.editor-actions .secondary-button{font-size:12px;padding:11px 12px}.reading-dialog{padding:35px 23px!important}.reading-dialog [data-slot=dialog-title]{font-size:29px}.reading-body{font-size:19px;line-height:1.85}.reading-intro{font-size:17px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 .onair-banner{display:flex;align-items:center;gap:18px;background:linear-gradient(110deg,#45271f,#251f20);border:1px solid #a1543f;border-radius:10px;padding:21px 24px;margin:0 0 24px}.onair-symbol{color:#ff9779;flex-shrink:0}.onair-banner>div:nth-child(2){min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}.onair-label{font-size:12px;font-weight:700;letter-spacing:.1em;color:#ffad95}.onair-banner strong{font-size:20px;font-weight:600;overflow-wrap:anywhere;line-height:1.4}.listener-link-actions{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap}.host-running-note,.live-refresh-warning{display:flex;align-items:center;justify-content:space-between;gap:15px;font-size:14px;padding:13px 18px;margin-bottom:20px;border-radius:7px;background:#332721;color:#edc0a8;line-height:1.6}.host-running-note button,.live-refresh-warning button{color:#ffbaa1;text-decoration:underline;flex-shrink:0}@media(max-width:767px){.onair-banner{padding:20px 17px;flex-wrap:wrap;gap:13px}.onair-banner .primary-button{width:100%}.onair-banner strong{font-size:19px}.host-running-note,.live-refresh-warning{flex-direction:column;align-items:flex-start}}.device-discovery{display:flex;align-items:flex-start;gap:8px;flex-direction:column;margin-top:10px}.device-discovery small{font-size:12px;line-height:1.6;color:#a9aeba}.device-discovery .quiet-button{font-size:13px;padding:5px 0}.device-discovery .secondary-button{font-size:13px;white-space:normal}.audio-controls-panel{width:100%;display:flex;flex-direction:column;gap:20px;padding:7px 0 4px}.gain-control>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.gain-control label{font-size:14px}.gain-control strong{font-family:ui-monospace,monospace;font-size:14px;color:#6FE7DE}.gain-control [data-slot=slider]{padding:5px 0}.mic-toggles{display:flex;flex-wrap:wrap;gap:18px}.mic-toggles label{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer}.mic-toggles svg{color:#aaa}.signal-console{width:100%;padding:18px 0}.signal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;letter-spacing:.05em;color:#a8afbc}.signal-head strong{font-size:13px;font-family:ui-monospace,monospace;letter-spacing:0}.signal-head .clipping,.clip-notice{color:#ff9883}.clip-notice{font-size:13px;margin-top:13px;line-height:1.6}.signal-console .waveform{height:94px;margin-top:12px}.wave-inactive span{background:#696369}.live-console{gap:24px;padding:27px!important;background:#1b1c20}.live-console>.mic-setup{width:100%}.live-console>.field{width:100%}.session-status{width:100%;display:flex;align-items:center;gap:13px;padding:17px;border:1px solid #4b4849;background:#242429;border-radius:9px}.session-status>svg{flex-shrink:0;color:#beb8b2}.session-status div{min-width:0;display:flex;flex-direction:column;gap:5px}.session-status strong{font-size:19px;font-weight:600}.session-status span{font-size:13px;line-height:1.6;color:#b5b0b3}.session-status.is-onair{border-color:#93513d;background:#37241f}.session-status.is-onair>svg{color:#ff9a7c}.session-status .live-timer{margin-left:auto;font-family:ui-monospace,monospace;font-size:21px;color:#ffc2aa;white-space:nowrap}.broadcast-summary{width:100%;display:flex;align-items:center;gap:10px;padding:16px;background:#1c1e21;border-radius:7px;font-size:14px}.broadcast-summary>strong{font-size:24px}.broadcast-summary>span{color:#b5bbc8}.broadcast-summary>svg{color:#6FE7DE}.preflight-actions,.listener-playback-actions{display:flex;align-items:center;justify-content:center;gap:13px;width:100%;flex-wrap:wrap}.stop-live-button{width:100%}.listener-volume{width:100%;padding:10px 0}.listener-volume>label{display:flex;align-items:center;gap:9px;margin-bottom:17px;font-size:15px}.listener-volume>label>span{margin-left:auto;color:#6FE7DE}.receiving-status{align-self:flex-start;color:#ffc18d;font-size:14px}
@@ -110,7 +110,7 @@ body {
 .onair-notice{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}.onair-notice:hover{border-color:#f39a7f}.onair-notice:focus-visible{outline:3px solid #ffb69c;outline-offset:4px}.onair-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}.onair-notice .primary-button{pointer-events:none}.listener-main .session-status span{font-size:14px}.listener-main .live-info p{font-size:16px}.listener-main .live-console{gap:18px}@media(max-width:767px){.onair-notice .primary-button{min-height:50px}.listener-main .page-heading{margin-bottom:20px}}
 
 .login-page{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}.login-card{width:100%;max-width:360px;background:#191a1e;border:1px solid #3a3838;border-radius:12px;padding:36px 32px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}.login-card img{object-fit:contain}.login-card h1{font-size:22px;font-weight:600;margin:0}.login-card .field{width:100%;text-align:left}.login-card .primary-button{width:100%;justify-content:center}.login-error{color:#ff9c87;font-size:13px;margin:0}
-.post-logo{width:76px;max-width:90%;height:auto;object-fit:contain}.podcast-player{position:fixed;z-index:40;bottom:0;left:0;right:0;display:grid;grid-template-columns:52px minmax(90px,1fr) auto minmax(150px,2fr) 40px;align-items:center;gap:17px;padding:17px 26px;background:#152724;border-top:1px solid #438e83;box-shadow:0 -8px 35px #0004}.podcast-player-logo{grid-column:1;object-fit:contain}.podcast-player-title{grid-column:2;min-width:0;display:flex;flex-direction:column;gap:4px}.podcast-player-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}.podcast-player-title>span{font-size:12px;color:#b4c9c4}.podcast-transport{grid-column:3;grid-row:1;display:flex;align-items:center;gap:10px}.podcast-transport>button{min-width:40px;min-height:44px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;color:#e1eee9}.podcast-transport>button>span{font-size:12px}.podcast-transport>.podcast-toggle{background:#ffae38;color:#142b26;border-radius:50%;width:48px;height:48px}.podcast-transport>button:disabled{opacity:.5}.podcast-timeline{grid-column:4;grid-row:1;min-width:0;padding-top:13px}.podcast-timeline [data-slot=slider]{min-height:24px}.podcast-times{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums;font-size:13px;color:#b6d0c8}.podcast-player-message{grid-column:1/-1;color:#ffc18d;font-size:14px}.podcast-player audio{display:none}body:has(.podcast-player) .main-content{padding-bottom:150px}.podcast-player button:focus-visible{outline:2px solid #ffcc75;outline-offset:3px}@media(max-width:1000px){.podcast-player{grid-template-columns:42px minmax(0,1fr) auto 40px;gap:12px;padding:12px 18px}.podcast-player-logo{width:42px;height:42px}.podcast-timeline{grid-column:1/-1;grid-row:2;padding-top:0}.podcast-player-title strong{font-size:14px}}@media(max-width:767px){.podcast-player{left:0;grid-template-columns:42px minmax(0,1fr) 40px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.podcast-transport{grid-column:1/-1;grid-row:2;justify-content:center;gap:24px}.podcast-timeline{grid-row:3}.podcast-player-title strong{font-size:16px}.podcast-times{font-size:14px}body:has(.podcast-player) .main-content{padding-bottom:245px}}
+.post-logo{width:76px;max-width:90%;height:auto;object-fit:contain}.podcast-player{position:fixed;z-index:40;bottom:0;left:0;right:0;display:grid;grid-template-columns:52px minmax(90px,1fr) auto minmax(150px,2fr) 40px;align-items:center;gap:17px;padding:17px 26px;background:#152724;border-top:1px solid #438e83;box-shadow:0 -8px 35px #0004}.podcast-player-logo{grid-column:1;object-fit:contain}.podcast-player-title{grid-column:2;min-width:0;display:flex;flex-direction:column;gap:4px}.podcast-player-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}.podcast-player-title>span{font-size:12px;color:#b4c9c4}.podcast-transport{grid-column:3;grid-row:1;display:flex;align-items:center;gap:10px}.podcast-transport>button{min-width:40px;min-height:44px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;color:#e1eee9}.podcast-transport>button>span{font-size:12px}.podcast-transport>.podcast-toggle{background:#ffae38;color:#142b26;border-radius:50%;width:48px;height:48px}.podcast-transport>button:disabled{opacity:.5}.podcast-timeline{grid-column:4;grid-row:1;min-width:0;padding-top:13px}.podcast-timeline [data-slot=slider]{min-height:24px}.podcast-times{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums;font-size:13px;color:#b6d0c8}.podcast-player-message{grid-column:1/-1;color:#ffc18d;font-size:14px}.podcast-player audio{display:none}body:has(.podcast-player) .main-content{padding-bottom:150px}.podcast-player button:focus-visible{outline:2px solid #ffcc75;outline-offset:3px}@media(max-width:1000px),(hover:none) and (pointer:coarse){.podcast-player{grid-template-columns:42px minmax(0,1fr) auto 40px;gap:12px;padding:12px 18px}.podcast-player-logo{width:42px;height:42px}.podcast-timeline{grid-column:1/-1;grid-row:2;padding-top:0}.podcast-player-title strong{font-size:14px}}@media(max-width:767px){.podcast-player{left:0;grid-template-columns:42px minmax(0,1fr) 40px;padding-bottom:max(12px,env(safe-area-inset-bottom))}.podcast-transport{grid-column:1/-1;grid-row:2;justify-content:center;gap:24px}.podcast-timeline{grid-row:3}.podcast-player-title strong{font-size:16px}.podcast-times{font-size:14px}body:has(.podcast-player) .main-content{padding-bottom:245px}}
 
 .audio-mode-help{font-size:.875rem;line-height:1.6;color:var(--muted-foreground);margin:12px 0 18px}.mic-setup>.field{margin-bottom:16px}
 .notification-options{display:grid;gap:18px;margin:24px 0}.notification-options label{display:flex;align-items:center;gap:12px;font-size:1rem}.notification-options label.is-inactive{color:#75787f}
@@ -547,7 +547,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 /* Студия автора: боковая панель и акцент в заголовке на широком экране. */
 .page-heading h1 .accent{background:linear-gradient(90deg,#8FEFE8,#54D9C6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .is-author .main-content{padding-bottom:calc(var(--bottom-nav-h) + 36px)}
-@media(min-width:1024px){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:96px;display:flex;flex-direction:column;gap:6px;padding:11px 9px;border-radius:24px}
+@media(min-width:1024px) and (hover:hover){.is-author .bottom-nav{position:fixed;left:20px;right:auto;top:50%;bottom:auto;transform:translateY(-50%);width:96px;display:flex;flex-direction:column;gap:6px;padding:11px 9px;border-radius:24px}
 .is-author .bottom-nav-item{padding:10px 4px;min-height:68px;gap:6px}
 .is-author .bottom-nav-item svg{width:23px;height:23px}
 .is-author .bottom-nav-item span{font-size:11px}
@@ -562,7 +562,7 @@ body:has(.podcast-player.is-mini) .main-content{padding-bottom:calc(var(--bottom
 .is-author .bottom-nav-stories{order:5}
 .is-author .bottom-nav-settings{order:6}
 .is-author .main-content{padding-left:146px;padding-right:44px;padding-bottom:36px}
-@media(min-width:1600px){.is-author .main-content{padding-left:44px;padding-right:44px}}
+@media(min-width:1600px) and (hover:hover){.is-author .main-content{padding-left:44px;padding-right:44px}}
 .is-author .recorder-panel,.is-author .live-card,.is-author .quick-story,.is-author .library-tiles>button,.is-author .draft-bar{border-radius:20px;background:var(--surface);border-color:var(--line)}
 .is-author .waveform>span{background:#c9776b}}
 /* Маленькие экраны: сокращается высота кадра и второстепенные подписи, но не
@@ -1091,7 +1091,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 .main-content:not(.listener-main) .pilot-note{margin-top:14px;padding:14px}
 /* Главная студии: библиотека и настройки делят один ряд, а не идут друг за
    другом — тогда экран закрывается целиком. */
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Промежуток тот же, что у библиотеки: иначе три карточки встают на пару
     пикселей мимо трёх плиток над ними. */
  .main-content:not(.listener-main) .settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px;gap:18px}
@@ -1127,7 +1127,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 /* Подвал в студии не нужен: копирайт и данные о приложении живут в меню
    «О приложении», а здесь он только отнимал высоту у рабочего экрана. */
 .main-content:not(.listener-main) .content-footer{display:none}
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  .main-content:not(.listener-main) .page-heading{margin-bottom:10px}
  /* Заголовок вкладки и строка под ним — крупнее: с них начинается экран. */
  .main-content:not(.listener-main) .page-heading h1{font-size:28px}
@@ -1157,7 +1157,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .preflight-actions{gap:10px}
  .main-content:not(.listener-main) .live-archives{margin-bottom:8px}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Площадки: шесть полей в две колонки, подпись под панелью не нужна. */
  .main-content:not(.listener-main) .links-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .main-content:not(.listener-main) .settings-panel small{display:none}
@@ -1173,7 +1173,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .gain-control label{font-size:12.5px}
  .main-content:not(.listener-main) .mic-toggles label{font-size:12.5px}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Пульт эфира в две колонки: слева что настраивают до эфира, справа — что
     смотрят во время. Иначе он вытягивается в столбец и не влезает в окно. */
  .main-content:not(.listener-main) .live-console{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
@@ -1195,7 +1195,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .live-console>.signal-console{grid-column:2;grid-row:4}
  .main-content:not(.listener-main) .live-console>.audio-controls-panel{grid-column:2;grid-row:5}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Последние сантиметры: на экране эфира заголовок без пояснения, карточка
     архива компактнее, консоль без лишнего воздуха. */
  .main-content:not(.listener-main)[data-view=live] .heading-description{display:none}
@@ -1209,7 +1209,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .live-cover-preview{max-height:44px}
  .main-content:not(.listener-main) .live-main-panel{padding:14px 16px;gap:10px}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Свёрнутый список записей — строка, а не панель: он открывается по нажатию
     и не занимает высоту, пока не нужен. */
  .main-content:not(.listener-main) .live-archives{padding:10px 14px;margin:0 0 8px;border-radius:12px}
@@ -1221,7 +1221,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .live-info>p{margin:7px 0}
  .main-content:not(.listener-main) .preflight-actions>button{min-height:40px}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  .main-content:not(.listener-main) .mic-setup .field{font-size:12px}
  .main-content:not(.listener-main) .device-discovery .secondary-button,
  .main-content:not(.listener-main) .device-discovery .quiet-button{font-size:12px;min-height:34px;padding:6px 12px}
@@ -1230,7 +1230,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .live-main-panel h2{font-size:22px}
  .main-content:not(.listener-main) .live-main-panel>p{font-size:12.5px;line-height:1.5}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Подсказки автору сжимаются в свой столбец, а не задают высоту экрану. */
  .main-content:not(.listener-main) .live-info{padding:6px 2px;font-size:12px}
  .main-content:not(.listener-main) .live-info>p{margin:6px 0;gap:8px;line-height:1.45}
@@ -1240,15 +1240,15 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
  .main-content:not(.listener-main) .mic-toggles{gap:10px}
  .main-content:not(.listener-main) .gain-control [data-slot=slider]{padding:2px 0}
 }
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  /* Ровно под окно: верхний отступ рабочей области и поля пульта. */
  .main-content:not(.listener-main){padding-top:10px;padding-bottom:12px}
  .main-content:not(.listener-main) .live-console{padding:10px!important}
  .main-content:not(.listener-main) .signal-console{padding:4px 0}
 }
-@media(min-width:1100px){.main-content:not(.listener-main) .live-layout{gap:10px}
+@media(min-width:1100px) and (hover:hover){.main-content:not(.listener-main) .live-layout{gap:10px}
  .main-content:not(.listener-main) .live-archives{margin-bottom:4px}}
-@media(min-width:1100px){.main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}}
+@media(min-width:1100px) and (hover:hover){.main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}}
 
 /* Главная — по центру панели и крупнее соседей: до неё чаще всего тянутся
    большим пальцем, и она несёт знак канала, а не безликий домик. */
@@ -1265,7 +1265,7 @@ body:has(.main-content:not(.listener-main)) .top-header-brand{flex-direction:row
 
 /* Большой монитор: колонка студии шире, иначе карточки настроек упираются
    в предел 1280px и не используют экран. */
-@media(min-width:1600px){.main-content:not(.listener-main){max-width:1700px}}
+@media(min-width:1600px) and (hover:hover){.main-content:not(.listener-main){max-width:1700px}}
 
 /* Логотип внутри металлического круга: он рисуется поверх тёмной середины,
    поэтому сам круг виден только кромкой — ей и остаётся окантовка. */
@@ -1328,7 +1328,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    продолжала растягиваться до краёв: знак канала уезжал в левый угол, кнопки
    — в правый, а подпись под названием оставалась в колонке, за полметра от
    логотипа. Ограничиваем шапку той же колонкой. */
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  .listener-main{margin-inline:auto}
  /* width:100% обязателен: у флекс-элемента margin-inline:auto отменяет
     растягивание, и шапка схлопывалась по содержимому — знак канала с кнопками
@@ -1348,7 +1348,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    лишняя строка выталкивала её за край на 390×844 и 360×640. Место для неё
    на телефоне нужно искать не на главной. */
 .app-strip{display:none}
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  .app-strip{display:flex}
  .app-strip .support-strip-note{margin-left:auto;padding-right:10px;white-space:nowrap}
 }
@@ -1367,7 +1367,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    стоит перед медиазапросом: вес у них одинаковый, и спор решает порядок. */
 .site-footer{display:none}
 
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  /* Порядок в колонке: шапка, разделы, содержимое. В разметке панель разделов
     идёт последней, потому что на телефоне она внизу; переставляем порядком,
     а не разметкой — телефон должен остаться нетронутым. */
@@ -1415,7 +1415,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    прямыми детьми .immersion и ведут себя ровно как раньше. */
 .scene-side{display:contents}
 
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  /* Главная в две колонки: слева кадр, справа то, ради чего человек пришёл —
     эфир или «Продолжить», разделы, поддержка и приложение. Прежде кадр
     занимал экран по высоте, а всё остальное оказывалось под сгибом. */
@@ -1479,7 +1479,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  padding:4px 11px;border-radius:999px;background:#6fe7de17;border:1px solid #6fe7de33;color:#bfe9e5;font-size:12.5px}
 .main-content:not(.listener-main) .post-usage strong{color:#6fe7de;font-size:14px;font-weight:700}
 
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  /* Каталог сеткой. Одной колонкой во всю ширину карточка выпуска пустовала
     справа на две трети, и три выпуска растягивались на целый экран. */
  .listener-main .post-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -1491,7 +1491,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
  .listener-main .content-footer{display:none}
 
 }
-@media(min-width:1440px){
+@media(min-width:1440px) and (hover:hover){
  .listener-main .post-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
@@ -1504,7 +1504,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    уже есть поверх кадра, и второе такое же выталкивало бы главную за сгиб. */
 .side-intro{display:none}
 
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  /* Подвал поднимается к содержимому. Колонка страницы тянулась на всю высоту
     окна, и на пустой главной подвал уезжал вниз — прокручивать приходилось
     сквозь пустоту, ради одной строки. */
@@ -1651,7 +1651,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    под кругом в 290 px. И сам круг на мониторе может быть крупнее — на него
    здесь и смотрят.
    -------------------------------------------------------------------------- */
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  .listener-main .live-layout{grid-template-columns:minmax(0,1fr)}
  /* width:100% обязателен: auto-поля на элементе сетки отключают растяжение,
     и панель схлопнулась бы до ширины круга — этой ловушкой уже ловило шапку. */
@@ -1772,7 +1772,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    и экран эфира занимает ровно остаток. Прежняя версия мерила окно из
    JavaScript и промахивалась — на телефоне владельца круг схлопнулся до
    минимума, а подпись прилипла к карточкам вместо низа экрана. */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  /* Страница целиком не прокручивается ни в одном разделе: прокручивается
     только содержимое раздела. Там, где всё помещается (эфир, главная, пустой
     список), прокрутки нет вовсе и «резиновое» подёргивание исчезает; длинный
@@ -1856,7 +1856,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    второстепенными подписями. Панель подготовки тоже стала шире: на мониторе
    места вдоволь, а она жалась к половине экрана.
    -------------------------------------------------------------------------- */
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  .main-content:not(.listener-main) .live-layout{grid-template-columns:minmax(0,1fr) 340px;gap:28px}
  .main-content:not(.listener-main) .live-main-panel{padding:28px 30px;gap:20px}
  /* Название эфира */
@@ -1923,7 +1923,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    значило резать то, что человеку нужно: круг, подписи кнопок и выход. Круг
    держит полный размер, подписи на месте, а низ достаётся прокруткой.
    В покое экран по-прежнему помещается целиком и не прокручивается. */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .live-layout{flex:none}
  body.tt-shell-locked .listener-main[data-view=live]:has(.live-stage.is-live) .content-footer{margin-top:20px}
 }
@@ -1954,7 +1954,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .archive-about{font-size:12px;line-height:1.35;color:#9aa0a6;
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-archives .archive-meta{font-size:11.5px}
-@media(min-width:1100px){
+@media(min-width:1100px) and (hover:hover){
  .main-content:not(.listener-main) .live-archives article{padding:7px 0;gap:10px}
  .main-content:not(.listener-main) .live-archives article>.archive-cover{width:88px;height:110px}
  .main-content:not(.listener-main) .archive-actions,
@@ -2023,7 +2023,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    круга и подписи карточек обрывались по прямой линии. Маска гасит несколько
    пикселей у обоих краёв, и при прокрутке содержимое уходит под шапку плавно.
    -------------------------------------------------------------------------- */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  body.tt-shell-locked .listener-main{
   /* Гасим только верх, под шапкой. Нижние двадцать шесть точек гасить нельзя:
      маска делает прозрачным не только содержимое, но и его фон, и сквозь него
@@ -2073,7 +2073,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 .scene-strips>*{margin:0}
 /* На телефоне всегда в ряд: в столбик нижняя плашка уходит под мини-плеер
    и на низком экране, и на высоком. */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  .scene-strips{flex-direction:row;gap:8px}
  .scene-strips>*{flex:1 1 0;min-width:0}
  .scene-strips .support-strip-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
@@ -2089,7 +2089,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    колонка ровно в высоту экрана: пусть рабочая область берёт остаток сама,
    без угадывания чужих высот.
    -------------------------------------------------------------------------- */
-@media(min-width:1024px){
+@media(min-width:1024px) and (hover:hover){
  .app-shell{min-height:100dvh}
  .app-shell>.main-content{flex:1 1 auto;min-height:0!important}
 }
@@ -2097,7 +2097,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
 /* Экран эфира в студии на мониторе 1080: пульт и список записей ужимаются,
    чтобы страница помещалась целиком. На высоком мониторе всё остаётся
    крупным — обложка записи там 88×110. */
-@media(min-width:1100px) and (max-height:1150px){
+@media(min-width:1100px) and (max-height:1150px) and (hover:hover){
  .main-content:not(.listener-main)[data-view=live] .page-heading{margin-bottom:4px}
  .main-content:not(.listener-main) .live-archives{padding:8px 12px}
  .main-content:not(.listener-main) .live-archives article{padding:5px 0}
@@ -2245,14 +2245,14 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .scene-strips .support-strip-label{flex:none}
 /* Половина строки каждой — и плашке, и обёртке со свечением. Ширину задаёт
    только flex: width:100% сбивал его и делал архив шире поддержки. */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  .scene-strips>.tt-glow,.scene-strips>.support-strip{flex:0 0 calc(50% - 4px);max-width:calc(50% - 4px);min-width:0}
 }
 .scene-strips .tt-glow .support-strip{width:100%}
 .live-stage>.tt-glow{width:100%}
 
 /* Площадки автора идут по две в ряд — тем же шагом, что архив и поддержка. */
-@media(max-width:1023px){
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
  .scene-side>.social-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .scene-side>.social-row .social-chip{min-width:0}
 }
@@ -2347,3 +2347,57 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 /* Размер постера — сразу под описанием и заметнее его: владелец искал эти
    цифры и не нашёл в мелкой строке внизу панели. */
 .hero-poster-panel .hero-poster-size{color:#6fe7de;font-weight:600;margin-top:-10px}
+
+/* ══ Планшет: сенсорный экран от 768 точек — от 10 до 15 дюймов ══════════
+   Владелец провёл границу так: «до 15 дюймов приложение выглядит идеально,
+   выше — сайт для ПК, и приложения там нет». Самый большой планшет у него —
+   Galaxy Tab S8 Ultra 14,6": 924×1480 стоя и 1480×924 боком. Поэтому
+   планшет здесь узнаётся не по ширине, а по пальцу: (hover:none) и
+   (pointer:coarse). Раскладка сайта (верхние вкладки, колонки ПК) стоит под
+   (hover:hover) и сюда не попадает.
+
+   Это приложение, а не растянутый телефон: каталог в колонки, плеер боком —
+   обложка слева, управление справа, всё в колонке содержимого до 1160
+   точек, а не во всю ширину экрана. min-height отсекает телефон боком: у него
+   ширина бывает больше 768, а высота — меньше 450. */
+@media (min-width:768px) and (hover:none) and (pointer:coarse) and (min-height:600px){
+ /* Колонка содержимого. Прокручивается по-прежнему весь раздел от края до
+    края, а сами блоки собраны по середине. */
+ .listener-main{padding-inline:max(32px,calc((100% - 1160px) / 2))!important}
+ /* Каталог колонками: одной колонкой во всю ширину карточка выпуска
+    пустовала справа на две трети. Две колонки стоя, три — боком. */
+ .listener-main .post-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+ .listener-main .post-card{margin:0;min-width:0}
+ /* Настройки — две карточки в ряд. */
+ .listener-main .settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+ /* Эфир: круг и карточки под ним — колонкой, а не на всю ширину. */
+ .listener-main[data-view=live] .live-layout{width:100%;max-width:780px;margin-inline:auto}
+ /* Мини-плеер — шириной с колонку телефона, а не на весь экран. */
+ .podcast-player.is-mini{width:min(620px,calc(100% - 64px))}
+}
+@media (min-width:1180px) and (hover:none) and (pointer:coarse) and (min-height:600px){
+ .listener-main .post-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Плеер стоя: обложка карточкой по центру, а не фотографией во весь экран —
+   растянутая на 1024 точки обложка 960 пикселей выходила мылом. */
+@media (min-width:768px) and (hover:none) and (pointer:coarse) and (min-height:600px) and (orientation:portrait){
+ .podcast-player.is-open>.player-stage{left:50%;right:auto;transform:translateX(-50%);
+  top:calc(64px + env(safe-area-inset-top));width:min(640px,calc(100% - 64px),calc((100svh - 560px) * .8));
+  height:auto;max-height:none;aspect-ratio:4/5;border-radius:28px;overflow:hidden;box-shadow:0 30px 60px -28px #000}
+ .podcast-player.is-open>.player-stage .player-stage-shade{background:linear-gradient(180deg,rgba(18,22,25,.28) 0,transparent 28%)}
+ .podcast-player.is-open>.player-body>*{width:min(100%,560px)}
+}
+/* Плеер боком: обложка слева, всё управление справа. */
+@media (min-width:768px) and (hover:none) and (pointer:coarse) and (min-height:600px) and (orientation:landscape){
+ .podcast-player.is-open{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-items:center}
+ .podcast-player.is-open>.player-sheet-top{grid-column:1/-1;grid-row:1}
+ .podcast-player.is-open>.player-stage{position:relative;grid-column:1;grid-row:2;justify-self:end;align-self:center;
+  top:auto;left:auto;right:auto;margin-right:40px;width:auto;height:min(calc(100svh - 150px),720px);max-height:none;
+  aspect-ratio:4/5;border-radius:28px;overflow:hidden;box-shadow:0 30px 60px -28px #000}
+ .podcast-player.is-open>.player-stage .player-stage-shade{background:linear-gradient(180deg,rgba(18,22,25,.28) 0,transparent 28%)}
+ .podcast-player.is-open>.player-body{grid-column:2;grid-row:2;justify-self:start;align-self:center;justify-content:center;
+  width:min(calc(100% - 80px),560px);margin-left:40px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+ .podcast-player.is-open>.player-body>*{width:100%}
+ /* Без обложки (типографский вид) и у записи эфира (круг) — одна колонка по середине. */
+ .podcast-player.is-open.is-type>.player-body,.podcast-player.is-open.is-archive>.player-body{grid-column:1/-1;justify-self:center;margin-left:0}
+}
