@@ -171,8 +171,14 @@ export function StoryReader({id,title,description,body,onClose}:{
  // он доходит до оболочки, и та прячет панели Android. Просьбу нельзя подать
  // откуда угодно — браузер требует, чтобы её вызвало действие человека,
  // поэтому пробуем при открытии и обязательно повторяем по нажатию.
+ //
+ // На планшете — нет. Там приложение рисуется телефоном заданной ширины, а в
+ // полноэкранном режиме браузер эту ширину игнорирует и возвращает экрану
+ // планшета его собственную: читалка выходила не телефонной. Телефонный вид
+ // важнее спрятанных системных панелей.
  const goFull=useCallback(()=>{try{
   const el=document.documentElement;
+  if(el.hasAttribute('data-tt-tablet'))return;
   if(!document.fullscreenElement&&el.requestFullscreen)void el.requestFullscreen().catch(()=>{});
  }catch{}},[]);
  useEffect(()=>{goFull();

@@ -150,52 +150,43 @@ try{
   }
  };
 
- // Планшет: приложение, а не растянутый телефон и не сайт.
- //  — нижняя панель на месте (раскладка сайта с верхними вкладками — только ПК);
- //  — ни один блок раздела не шире колонки 1160 точек;
- //  — каталог колонками, если карточек больше одной;
- //  — постер на главной не марка на пустом поле, а крупный;
- //  — карточки карусели не наезжают друг на друга;
- //  — обложка в плеере карточкой, а не фотографией во весь экран.
- const inspectTablet=async(page,where,w,h)=>{
-  const r=await page.evaluate(()=>{
-   const box=n=>{const b=n.getBoundingClientRect();return {l:b.left,r:b.right,t:b.top,b:b.bottom,w:b.width,h:b.height};};
-   const nav=document.querySelector('.bottom-nav');const navOk=!!nav&&getComputedStyle(nav).display!=='none'&&box(nav).b>=innerHeight-2;
-   const main=document.querySelector('.listener-main');
-   const wide=[];
-   if(main&&!document.querySelector('.podcast-player.is-open,.tt-reader')){
-    for(const n of main.children){if(n.matches('.content-footer,.soft-tail,style,script')||getComputedStyle(n).display==='none')continue;
-     const inner=n.matches('.immersion')?[...n.children]:[n];
-     for(const k of inner){if(k.matches('.scene-side'))continue;const b=box(k);if(b.w>1162)wide.push((k.className||k.tagName)+' '+Math.round(b.w));}
-     for(const k of n.querySelectorAll?.('.scene-side>*')||[]){if(k.matches('.soft-catalog'))continue;const b=box(k);if(b.w>1162)wide.push((k.className||k.tagName)+' '+Math.round(b.w));}}
-   }
-   const cards=[...document.querySelectorAll('.post-list>.post-card')].map(box);
-   // Колонок столько, сколько карточек стоит в первом ряду — на одной высоте с первой.
-   const cols=cards.length?cards.filter(c=>Math.abs(c.t-cards[0].t)<2).length:0;
-   const open=!!document.querySelector('.podcast-player.is-open,.tt-reader,[role=dialog]');
-   const scene=document.querySelector('.tt-soft-home .scene');
-   const arts=[...document.querySelectorAll('.soft-reel>li .soft-art')].map(box).filter(b=>b.r>0&&b.l<innerWidth).sort((a,b)=>a.l-b.l);
-   let overlap=0;for(let i=1;i<arts.length;i++)overlap=Math.max(overlap,arts[i-1].r-arts[i].l);
-   // Первый экран главной: названия под карточками карусели не под панелью.
-   const navTop=nav?box(nav).t:innerHeight;
-   const names=[...document.querySelectorAll('.soft-reel>li strong')].map(box).filter(b=>b.r>0&&b.l<innerWidth);
-   const hidden=names.length?Math.max(...names.map(b=>b.b))-navTop:0;
-   const stage=document.querySelector('.podcast-player.is-open .player-stage');
-   const page=document.querySelector('.tt-reader-page');
-   const dbg=[...document.querySelectorAll('.soft-reel>li')].map(li=>Math.round(li.getBoundingClientRect().left)+':'+(li.style.transform||'-')).join(' ')+' reel='+(document.querySelector('.soft-reel')?.style.transform||'-')+' loop='+(document.querySelector('.soft-carousel')?.dataset.loop||'?')+' view='+Math.round(document.querySelector('.soft-carousel')?.getBoundingClientRect().width||0);
-   return {hidden:Math.round(hidden),reader:page?page.getBoundingClientRect().width:null,dbg,open,navOk,wide,cards:cards.length,cols,scene:scene?box(scene).w:null,overlap:Math.round(overlap),
-    stage:stage&&getComputedStyle(stage).display!=='none'?box(stage):null,colWidth:main?Math.min(main.clientWidth-64,1160):0};
-  });
-  // Плеер, читалка и окна закрывают панель нарочно — там её и не должно быть.
-  if(!r.navOk&&!r.open)note(where+': нет нижней панели — на планшете открылась раскладка сайта, а не приложение');
-  for(const x of r.wide)note(where+': блок «'+x+'» шире колонки 1160 — растянут на весь экран');
-  if(r.cards>1&&r.cols<2&&!r.open)note(where+': каталог одной колонкой — карточки растянуты на всю ширину');
-  if(r.scene!==null&&r.scene<r.colWidth*0.4)note(where+': постер на главной '+Math.round(r.scene)+' точек — марка на пустом поле');
-  if(r.hidden>2)note(where+': названия под карточками карусели уходят под нижнюю панель на '+r.hidden+' точек — первый экран главной не помещается');
-  if(r.overlap>2)note(where+': карточки карусели наезжают друг на друга на '+r.overlap+' точек'+(process.env.TT_PHONES_DEBUG?' ['+r.dbg+']':''));
-  // Строка читалки не длиннее книжной меры: 680 точек и запас на увеличение.
-  if(r.reader!==null&&r.reader>760)note(where+': строка читалки '+Math.round(r.reader)+' точек — длиннее книжной, глаз теряет начало следующей');
-  if(r.stage&&(r.stage.w>660||r.stage.h>820))note(where+': обложка в плеере '+Math.round(r.stage.w)+'×'+Math.round(r.stage.h)+' — растянута, выйдет мылом');
+ // Планшет — тот же телефон. Владелец: «всё должно выглядеть так же, как на
+ // телефоне, без компромиссов». Стоя планшет объявляет ширину 430 точек и
+ // рисует телефонный экран, увеличенный; боком — колонка телефона 430 по
+ // центру на всю высоту. Проверка сравнивает с настоящим телефоном той же
+ // логической высоты: опорные блоки обязаны стоять там же, до 2 точек.
+ const anchors=['.top-header','.scene','.soft-hero-foot .scene-action','.soft-catalog-head','.soft-carousel','.soft-archive-row',
+  '.page-heading','.post-list>.post-card','.post-cover','.voice-hero,.voice-header','.player-stage','.player-title','.podcast-toggle',
+  '.live-orb','.live-stage','.settings-panel','.tt-reader-page','.bottom-nav'];
+ const frame=(page)=>page.evaluate((anchors)=>{
+  const body=document.body.getBoundingClientRect();
+  const at={};for(const sel of anchors){const n=document.querySelector(sel);if(!n||getComputedStyle(n).display==='none')continue;
+   const b=n.getBoundingClientRect();if(!b.width&&!b.height)continue;
+   at[sel]=[Math.round(b.left-body.left),Math.round(b.top-body.top),Math.round(b.width),Math.round(b.height)];}
+  // Всё fixed — внутри колонки: панель, плеер, окна, подсказки.
+  const out=[];for(const n of document.querySelectorAll('body *')){const st=getComputedStyle(n);if(st.position!=='fixed'||st.display==='none'||st.visibility==='hidden')continue;
+   const b=n.getBoundingClientRect();if(!b.width||!b.height)continue;
+   if(b.left<body.left-2||b.right>body.right+2)out.push((n.className&&typeof n.className==='string'?n.className.split(' ')[0]:n.tagName)+' '+Math.round(b.left)+'…'+Math.round(b.right));}
+  const nav=document.querySelector('.bottom-nav'),navTop=nav&&getComputedStyle(nav).display!=='none'?nav.getBoundingClientRect().top:innerHeight;
+  const names=[...document.querySelectorAll('.soft-reel>li strong')].map(n=>n.getBoundingClientRect()).filter(b=>b.right>body.left&&b.left<body.right);
+  const hidden=names.length?Math.round(Math.max(...names.map(b=>b.bottom))-navTop):0;
+  const metas=[...document.querySelectorAll('meta[name=viewport]')].map(m=>m.content).join(' | ')+' tablet='+document.documentElement.hasAttribute('data-tt-tablet')+' fullscreen='+!!document.fullscreenElement;
+  return {metas,hidden,width:document.documentElement.clientWidth,body:[Math.round(body.left),Math.round(body.width),Math.round(body.height)],at,out};
+ },anchors);
+ const inspectTablet=async(page,where,w,h,phone)=>{
+  const t=await frame(page),p=await frame(phone);
+  const want=w<h?Math.max(430,Math.min(700,Math.ceil(560/(h/w-7/15)))):430;
+  if(Math.abs(t.body[1]-want)>1)note(where+': колонка приложения '+t.body[1]+' точек вместо '+want+' — это не телефонный экран');
+  if(w<h&&Math.abs(t.width-want)>1)note(where+': стоя ширина экрана '+t.width+' вместо '+want+' — планшет рисует не телефон, а свою раскладку'+(process.env.TT_PHONES_DEBUG?' [meta: '+t.metas+']':''));
+  // Первый экран главной как у телефона: названия под карточками карусели
+  // над нижней панелью, а не под ней.
+  if(t.hidden>2)note(where+': названия под карточками карусели уходят под нижнюю панель на '+t.hidden+' точек — первый экран главной не помещается');
+  for(const x of t.out)note(where+': «'+x+'» вылезает из колонки телефона');
+  for(const sel of anchors){const a=t.at[sel],b=p.at[sel];
+   if(!a&&!b)continue;
+   if(!a||!b){note(where+': «'+sel+'» '+(a?'есть на планшете, но нет на телефоне':'есть на телефоне, но нет на планшете'));continue;}
+   const d=Math.max(...a.map((v,k)=>Math.abs(v-b[k])));
+   if(d>2)note(where+': «'+sel+'» не как на телефоне: '+a.join(',')+' против '+b.join(',')+' (x,y,ширина,высота)');}
  };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
  const views=[['главная','/?mode=listen'],['слушать','/?mode=listen&view=podcasts'],['видео','/?mode=listen&view=videos'],
@@ -225,18 +216,25 @@ try{
  // 14,6" — 924×1480 стоя и 1480×924 боком.
  const tablets=[[800,1280],[834,1194],[1024,1366],[924,1480],[1280,800],[1194,834],[1366,1024],[1480,924]];
  const runTablet=async(w,h,lang,list,shots)=>{
-  const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  const ctx=await browser.newContext({viewport:{width:w,height:h},screen:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
   const page=await ctx.newPage();page.on('pageerror',e=>note(lang+' планшет '+w+'×'+h+': ошибка на странице: '+e.message));
+  // Телефон той же логической ширины и высоты: стоя — та же ширина, что
+  // объявляет планшет (430–700), боком — колонка 430 × высота окна.
+  await page.goto(base+list[0][1]);await settle(page);
+  const narrow=w<h?Math.max(430,Math.min(700,Math.ceil(560/(h/w-7/15)))):430;
+  const tall=w<h?Math.round(narrow*h/w):await page.evaluate(()=>Math.round(document.body.getBoundingClientRect().height));
+  const pctx=await browser.newContext({viewport:{width:narrow,height:tall},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  const phone=await pctx.newPage();
   for(const [name,url] of list){
-   await page.goto(base+url);
-   if(process.env.TT_PHONES_CSS)await page.addStyleTag({content:process.env.TT_PHONES_CSS});
+   await page.goto(base+url);await phone.goto(base+url);
+   if(process.env.TT_PHONES_CSS){await page.addStyleTag({content:process.env.TT_PHONES_CSS});}
    if(process.env.TT_PHONES_JS)await page.evaluate(process.env.TT_PHONES_JS);
-   await settle(page);screens++;
+   await settle(page);await settle(phone);await page.waitForTimeout(200);await phone.waitForTimeout(200);screens++;
    await inspect(page,lang+' планшет '+w+'×'+h+' '+name,lang);
-   await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h);
+   await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h,phone);
    if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-${name}.png`)});
   }
-  await ctx.close();
+  await pctx.close();await ctx.close();
  };
  if(process.env.TT_PHONES_TABLETS==='only'){
   const only=process.env.TT_PHONES_SIZE;const pick=process.env.TT_PHONES_VIEW;

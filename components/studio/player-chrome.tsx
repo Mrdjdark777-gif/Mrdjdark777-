@@ -96,10 +96,10 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  const swipeEnd=()=>{
   const from=swipeFrom.current;swipeFrom.current=null;
   setSwipe({x:0});
-  if(from?.axis==='horizontal'&&swipeCloses(from.dx,window.innerWidth)){haptic();act.close();}
+  if(from?.axis==='horizontal'&&swipeCloses(from.dx,document.body.clientWidth||window.innerWidth)){haptic();act.close();}
  };
  if(!expanded)return <section className={'podcast-player is-mini'+(swipe.x?' is-swiping':'')}
-  style={swipe.x?{transform:'translateX('+swipe.x+'px)',opacity:swipeFade(swipe.x,window.innerWidth)}:undefined}
+  style={swipe.x?{transform:'translateX('+swipe.x+'px)',opacity:swipeFade(swipe.x,document.body.clientWidth||window.innerWidth)}:undefined}
   onTouchStart={swipeStart} onTouchMove={swipeMove} onTouchEnd={swipeEnd} onTouchCancel={swipeEnd}
   onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
   {children}

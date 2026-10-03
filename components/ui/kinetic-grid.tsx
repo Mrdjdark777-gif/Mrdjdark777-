@@ -43,6 +43,7 @@ export function KineticGrid(){
  const lifted=useRef(0);
  const raf=useRef(0);
  const size=useRef({w:0,h:0});
+ const left=useRef(0);
 
  useEffect(()=>{
   const canvas=canvasRef.current;
@@ -55,7 +56,12 @@ export function KineticGrid(){
 
   const resize=()=>{
    const dpr=Math.min(2,window.devicePixelRatio||1);
-   const w=window.innerWidth,h=window.innerHeight;
+   // Ширина — колонки приложения (body), а не окна. На телефоне это одно и
+   // то же; на планшете боком приложение — колонка телефона по центру, и
+   // холст во всю ширину окна растягивался бы в неё. Касания приходят в
+   // координатах окна, поэтому левый край колонки запоминаем и вычитаем.
+   const w=document.body.clientWidth||window.innerWidth,h=window.innerHeight;
+   left.current=document.body.getBoundingClientRect().left;
    size.current={w,h};
    canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
    canvas.style.width=w+'px';canvas.style.height=h+'px';
@@ -169,11 +175,11 @@ export function KineticGrid(){
   const onDown=(e:PointerEvent)=>{
    const target=e.target as HTMLElement|null;
    if(!target||target.closest(interactive))return;
-   pointer.current={x:e.clientX,y:e.clientY,down:true};
-   eased.current={x:e.clientX,y:e.clientY};
+   pointer.current={x:e.clientX-left.current,y:e.clientY,down:true};
+   eased.current={x:e.clientX-left.current,y:e.clientY};
    grip.current=1;
-   trail.current={at:performance.now(),x:e.clientX,y:e.clientY};
-   if(!calm.matches)ripples.current.push({x:e.clientX,y:e.clientY,born:performance.now(),push:RIPPLE_PUSH});
+   trail.current={at:performance.now(),x:e.clientX-left.current,y:e.clientY};
+   if(!calm.matches)ripples.current.push({x:e.clientX-left.current,y:e.clientY,born:performance.now(),push:RIPPLE_PUSH});
    wake();
   };
   /**
@@ -193,8 +199,8 @@ export function KineticGrid(){
    ripples.current.push({x,y,born:now,push:TRAIL_PUSH});
    wake();
   };
-  const onMove=(e:PointerEvent)=>{if(pointer.current.down)track(e.clientX,e.clientY);};
-  const onTouch=(e:TouchEvent)=>{const t=e.touches[0];if(t)track(t.clientX,t.clientY);};
+  const onMove=(e:PointerEvent)=>{if(pointer.current.down)track(e.clientX-left.current,e.clientY);};
+  const onTouch=(e:TouchEvent)=>{const t=e.touches[0];if(t)track(t.clientX-left.current,t.clientY);};
   const onUp=()=>{if(!pointer.current.down)return;pointer.current.down=false;lifted.current=performance.now();wake();};
   const onHide=()=>{if(document.hidden){cancelAnimationFrame(raf.current);raf.current=0;ripples.current=[];pointer.current.down=false;grip.current=0;eased.current={x:-9999,y:-9999};draw(performance.now());}};
 
