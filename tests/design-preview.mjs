@@ -779,12 +779,21 @@ try{
  {await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(200);
   const onPhone=await page.locator('a[href="/login"]').count();
   if(onPhone)problems.push('на телефоне в настройках остался вход в студию');
-  const was=page.viewportSize();
-  await page.setViewportSize({width:1280,height:900});
-  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(300);
-  const onDesk=await page.locator('a[href="/login"]').count();
+  // ПК — это мышь, а не ширина: телефон, растянутый до 1280, остаётся
+  // сенсорным экраном, то есть планшетом, и студии там не место. Поэтому
+  // ПК — отдельное окно без касаний.
+  const pc=await browser.newContext({viewport:{width:1280,height:900}});
+  const pcPage=await pc.newPage();
+  await pcPage.goto(base+'/?mode=listen&view=settings');await settle(pcPage);await pcPage.waitForTimeout(300);
+  const onDesk=await pcPage.locator('a[href="/login"]').count();
   if(!onDesk)problems.push('на ПК вход в студию пропал вместе с телефонным');
-  if(was)await page.setViewportSize(was);
+  await pc.close();
+  // А на сенсорном планшете той же ширины входа нет: студия — только ПК.
+  const tab=await browser.newContext({viewport:{width:1280,height:800},isMobile:true,hasTouch:true});
+  const tabPage=await tab.newPage();
+  await tabPage.goto(base+'/?mode=listen&view=settings');await settle(tabPage);await tabPage.waitForTimeout(300);
+  if(await tabPage.locator('a[href="/login"]').count())problems.push('на сенсорном планшете 1280 в настройках вход в студию — студия только для ПК');
+  await tab.close();
   await page.goto(base+'/?mode=listen');await settle(page);}
  await page.goto(base+'/?mode=listen');await settle(page);
 
@@ -1546,9 +1555,14 @@ try{
    await page.goto(base+'/?mode=listen&view=live');await settle(page);}
   // Большой экран: у слушателя нет колонки с подсказками автору, и без правки
   // столбец эфира уезжал на 149 пикселей левее середины страницы.
+  // Монитор — окно ПК с мышью: растянутый телефон теперь планшет, и у него
+  // своя раскладка приложения.
+  const monitor=await browser.newContext({viewport:{width:1280,height:900}});
+  const screen=await monitor.newPage();
+  await screen.goto(base+'/?mode=listen&view=live');await settle(screen);
   for(const width of [1280,1920]){
-   await page.setViewportSize({width,height:900});await page.waitForTimeout(200);
-   const wide=await page.evaluate(()=>{const mid=e=>{const r=e.getBoundingClientRect();return r.left+r.width/2;};
+   await screen.setViewportSize({width,height:900});await screen.waitForTimeout(200);
+   const wide=await screen.evaluate(()=>{const mid=e=>{const r=e.getBoundingClientRect();return r.left+r.width/2;};
     const main=document.querySelector('.main-content'),stage=document.querySelector('.live-stage'),
      card=document.querySelector('.live-archive-card'),rings=document.querySelector('.live-rings');
     if(!main||!stage||!card||!rings)return null;
@@ -1560,7 +1574,7 @@ try{
     if(wide.card>620)problems.push('эфир '+width+': карточка архива растянута на '+wide.card+'px');
     if(wide.ring<320)problems.push('эфир '+width+': круг всего '+wide.ring+'px на мониторе');
    }}
-  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(150);
+  await monitor.close();
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
  // Эфир идёт: статус в базе без потока — для вёрстки этого достаточно.
  const start=await fetch(base+'/api/live',{method:'POST',headers:{cookie,'content-type':'application/json',origin:base},body:JSON.stringify({action:'start',title:'Истории после заката',coverKey:await demoCover('tile-mountains.jpg')})});const startText=await start.text();assert.equal(start.status,200,startText);
