@@ -77,6 +77,17 @@ export function draftFile(file?:Blob|null):Promise<Blob|null>{return new Promise
  * точек на каждую плитку. Для полноэкранных мест ширина не указывается: там
  * нужен оригинал.
  */
+/**
+ * Картинка для уведомления о воспроизведении: шторка и экран блокировки.
+ *
+ * Что именно показать, решает сервер (/api/cover?id=notify:…): загружен «Фон
+ * уведомлений» — он, иначе обложка того, что играет, иначе знак канала. Так
+ * велел владелец. Адрес не зависит от настройки, поэтому замена картинки в
+ * студии не требует ни пересборки приложения, ни нового адреса.
+ * 960 — уменьшенная копия: шторке больше не нужно, а оригинал на 12 МБ
+ * телефон тянул бы ради карточки шириной в экран.
+ */
+export const notifySrc=(id:string)=>'/api/cover?id=notify:'+encodeURIComponent(id)+'&w=960';
 export function coverSrc(post:{id:string;coverKey?:string|null;coverUrl?:string|null},width?:number){
  if(post.coverKey)return '/api/cover?id='+encodeURIComponent(post.id)+'&v='+encodeURIComponent(post.coverKey.replace(/^cover\//,''))+
   (width?'&w='+width:'');

@@ -396,7 +396,7 @@ export const it: Record<keyof typeof ru, string> = {
   'settings.posterPick': "Scegli cosa aprire toccando il poster",
   'settings.posterNone': "Nessun poster — nella home c'è la copertina della puntata.",
   'settings.posterNote': "Tieni l'essenziale tra 90 e 1710 in larghezza e tra 200 e 780 in altezza; lascia vuoti gli angoli in alto: lì ci sono l'etichetta e il pulsante «…». Il poster è legato alla puntata scelta: se ne scegli un'altra, caricane uno nuovo.",
-  'settings.artText': "L'immagine appare nella notifica di riproduzione in background — come la copertina di un album sulla schermata di blocco. Il banner del tuo canale va bene.",
+  'settings.artText': "L'immagine nella tendina delle notifiche e sulla schermata di blocco mentre qualcosa è in riproduzione. Se caricata, appare per tutte le puntate e le dirette. Se non c'è, nella tendina appare la copertina di ciò che sta suonando.",
   'settings.artUpload': 'Carica immagine',
   'settings.artRemove': 'Rimuovi l\'immagine',
   'settings.artRemoved': 'Immagine rimossa',

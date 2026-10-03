@@ -407,6 +407,33 @@ try {
   assert.equal(cr.status, 200);
   assert.equal(await cr.text(), 'channl');
 
+  // Картинка шторки уведомлений. Правило владельца: загружен «Фон
+  // уведомлений» — он у всего, что играет; не загружен — обложка того, что
+  // играет; нет и её — знак канала.
+  {
+   const upload = async (text) => (await (await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': String(text.length) }, body: new Blob([text]).stream(), duplex: 'half' })).json()).key;
+   const covered = await request('library', { kind: 'video', title: 'Шторка с обложкой', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: await upload('epcover'), published: true });
+   const bare = await request('library', { kind: 'video', title: 'Шторка без обложки', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
+   const hidden = await request('library', { kind: 'video', title: 'Шторка черновик', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: await upload('drcover'), published: false });
+   const notify = (id, signed = false) => dispatch('cover', { search: '?id=' + encodeURIComponent('notify:' + id), ...(signed ? { headers: { cookie: ownerCookie } } : {}) });
+   await request('library', { action: 'channelArt', key: '' });
+   let r = await notify(covered.data.id);
+   assert.equal(r.status, 200, 'без фона уведомлений шторка не получила обложку выпуска');
+   assert.equal(await r.text(), 'epcover', 'без фона уведомлений в шторке не обложка выпуска');
+   assert.match(r.headers.get('cache-control'), /no-store/, 'картинка шторки кэшируется — замена фона уведомлений не будет видна');
+   r = await notify(bare.data.id);
+   assert.equal(r.status, 302, 'ни фона, ни обложки — шторка должна получить знак канала, а не пустоту');
+   assert.match(r.headers.get('location'), /\/brand\/logo\.png/, 'вместо знака канала шторка получила '+r.headers.get('location'));
+   assert.equal((await notify(hidden.data.id)).status, 404, 'обложка черновика ушла в шторку постороннему');
+   await request('library', { action: 'channelArt', key: artKey });
+   for (const p of [covered, bare]) {
+    r = await notify(p.data.id);
+    assert.equal(r.status, 200);
+    assert.equal(await r.text(), 'channl', 'фон уведомлений загружен, а в шторке «' + p.data.id + '» не он');
+   }
+   for (const p of [covered, bare, hidden]) await request('library', { action: 'delete', id: p.data.id });
+  }
+
   // Постер главной. Загружается отдельно от обложки выпуска и привязан к
   // выпуску, который открывается нажатием на него.
   {
@@ -528,10 +555,16 @@ try {
    const fallback = await dispatch('cover', { search: '?id=live:' + liveRes.data.id });
    assert.equal(fallback.status, 200, 'эфир без своей обложки должен получать картинку канала');
    assert.equal(await fallback.text(), 'channl', 'подставилась не картинка канала');
+   // Шторка эфира: фон уведомлений загружен — он, а не обложка эфира.
+   const liveNotify = await dispatch('cover', { search: '?id=' + encodeURIComponent('notify:live:' + liveRes.data.id) });
+   assert.equal(liveNotify.status, 200);
+   assert.equal(await liveNotify.text(), 'channl', 'в шторке эфира не фон уведомлений');
    // А если и оформления канала нет — отдавать нечего.
    await request('library', { action: 'channelArt', key: '' });
    assert.equal((await dispatch('cover', { search: '?id=live:' + liveRes.data.id })).status, 404,
     'без обложки эфира и без оформления канала ответа быть не должно');
+   assert.equal((await dispatch('cover', { search: '?id=' + encodeURIComponent('notify:live:' + liveRes.data.id) })).status, 302,
+    'эфир без обложки и без фона уведомлений — шторка должна получить знак канала');
    await request('library', { action: 'channelArt', key: artKey });
   }
   assert.equal((await request('live', { action: 'start', title: 'Bad cover', coverKey: 'audio/not-a-cover' })).status, 400);
@@ -541,6 +574,14 @@ try {
   const shownCover = await dispatch('cover', { search: '?id=live:' + withArt.data.id });
   assert.equal(shownCover.status, 200);
   assert.equal(await shownCover.text(), 'live');
+  {
+   // Фона уведомлений нет — в шторке эфира его собственная обложка.
+   await request('library', { action: 'channelArt', key: '' });
+   const own = await dispatch('cover', { search: '?id=' + encodeURIComponent('notify:live:' + withArt.data.id) });
+   assert.equal(own.status, 200);
+   assert.equal(await own.text(), 'live', 'без фона уведомлений в шторке эфира не его обложка');
+   await request('library', { action: 'channelArt', key: artKey });
+  }
   await request('live', { action: 'stop', id: withArt.data.id });
 
   await request('library', { action: 'delete', id: p.data.id });

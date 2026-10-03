@@ -355,7 +355,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.posterPick": "Alege ce se deschide la atingerea posterului",
   "settings.posterNone": "Nu există poster — în cadru e coperta episodului.",
   "settings.posterNote": "Ține esențialul între 90 și 1710 pe lățime și între 200 și 780 pe înălțime; lasă goale colțurile de sus: acolo sunt eticheta și butonul «…». Posterul e legat de episodul ales — dacă alegi altul, încarcă unul nou pentru el.",
-  "settings.artText": "Imaginea apare în notificarea de redare în fundal — ca o copertă de album pe ecranul blocat. Bannerul canalului tău este potrivit.",
+  "settings.artText": "Imaginea din bara de notificări și de pe ecranul blocat cât timp se redă ceva. Dacă e încărcată, apare la toate episoadele și transmisiunile. Dacă nu, în bară apare coperta a ceea ce se redă.",
   "settings.artUpload": "Încarcă o imagine",
   "settings.artRemove": "Șterge imaginea",
   "settings.artRemoved": "Imagine ștearsă",

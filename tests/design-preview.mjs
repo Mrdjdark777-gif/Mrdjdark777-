@@ -691,6 +691,30 @@ try{
    if(c.режим!=='cover')problems.push(name+' у слушателя: обложка «'+c.title+'» вписана с полями (object-fit: '+c.режим+'), а не заполняет плашку');
    if(c.высота<1.24)problems.push(name+' у слушателя: плашка обложки «'+c.title+'» ниже 4:5 (высота/ширина '+c.высота.toFixed(2)+')');
   }}
+ // Картинка в шторке уведомлений. Плеер не выбирает её сам, а просит у
+ // сервера адрес notify:<выпуск> — там правило владельца: загружен «Фон
+ // уведомлений» — он, иначе обложка того, что играет. Проверяем, что оба
+ // плеера просят именно этот адрес: нативный (APK) — в команде player.load,
+ // браузерный — в карточке медиасессии.
+ {const app=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+  await app.addInitScript(()=>{const bridge={onmessage:null,postMessage(text){const r=JSON.parse(text);
+   if(r.method==='player.load')window.__load=r.args;
+   setTimeout(()=>bridge.onmessage?.({data:JSON.stringify({id:r.id,data:{id:r.args?.id||'',active:true,playing:false,loading:false,position:0,duration:90000,rate:1,sleepUntil:0}})}),0);}};
+   window.TrueThrillsNative=bridge;});
+  const ap=await app.newPage();
+  await ap.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);
+  const load=await ap.waitForFunction(()=>window.__load,null,{timeout:10000}).then(h=>h.jsonValue(),()=>null);
+  if(!load)problems.push('шторка: приложение не загрузило выпуск в нативный плеер — картинку проверить не на чем');
+  else if(!decodeURIComponent(String(load.cover||'')).includes('/api/cover?id=notify:'+podcast.id))
+   problems.push('шторка в приложении: плеер отдаёт картинку «'+load.cover+'», а не выбор сервера notify:<выпуск> — фон уведомлений не встанет');
+  await app.close();
+  const web=await browser.newContext({viewport:{width:390,height:844}});
+  const wp=await web.newPage();
+  await wp.goto(base+'/?mode=listen&view=podcasts&post='+podcast.id);
+  const art=await wp.waitForFunction(()=>navigator.mediaSession?.metadata?.artwork?.[0]?.src,null,{timeout:10000}).then(h=>h.jsonValue(),()=>'');
+  if(!decodeURIComponent(String(art)).includes('/api/cover?id=notify:'+podcast.id))
+   problems.push('шторка в браузере: в карточке медиасессии «'+(art||'ничего')+'», а не выбор сервера notify:<выпуск>');
+  await web.close();}
  // Постер на главной опущен ближе к кнопке, кнопка — на прежнем месте.
  // Владелец: «обложку опусти немного ниже, чтоб она была ближе к кнопке
  // читать, кнопку оставь на том же месте». Место кнопки держит замок

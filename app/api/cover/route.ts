@@ -28,6 +28,25 @@ export async function GET(req: Request) {
     else if (id === 'calm') { key = (await setting('calmArt')) || null; isPublic = true; }
     // Постер главной: его видит каждый, кто открыл приложение.
     else if (id === 'hero') { key = (await setting('heroArt')) || null; isPublic = true; }
+    // Картинка для уведомления о воспроизведении (шторка, экран блокировки).
+    // Правило владельца: загрузил «Фон уведомлений» — он стоит у всего, что
+    // играет; не загрузил — обложка того, что играет. Решает сервер, а не
+    // приложение: так одинаково и в браузере, и в уже установленном APK, и
+    // замена картинки в студии не требует ничего пересобирать.
+    else if (id.startsWith('notify:')) {
+      const target = id.slice(7);
+      key = (await setting('channelArt')) || null; isPublic = true;
+      if (!key && target.startsWith('live:')) {
+        key = (await getDb().select().from(broadcasts).where(eq(broadcasts.id, target.slice(5))).get())?.coverKey ?? null;
+      } else if (!key) {
+        const p = await getDb().select().from(posts).where(eq(posts.id, target)).get();
+        key = p?.coverKey ?? null; isPublic = !!p?.published;
+        if (!isPublic && !(await owner(req))) return new Response('#err.notFound', { status: 404 });
+      }
+      // Ни картинки, ни обложки — знак канала, как было: пустая карточка в
+      // шторке выглядит поломкой.
+      if (!key) return new Response(null, { status: 302, headers: { Location: '/brand/logo.png?v=0.4.1', 'Cache-Control': 'no-store' } });
+    }
     // Обложка конкретного эфира: сам эфир публичный, значит и она тоже.
     else if (id.startsWith('live:')) {
       const b = await getDb().select().from(broadcasts).where(eq(broadcasts.id, id.slice(5))).get();
@@ -57,7 +76,7 @@ export async function GET(req: Request) {
     // держать в кэше сутки. Оформление канала и картинка круга покоя живут
     // под одним адресом и меняются — закэшированное на сутки изображение
     // возвращалось даже после замены, пока кэш не истечёт.
-    const single = id === 'channel' || id === 'calm' || id === 'hero';
+    const single = id === 'channel' || id === 'calm' || id === 'hero' || id.startsWith('notify:');
     // Черновик виден только автору, и его обложка не должна оседать в общих
     // кэшах: прежний `public, max-age=86400` разрешал прокси или CDN отдать
     // её кому угодно, кто спросит тот же адрес. Ответ приватный — значит и

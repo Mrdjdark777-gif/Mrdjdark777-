@@ -2,7 +2,7 @@
 import {useEffect,useState,type RefObject} from 'react';
 import {nativeCall} from '@/lib/native-client';
 import {readProgress,saveProgress} from '@/lib/listening-progress';
-import {errorText} from '@/lib/client';
+import {errorText,notifySrc} from '@/lib/client';
 import {PlayerChrome} from './player-chrome';
 import {presentation} from '@/lib/player-presentation';
 import {useT} from '@/components/i18n-provider';
@@ -27,7 +27,7 @@ export function NativePodcastPlayer({src,title,duration=0,cover,note,archived,on
   // там экран пересоздали, а звук всё это время шёл, и трогать его нельзя.
   const saved=from==='resume'?readProgress().find(p=>p.id===id):undefined;
   const position=from==='keep'?undefined:from==='resume'?Math.max(0,saved?.position??0)*1000:0;
-  void nativeCall<NativePlayerState>('player.load',{id,title,autoplay,...(cover?{cover:new URL(cover,location.origin).toString()}:{}),...(position===undefined?{}:{position})}).then(receive).catch(e=>{if(active)setMessage(errorText(e));});
+  void nativeCall<NativePlayerState>('player.load',{id,title,autoplay,cover:new URL(notifySrc(id),location.origin).toString(),...(position===undefined?{}:{position})}).then(receive).catch(e=>{if(active)setMessage(errorText(e));});
   const poll=async()=>{if(inFlight||document.hidden)return;inFlight=true;try{receive(await nativeCall<NativePlayerState>('player.state'));}catch(e){if(active)setMessage(errorText(e));}finally{inFlight=false;}};
   const timer=setInterval(()=>void poll(),1000);return()=>{active=false;clearInterval(timer);};
  },[id,title,cover,autoplay,from]);

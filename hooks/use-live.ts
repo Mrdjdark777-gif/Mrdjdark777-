@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import type Hls from 'hls.js';
 import {toast} from 'sonner';
-import {api,errorText} from '@/lib/client';
+import {api,errorText,notifySrc} from '@/lib/client';
 import {hasNativeClient,nativeCall} from '@/lib/native-client';
 import {t} from '@/lib/i18n/runtime';
 import {BANDS,FFT_SIZE,spectrum} from '@/lib/spectrum';
@@ -133,11 +133,9 @@ export function useLive(){
    const attach=async()=>{
     if(attached||gen!==generation.current)return;attached=true;
     if(native.current){
-     // Своя обложка эфира важнее картинки канала: на экране блокировки
-     // человек видит именно её. Раньше здесь всегда стоял channel art, и
-     // карточка любого эфира выглядела одинаково. Если у эфира обложки нет,
-     // маршрут сам отдаёт 404, и остаётся общая картинка канала.
-     const cover=location.origin+'/api/cover?id=live:'+id;
+     // Картинку для шторки выбирает сервер по правилу владельца: загружен
+     // «Фон уведомлений» — он, иначе своя обложка эфира, иначе знак канала.
+     const cover=location.origin+notifySrc('live:'+id);
      await nativeCall('player.live',{id,title,peer:p.id,token:p.token,autoplay,cover});if(gen!==generation.current)return;await nativeCall('player.volume',{value:volumeRef.current/100});startMeter(null);return;}
     const el=new Audio();audio.current=el;el.volume=volumeRef.current/100;el.crossOrigin='anonymous';startMeter(el);
     el.onplaying=()=>{if(gen!==generation.current)return;setListening(true);setConnecting(false);setPhase('playing');setStatus(t('liveHook.listening'));};
@@ -158,7 +156,7 @@ export function useLive(){
      client.on(Hls.Events.ERROR,(_event,data)=>{if(gen!==generation.current||!data.fatal)return;if(recoveries++<3){if(data.type===Hls.ErrorTypes.NETWORK_ERROR)client.startLoad();else if(data.type===Hls.ErrorTypes.MEDIA_ERROR)client.recoverMediaError();else endViewer('error',t('liveHook.playFailed'));}else endViewer('error',t('liveHook.playFailed'));});
      client.loadSource(url);client.attachMedia(el);
     }
-    if('mediaSession'in navigator){navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills'});navigator.mediaSession.setActionHandler('play',()=>void resume());navigator.mediaSession.setActionHandler('pause',pause);}
+    if('mediaSession'in navigator){navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills',artwork:[{src:location.origin+notifySrc('live:'+id)}]});navigator.mediaSession.setActionHandler('play',()=>void resume());navigator.mediaSession.setActionHandler('pause',pause);}
    };
    const away=()=>typeof document!=='undefined'&&document.visibilityState==='hidden';
    const poll=async()=>{if(polling||gen!==generation.current)return;

@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState,type RefObject} from 'react';
-import {errorText} from '@/lib/client';
+import {errorText,notifySrc} from '@/lib/client';
 import {prepareAudioFile} from '@/lib/prepare-audio';
 import {hasNativeClient} from '@/lib/native-client';
 import {NativePodcastPlayer} from './native-podcast-player';
@@ -22,8 +22,9 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archi
  const local=useRef<HTMLAudioElement|null>(null),repairing=useRef(false),attempted=useRef(false),controller=useRef<AbortController|null>(null),objectUrl=useRef(''),wanted=useRef(autoplay),scrubbing=useRef(false),alive=useRef(true);
  const session=()=>{
   const el=local.current;if(!el||!('mediaSession'in navigator))return;
-  const art=cover?new URL(cover,location.origin).toString():location.origin+'/icon-512.png?v=0.4.1';
-  navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills',album:t('player.album'),artwork:[{src:art,sizes:cover?'':'512x512',type:cover?'':'image/png'}]});
+  // Картинку для шторки выбирает сервер: «Фон уведомлений», иначе обложка.
+  const art=new URL(postId?notifySrc(postId):cover||'/icon-512.png?v=0.4.1',location.origin).toString();
+  navigator.mediaSession.metadata=new MediaMetadata({title,artist:'True Thrills',album:t('player.album'),artwork:[{src:art}]});
   navigator.mediaSession.setActionHandler('play',()=>{wanted.current=true;void play();});
   navigator.mediaSession.setActionHandler('pause',()=>{wanted.current=false;el.pause();});
   navigator.mediaSession.setActionHandler('seekbackward',d=>seek(el.currentTime-(d.seekOffset??15)));
