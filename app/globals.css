@@ -2400,3 +2400,9 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  .podcast-player.is-open .player-body{gap:8px}
  .is-open .podcast-transport>.podcast-toggle{width:60px;height:60px}
 }
+/* Нижняя панель боком — ниже: подпись рядом со значком, а не под ним. На
+   лежачем экране высота дороже ширины, а ширины у пяти кнопок хватает. */
+@media (orientation:landscape) and (max-height:520px) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-height:520px) and (max-width:767px){
+ html.dark{--bottom-nav-h:58px}
+ .bottom-nav-item{flex-direction:row;gap:8px;min-height:42px;padding:6px 8px}
+}

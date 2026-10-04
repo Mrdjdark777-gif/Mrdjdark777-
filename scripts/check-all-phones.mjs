@@ -216,7 +216,17 @@ try{
  // кнопка воспроизведения и скорость с таймером над нижним краем.
  const inspectLandscape=async(page,where)=>{
   const r=await page.evaluate(()=>{const H=innerHeight,W=innerWidth,out=[];
-   const p=document.querySelector('.podcast-player.is-open');if(!p||W<=H)return out;
+   if(W<=H)return out;
+   // Главная боком: первый экран целиком, как стоя, — кнопка под постером и
+   // названия под карточками карусели над нижней панелью, без прокрутки.
+   // Раньше карусель уезжала под панель, и палец попадал в панель.
+   const nav=document.querySelector('.bottom-nav'),navTop=nav&&getComputedStyle(nav).display!=='none'?nav.getBoundingClientRect().top:H;
+   if(document.querySelector('.tt-soft-home')){const v=document.querySelector('.soft-carousel'),vr=v&&v.getBoundingClientRect();
+    const low=[...document.querySelectorAll('.soft-reel>li strong,.soft-hero-foot .scene-action')].map(n=>({n,b:n.getBoundingClientRect()}))
+     .filter(x=>x.b.width>0&&(!vr||!x.n.closest('.soft-reel')||x.b.right>vr.left&&x.b.left<vr.right));
+    const worst=low.length?Math.max(...low.map(x=>x.b.bottom)):0;
+    if(worst>navTop+1)out.push('первый экран главной не помещается: '+Math.round(worst-navTop)+' точек уходят под нижнюю панель');}
+   const p=document.querySelector('.podcast-player.is-open');if(!p)return out;
    for(const sel of ['.podcast-toggle','.player-extras','.player-title']){const n=p.querySelector(sel);if(!n)continue;const b=n.getBoundingClientRect();
     if(b.bottom>H+1||b.top<-1)out.push('«'+sel+'» за краем экрана: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при высоте '+H);}
    // Блоки управления не наезжают друг на друга: название сжималось до
@@ -236,6 +246,47 @@ try{
    return out;});
   for(const x of r)note(where+': '+x);
  };
+ // Карусель главной листается пальцем — на любом экране, стоя и боком.
+ // Владелец: «перевернул телефон горизонтально — карусель не работает».
+ // Бросок — как у пальца: касание, восемь шагов по 16 мс, отпускание, с
+ // метками времени (иначе инерции нет). После броска посередине должна встать
+ // другая карточка, ровно по центру окна, и карточки не наезжают друг на друга.
+ const checkCarousel=async(page,where)=>{
+  if(!await page.locator('.soft-carousel').count())return;
+  if(process.env.TT_PHONES_DEBUG)console.log('размеры',where,await page.evaluate(()=>{const q=s=>{const n=document.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect();return [Math.round(b.top),Math.round(b.bottom),Math.round(b.width)].join('/');};
+   return JSON.stringify({li:q('.soft-reel>li'),art:q('.soft-reel>li .soft-art'),name:q('.soft-reel>li strong'),car:q('.soft-carousel'),head:q('.soft-catalog-head'),nav:q('.bottom-nav'),hdr:q('.top-header'),scene:q('.tt-soft-home .scene'),foot:q('.soft-hero-foot'),card:getComputedStyle(document.querySelector('.tt-soft-home')).getPropertyValue('--tt-land-card')});}));
+  // Карусель докручивается до середины экрана: палец листает то, что видит.
+  await page.evaluate(()=>document.querySelector('.soft-carousel').scrollIntoView({block:'center'}));await page.waitForTimeout(400);
+  const look=()=>page.evaluate(()=>{const v=document.querySelector('.soft-carousel'),vr=v.getBoundingClientRect(),mid=vr.left+v.clientWidth/2;
+   const arts=[...v.querySelectorAll('.soft-reel>li .soft-art')].map((a,i)=>{const r=a.getBoundingClientRect();return {i,l:r.left,r:r.right,off:Math.abs(r.left+r.width/2-mid)};});
+   const best=arts.reduce((p,q)=>q.off<p.off?q:p);
+   const vis=arts.filter(a=>a.r>vr.left&&a.l<vr.right).sort((a,b)=>a.l-b.l);
+   const overlap=vis.slice(1).map((a,k)=>vis[k].r-a.l).filter(d=>d>1).map(Math.round);
+   const name=v.querySelectorAll('.soft-reel>li strong')[best.i]?.textContent.trim();
+   return {mid:best.i,name,off:Math.round(best.off*10)/10,overlap,width:Math.round(vr.width),top:Math.round(vr.top)};});
+  const a=await look();
+  const cdp=await page.context().newCDPSession(page);
+  const box=await page.locator('.soft-carousel').boundingBox();
+  // Медленно, на полторы карточки, с остановкой перед отпусканием — без
+  // инерции: так после броска посередине обязана встать соседняя карточка, а
+  // не та же самая, прокрученная полным кругом.
+  const card=await page.evaluate(()=>{const li=document.querySelectorAll('.soft-reel>li');return li[1].getBoundingClientRect().left-li[0].getBoundingClientRect().left;});
+  const y=Math.round(box.y+box.height*0.4);let x=Math.round(box.x+box.width/2+card),t=Date.now()/1000;
+  const steps=Math.ceil(card*1.5/10);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}],timestamp:t});
+  for(let i=0;i<steps;i++){x-=10;t+=0.03;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}],timestamp:t});}
+  for(let i=0;i<6;i++){t+=0.03;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}],timestamp:t});}
+  t+=0.03;await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[],timestamp:t});
+  await page.waitForTimeout(2200);
+  const b=await look();await cdp.detach().catch(()=>{});
+  if(process.env.TT_PHONES_DEBUG)console.log('карусель',where,JSON.stringify(a),JSON.stringify(b));
+  if(a.overlap.length)note(where+': карточки карусели наезжают друг на друга на '+a.overlap.join(', ')+' точек');
+  if(a.off>3)note(where+': карусель стоит не по центру: средняя карточка в '+a.off+' точках от середины');
+  if(b.name===a.name)note(where+': карусель не листается пальцем — после броска посередине та же карточка «'+a.name+'»');
+  else if(b.off>3)note(where+': карусель после броска не встала по центру ('+b.off+' точек)');
+  if(b.overlap.length)note(where+': после броска карточки карусели наезжают друг на друга на '+b.overlap.join(', ')+' точек');
+  await page.goto(page.url());await page.waitForLoadState('networkidle').catch(()=>{});
+ };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
  const views=[['главная','/?mode=listen'],['слушать','/?mode=listen&view=podcasts'],['видео','/?mode=listen&view=videos'],
   ['истории','/?mode=listen&view=stories'],['эфир','/?mode=listen&view=live'],['настройки','/?mode=listen&view=settings'],
@@ -254,6 +305,7 @@ try{
    await inspect(page,lang+' '+w+'×'+h+' '+name,lang);
    await inspectLandscape(page,lang+' '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`${lang}-${w}x${h}-${name}.png`)});
+   if(name==='главная'&&lang==='ru')await checkCarousel(page,lang+' '+w+'×'+h+' главная');
   }
   await ctx.close();
  };
@@ -301,6 +353,7 @@ try{
    await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h,phone);
    await inspectLandscape(page,'планшет '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-${name}.png`)});
+   if(name==='главная'&&lang==='ru')await checkCarousel(page,'планшет '+w+'×'+h+' главная');
    // Читалка — в настоящем полном экране, без часов и панелей Android. Браузер
    // пускает в него только по касанию, поэтому касаемся середины страницы, как
    // человек, — это заодно убирает панели читалки. Телефон — так же.
