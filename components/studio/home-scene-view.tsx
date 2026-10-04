@@ -30,8 +30,8 @@ const coverOf=(p:ScenePost)=>coverSrc(p);
  */
 const tileCover=(p:ScenePost)=>coverSrc(p,480);
 
-export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,onBrowse,liveAction,archive,support,links,appLink,pinned,poster,noHero}:{
- posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;onBrowse?:()=>void;liveAction:string;
+export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive,liveAction,archive,support,links,appLink,pinned,poster,noHero}:{
+ posts:T[];live:Live|null;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;liveAction:string;
  archive?:React.ReactNode;support:React.ReactNode;links?:React.ReactNode;appLink?:React.ReactNode;pinned?:string|null;
  /** Постер главной и выпуск, для которого он загружен. */
  poster?:{post:string;src:string}|null;
@@ -163,7 +163,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   {latest.length>0&&<section className="soft-catalog" aria-label={t('home.freshList')}>
    <div className="soft-catalog-head">
     <h3>{t('home.freshList')}</h3>
-    {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
    {/* Барабан: Embla двигает ленту переносом и переставляет крайние карточки
        на другой конец, поэтому края нет. Круг Embla включает, только когда

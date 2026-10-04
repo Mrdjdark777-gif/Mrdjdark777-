@@ -147,7 +147,6 @@ export const it: Record<keyof typeof ru, string> = {
   'home.emptyNote': "L'autore non ha ancora pubblicato nulla.",
   'home.fresh': 'nuovo',
   'home.freshList': "Novità",
-  'home.all': "Tutte",
   'home.supportTitle': "Sostieni il progetto",
   'home.supportNote': "Aiuta le nuove storie a farsi sentire",
   'home.socialsLabel': "Siamo sui social",

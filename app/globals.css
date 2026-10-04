@@ -2382,9 +2382,16 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
    нулевые, и раскладка телефона не меняется. */
 @media (max-width:767px),(hover:none) and (pointer:coarse){
  .listener-main{padding-left:calc(18px + env(safe-area-inset-left))!important;padding-right:calc(18px + env(safe-area-inset-right))!important}
- /* Главная без полей — постер от края до края; край здесь — граница
-    безопасной зоны, а не стекло под панелью. */
- .listener-main:has(.immersion){padding-left:env(safe-area-inset-left)!important;padding-right:env(safe-area-inset-right)!important}
+ /* Главная: постер — картинка, он идёт до самого края стекла, и под вырез
+    камеры тоже. Владелец показал, как постер, отодвинутый от выреза, давал
+    жёсткую вертикальную границу и тёмную полосу у камеры. От выреза
+    отступает только то, что надо прочесть и нажать: надпись в кадре,
+    кнопка, карусель и всё ниже. */
+ .listener-main:has(.immersion){padding-left:0!important;padding-right:0!important}
+ .immersion.tt-soft-home{padding-left:calc(16px + env(safe-area-inset-left))!important;padding-right:calc(16px + env(safe-area-inset-right))!important}
+ .tt-soft-home .scene{margin-left:calc(-16px - env(safe-area-inset-left))!important;margin-right:calc(-16px - env(safe-area-inset-right))!important;
+  width:calc(100% + 32px + env(safe-area-inset-left) + env(safe-area-inset-right))!important}
+ .immersion.tt-soft-home .scene .scene-copy{left:calc(20px + env(safe-area-inset-left))!important;right:calc(20px + env(safe-area-inset-right))!important}
  .bottom-nav{left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right))}
  .podcast-player.is-mini{left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right))}
  .podcast-player.is-open .player-sheet-top{padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right))}
@@ -2423,7 +2430,11 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 @media (max-width:767px),(hover:none) and (pointer:coarse){
  .is-listener .bottom-nav{border-top-color:transparent}
  .is-listener .bottom-nav::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:30px;pointer-events:none;
-  background:linear-gradient(to bottom,rgba(18,22,25,0),var(--background) 92%)}
+  /* Переход не по прямой, а по плавной кривой: у прямого перехода глаз
+     видит излом там, где он упирается в сплошную панель, — та самая «грань».
+     Длина та же, тени нет — мягче только сам стык. */
+  background:linear-gradient(to bottom,rgba(18,22,25,0) 0%,rgba(18,22,25,.06) 18%,rgba(18,22,25,.2) 36%,rgba(18,22,25,.42) 54%,
+   rgba(18,22,25,.66) 70%,rgba(18,22,25,.85) 84%,rgba(18,22,25,.96) 94%,var(--background) 100%)}
 }
 
 /* Заголовки «Видео» и «Истории» с подписью — по середине, стоя и боком.
@@ -2431,3 +2442,11 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
    середине, красиво и отцентровано». */
 .listener-main[data-view=videos] .page-heading,.listener-main[data-view=stories] .page-heading{align-items:center;text-align:center}
 .listener-main[data-view=videos] .page-heading>div,.listener-main[data-view=stories] .page-heading>div{display:flex;flex-direction:column;align-items:center;width:100%}
+
+/* Эфир в покое — надписи ближе друг к другу. Владелец: «слишком много
+   свободного места между надписями… чуть сгруппировать, но чтобы не
+   прилипло». Под кругом остаётся запас: в такт дыханию внешнее кольцо
+   вырастает на 11 % (≈16 точек) и не должно наезжать на «Вдох». */
+.listener-main .live-stage:not(.is-live){gap:10px}
+.listener-main .live-stage:not(.is-live) .breath-guide{margin-top:8px}
+.listener-main .live-stage:not(.is-live) .breath-note{margin-top:-2px}

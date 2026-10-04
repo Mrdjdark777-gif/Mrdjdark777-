@@ -117,7 +117,6 @@ export const uk: Record<keyof typeof ru, string> = {
   "home.emptyNote": "Автор ще не опублікував матеріали.",
   "home.fresh": "нове",
   "home.freshList": "Нове",
-  'home.all': "Усі",
   'home.supportTitle': "Підтримати проєкт",
   'home.supportNote': "Допомогти новим історіям звучати",
   'home.socialsLabel': "Ми в соцмережах",

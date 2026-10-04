@@ -146,7 +146,6 @@ export const ru = {
   'home.emptyNote': 'Автор ещё не опубликовал материалы.',
   'home.fresh': 'новое',
   'home.freshList': "Новое",
-  'home.all': "Все",
   'home.supportTitle': "Поддержать проект",
   'home.supportNote': "Помочь новым историям звучать",
   'home.socialsLabel': "Мы в соцсетях",

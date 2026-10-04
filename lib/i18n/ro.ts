@@ -117,7 +117,6 @@ export const ro: Record<keyof typeof ru, string> = {
   "home.emptyNote": "Autorul nu a publicat încă nimic.",
   "home.fresh": "nou",
   "home.freshList": "Noutăți",
-  'home.all': "Toate",
   'home.supportTitle': "Susține proiectul",
   'home.supportNote': "Ajută poveștile noi să răsune",
   'home.socialsLabel': "Suntem pe rețele",

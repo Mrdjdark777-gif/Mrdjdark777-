@@ -145,6 +145,18 @@ try{
     for(const sel of ['.page-heading h1','.page-heading .heading-description']){const n=document.querySelector(sel);if(!n)continue;
      const range=document.createRange();range.selectNodeContents(n);const b=range.getBoundingClientRect();
      if(Math.abs(b.left+b.width/2-mid)>3)found.push('«'+sel+'» не по середине: центр текста '+Math.round(b.left+b.width/2)+' при середине '+Math.round(mid));}}
+   // Эфир в покое: нижней «Поделиться» нет — она повторяла кнопку в шапке,
+   // которая делится тем же эфиром. Надписи под кругом сгруппированы, но
+   // кольцо, растущее в такт дыханию, на «Вдох» не наезжает.
+   {const calm=document.querySelector('.live-stage:not(.is-live)');
+    if(calm){if(calm.querySelector('.live-share'))found.push('в эфире без трансляции снова кнопка «Поделиться» под кругом — она повторяет кнопку в шапке');
+     const rings=calm.querySelector('.live-rings'),guide=calm.querySelector('.breath-guide'),note=calm.querySelector('.breath-note');
+     if(rings&&guide){const gap=guide.getBoundingClientRect().top-rings.getBoundingClientRect().bottom;
+      if(gap>24)found.push('под кругом эфира пустота '+Math.round(gap)+' точек до «Вдох» — владелец просил сгруппировать надписи');
+      if(gap<16)found.push('«Вдох» ближе '+Math.round(gap)+' точек к кругу — растущее в такт дыханию кольцо на него наедет');}
+     if(guide&&note){const gap=note.getBoundingClientRect().top-guide.getBoundingClientRect().bottom;
+      if(gap>14)found.push('между «Вдох» и подсказкой пустота '+Math.round(gap)+' точек');}}}
+   if(document.querySelector('.soft-all'))found.push('у карусели снова кнопка «Все» — владелец попросил её убрать');
    // Нижняя панель без резкой кромки: сверху не линия, а переход в её цвет.
    {const nb=document.querySelector('.is-listener .bottom-nav');
     if(nb&&vis(nb)){const c=getComputedStyle(nb),fade=getComputedStyle(nb,'::before');
@@ -383,11 +395,17 @@ try{
  const checkRotation=async(w,h)=>{
   const ctx=await browser.newContext({viewport:{width:w,height:h},screen:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:'ru-RU'});
   const page=await ctx.newPage();page.on('pageerror',e=>note('поворот '+w+'×'+h+': ошибка на странице: '+e.message));
-  await page.goto(base+'/?mode=listen');await settle(page);
+  await page.goto(base+'/?mode=listen');
+  if(process.env.TT_PHONES_CSS)await page.addStyleTag({content:process.env.TT_PHONES_CSS});
+  await settle(page);
   for(const [W,H,label,side] of [[h,w,'боком','left'],[h,w,'боком-вправо','right'],[w,h,'снова стоя','left']]){
    await rotate(page,W,H,side);screens++;
    const where='поворот '+w+'×'+h+' → '+label+' ('+W+'×'+H+')';
    await inspect(page,where,'ru');if(W>H)await inspectSafe(page,where,side,32);
+   // Постер — картинка, он идёт под вырез до самого края стекла: отодвинутый
+   // от выреза, он давал жёсткую границу и тёмную полосу у камеры.
+   if(W>H){const sc=await page.evaluate(()=>{const n=document.querySelector('.tt-soft-home .scene');if(!n)return null;const b=n.getBoundingClientRect();return {l:b.left,r:b.right,W:innerWidth};});
+    if(sc&&(sc.l>0.5||sc.r<sc.W-0.5))note(where+': постер не до края экрана ('+Math.round(sc.l)+'…'+Math.round(sc.r)+' из '+sc.W+') — у выреза жёсткая граница');}
    // Планшет после поворота пересчитывает ширину экрана — тем же масштабом.
    if(Math.min(w,h)>=600){const cw=await page.evaluate(()=>document.documentElement.clientWidth),[lw]=logical(W,H);
     if(Math.abs(cw-lw)>2)note(where+': после поворота ширина экрана '+cw+' вместо '+lw+' — планшет не пересчитал масштаб'+(process.env.TT_PHONES_DEBUG?' '+await page.evaluate(()=>JSON.stringify({sw:screen.width,sh:screen.height,iw:innerWidth,vv:visualViewport.scale,meta:[...document.querySelectorAll('meta[name=viewport]')].map(m=>m.content),tab:document.documentElement.hasAttribute('data-tt-tablet')})):''));}
