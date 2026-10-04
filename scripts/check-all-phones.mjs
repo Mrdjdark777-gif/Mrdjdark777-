@@ -65,7 +65,7 @@ try{
  // Всё, что автор написал сам, — чтобы отличить его текст от интерфейса.
  const corpus=[];
  ids.pod1=(await post({kind:'podcast',title:'Тишина',description:'Короткое.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tile-forest.jpg')})).id;
- ids.pod2=(await post({kind:'podcast',title:long,description:'Описание выпуска. '.repeat(12),audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tile-mountains.jpg')})).id;
+ ids.pod2=(await post({kind:'podcast',title:long,description:'Описание выпуска. '.repeat(12),audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tall-lake.jpg')})).id;
  ids.pod3=(await post({kind:'podcast',title:'Голос северного ветра',description:'Без обложки.',audioKey:await audio(),duration:seconds,published:true})).id;
  ids.vid=(await post({kind:'video',title:'Наедине с горами',description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')})).id;
  ids.vid2=(await post({kind:'video',title:long,description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-forest.jpg')})).id;
@@ -129,6 +129,14 @@ try{
     if((lang==='it'||lang==='ro')&&/[А-Яа-яЁё]/.test(t))stray.add(t.slice(0,50));
     if(lang==='uk'&&/[ыэъёЫЭЪЁ]/.test(t))stray.add(t.slice(0,50));}
    for(const t of stray)found.push('текст мимо словаря ('+lang+'): «'+t+'»');
+   // Фотография плеера — в своей рамке. Высокая обложка (постер 2:3) раньше
+   // вылезала ниже рамки и затемнения: под фотографией шла вторая полоса.
+   {const st=document.querySelector('.player-stage'),ph=st&&st.querySelector('.player-stage-photo');
+    if(ph&&vis(st)){const a=st.getBoundingClientRect(),b=ph.getBoundingClientRect();
+     // Рамка, которая обрезает лишнее, прячет и выступ — тогда его не видно.
+     const cut=/(hidden|clip)/.test(getComputedStyle(st).overflow);
+     if(!cut&&(b.bottom>a.bottom+1||b.top<a.top-1))
+      found.push('фотография плеера вылезает из рамки: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при рамке '+Math.round(a.top)+'…'+Math.round(a.bottom));}}
    // Последний блок не под нижней панелью.
    const nav=document.querySelector('.bottom-nav');
    return {found,navTop:nav&&vis(nav)?nav.getBoundingClientRect().top:null};},[lang,corpus.join(' ')]);
@@ -151,42 +159,82 @@ try{
  };
 
  // Планшет — тот же телефон. Владелец: «всё должно выглядеть так же, как на
- // телефоне, без компромиссов». Стоя планшет объявляет ширину 430 точек и
- // рисует телефонный экран, увеличенный; боком — колонка телефона 430 по
- // центру на всю высоту. Проверка сравнивает с настоящим телефоном той же
- // логической высоты: опорные блоки обязаны стоять там же, до 2 точек.
+ // телефоне, без компромиссов», а потом: «нормальное полноэкранное приложение
+ // в любом положении экрана». Стоя планшет объявляет телефонную ширину
+ // (430–700) и рисует телефонный экран, увеличенный; боком — тот же масштаб и
+ // весь экран в ширину. Проверка сравнивает с настоящим телефоном того же
+ // логического размера: опорные блоки обязаны стоять там же, до 2 точек.
  const anchors=['.top-header','.scene','.soft-hero-foot .scene-action','.soft-catalog-head','.soft-carousel','.soft-archive-row',
   '.page-heading','.post-list>.post-card','.post-cover','.voice-hero,.voice-header','.player-stage','.player-title','.podcast-toggle',
   '.live-orb','.live-stage','.settings-panel','.tt-reader-page','.bottom-nav'];
- const frame=(page)=>page.evaluate((anchors)=>{
-  const body=document.body.getBoundingClientRect();
-  const at={};for(const sel of anchors){const n=document.querySelector(sel);if(!n||getComputedStyle(n).display==='none')continue;
-   const b=n.getBoundingClientRect();if(!b.width&&!b.height)continue;
+ const frame=(page,reader=false)=>page.evaluate(([anchors,reader])=>{
+  // В полном экране планшет забывает meta viewport, и читалка возвращает
+  // себе телефонный вид увеличением (zoom) — замеры делим на него, чтобы
+  // сравнивать с телефоном в его точках.
+  const fs=!!document.fullscreenElement&&document.documentElement.hasAttribute('data-tt-tablet');
+  const z=fs&&document.documentElement.hasAttribute('data-tt-fs-zoom')?parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tt-fs-zoom'))||1:1;
+  const raw=document.body.getBoundingClientRect(),body={left:raw.left/z,top:raw.top/z,width:raw.width/z,height:raw.height/z,right:raw.right/z};
+  const box=(n)=>{const b=n.getBoundingClientRect();return {left:b.left/z,top:b.top/z,width:b.width/z,height:b.height/z,right:b.right/z,bottom:b.bottom/z};};
+  // Читалка в полном экране закрывает собою всё: сравниваем только её саму —
+  // страница под ней не видна и не увеличена.
+  const only=(reader||document.fullscreenElement)&&document.querySelector('.tt-reader');
+  const at={};for(const sel of anchors){const n=document.querySelector(sel);if(!n||getComputedStyle(n).display==='none'||only&&!only.contains(n))continue;
+   const b=box(n);if(!b.width&&!b.height)continue;
    at[sel]=[Math.round(b.left-body.left),Math.round(b.top-body.top),Math.round(b.width),Math.round(b.height)];}
   // Всё fixed — внутри колонки: панель, плеер, окна, подсказки.
-  const out=[];for(const n of document.querySelectorAll('body *')){const st=getComputedStyle(n);if(st.position!=='fixed'||st.display==='none'||st.visibility==='hidden')continue;
-   const b=n.getBoundingClientRect();if(!b.width||!b.height)continue;
+  const out=[];for(const n of document.querySelectorAll('body *')){const st=getComputedStyle(n);if(st.position!=='fixed'||st.display==='none'||st.visibility==='hidden'||only&&!only.contains(n))continue;
+   const b=box(n);if(!b.width||!b.height)continue;
    if(b.left<body.left-2||b.right>body.right+2)out.push((n.className&&typeof n.className==='string'?n.className.split(' ')[0]:n.tagName)+' '+Math.round(b.left)+'…'+Math.round(b.right));}
   const nav=document.querySelector('.bottom-nav'),navTop=nav&&getComputedStyle(nav).display!=='none'?nav.getBoundingClientRect().top:innerHeight;
   const names=[...document.querySelectorAll('.soft-reel>li strong')].map(n=>n.getBoundingClientRect()).filter(b=>b.right>body.left&&b.left<body.right);
   const hidden=names.length?Math.round(Math.max(...names.map(b=>b.bottom))-navTop):0;
   const metas=[...document.querySelectorAll('meta[name=viewport]')].map(m=>m.content).join(' | ')+' tablet='+document.documentElement.hasAttribute('data-tt-tablet')+' fullscreen='+!!document.fullscreenElement;
-  return {metas,hidden,width:document.documentElement.clientWidth,body:[Math.round(body.left),Math.round(body.width),Math.round(body.height)],at,out};
- },anchors);
+  return {metas,hidden,fs,width:document.documentElement.clientWidth,iw:innerWidth,body:[Math.round(body.left),Math.round(body.width),Math.round(body.height)],at,out};
+ },[anchors,reader]);
+ // Логический экран планшета: стоя — телефонная ширина 430–700, боком — тот
+ // же масштаб, а ширина вся. Та же формула, что в app/layout.tsx.
+ const logical=(w,h)=>{const small=Math.min(w,h),big=Math.max(w,h),narrow=Math.max(430,Math.min(700,Math.ceil(560/(big/small-7/15))));
+  return w<h?[narrow,Math.round(narrow*h/w)]:[Math.round(big*narrow/small),narrow];};
+ // phone — страница телефона или уже снятый с неё замер.
  const inspectTablet=async(page,where,w,h,phone)=>{
-  const t=await frame(page),p=await frame(phone);
-  const want=w<h?Math.max(430,Math.min(700,Math.ceil(560/(h/w-7/15)))):430;
-  if(Math.abs(t.body[1]-want)>1)note(where+': колонка приложения '+t.body[1]+' точек вместо '+want+' — это не телефонный экран');
-  if(w<h&&Math.abs(t.width-want)>1)note(where+': стоя ширина экрана '+t.width+' вместо '+want+' — планшет рисует не телефон, а свою раскладку'+(process.env.TT_PHONES_DEBUG?' [meta: '+t.metas+']':''));
-  // Первый экран главной как у телефона: названия под карточками карусели
-  // над нижней панелью, а не под ней.
-  if(t.hidden>2)note(where+': названия под карточками карусели уходят под нижнюю панель на '+t.hidden+' точек — первый экран главной не помещается');
-  for(const x of t.out)note(where+': «'+x+'» вылезает из колонки телефона');
+  const t=await frame(page),p=phone.at?phone:await frame(phone);
+  const [want]=logical(w,h);
+  // Приложение — на весь экран, без колонки и тёмных полей по бокам.
+  if(Math.abs(t.body[1]-want)>1)note(where+': приложение '+t.body[1]+' точек в ширину вместо '+want+(w<h?' — это не телефонный экран':' — не на весь экран'));
+  if(!t.fs&&Math.abs(t.width-want)>1)note(where+': ширина экрана '+t.width+' вместо '+want+' — планшет рисует не телефон, а свою раскладку'+(process.env.TT_PHONES_DEBUG?' [meta: '+t.metas+']':''));
+  // Первый экран главной как у телефона (стоя): названия под карточками
+  // карусели над нижней панелью, а не под ней.
+  if(w<h&&t.hidden>2)note(where+': названия под карточками карусели уходят под нижнюю панель на '+t.hidden+' точек — первый экран главной не помещается');
+  for(const x of t.out)note(where+': «'+x+'» вылезает за экран приложения');
   for(const sel of anchors){const a=t.at[sel],b=p.at[sel];
    if(!a&&!b)continue;
    if(!a||!b){note(where+': «'+sel+'» '+(a?'есть на планшете, но нет на телефоне':'есть на телефоне, но нет на планшете'));continue;}
    const d=Math.max(...a.map((v,k)=>Math.abs(v-b[k])));
    if(d>2)note(where+': «'+sel+'» не как на телефоне: '+a.join(',')+' против '+b.join(',')+' (x,y,ширина,высота)');}
+ };
+ // Экран боком (телефон и планшет): плеер помещается целиком, без прокрутки, —
+ // кнопка воспроизведения и скорость с таймером над нижним краем.
+ const inspectLandscape=async(page,where)=>{
+  const r=await page.evaluate(()=>{const H=innerHeight,W=innerWidth,out=[];
+   const p=document.querySelector('.podcast-player.is-open');if(!p||W<=H)return out;
+   for(const sel of ['.podcast-toggle','.player-extras','.player-title']){const n=p.querySelector(sel);if(!n)continue;const b=n.getBoundingClientRect();
+    if(b.bottom>H+1||b.top<-1)out.push('«'+sel+'» за краем экрана: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при высоте '+H);}
+   // Блоки управления не наезжают друг на друга: название сжималось до
+   // полоски и пряталось под дорожкой прокрутки.
+   let prev=null;for(const n of p.querySelectorAll('.player-body>*')){const s=getComputedStyle(n);if(s.display==='none'||s.position==='absolute')continue;
+    const b=n.getBoundingClientRect();if(!b.height)continue;
+    if(prev&&b.top<prev.b.bottom-1)out.push('«'+(n.className||n.tagName)+'» наезжает на «'+(prev.n.className||prev.n.tagName)+'» на '+Math.round(prev.b.bottom-b.top)+' точек');
+    // Сжат — значит, коробка ниже того, что в ней должно стоять: всё
+    // содержимое, а у названия с ограничением строк — эти строки целиком.
+    const lines=s.webkitLineClamp==='none'?0:+s.webkitLineClamp,lh=parseFloat(s.lineHeight)||0;
+    const need=lines&&lh?Math.min(n.scrollHeight,lines*lh):n.scrollHeight;
+    if(need>n.clientHeight+2&&!/(auto|scroll)/.test(s.overflowY))out.push('«'+(n.className||n.tagName)+'» сжат: нужно '+Math.round(need)+' точек, а коробка '+n.clientHeight);
+    prev={n,b};}
+   const st=p.querySelector('.player-stage');
+   if(st&&getComputedStyle(st).display!=='none'){const b=st.getBoundingClientRect();
+    if(b.height<H-2||b.width>W*.6)out.push('фотография плеера не столбцом слева во всю высоту: '+Math.round(b.width)+'×'+Math.round(b.height)+' на экране '+W+'×'+H);}
+   return out;});
+  for(const x of r)note(where+': '+x);
  };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
  const views=[['главная','/?mode=listen'],['слушать','/?mode=listen&view=podcasts'],['видео','/?mode=listen&view=videos'],
@@ -204,6 +252,7 @@ try{
    if(process.env.TT_PHONES_JS)await page.evaluate(process.env.TT_PHONES_JS);
    await settle(page);screens++;
    await inspect(page,lang+' '+w+'×'+h+' '+name,lang);
+   await inspectLandscape(page,lang+' '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`${lang}-${w}x${h}-${name}.png`)});
   }
   await ctx.close();
@@ -217,26 +266,66 @@ try{
  const tablets=[[800,1280],[834,1194],[1024,1366],[924,1480],[1280,800],[1194,834],[1366,1024],[1480,924]];
  const runTablet=async(w,h,lang,list,shots)=>{
   const ctx=await browser.newContext({viewport:{width:w,height:h},screen:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  // Полный экран — только по касанию, как в настоящем браузере. Безоконный
+  // пускал в него и без касания, при открытии читалки, и растягивал заодно
+  // окно телефона в соседней вкладке: сравнение становилось случайным.
+  await ctx.addInitScript(()=>{const real=Element.prototype.requestFullscreen;
+   Element.prototype.requestFullscreen=function(...a){return navigator.userActivation&&!navigator.userActivation.isActive?Promise.reject(new TypeError('no gesture')):real.apply(this,a);};});
   const page=await ctx.newPage();page.on('pageerror',e=>note(lang+' планшет '+w+'×'+h+': ошибка на странице: '+e.message));
   // Телефон той же логической ширины и высоты: стоя — та же ширина, что
   // объявляет планшет (430–700), боком — колонка 430 × высота окна.
+  // Высота — та, что вышла на самом планшете: без системных панелей она
+  // может отличаться от расчётной на точку.
   await page.goto(base+list[0][1]);await settle(page);
-  const narrow=w<h?Math.max(430,Math.min(700,Math.ceil(560/(h/w-7/15)))):430;
-  const tall=w<h?Math.round(narrow*h/w):await page.evaluate(()=>Math.round(document.body.getBoundingClientRect().height));
-  const pctx=await browser.newContext({viewport:{width:narrow,height:tall},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  const [lw]=logical(w,h),lh=await page.evaluate(()=>innerHeight);
+  // Экран телефона — того же размера, что окно: в полном экране окно
+  // растягивается до экрана, и без этого телефон в читалке вдруг становился
+  // высотой с планшет (1480), а сравнение — случайным.
+  const pctx=await browser.newContext({viewport:{width:lw,height:lh},screen:{width:lw,height:lh},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:langs[lang]});
+  // Телефон — образец раскладки, в полный экран ему не нужно: в безоконном
+  // браузере окно в полном экране растягивалось до чужого экрана (1480), и
+  // сравнение становилось случайным.
+  await pctx.addInitScript(()=>{Element.prototype.requestFullscreen=function(){return Promise.resolve();};});
   const phone=await pctx.newPage();
   for(const [name,url] of list){
    await page.goto(base+url);await phone.goto(base+url);
    if(process.env.TT_PHONES_CSS){await page.addStyleTag({content:process.env.TT_PHONES_CSS});}
    if(process.env.TT_PHONES_JS)await page.evaluate(process.env.TT_PHONES_JS);
-   await settle(page);await settle(phone);await page.waitForTimeout(200);await phone.waitForTimeout(200);screens++;
+   await settle(page);await settle(phone);
+   // Читалка просится в полный экран сама, при открытии; безоконный браузер
+   // иногда пускает и без касания. Обычный вид сравниваем без полного экрана,
+   // полный — отдельно ниже.
+   if(await page.evaluate(()=>!!document.fullscreenElement)){await page.evaluate(()=>document.exitFullscreen()).catch(()=>{});await page.waitForTimeout(700);}
+   await page.waitForTimeout(200);await phone.waitForTimeout(200);screens++;
    await inspect(page,lang+' планшет '+w+'×'+h+' '+name,lang);
    await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h,phone);
+   await inspectLandscape(page,'планшет '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-${name}.png`)});
+   // Читалка — в настоящем полном экране, без часов и панелей Android. Браузер
+   // пускает в него только по касанию, поэтому касаемся середины страницы, как
+   // человек, — это заодно убирает панели читалки. Телефон — так же.
+   if(name==='читалка'){
+    // Образец снимается с телефона до того, как планшет уйдёт в полный экран:
+    // безоконный браузер растягивает в нём окна всех вкладок, и телефон
+    // после этого — уже не телефон.
+    const tap=async(pg)=>{const b=await pg.locator('.tt-reader-stage').boundingBox();await pg.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);await pg.waitForTimeout(900);};
+    await tap(phone);const sample=await frame(phone,true);
+    await tap(page);
+    const fs=await page.evaluate(()=>!!document.fullscreenElement);
+    if(!fs)note('планшет '+w+'×'+h+' читалка: по касанию не вышла в полный экран — видны часы и панели');
+    else await inspectTablet(page,'планшет '+w+'×'+h+' читалка в полном экране',w,h,sample);
+    if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-читалка-полный.png`)});
+    await page.evaluate(()=>document.fullscreenElement&&document.exitFullscreen()).catch(()=>{});
+    await phone.evaluate(()=>document.fullscreenElement&&document.exitFullscreen()).catch(()=>{});
+   }
   }
   await pctx.close();await ctx.close();
  };
- if(process.env.TT_PHONES_TABLETS==='only'){
+ const landscapes=[[740,360],[844,390],[915,412]];
+ if(process.env.TT_PHONES_LANDSCAPE==='only'){
+  for(const [w,h] of landscapes.filter(([w,h])=>!process.env.TT_PHONES_SIZE||process.env.TT_PHONES_SIZE===w+'x'+h))
+   await run(w,h,'ru',tabletViews.filter(([n])=>!process.env.TT_PHONES_VIEW||n===process.env.TT_PHONES_VIEW),true);
+ }else if(process.env.TT_PHONES_TABLETS==='only'){
   const only=process.env.TT_PHONES_SIZE;const pick=process.env.TT_PHONES_VIEW;
   for(const [w,h] of tablets.filter(([w,h])=>!only||only===w+'x'+h))await runTablet(w,h,'ru',tabletViews.filter(([n])=>!pick||n===pick),true);
  }else{
@@ -244,8 +333,9 @@ try{
  const quick=process.env.TT_PHONES_QUICK==='1';
  for(const [w,h] of quick?[[320,568],[390,844]]:phones)await run(w,h,'ru',views,!quick&&(w===320||w===390||w===480));
  for(const lang of quick?['it']:['it','uk','ro'])for(const [w,h] of quick?[[320,568]]:[[320,568],[390,844]])await run(w,h,lang,views,!quick&&w===320);
- // Телефон боком.
- if(!quick)await run(740,360,'ru',views.slice(0,6),true);
+ // Телефон боком — все экраны, как стоя: владелец просил одно приложение в
+ // любом положении.
+ if(!quick)for(const [w,h] of landscapes)await run(w,h,'ru',tabletViews,true);
  for(const [w,h] of quick?[[800,1280]]:tablets)await runTablet(w,h,'ru',tabletViews,!quick);
  if(!quick)for(const lang of ['it','uk','ro'])await runTablet(1024,1366,lang,views,false);
  }

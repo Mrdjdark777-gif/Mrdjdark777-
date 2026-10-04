@@ -199,7 +199,7 @@
 .tt-reader-mark i{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:var(--tt-soft)}
 .tt-reader button:focus-visible,.tt-reader [tabindex]:focus-visible{outline:2px solid #6fe7de;outline-offset:2px}
 
-@media(min-width:768px) and (not ((min-width:768px) and (min-height:600px) and (hover:none) and (pointer:coarse))){
+@media(min-width:768px) and (not ((hover:none) and (pointer:coarse))){
  .tt-reader-heading{font-size:15px}
 }
 
@@ -231,3 +231,12 @@
    Полоса чтения при этом не раздвигается: панели полупрозрачные и всплывают
    поверх, а страница остаётся на месте — иначе текст перебивался бы заново, и
    на полном экране оказывался бы уже другой кусок. */
+
+/* Планшет в полноэкранном режиме. Браузер в нём забывает meta viewport, и
+   экран снова шириной в планшет (800–1000 точек) при масштабе 1: буквы
+   мельче, страница шире, чем в остальном приложении. Читалка увеличивается
+   ровно во столько раз, во сколько страница стала шире заявленной
+   телефонной (--tt-fs-zoom и метку ставит скрипт в app/layout.tsx по факту),
+   и выходит той же страницей, что без полного экрана, — только без часов и
+   системных панелей. */
+html[data-tt-fs-zoom] .tt-reader{zoom:var(--tt-fs-zoom,1)}

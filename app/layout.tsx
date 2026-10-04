@@ -71,7 +71,10 @@ function fit(){
   // 430 и не шире 700: экран планшета короче телефонного (1,33–1,6 против
   // 2,1), и при постоянных 430 названия карусели уходили под панель.
   var narrow=Math.max(430,Math.min(700,Math.ceil(560/(big/small-7/15))));
-  var W=portrait?narrow:Math.round(big*860/small),k=((portrait?small:big)/W).toFixed(4);
+  // Боком — тот же масштаб, что стоя: буквы и кнопки той же величины, а
+  // ширина — весь экран. Никакой колонки посередине: владелец просил
+  // полноэкранное приложение в любом положении.
+  var W=portrait?narrow:Math.round(big*narrow/small),k=(small/narrow).toFixed(4);
   // Масштаб задан явно и закреплён (min = max). Без него браузер, увидев
   // содержимое шире заявленной ширины (читалка успевает отрисоваться по
   // первому кадру во всю ширину), сам отдалял страницу и возвращал ей ширину
@@ -85,6 +88,14 @@ function fit(){
  var same=function(v){return c!==BASE&&!!v&&v.split(/,\s*/).sort().join()===c.split(/,\s*/).sort().join();};
  document.querySelectorAll('meta[name="viewport"]').forEach(function(x){var v=x.getAttribute('content');if(v!==c&&!same(v))x.setAttribute('content',c);});
  document.documentElement.toggleAttribute('data-tt-tablet',c!==BASE);
+ // Полный экран (читалка). Браузер в нём может забыть meta viewport и
+ // вернуть странице ширину планшета — тогда читалка увеличивается ровно во
+ // столько раз, во сколько страница стала шире заявленной (story-reader.css).
+ // Считается по факту, а не заранее: если оболочка ширину сохранит, увеличения
+ // не будет и читалка не раздуется вдвое.
+ var html=document.documentElement,fz=document.fullscreenElement&&c!==BASE?html.clientWidth/W:1;
+ html.toggleAttribute('data-tt-fs-zoom',fz>1.02);
+ html.style.setProperty('--tt-fs-zoom',fz>1.02?fz.toFixed(4):'1');
  if(c!==BASE)setTimeout(check,120);
 }
 // Самопроверка. Next.js дописывает свой тег ширины позже, и изредка браузер не
@@ -95,7 +106,9 @@ var tries=0;
 function check(){
  var m=document.querySelector('meta[name="viewport"]');if(!m)return;
  var want=/width=(\d+)/.exec(m.getAttribute('content')||'');if(!want)return;
- if(Math.abs(document.documentElement.clientWidth-Number(want[1]))<=2){tries=0;return;}
+ // В полноэкранном режиме ширину из meta браузер не слушает нарочно — это не
+ // сбой, и переписывать тег незачем.
+ if(document.fullscreenElement||Math.abs(document.documentElement.clientWidth-Number(want[1]))<=2){tries=0;return;}
  if(++tries>5)return;
  var c=m.getAttribute('content'),parts=c.split(/,\s*/),alt=(c.indexOf('width=')===0?parts.slice(1).concat(parts[0]):[parts[parts.length-1]].concat(parts.slice(0,-1))).join(', ');
  document.querySelectorAll('meta[name="viewport"]').forEach(function(x){x.setAttribute('content',alt);});
@@ -103,7 +116,7 @@ function check(){
 }
 fit();
 document.addEventListener('DOMContentLoaded',fit);addEventListener('load',fit);
-addEventListener('resize',fit);addEventListener('orientationchange',function(){setTimeout(fit,60)});
+addEventListener('resize',fit);document.addEventListener('fullscreenchange',fit);addEventListener('orientationchange',function(){setTimeout(fit,60)});
 new MutationObserver(function(){if(touch.matches&&Math.min(screen.width,screen.height)>=600)fit();})
  .observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:['content']});
 }catch(e){}})();`;
@@ -120,11 +133,10 @@ export default async function RootLayout({
         {/* Планшет — тот же телефон. Стоя ширина экрана объявляется
             телефонной (430–700 точек — так, чтобы первый экран главной вошёл целиком), и
             планшет рисует телефонный экран, увеличенный на всю ширину, родным
-            масштабированием. Боком — ширина, при которой высота
-            экрана выходит телефонной (~860 точек); приложение тогда стоит
-            колонкой 430 по центру (стили в globals.css). Телефоны (меньшая
-            сторона меньше 600 точек) и ПК с мышью не трогаются. Скрипт стоит
-            до приложения, чтобы первый кадр уже был в нужном масштабе. */}
+            масштабированием. Боком — тот же масштаб и весь экран в ширину
+            (раскладка боком — в globals.css). Телефоны (меньшая сторона меньше
+            600 точек) и ПК с мышью не трогаются. Скрипт стоит до приложения,
+            чтобы первый кадр уже был в нужном масштабе. */}
         <script dangerouslySetInnerHTML={{__html:TABLET_AS_PHONE}}/>
         <div aria-hidden className="app-aurora">
           <span className="tt-blob-1" />

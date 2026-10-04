@@ -9,6 +9,10 @@ import {useUsage} from '@/hooks/use-usage';
 import {haptic} from '@/lib/client';
 import {blocksOf,paginate,type Kind,type Page} from '@/lib/page-text';
 import {createCurl,GONE,type Curl} from '@/lib/page-curl';
+// Увеличение читалки (zoom в полноэкранном режиме на планшете). Замер коробки
+// getBoundingClientRect даёт уже увеличенные точки, а стили и clientWidth —
+// свои, неувеличенные. Делим, чтобы не смешивать одни с другими.
+const zoomOf=(el:Element)=>(el as Element&{currentCSSZoom?:number}).currentCSSZoom||1;
 
 /**
  * Читалка во весь экран, с листанием по страницам.
@@ -133,7 +137,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  // числу — и садилась на волосок выше её нижнего края. Глазом это тонкая
  // линия стыка, а проверка ловила это через раз.
  useLayoutEffect(()=>{const el=headerRef.current;if(!el)return;
-  const update=()=>setHeaderHeight(el.getBoundingClientRect().height);update();
+  const update=()=>setHeaderHeight(el.getBoundingClientRect().height/zoomOf(el));update();
   const observer=new ResizeObserver(update);observer.observe(el,{box:'border-box'});return()=>observer.disconnect();
  },[]);
  const glCanvas=useRef<HTMLCanvasElement>(null);
@@ -172,13 +176,13 @@ export function StoryReader({id,title,description,body,onClose}:{
  // откуда угодно — браузер требует, чтобы её вызвало действие человека,
  // поэтому пробуем при открытии и обязательно повторяем по нажатию.
  //
- // На планшете — нет. Там приложение рисуется телефоном заданной ширины, а в
- // полноэкранном режиме браузер эту ширину игнорирует и возвращает экрану
- // планшета его собственную: читалка выходила не телефонной. Телефонный вид
- // важнее спрятанных системных панелей.
+ // На планшете тоже. Там приложение рисуется телефоном заданной ширины, а в
+ // полноэкранном режиме браузер эту ширину забывает и возвращает экрану
+ // планшета его собственную. Телефонный вид читалка возвращает себе сама —
+ // увеличением на тот же масштаб (story-reader.css), так что владелец
+ // получает и полный экран без часов, и прежнюю страницу.
  const goFull=useCallback(()=>{try{
   const el=document.documentElement;
-  if(el.hasAttribute('data-tt-tablet'))return;
   if(!document.fullscreenElement&&el.requestFullscreen)void el.requestFullscreen().catch(()=>{});
  }catch{}},[]);
  useEffect(()=>{goFull();
@@ -245,7 +249,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    // факту не годится: пока панели на экране, полного экрана ещё не было, а
    // когда они уходят, опора поменялась бы задним числом и текст перебился бы
    // заново — ровно то, на что владелец и жаловался.
-   const full=fullGauge.current?.getBoundingClientRect().height||free;
+   const full=fullGauge.current?fullGauge.current.getBoundingClientRect().height/zoomOf(fullGauge.current)||free:free;
    const rows=Math.max(1,Math.floor(full/lead));
    const gauge=document.createElement('canvas').getContext('2d');
    const laid=paginate(blocks,{
@@ -324,7 +328,10 @@ export function StoryReader({id,title,description,body,onClose}:{
   *  они стоят в разметке. */
  const paint=useCallback((index:number,target:HTMLCanvasElement)=>{
   const box=stage.current;if(!box)return;
-  const density=Math.min(window.devicePixelRatio||1,2);
+  // Плотность холста — с учётом увеличения: планшет рисует телефон крупнее
+  // (масштаб страницы, а в полном экране — zoom читалки), и холст плотностью
+  // экрана телефона выходил бы на нём мыльным.
+  const density=Math.min(Math.min(window.devicePixelRatio||1,2)*zoomOf(box)*(window.visualViewport?.scale||1),3);
   const wide=box.clientWidth,high=box.clientHeight;
   target.width=Math.max(1,Math.round(wide*density));
   target.height=Math.max(1,Math.round(high*density));
@@ -462,8 +469,8 @@ export function StoryReader({id,title,description,body,onClose}:{
   wanted.current=total>1?target/(total-1):0;setPage(target);
  },[total,stopRun,put]);
  const seekAt=(x:number,element:HTMLElement)=>{
-  const r=element.getBoundingClientRect();
-  seek(Math.min(1,Math.max(0,(x-r.left-9)/Math.max(1,r.width-18)))*(total-1));
+  const r=element.getBoundingClientRect(),z=zoomOf(element);
+  seek(Math.min(1,Math.max(0,((x-r.left)/z-9)/Math.max(1,r.width/z-18)))*(total-1));
  };
 
  // Полосы и холст встают на место после отрисовки, поэтому первый кадр задаём

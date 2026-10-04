@@ -51,9 +51,12 @@
    почти вся его высота, и под постером не видно ничего. Здесь кадр сужается
    так, чтобы занять не больше половины высоты, и встаёт по центру. Пропорция
    та же — значит, и обрезки нет. */
-@media(orientation:landscape) and (max-width:767px){
+/* То же на планшете боком: он рисует телефонный дизайн во весь лежачий экран.
+   Кнопка под кадром — той же ширины, что кадр, а не на весь экран. */
+@media(orientation:landscape) and (max-width:767px),(orientation:landscape) and (hover:none) and (pointer:coarse){
  .tt-soft-home .scene{width:min(calc(100% + 32px),calc(50svh * 15 / 7))!important;
-  margin-inline:auto!important;align-self:center!important;border-radius:var(--soft-radius)!important}}
+  margin-inline:auto!important;align-self:center!important;border-radius:var(--soft-radius)!important}
+ .tt-soft-home .soft-hero-foot{width:min(100%,calc(50svh * 15 / 7));align-self:center}}
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
    читается как настоящая афиша.
@@ -281,7 +284,7 @@
 .tt-soft-home .soft-app-link{font-size:12px}
 .tt-soft-home button:focus-visible,.tt-soft-home a:focus-visible{outline:2px solid #6fe7de;outline-offset:2px}
 
-@media(min-width:768px) and (not ((min-width:768px) and (min-height:600px) and (hover:none) and (pointer:coarse))){.immersion.tt-soft-home{max-width:980px;margin-inline:auto;padding:24px!important}
+@media(min-width:768px) and (not ((hover:none) and (pointer:coarse))){.immersion.tt-soft-home{max-width:980px;margin-inline:auto;padding:24px!important}
  .tt-soft-home .soft-reel>li{flex-basis:172px;max-width:192px}
  .tt-soft-home .soft-reel{transform:translate3d(calc((100% - 172px) / 2),0,0)}
  /* На мониторе тот же постер 15:7, той же картинкой, шириной до 340 точек.
@@ -345,7 +348,7 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
    к кнопке, кнопку оставь на том же месте». Постер сдвигается на 10 точек, и
    ровно на столько же уменьшается зазор до кнопки: 18 → 8. Только телефон
    стоя: боком и на широком экране кадр стоит по-другому. */
-@media (max-width:767px) and (orientation:portrait),(min-width:768px) and (min-height:600px) and (hover:none) and (pointer:coarse){
+@media (max-width:767px) and (orientation:portrait){
  .tt-soft-home .scene{margin-top:10px!important}
  .tt-soft-home .soft-hero-foot{margin-top:-4px}}
 /* Верх постера растворяется в фоне, а не обрывается ровной линией.
