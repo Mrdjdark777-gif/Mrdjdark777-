@@ -254,9 +254,21 @@ html[data-tt-fs-zoom] .tt-reader{zoom:var(--tt-fs-zoom,1)}
 /* Шапка читалки боком — в одну строку: название между стрелкой и значками, а
    не второй строкой под ними. На лежачем экране вторая строка съедала высоту,
    которой и так мало. */
-@media (orientation:landscape) and (max-height:520px){
+@media (orientation:landscape) and (max-height:520px),(orientation:landscape) and (hover:none) and (pointer:coarse){
  .tt-reader-top{grid-template-columns:40px minmax(0,1fr) 40px 40px 40px}
  .tt-reader-top>.tt-reader-heading{grid-row:1;grid-column:2;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-height:none;padding:0 8px}
  .tt-reader-top>.tt-reader-icon:nth-of-type(2){grid-column:3;justify-self:auto}
+}
+/* Боком поля сверху и снизу у страницы без панелей — уже: на лежачем экране
+   каждая строка на счету. Номер страницы в углу помещается в нижнее поле. */
+@media (orientation:landscape) and (max-height:520px),(orientation:landscape) and (hover:none) and (pointer:coarse){
+ .tt-reader[data-chrome=off] .tt-reader-page,.tt-reader-gauge{
+  top:calc(10px + env(safe-area-inset-top));bottom:calc(28px + env(safe-area-inset-bottom))}
+ /* Панели боком ложатся поверх страницы, как в Play Книгах, а не ужимают
+    её: на лежачем экране ужатая страница теряла треть высоты, и между
+    панелями оставалось четыре строки мелкого текста. Страница одна и та же
+    с панелями и без — разбивка и размер букв не меняются. */
+ .tt-reader[data-chrome=on] .tt-reader-page{
+  top:calc(10px + env(safe-area-inset-top));bottom:calc(28px + env(safe-area-inset-bottom))}
 }

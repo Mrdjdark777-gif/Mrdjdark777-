@@ -137,6 +137,20 @@ try{
      const cut=/(hidden|clip)/.test(getComputedStyle(st).overflow);
      if(!cut&&(b.bottom>a.bottom+1||b.top<a.top-1))
       found.push('фотография плеера вылезает из рамки: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при рамке '+Math.round(a.top)+'…'+Math.round(a.bottom));}}
+   // Заголовки «Видео» и «Истории» с подписью — по середине (просьба
+   // владельца), стоя и боком.
+   const view=document.querySelector('.listener-main')?.dataset.view;
+   if(view==='videos'||view==='stories'){const m=document.querySelector('.listener-main'),r=m.getBoundingClientRect(),cs=getComputedStyle(m);
+    const mid=r.left+parseFloat(cs.paddingLeft)+(r.width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))/2;
+    for(const sel of ['.page-heading h1','.page-heading .heading-description']){const n=document.querySelector(sel);if(!n)continue;
+     const range=document.createRange();range.selectNodeContents(n);const b=range.getBoundingClientRect();
+     if(Math.abs(b.left+b.width/2-mid)>3)found.push('«'+sel+'» не по середине: центр текста '+Math.round(b.left+b.width/2)+' при середине '+Math.round(mid));}}
+   // Нижняя панель без резкой кромки: сверху не линия, а переход в её цвет.
+   {const nb=document.querySelector('.is-listener .bottom-nav');
+    if(nb&&vis(nb)){const c=getComputedStyle(nb),fade=getComputedStyle(nb,'::before');
+     const line=parseFloat(c.borderTopWidth)>0&&!/rgba\(.*,\s*0\)|transparent/.test(c.borderTopColor);
+     if(line)found.push('у нижней панели резкая линия сверху ('+c.borderTopColor+')');
+     if(fade.content==='none'||parseFloat(fade.height)<16)found.push('над нижней панелью нет плавного перехода — содержимое обрезается ровной чертой');}}
    // Последний блок не под нижней панелью.
    const nav=document.querySelector('.bottom-nav');
    return {found,navTop:nav&&vis(nav)?nav.getBoundingClientRect().top:null};},[lang,corpus.join(' ')]);
@@ -277,7 +291,11 @@ try{
    const vis=arts.filter(a=>a.r>vr.left&&a.l<vr.right).sort((a,b)=>a.l-b.l);
    const overlap=vis.slice(1).map((a,k)=>vis[k].r-a.l).filter(d=>d>1).map(Math.round);
    const name=v.querySelectorAll('.soft-reel>li strong')[best.i]?.textContent.trim();
-   return {mid:best.i,name,off:Math.round(best.off*10)/10,overlap,width:Math.round(vr.width),top:Math.round(vr.top)};});
+   // Пустота сбоку: между краем окна и ближайшей карточкой зазор больше
+   // промежутка между карточками — круг не замкнулся.
+   const blank=vis.length?Math.round(Math.max(vis[0].l-vr.left,vr.right-vis[vis.length-1].r)):Math.round(vr.width);
+   const step=v.querySelector('.soft-reel>li')?.getBoundingClientRect().width||0;
+   return {mid:best.i,name,off:Math.round(best.off*10)/10,overlap,width:Math.round(vr.width),top:Math.round(vr.top),loop:v.dataset.loop,blank,cards:arts.length,step};});
   const a=await look();
   const cdp=await page.context().newCDPSession(page);
   const box=await page.locator('.soft-carousel').boundingBox();
@@ -297,12 +315,16 @@ try{
   const b=await look();await cdp.detach().catch(()=>{});
   if(process.env.TT_PHONES_DEBUG)console.log('карусель',where,JSON.stringify(a),JSON.stringify(b));
   if(a.overlap.length)note(where+': карточки карусели наезжают друг на друга на '+a.overlap.join(', ')+' точек');
+  if(a.cards>1&&a.loop!=='yes')note(where+': круг карусели выключен ('+a.cards+' карточек на окно '+a.width+') — лента встаёт с пустотой сбоку');
   if(a.off>3)note(where+': карусель стоит не по центру: средняя карточка в '+a.off+' точках от середины');
   // Сравнение по номеру карточки, а не по названию: у тестовых выпусков
   // названия бывают одинаковыми, и переход между ними выглядел бы стоянием.
   if(b.mid===a.mid)note(where+': карусель не листается пальцем — после броска посередине та же карточка «'+a.name+'»');
   else if(b.off>3)note(where+': карусель после броска не встала по центру ('+b.off+' точек)');
   if(b.overlap.length)note(where+': после броска карточки карусели наезжают друг на друга на '+b.overlap.join(', ')+' точек');
+  // Пустота — это пустое место под карточку. Крайние карточки чуть меньше
+  // (глубина), и узкая щель у края — не пустота.
+  if(b.blank>b.step*0.6)note(where+': после броска сбоку от карусели пустота '+b.blank+' точек — карточки не идут по кругу');
   // Быстрый бросок — как обычно листают: короткое резкое движение пальцем.
   // Лента обязана уехать и встать на другой карточке, а не вернуться назад.
   {const c2=await page.context().newCDPSession(page);const bx=await page.locator('.soft-carousel').boundingBox();
@@ -382,6 +404,20 @@ try{
    await inspect(page,where,'ru');await inspectLandscape(page,where);await inspectSafe(page,where,'left',32);
    await page.screenshot({path:path.join(out,`rotate-${w}x${h}-боком-${name}.png`)});
   }
+  // Мало выпусков — как у владельца: на главной остаются четыре карточки
+  // (остальные скрыты так же, как их скрывает слушатель, через меню
+  // карточки). Лента обязана идти по кругу и стоя, и боком.
+  {const list=await (await fetch(base+'/api/library',{headers:{cookie}})).json();
+   const keep=new Set(list.items.filter(p=>p.published).slice(0,6).map(p=>p.id));
+   const hide=list.items.filter(p=>p.published&&!keep.has(p.id)).map((p,i)=>({id:p.id,at:Date.now()-i}));
+   await page.evaluate(h=>localStorage.setItem('tt-hidden-v1',JSON.stringify(h)),hide);
+   await page.locator('.bottom-nav > *').nth(2).click();await page.waitForTimeout(900);
+   for(const [W,H,label] of [[h,w,'боком, мало выпусков'],[w,h,'стоя, мало выпусков']]){
+    await rotate(page,W,H,'left');screens++;
+    const where='поворот '+w+'×'+h+' → '+label;
+    await page.screenshot({path:path.join(out,`rotate-${w}x${h}-${label.replace(/[\s,]+/g,'-')}.png`)});
+    await checkCarousel(page,where,true);}
+   await page.evaluate(()=>localStorage.removeItem('tt-hidden-v1'));}
   await ctx.close();
  };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
@@ -403,6 +439,16 @@ try{
    await inspectLandscape(page,lang+' '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`${lang}-${w}x${h}-${name}.png`)});
    if(name==='главная'&&lang==='ru')await checkCarousel(page,lang+' '+w+'×'+h+' главная');
+   // Читалка боком с выбором «одна страница» — как в Play Книгах: одна
+   // страница во всю ширину, а не разворот.
+   if(name==='читалка'&&w>h&&w>=600){
+    await page.evaluate(()=>{const p=JSON.parse(localStorage.getItem('tt-reader-prefs-v1')||'{}');localStorage.setItem('tt-reader-prefs-v1',JSON.stringify({...p,spread:false}));});
+    await page.goto(base+url);await settle(page);
+    const one=await page.evaluate(()=>[...document.querySelectorAll('.tt-reader-page:not(.is-copy)')].map(n=>n.getBoundingClientRect().width));
+    if(one.length!==1)note(lang+' '+w+'×'+h+' читалка, «одна страница»: страниц рядом '+one.length+' вместо одной');
+    else if(one[0]<w*0.6)note(lang+' '+w+'×'+h+' читалка, «одна страница»: страница '+Math.round(one[0])+' в ширину из '+w+' — не во всю ширину');
+    if(shots)await page.screenshot({path:path.join(out,`${lang}-${w}x${h}-читалка-одна.png`)});
+    await page.evaluate(()=>{const p=JSON.parse(localStorage.getItem('tt-reader-prefs-v1')||'{}');localStorage.setItem('tt-reader-prefs-v1',JSON.stringify({...p,spread:true}));});}
   }
   await ctx.close();
  };
@@ -446,8 +492,16 @@ try{
    // полный — отдельно ниже.
    if(await page.evaluate(()=>!!document.fullscreenElement)){await page.evaluate(()=>document.exitFullscreen()).catch(()=>{});await page.waitForTimeout(700);}
    await page.waitForTimeout(200);await phone.waitForTimeout(200);screens++;
+   // Образец обязан быть того размера, с каким создан. Изредка безоконный
+   // браузер отдавал вкладке телефона чужой размер (700×819 вместо 791×494),
+   // и расхождение было бы ложным. Тогда — перезагрузка; не помогло — это
+   // поломка стенда, и она называется своими словами, а не косяком экрана.
+   const sized=()=>phone.evaluate(([w,h])=>Math.abs(document.documentElement.clientWidth-w)<=2&&Math.abs(innerHeight-h)<=2,[lw,lh]);
+   let fair=true;
+   if(!await sized()){await phone.reload();await settle(phone);
+    if(!await sized()){fair=false;note('стенд: телефон-образец для планшета '+w+'×'+h+' не своего размера — сравнение '+name+' не проведено');}}
    await inspect(page,lang+' планшет '+w+'×'+h+' '+name,lang);
-   await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h,phone);
+   if(fair)await inspectTablet(page,'планшет '+w+'×'+h+' '+name,w,h,phone);
    await inspectLandscape(page,'планшет '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`tablet-${lang}-${w}x${h}-${name}.png`)});
    if(name==='главная'&&lang==='ru')await checkCarousel(page,'планшет '+w+'×'+h+' главная');

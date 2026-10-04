@@ -31,7 +31,8 @@ const zoomOf=(el:Element)=>(el as Element&{currentCSSZoom?:number}).currentCSSZo
  */
 
 type Mark={ratio:number;text:string;at:number};
-type Prefs={size:number;theme:Theme;serif:boolean;dim:number;autoDim:boolean};
+// spread — боком две страницы рядом (разворот) или одна во всю ширину.
+type Prefs={size:number;theme:Theme;serif:boolean;dim:number;autoDim:boolean;spread:boolean};
 type Theme='day'|'sepia'|'night'|'black';
 /** Переворот страницы: откуда, куда и в какую сторону гнётся лист. Насколько
  *  он согнут, в состоянии не живёт: это доля от нуля до единицы, её правит
@@ -76,7 +77,7 @@ const LEAD=1.45;
  */
 const SIDE=20;
 const PREFS_KEY='tt-reader-prefs-v1';
-const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true};
+const DEFAULTS:Prefs={size:20,theme:'night',serif:true,dim:0,autoDim:true,spread:true};
 /**
  * Насколько крупнее название рассказа и сколько строк сетки занимает его строка.
  *
@@ -102,6 +103,7 @@ const readPrefs=():Prefs=>{try{
   theme:THEMES.includes(v.theme)?v.theme:DEFAULTS.theme,
   serif:typeof v.serif==='boolean'?v.serif:DEFAULTS.serif,
   autoDim:typeof v.autoDim==='boolean'?v.autoDim:DEFAULTS.autoDim,
+  spread:typeof v.spread==='boolean'?v.spread:DEFAULTS.spread,
   dim:Number.isFinite(v.dim)?Math.min(.7,Math.max(0,v.dim)):0};
 }catch{return DEFAULTS;}};
 
@@ -223,7 +225,10 @@ export function StoryReader({id,title,description,body,onClose}:{
  useLayoutEffect(()=>{
   const measure=()=>{
    const box=stage.current;if(!box)return;
-   const pad=Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
+   // Боком поля уже: высоты мало, и каждая точка по краям — это меньше слов
+   // на странице. Play Книги боком держат поля узкими — так и здесь.
+   const lying=box.clientWidth>=600&&box.clientWidth>box.clientHeight*1.2;
+   const pad=lying?18:Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
    // Строка не длиннее книжной: около 70 знаков. На планшете боком —
    // 15 дюймов, 1480 точек — строка во всю ширину выходила под 200 знаков, и
    // глаз терял начало следующей. На телефоне до этого предела не доходит:
@@ -234,9 +239,12 @@ export function StoryReader({id,title,description,body,onClose}:{
    // оптимизация того же количества текста — в Play Книгах это работает».
    // Одной страницей на лежачем экране выходило 10–11 строк, а пока видны
    // панели, страница ещё и ужималась.
-   const cols=box.clientWidth>=600&&box.clientWidth>box.clientHeight*1.2?2:1;
-   const gapCol=cols>1?Math.max(28,pad*2):0;
-   const width=Math.max(120,Math.min((box.clientWidth-pad*2-gapCol*(cols-1))/cols,MEASURE));
+   // Разворот — по выбору в настройках («Боком: две страницы / одна»). Одна
+   // страница боком — как в Play Книгах: во всю ширину, строка длиннее
+   // книжной, зато больше текста на странице.
+   const cols=lying&&prefs.spread?2:1;
+   const gapCol=cols>1?36:0;
+   const width=Math.max(120,Math.min((box.clientWidth-pad*2-gapCol*(cols-1))/cols,lying&&cols===1?960:MEASURE));
    {
     // Отступы полосы чтения спрашиваем у настоящих стилей, а не считаем сами:
     // с панелями и без панелей они разные, и правило живёт в одном месте — в
@@ -307,7 +315,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[blocks,prefs.size,prefs.serif,fonts,loaded,headerHeight,chrome]);
+ },[blocks,prefs.size,prefs.serif,prefs.spread,fonts,loaded,headerHeight,chrome]);
 
  const total=pages.length;
  const ratio=total>1?page/(total-1):0;
@@ -697,6 +705,16 @@ export function StoryReader({id,title,description,body,onClose}:{
      <div className="tt-reader-chips">
       <button type="button" className={prefs.serif?'is-active':''} onClick={()=>savePrefs({...prefs,serif:true})}>{t('reader.fontSerif')}</button>
       <button type="button" className={prefs.serif?'':'is-active'} onClick={()=>savePrefs({...prefs,serif:false})}>{t('reader.fontSans')}</button>
+     </div>
+    </div>
+    {/* Боком: разворот из двух страниц или одна страница во всю ширину.
+        Владелец: «идею двух колонок при повороте оставь и выведи отдельной
+        опцией в настройках». */}
+    <div className="tt-reader-row">
+     <span>{t('reader.landscape')}</span>
+     <div className="tt-reader-chips">
+      <button type="button" className={prefs.spread?'is-active':''} aria-pressed={prefs.spread} onClick={()=>{haptic();savePrefs({...prefs,spread:true});}}>{t('reader.spreadTwo')}</button>
+      <button type="button" className={prefs.spread?'':'is-active'} aria-pressed={!prefs.spread} onClick={()=>{haptic();savePrefs({...prefs,spread:false});}}>{t('reader.spreadOne')}</button>
      </div>
     </div>
     {/* Переключатель нарисован разметкой, а не свойством appearance: оно

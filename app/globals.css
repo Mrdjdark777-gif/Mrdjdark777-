@@ -2413,3 +2413,21 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  .podcast-player.is-open .player-title{font-size:clamp(22px,calc(3.4 * var(--vw, 1vw)),30px);-webkit-line-clamp:2}
  .is-open .podcast-transport>.podcast-toggle{width:60px;height:60px}
 }
+
+/* Нижняя панель без резкой кромки. Владелец: «панель снизу имеет очень
+   резкую границу, при свайпе это очень заметно… сделай линию сверху более
+   растушёванной, как наверху». Линию сверху убираем, а над панелью кладём
+   переход в её же цвет: содержимое тает, подходя к панели, а не обрезается
+   ровной чертой. Маской на самом содержимом это делать нельзя — она гасит и
+   фон, и на кромке панели выходила ступенька (см. tt-shell-locked выше). */
+@media (max-width:767px),(hover:none) and (pointer:coarse){
+ .is-listener .bottom-nav{border-top-color:transparent}
+ .is-listener .bottom-nav::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:30px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(18,22,25,0),var(--background) 92%)}
+}
+
+/* Заголовки «Видео» и «Истории» с подписью — по середине, стоя и боком.
+   Владелец: «по правилам, сбоку… а попробуй поставить эти надписи по
+   середине, красиво и отцентровано». */
+.listener-main[data-view=videos] .page-heading,.listener-main[data-view=stories] .page-heading{align-items:center;text-align:center}
+.listener-main[data-view=videos] .page-heading>div,.listener-main[data-view=stories] .page-heading>div{display:flex;flex-direction:column;align-items:center;width:100%}

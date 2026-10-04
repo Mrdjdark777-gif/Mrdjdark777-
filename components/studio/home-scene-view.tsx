@@ -80,6 +80,12 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const shown=new Set([hero?.id,resume?.post.id].filter(Boolean) as string[]);
  const latest=posts.filter(p=>p.published===1&&!shown.has(p.id)&&!device.hidden.includes(p.id))
   .sort((a,b)=>b.createdAt-a.createdAt).slice(0,12);
+ // Лента барабана: при малом числе выпусков — повторы по кругу, не меньше
+ // шестнадцати карточек. Шестнадцать карточек шире любого окна приложения
+ // (лежачий телефон ~915, планшет боком ~790, колонка на мониторе 980) с
+ // запасом на перестановку. Один выпуск крутить незачем — он стоит один.
+ const copies=latest.length>=8||latest.length<2?1:Math.ceil(16/latest.length);
+ const tiles=Array.from({length:copies},(_,copy)=>latest.map(p=>({p,copy}))).flat();
   const heroCover=hero?heroPicture(hero.id,poster,coverOf(hero)):'';
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
@@ -160,13 +166,17 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     {onBrowse&&<button type="button" className="soft-all tt-pressable" onClick={()=>{haptic();onBrowse();}}>{t('home.all')}<ChevronRight size={17}/></button>}
    </div>
    {/* Барабан: Embla двигает ленту переносом и переставляет крайние карточки
-       на другой конец, поэтому края нет, а карточек ровно столько, сколько
-       выпусков. Круг включается сам, когда карточек на него хватает. */}
+       на другой конец, поэтому края нет. Круг Embla включает, только когда
+       карточек больше, чем помещается в окно с запасом. У владельца их
+       четыре-пять, и на лежачем экране круг молча выключался: лента вставала
+       с пустотой сбоку и не центровалась (его видео с поворотом). Поэтому
+       при малом числе выпусков лента повторяет их по кругу: повторы — те же
+       кнопки, но скрыты от экранного диктора и клавиатуры. */}
    <div className="soft-carousel" ref={setView} role="region" aria-roledescription="carousel" aria-label={t('home.freshList')}>
    <ul className="soft-reel">
-    {latest.map(p=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
-     return <li key={p.id}>
-      <button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} onClick={()=>{haptic();onOpen(p);}}>
+    {tiles.map(({p,copy})=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+     return <li key={p.id+':'+copy} aria-hidden={copy?true:undefined}>
+      <button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} tabIndex={copy?-1:undefined} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">
        {/* Без обложки — знак канала. */}
        <Artwork src={tileCover(p)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="soft-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
