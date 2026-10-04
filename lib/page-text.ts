@@ -33,6 +33,9 @@ export type Line = {
  first: boolean;
  /** Сколько строк сетки занимает эта строка. Заголовок — выше остальных. */
  rows: number;
+ /** Столбец разворота: 0 — левая страница, 1 — правая. Боком читалка
+  *  показывает две страницы рядом, как раскрытая книга. */
+ col?: number;
 };
 
 export type Page = Line[];
@@ -126,9 +129,15 @@ export function paginate(blocks: Block[], metrics: Metrics): Page[] {
   }
   const gap = Math.max(0, Math.round(metrics.after(block.kind)));
   // Пустая строка нужна только если после неё на странице ещё что-то будет.
-  if (gap && index < blocks.length - 1 && used + gap < limit) {
-   page.push({text: '', kind: block.kind, first: false, rows: gap});
-   used += gap;
+  // Если после неё места не остаётся, следующий кусок начинается с новой
+  // страницы. Раньше пустую строку просто выбрасывали, а следующий абзац всё
+  // равно вставал на ту же страницу — вплотную к предыдущему: внизу страницы
+  // абзацы слипались.
+  if (gap && index < blocks.length - 1) {
+   if (used + gap < limit) {
+    page.push({text: '', kind: block.kind, first: false, rows: gap});
+    used += gap;
+   } else close();
   }
  }
  close();

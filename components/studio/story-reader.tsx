@@ -51,7 +51,9 @@ type Flip={from:number;to:number;dir:1|-1;auto:boolean};
  * полном экране человек видел уже другой кусок — ровно то, на что пожаловался
  * владелец.
  */
-type Frame={width:number;height:number;left:number;top:number;lead:number;scale:number};
+// width — ширина одной страницы; cols — сколько страниц рядом (боком — две),
+// gap — промежуток между ними, pad — отступ строк от верха полосы в развороте.
+type Frame={width:number;height:number;left:number;top:number;lead:number;scale:number;cols:number;gap:number;pad:number};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
@@ -144,7 +146,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
  const [pages,setPages]=useState<Page[]>([[]]);
  const [page,setPage]=useState(0);
- const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0,scale:1});
+ const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0,scale:1,cols:1,gap:0,pad:0});
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
  const [marks,setMarks]=useState<Mark[]>([]);
@@ -160,7 +162,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  const shots=useRef<Map<string,HTMLCanvasElement>>(new Map());
  const blocks=useMemo(()=>blocksOf(title,description,body),[title,description,body]);
  /** Примета текущего вида страницы: от неё зависит каждый снимок. */
- const look=`${prefs.size}|${prefs.serif}|${prefs.theme}|${frame.width}|${frame.height}|${frame.top}|${frame.left}|${frame.lead}|${pages.length}`;
+ const look=`${prefs.size}|${prefs.serif}|${prefs.theme}|${frame.width}|${frame.height}|${frame.top}|${frame.left}|${frame.lead}|${frame.cols}|${pages.length}`;
 
  // Сброса loaded здесь нет намеренно: читалка смонтирована с key по id, и на
  // другую историю она заходит новым экземпляром, а не сменой поля.
@@ -226,7 +228,15 @@ export function StoryReader({id,title,description,body,onClose}:{
    // 15 дюймов, 1480 точек — строка во всю ширину выходила под 200 знаков, и
    // глаз терял начало следующей. На телефоне до этого предела не доходит:
    // 390 точек дают строку в 336.
-   const width=Math.max(120,Math.min(box.clientWidth-pad*2,MEASURE));
+   // Боком — разворот: две страницы рядом, как раскрытая книга, каждая
+   // шириной примерно как страница стоя и тем же шрифтом. Владелец: «чтоб
+   // при повороте экрана в читалке не было четыре строки, а была правильная
+   // оптимизация того же количества текста — в Play Книгах это работает».
+   // Одной страницей на лежачем экране выходило 10–11 строк, а пока видны
+   // панели, страница ещё и ужималась.
+   const cols=box.clientWidth>=600&&box.clientWidth>box.clientHeight*1.2?2:1;
+   const gapCol=cols>1?Math.max(28,pad*2):0;
+   const width=Math.max(120,Math.min((box.clientWidth-pad*2-gapCol*(cols-1))/cols,MEASURE));
    {
     // Отступы полосы чтения спрашиваем у настоящих стилей, а не считаем сами:
     // с панелями и без панелей они разные, и правило живёт в одном месте — в
@@ -252,7 +262,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    const full=fullGauge.current?fullGauge.current.getBoundingClientRect().height/zoomOf(fullGauge.current)||free:free;
    const rows=Math.max(1,Math.floor(full/lead));
    const gauge=document.createElement('canvas').getContext('2d');
-   const laid=paginate(blocks,{
+   const columns=paginate(blocks,{
     width,rows,
     measure:(text,kind)=>{
      if(!gauge)return text.length*fonts.size(kind)*0.5;
@@ -260,6 +270,11 @@ export function StoryReader({id,title,description,body,onClose}:{
      return gauge.measureText(text).width;},
     height:kind=>kind==='title'?TITLE_ROWS:1,
     after:()=>1});
+   // Страницы разворота — пары столбцов: левая и правая. Оборот листает
+   // разворот целиком, как в книге.
+   const laid=cols===1?columns:Array.from({length:Math.ceil(columns.length/2)},(_,i)=>[
+    ...(columns[2*i]??[]).map(line=>({...line,col:0})),
+    ...(columns[2*i+1]??[]).map(line=>({...line,col:1}))]);
    shots.current.clear();
    setPages(laid);
    // Во сколько раз показать. По высоте — насколько полоса шире опорной; по
@@ -268,8 +283,8 @@ export function StoryReader({id,title,description,body,onClose}:{
    // и места стало меньше опорного: страница ужимается. Больше единицы —
    // когда осталась мелочь от округления; расти дальше не даёт ширина экрана.
    const grow=Math.min(free/Math.max(1,rows*lead),
-    Math.max(1,box.clientWidth-SIDE*2)/Math.max(1,width));
-   const shownWidth=width*grow;
+    Math.max(1,box.clientWidth-SIDE*2)/Math.max(1,cols*width+(cols-1)*gapCol));
+   const shownWidth=width*grow,shownGap=gapCol*grow,spread=cols*shownWidth+(cols-1)*shownGap;
    // Строки занимают всю высоту полосы: страница набрана под неё и точка.
    // Остаток от округления делится поровну сверху и снизу, но это уже единицы
    // точек, а не пустые полосы.
@@ -280,8 +295,8 @@ export function StoryReader({id,title,description,body,onClose}:{
    // не жмётся к её верху. Разметка делает то же самое (justify-content:center),
    // и холст обязан совпасть с ней до пикселя.
    const slack=Math.max(0,free-rows*shownLead);
-   setFrame({width:shownWidth,height:rows*shownLead,left:(box.clientWidth-shownWidth)/2,
-    top:insets.current.top+slack/2,lead:shownLead,scale:grow});
+   setFrame({width:shownWidth,height:rows*shownLead,left:(box.clientWidth-spread)/2,
+    top:insets.current.top+slack/2,lead:shownLead,scale:grow,cols,gap:shownGap,pad:slack/2});
    const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
    setPage(Number.isFinite(next)?Math.min(laid.length-1,Math.max(0,next)):0);
   };
@@ -343,13 +358,15 @@ export function StoryReader({id,title,description,body,onClose}:{
   const ink=css.getPropertyValue('--tt-ink').trim()||'#fff';
   const soft=css.getPropertyValue('--tt-soft').trim()||ink;
   ctx.textBaseline='middle';
-  let y=frame.top;
+  // У каждой страницы разворота своя высота: правая начинается сверху.
+  const ys=[frame.top,frame.top];
   for(const line of pages[index]??[]){
+   const c=line.col??0;
    ctx.font=shown.css(line.kind);
    ctx.letterSpacing=line.kind==='title'?(-shown.size(line.kind)*0.02)+'px':'0px';
    ctx.fillStyle=line.kind==='intro'?soft:ink;
-   ctx.fillText(line.text,frame.left,y+line.rows*frame.lead/2);
-   y+=line.rows*frame.lead;
+   ctx.fillText(line.text,frame.left+c*(frame.width+frame.gap),ys[c]!+line.rows*frame.lead/2);
+   ys[c]=ys[c]!+line.rows*frame.lead;
   }
  },[shown,frame,pages]);
 
@@ -567,13 +584,16 @@ export function StoryReader({id,title,description,body,onClose}:{
 
  /** Одна страница в разметке. Настоящий текст, а не картинка: его выделяют,
   *  его читает экранный диктор. */
- const sheetOf=(index:number,copy:boolean)=>
-  <div className={'tt-reader-page'+(copy?' is-copy':'')} ref={copy?undefined:sheetRef}
-   style={{left:frame.left,width:frame.width}} aria-hidden={copy?true:undefined}>
-   {(pages[index]??[]).map((line,at)=>
+ // Разворот — две такие полосы рядом. Строки в них стоят от верха, а не
+ // посередине: короткая последняя страница иначе съехала бы вниз и не
+ // совпала с холстом оборота.
+ const sheetOf=(index:number,copy:boolean)=><>{Array.from({length:frame.cols},(_,c)=>
+  <div key={c} className={'tt-reader-page'+(copy?' is-copy':'')+(frame.cols>1?' is-spread':'')} ref={copy||c>0?undefined:sheetRef}
+   style={{left:frame.left+c*(frame.width+frame.gap),width:frame.width,...(frame.cols>1?{paddingTop:frame.pad}:{})}} aria-hidden={copy?true:undefined}>
+   {(pages[index]??[]).filter(line=>(line.col??0)===c).map((line,at)=>
     <div key={at} className={'tt-reader-line is-'+line.kind}
      style={{height:line.rows*frame.lead,font:shown.css(line.kind)}}>{line.text}</div>)}
-  </div>;
+  </div>)}</>;
 
  return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}
   style={{'--tt-reader-top':headerHeight+'px'} as CSSProperties}>

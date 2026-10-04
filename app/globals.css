@@ -2369,40 +2369,47 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 :root{--vw:1vw}
 
 /* ── Боком ────────────────────────────────────────────────────────────────
-   Любой сенсорный экран, лежащий на боку: телефон (~740×360) и планшет
-   (~790×480 в телефонном масштабе). Дизайн тот же, что стоя, — те же
-   карточки, кнопки, шрифты; меняется только то, что столбиком в низкий экран
-   не помещается. */
-@media (orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px){
- /* Плеер — в два столбца: фотография слева во всю высоту, управление справа.
-    Столбиком на высоте 360 кнопки уезжали за край экрана. */
- .podcast-player.is-open:has(.player-stage) .player-stage{top:0;bottom:0;left:0;right:auto;width:50%;height:auto;max-height:none}
- .podcast-player.is-open:has(.player-stage) .player-stage-shade{
-  background:linear-gradient(180deg,rgba(18,22,25,.55) 0,rgba(18,22,25,0) 22%),
-   linear-gradient(90deg,rgba(18,22,25,0) 55%,rgba(18,22,25,.75) 86%,#121619 100%)}
- .podcast-player.is-open:has(.player-stage) .player-sheet-top{position:absolute;top:0;left:0;right:0}
- .podcast-player.is-open:has(.player-stage) .player-body{margin-left:50%;width:50%;min-height:100%;justify-content:center;
-  padding:calc(54px + env(safe-area-inset-top)) 22px calc(14px + env(safe-area-inset-bottom));gap:12px}
- /* Сжиматься блокам нельзя: название сжималось до полоски и пряталось под
-    дорожкой прокрутки. Не помещается — экран плеера прокручивается. */
- .podcast-player.is-open .player-body>*{width:min(100%,440px);flex-shrink:0}
- .podcast-player.is-open .player-title{font-size:clamp(22px,calc(3.6 * var(--vw, 1vw)),32px);-webkit-line-clamp:2}
- /* Без фотографии (запись эфира, текст) — один столбец по центру. */
- .podcast-player.is-open:not(:has(.player-stage)) .player-body{padding-top:calc(54px + env(safe-area-inset-top))}
- /* Списки выпусков, видео и историй — в две колонки: карточка той же
-    ширины, что на телефоне стоя, а не растянутая на весь лежачий экран. */
- .listener-main .post-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+   Любой сенсорный экран, лежащий на боку. Владелец: «при повороте экрана
+   приложение должно выглядеть так же функционально и без изменений дизайна…
+   оптимизированный под другое соотношение экрана». Поэтому раскладка та же,
+   что стоя, — один столбец, те же карточки и панель. Меняется только то, что
+   иначе не помещается по высоте. */
+
+/* Вырез под камеру и системная панель сбоку. Боком Android отдаёт их как
+   отступы безопасной зоны слева и справа. Шапка от них отступала, а всё
+   остальное — нет: на снимке владельца правый край страницы («Дикие,
+   реальные…», «Сначала новые») уходил под системную панель. Стоя эти отступы
+   нулевые, и раскладка телефона не меняется. */
+@media (max-width:767px),(hover:none) and (pointer:coarse){
+ .listener-main{padding-left:calc(18px + env(safe-area-inset-left))!important;padding-right:calc(18px + env(safe-area-inset-right))!important}
+ /* Главная без полей — постер от края до края; край здесь — граница
+    безопасной зоны, а не стекло под панелью. */
+ .listener-main:has(.immersion){padding-left:env(safe-area-inset-left)!important;padding-right:env(safe-area-inset-right)!important}
+ .bottom-nav{left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right))}
+ .podcast-player.is-mini{left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right))}
+ .podcast-player.is-open .player-sheet-top{padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right))}
+ .podcast-player.is-open .player-body{padding-left:calc(var(--tt-gutter) + env(safe-area-inset-left));padding-right:calc(var(--tt-gutter) + env(safe-area-inset-right))}
 }
-/* Низкий экран боком (телефон): описание под названием прячется, кнопки
-   плотнее — иначе управление не помещается в 360 точек. */
+
+/* Плеер боком: фотография — фоном во весь экран и тает в угольный низ, как
+   стоя тает её нижняя часть под названием. Управление — столбиком внизу, как
+   стоя. На 58 % высоты лежачего экрана фотография вышла бы полоской, а
+   кнопки — ниже края. */
+@media (orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px){
+ .podcast-player.is-open .player-stage{height:100%;max-height:none}
+ .podcast-player.is-open .player-stage-photo{object-position:50% 30%}
+ .podcast-player.is-open .player-stage-shade{
+  background:linear-gradient(180deg,rgba(18,22,25,.55) 0,rgba(18,22,25,.12) 16%,rgba(18,22,25,.3) 42%,rgba(18,22,25,.86) 70%,#121619 100%)}
+ /* Сжиматься блокам нельзя: название сжималось до полоски и пряталось под
+    дорожкой. Не помещается — экран плеера прокручивается. */
+ .podcast-player.is-open .player-body>*{width:min(100%,560px);flex-shrink:0}
+}
+/* Низкий экран боком (телефон): строка бренда и описание прячутся, название
+   в две строки, кнопка воспроизведения меньше — иначе управление не входит
+   в 360 точек. */
 @media (orientation:landscape) and (max-height:430px){
  .podcast-player.is-open .player-note,.podcast-player.is-open .player-brand{display:none}
  .podcast-player.is-open .player-body{gap:8px}
+ .podcast-player.is-open .player-title{font-size:clamp(22px,calc(3.4 * var(--vw, 1vw)),30px);-webkit-line-clamp:2}
  .is-open .podcast-transport>.podcast-toggle{width:60px;height:60px}
-}
-/* Нижняя панель боком — ниже: подпись рядом со значком, а не под ним. На
-   лежачем экране высота дороже ширины, а ширины у пяти кнопок хватает. */
-@media (orientation:landscape) and (max-height:520px) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-height:520px) and (max-width:767px){
- html.dark{--bottom-nav-h:58px}
- .bottom-nav-item{flex-direction:row;gap:8px;min-height:42px;padding:6px 8px}
 }

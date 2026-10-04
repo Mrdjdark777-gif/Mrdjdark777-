@@ -197,6 +197,12 @@ try{
   return w<h?[narrow,Math.round(narrow*h/w)]:[Math.round(big*narrow/small),narrow];};
  // phone — страница телефона или уже снятый с неё замер.
  const inspectTablet=async(page,where,w,h,phone)=>{
+  // Строка «Нажми «Слушать», чтобы включить звук» — след самого стенда: здесь
+  // браузер не играет AAC и автозапуска нет. Она появляется с задержкой, то на
+  // одном экране, то на другом, и сдвигает кнопки на 35 точек. Для сравнения
+  // раскладки её прячем на обоих.
+  const calm={content:'.podcast-player-message{display:none!important}'};
+  await page.addStyleTag(calm);if(!phone.at)await phone.addStyleTag(calm);
   const t=await frame(page),p=phone.at?phone:await frame(phone);
   const [want]=logical(w,h);
   // Приложение — на весь экран, без колонки и тёмных полей по бокам.
@@ -217,15 +223,22 @@ try{
  const inspectLandscape=async(page,where)=>{
   const r=await page.evaluate(()=>{const H=innerHeight,W=innerWidth,out=[];
    if(W<=H)return out;
-   // Главная боком: первый экран целиком, как стоя, — кнопка под постером и
-   // названия под карточками карусели над нижней панелью, без прокрутки.
-   // Раньше карусель уезжала под панель, и палец попадал в панель.
-   const nav=document.querySelector('.bottom-nav'),navTop=nav&&getComputedStyle(nav).display!=='none'?nav.getBoundingClientRect().top:H;
-   if(document.querySelector('.tt-soft-home')){const v=document.querySelector('.soft-carousel'),vr=v&&v.getBoundingClientRect();
-    const low=[...document.querySelectorAll('.soft-reel>li strong,.soft-hero-foot .scene-action')].map(n=>({n,b:n.getBoundingClientRect()}))
-     .filter(x=>x.b.width>0&&(!vr||!x.n.closest('.soft-reel')||x.b.right>vr.left&&x.b.left<vr.right));
-    const worst=low.length?Math.max(...low.map(x=>x.b.bottom)):0;
-    if(worst>navTop+1)out.push('первый экран главной не помещается: '+Math.round(worst-navTop)+' точек уходят под нижнюю панель');}
+   // Боком — та же раскладка, что стоя (решение владельца: «дизайн
+   // остаётся, без изменения идеи»). Постер — во всю ширину и целиком, 15:7;
+   // карточки списков — во всю ширину, одна под другой; читалка — разворот.
+   const scene=document.querySelector('.tt-soft-home .scene:not(.scene-fallback)');
+   if(scene){const b=scene.getBoundingClientRect(),m=document.querySelector('.listener-main').getBoundingClientRect();
+    const cs=getComputedStyle(document.querySelector('.listener-main'));
+    const inner=m.width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    if(Math.abs(b.width-inner)>2)out.push('постер не во всю ширину: '+Math.round(b.width)+' из '+Math.round(inner));
+    if(Math.abs(b.height-b.width*7/15)>2)out.push('постер не 15:7: '+Math.round(b.width)+'×'+Math.round(b.height));}
+   const cards=[...document.querySelectorAll('.listener-main .post-list>.post-card')].map(n=>n.getBoundingClientRect());
+   if(cards.length>1){const list=document.querySelector('.listener-main .post-list').getBoundingClientRect();
+    if(cards.some(c=>Math.abs(c.width-list.width)>2))out.push('карточки списка не во всю ширину, как стоя: '+Math.round(cards[0].width)+' из '+Math.round(list.width));}
+   const sheets=[...document.querySelectorAll('.tt-reader-page:not(.is-copy)')].map(n=>n.getBoundingClientRect());
+   if(document.querySelector('.tt-reader')&&W>=600){
+    if(sheets.length!==2)out.push('читалка боком не разворотом: страниц рядом '+sheets.length);
+    else if(sheets[0].right>sheets[1].left-8)out.push('страницы разворота наезжают друг на друга');}
    const p=document.querySelector('.podcast-player.is-open');if(!p)return out;
    for(const sel of ['.podcast-toggle','.player-extras','.player-title']){const n=p.querySelector(sel);if(!n)continue;const b=n.getBoundingClientRect();
     if(b.bottom>H+1||b.top<-1)out.push('«'+sel+'» за краем экрана: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при высоте '+H);}
@@ -241,8 +254,9 @@ try{
     if(need>n.clientHeight+2&&!/(auto|scroll)/.test(s.overflowY))out.push('«'+(n.className||n.tagName)+'» сжат: нужно '+Math.round(need)+' точек, а коробка '+n.clientHeight);
     prev={n,b};}
    const st=p.querySelector('.player-stage');
+   // Фотография — фоном во весь экран, управление столбиком поверх, как стоя.
    if(st&&getComputedStyle(st).display!=='none'){const b=st.getBoundingClientRect();
-    if(b.height<H-2||b.width>W*.6)out.push('фотография плеера не столбцом слева во всю высоту: '+Math.round(b.width)+'×'+Math.round(b.height)+' на экране '+W+'×'+H);}
+    if(b.height<H-2||b.width<W-2)out.push('фотография плеера не фоном во весь экран: '+Math.round(b.width)+'×'+Math.round(b.height)+' на экране '+W+'×'+H);}
    return out;});
   for(const x of r)note(where+': '+x);
  };
@@ -251,7 +265,7 @@ try{
  // Бросок — как у пальца: касание, восемь шагов по 16 мс, отпускание, с
  // метками времени (иначе инерции нет). После броска посередине должна встать
  // другая карточка, ровно по центру окна, и карточки не наезжают друг на друга.
- const checkCarousel=async(page,where)=>{
+ const checkCarousel=async(page,where,keep=false)=>{
   if(!await page.locator('.soft-carousel').count())return;
   if(process.env.TT_PHONES_DEBUG)console.log('размеры',where,await page.evaluate(()=>{const q=s=>{const n=document.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect();return [Math.round(b.top),Math.round(b.bottom),Math.round(b.width)].join('/');};
    return JSON.stringify({li:q('.soft-reel>li'),art:q('.soft-reel>li .soft-art'),name:q('.soft-reel>li strong'),car:q('.soft-carousel'),head:q('.soft-catalog-head'),nav:q('.bottom-nav'),hdr:q('.top-header'),scene:q('.tt-soft-home .scene'),foot:q('.soft-hero-foot'),card:getComputedStyle(document.querySelector('.tt-soft-home')).getPropertyValue('--tt-land-card')});}));
@@ -270,7 +284,9 @@ try{
   // Медленно, на полторы карточки, с остановкой перед отпусканием — без
   // инерции: так после броска посередине обязана встать соседняя карточка, а
   // не та же самая, прокрученная полным кругом.
-  const card=await page.evaluate(()=>{const li=document.querySelectorAll('.soft-reel>li');return li[1].getBoundingClientRect().left-li[0].getBoundingClientRect().left;});
+  // Шаг ленты — ширина ячейки. Разность мест двух ячеек не годится: после
+  // перестановки на стыке круга соседние по списку стоят в разных концах.
+  const card=await page.evaluate(()=>document.querySelector('.soft-reel>li').getBoundingClientRect().width);
   const y=Math.round(box.y+box.height*0.4);let x=Math.round(box.x+box.width/2+card),t=Date.now()/1000;
   const steps=Math.ceil(card*1.5/10);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}],timestamp:t});
@@ -282,10 +298,91 @@ try{
   if(process.env.TT_PHONES_DEBUG)console.log('карусель',where,JSON.stringify(a),JSON.stringify(b));
   if(a.overlap.length)note(where+': карточки карусели наезжают друг на друга на '+a.overlap.join(', ')+' точек');
   if(a.off>3)note(where+': карусель стоит не по центру: средняя карточка в '+a.off+' точках от середины');
-  if(b.name===a.name)note(where+': карусель не листается пальцем — после броска посередине та же карточка «'+a.name+'»');
+  // Сравнение по номеру карточки, а не по названию: у тестовых выпусков
+  // названия бывают одинаковыми, и переход между ними выглядел бы стоянием.
+  if(b.mid===a.mid)note(where+': карусель не листается пальцем — после броска посередине та же карточка «'+a.name+'»');
   else if(b.off>3)note(where+': карусель после броска не встала по центру ('+b.off+' точек)');
   if(b.overlap.length)note(where+': после броска карточки карусели наезжают друг на друга на '+b.overlap.join(', ')+' точек');
-  await page.goto(page.url());await page.waitForLoadState('networkidle').catch(()=>{});
+  // Быстрый бросок — как обычно листают: короткое резкое движение пальцем.
+  // Лента обязана уехать и встать на другой карточке, а не вернуться назад.
+  {const c2=await page.context().newCDPSession(page);const bx=await page.locator('.soft-carousel').boundingBox();
+   const yy=Math.round(bx.y+bx.height*0.4);let xx=Math.round(bx.x+bx.width*0.7),tt=Date.now()/1000;const before=await look();
+   await c2.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:xx,y:yy}],timestamp:tt});
+   for(let i=0;i<6;i++){xx-=28;tt+=0.016;await c2.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:xx,y:yy}],timestamp:tt});}
+   tt+=0.016;await c2.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[],timestamp:tt});
+   await page.waitForTimeout(2500);const after=await look();await c2.detach().catch(()=>{});
+   if(process.env.TT_PHONES_DEBUG)console.log('бросок',where,before.name,'→',after.name,after.off);
+   if(after.mid===before.mid)note(where+': быстрый бросок не листает карусель — посередине снова «'+before.name+'»');
+   else if(after.off>3)note(where+': после быстрого броска карусель не встала по центру ('+after.off+' точек)');}
+  // После поворота страницу не перезагружаем: поворот проверяется на том же
+  // документе, иначе это было бы открытие заново, а не поворот.
+  if(!keep){await page.goto(page.url());await page.waitForLoadState('networkidle').catch(()=>{});}
+  else await page.evaluate(()=>{const m=document.querySelector('.listener-main')||document.scrollingElement;m.scrollTop=0;});
+ };
+ // Поворот на ходу. Владелец: «поворачиваю телефон — карусель не работает».
+ // Страница открывается стоя и поворачивается уже открытой, как телефон в
+ // руке: тот же документ, другой размер окна и ориентация экрана. После
+ // поворота и обратно карусель обязана листаться, экран — не съезжать.
+ // Боком у телефона сбоку вырез под камеру: браузер отдаёт его как отступ
+ // безопасной зоны слева или справа (смотря в какую сторону повернули). На
+ // снимке владельца из-за него страница вылезала за правый край.
+ // Порядок важен: смена размера окна у Playwright сбрасывает размер экрана на
+ // 800×600, поэтому сначала окно, а уже потом экран и ориентация.
+ // Размер экрана эмуляция после открытия страницы не меняет (остаётся
+ // 800×600), поэтому экран подменяется в самой странице — скрипт планшета
+ // читает именно screen.width и screen.height.
+ const rotate=async(page,w,h,side='left')=>{
+  await page.evaluate(([w,h])=>{for(const [k,v] of [['width',w],['height',h],['availWidth',w],['availHeight',h]])Object.defineProperty(screen,k,{get:()=>v,configurable:true});},[w,h]);
+  await page.setViewportSize({width:w,height:h});
+  const cdp=await page.context().newCDPSession(page);
+  // Своё «устройство» через CDP здесь не ставим: оно спорило с эмуляцией
+  // Playwright, и браузер переставал слушать meta viewport — планшет после
+  // поворота оставался шириной в экран. Ориентация в стилях считается по
+  // размеру окна, а не по датчику.
+  const cut=w>h?32:0;
+  await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:w>h?0:24,left:side==='left'?cut:0,right:side==='right'?cut:0,bottom:w>h?0:16}}).catch(e=>note('эмуляция выреза недоступна: '+e.message));
+  await page.evaluate(()=>window.dispatchEvent(new Event('orientationchange')));
+  await page.waitForTimeout(1200);await cdp.detach().catch(()=>{});};
+ // Под вырезом и системной панелью сбоку не должно быть ни текста, ни кнопок:
+ // на снимке владельца правый край страницы уходил под панель.
+ const inspectSafe=async(page,where,side,cut)=>{
+  const bad=await page.evaluate(([side,cut])=>{const W=innerWidth,out=[];
+   for(const n of document.querySelectorAll('body *')){
+    const s=getComputedStyle(n);if(s.visibility==='hidden'||s.display==='none'||+s.opacity===0)continue;
+    const text=[...n.childNodes].some(c=>c.nodeType===3&&c.textContent.trim());
+    if(!text&&!n.matches('button,a,input,select'))continue;
+    if(n.closest('[aria-hidden="true"],.sr-only,.soft-carousel'))continue;
+    const b=n.getBoundingClientRect();if(!b.width||!b.height||b.bottom<0||b.top>innerHeight)continue;
+    if(side==='left'&&b.left<cut-1||side==='right'&&b.right>W-cut+1)
+     out.push((n.className&&typeof n.className==='string'?n.className.split(' ')[0]:n.tagName)+' «'+n.textContent.trim().slice(0,24)+'» '+Math.round(b.left)+'…'+Math.round(b.right));}
+   return out.slice(0,4);},[side,cut]);
+  for(const x of bad)note(where+': под вырезом '+(side==='left'?'слева':'справа')+': '+x);
+ };
+ const checkRotation=async(w,h)=>{
+  const ctx=await browser.newContext({viewport:{width:w,height:h},screen:{width:w,height:h},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:'ru-RU'});
+  const page=await ctx.newPage();page.on('pageerror',e=>note('поворот '+w+'×'+h+': ошибка на странице: '+e.message));
+  await page.goto(base+'/?mode=listen');await settle(page);
+  for(const [W,H,label,side] of [[h,w,'боком','left'],[h,w,'боком-вправо','right'],[w,h,'снова стоя','left']]){
+   await rotate(page,W,H,side);screens++;
+   const where='поворот '+w+'×'+h+' → '+label+' ('+W+'×'+H+')';
+   await inspect(page,where,'ru');if(W>H)await inspectSafe(page,where,side,32);
+   // Планшет после поворота пересчитывает ширину экрана — тем же масштабом.
+   if(Math.min(w,h)>=600){const cw=await page.evaluate(()=>document.documentElement.clientWidth),[lw]=logical(W,H);
+    if(Math.abs(cw-lw)>2)note(where+': после поворота ширина экрана '+cw+' вместо '+lw+' — планшет не пересчитал масштаб'+(process.env.TT_PHONES_DEBUG?' '+await page.evaluate(()=>JSON.stringify({sw:screen.width,sh:screen.height,iw:innerWidth,vv:visualViewport.scale,meta:[...document.querySelectorAll('meta[name=viewport]')].map(m=>m.content),tab:document.documentElement.hasAttribute('data-tt-tablet')})):''));}
+   await page.screenshot({path:path.join(out,`rotate-${w}x${h}-${label.replace(/\s+/g,'-')}.png`)});
+   await checkCarousel(page,where,true);
+  }
+  // Все разделы боком с вырезом сбоку — открытые переходом по нижней панели,
+  // как это делает человек, уже в лежачем положении.
+  await rotate(page,h,w,'left');
+  for(const [name] of views.slice(1,6)){
+   const idx={'слушать':0,'видео':1,'эфир':3,'истории':4}[name];if(idx===undefined)continue;
+   await page.locator('.bottom-nav > *').nth(idx).click();await page.waitForTimeout(900);screens++;
+   const where='поворот '+w+'×'+h+' боком, вырез слева: '+name;
+   await inspect(page,where,'ru');await inspectLandscape(page,where);await inspectSafe(page,where,'left',32);
+   await page.screenshot({path:path.join(out,`rotate-${w}x${h}-боком-${name}.png`)});
+  }
+  await ctx.close();
  };
  const phones=[[320,568],[360,640],[360,780],[375,667],[384,854],[390,844],[412,915],[430,932],[480,1000]];
  const views=[['главная','/?mode=listen'],['слушать','/?mode=listen&view=podcasts'],['видео','/?mode=listen&view=videos'],
@@ -375,7 +472,9 @@ try{
   await pctx.close();await ctx.close();
  };
  const landscapes=[[740,360],[844,390],[915,412]];
- if(process.env.TT_PHONES_LANDSCAPE==='only'){
+ const rotations=process.env.TT_PHONES_SIZE?[process.env.TT_PHONES_SIZE.split("x").map(Number)]:[[390,844],[412,915],[360,780],[924,1480]];
+ if(process.env.TT_PHONES_ROTATE==='only'){for(const [w,h] of rotations)await checkRotation(w,h);}
+ else if(process.env.TT_PHONES_LANDSCAPE==='only'){
   for(const [w,h] of landscapes.filter(([w,h])=>!process.env.TT_PHONES_SIZE||process.env.TT_PHONES_SIZE===w+'x'+h))
    await run(w,h,'ru',tabletViews.filter(([n])=>!process.env.TT_PHONES_VIEW||n===process.env.TT_PHONES_VIEW),true);
  }else if(process.env.TT_PHONES_TABLETS==='only'){
@@ -389,6 +488,7 @@ try{
  // Телефон боком — все экраны, как стоя: владелец просил одно приложение в
  // любом положении.
  if(!quick)for(const [w,h] of landscapes)await run(w,h,'ru',tabletViews,true);
+ if(!quick)for(const [w,h] of rotations)await checkRotation(w,h);
  for(const [w,h] of quick?[[800,1280]]:tablets)await runTablet(w,h,'ru',tabletViews,!quick);
  if(!quick)for(const lang of ['it','uk','ro'])await runTablet(1024,1366,lang,views,false);
  }

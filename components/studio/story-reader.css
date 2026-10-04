@@ -240,3 +240,23 @@
    и выходит той же страницей, что без полного экрана, — только без часов и
    системных панелей. */
 html[data-tt-fs-zoom] .tt-reader{zoom:var(--tt-fs-zoom,1)}
+
+/* Разворот боком: строки каждой страницы стоят от верха полосы (отступ сверху
+   — остаток от округления, его ставит скрипт), как на холсте оборота. */
+.tt-reader-page.is-spread{justify-content:flex-start}
+
+/* Вырез под камеру и системная панель сбоку: боком читалка отступает от них,
+   как и всё приложение. Стоя отступы нулевые. */
+.tt-reader{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.tt-reader-top{padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}
+.tt-reader-bottom{padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(14px + env(safe-area-inset-right))}
+
+/* Шапка читалки боком — в одну строку: название между стрелкой и значками, а
+   не второй строкой под ними. На лежачем экране вторая строка съедала высоту,
+   которой и так мало. */
+@media (orientation:landscape) and (max-height:520px){
+ .tt-reader-top{grid-template-columns:40px minmax(0,1fr) 40px 40px 40px}
+ .tt-reader-top>.tt-reader-heading{grid-row:1;grid-column:2;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-height:none;padding:0 8px}
+ .tt-reader-top>.tt-reader-icon:nth-of-type(2){grid-column:3;justify-self:auto}
+}

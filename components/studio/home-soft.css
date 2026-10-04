@@ -46,37 +46,10 @@
     режет их, но не постер, нарисованный по размеру. */
  aspect-ratio:15/7;height:auto!important;min-height:0!important;max-height:none!important;
  background:#090c0e;border-radius:0 0 var(--soft-radius) var(--soft-radius)!important;overflow:hidden;border:0}
-/* ── Боком: главная в два столбца ──────────────────────────────────────
-   Телефон или планшет, лежащий на боку. Приложение поворачивается вместе с
-   ним — ориентация не закреплена. Столбиком, как стоя, в низкий экран
-   помещался один постер с кнопкой, а карусель уезжала под нижнюю панель:
-   палец попадал в панель, и владелец решил, что карусель не работает.
-   Теперь первый экран боком — как стоя, только разложенный по ширине: слева
-   постер и кнопка, справа «Новое» с каруселью, ниже справа — остальное.
-   Пропорция кадра та же, 15:7, — обрезки нет; ширина кадра ограничена и
-   высотой экрана, чтобы кнопка под ним оставалась на первом экране. */
-@media(orientation:landscape) and (max-width:767px),(orientation:landscape) and (hover:none) and (pointer:coarse){
- .immersion.tt-soft-home{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  column-gap:22px;row-gap:10px!important;align-items:start;padding-top:8px!important}
- .tt-soft-home .scene{grid-column:1;grid-row:1;justify-self:center;
-  width:min(100%,calc((100svh - var(--tt-land-chrome,200px)) * 15 / 7))!important;
-  margin:0!important;border-radius:var(--soft-radius)!important}
- .tt-soft-home .soft-hero-foot{grid-column:1;grid-row:2;justify-self:center;margin-top:0!important;
-  width:min(100%,calc((100svh - var(--tt-land-chrome,200px)) * 15 / 7))}
- .tt-soft-home .scene-side{grid-column:2;grid-row:1 / span 3;min-width:0}
- /* Карусель — во всю ширину правого столбца и до правого края экрана.
-    Карточка по высоте экрана: обложка 2:3 с подписью обязана войти между
-    «Новое» и нижней панелью. Селекторы с .immersion — сильнее общих правил
-    ленты ниже по файлу. Слева окно гаснет: карточки уходят под край
-    столбца, а не упираются в кнопку соседнего. */
- .immersion.tt-soft-home .soft-carousel{margin:0 -16px 0 0;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px);mask-image:linear-gradient(90deg,transparent 0,#000 18px)}
- .immersion.tt-soft-home .soft-reel>li{flex:0 0 var(--tt-land-card);min-width:0;max-width:none}
- .immersion.tt-soft-home .soft-reel{transform:translate3d(calc((100% - var(--tt-land-card)) / 2),0,0)}
- /* Высота под каруселью: шапка, «Новое», отступы окна, подпись в две строки и
-    нижняя панель — 208 точек; остаток — обложке 2:3. */
- .tt-soft-home{--tt-land-card:clamp(92px,calc((100svh - 208px) * 2 / 3 + 12px),168px)}
-}
+/* Боком — та же главная, что стоя: постер во всю ширину и целиком (15:7),
+   под ним кнопка, «Новое», карусель и остальное; лишнее — прокруткой. Так
+   решил владелец: «дизайн остаётся, оптимизированный под другое соотношение
+   экрана, без изменения идеи». Двух столбцов и постера по центру больше нет. */
 /* Обложка заполняет кадр. Показывать её целиком (contain) нельзя: широкая
    картинка превращается в тонкую полосу посреди пустого постера. Обрезка
    читается как настоящая афиша.
@@ -368,7 +341,7 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
    к кнопке, кнопку оставь на том же месте». Постер сдвигается на 10 точек, и
    ровно на столько же уменьшается зазор до кнопки: 18 → 8. Только телефон
    стоя: боком и на широком экране кадр стоит по-другому. */
-@media (max-width:767px) and (orientation:portrait){
+@media (max-width:767px),(hover:none) and (pointer:coarse){
  .tt-soft-home .scene{margin-top:10px!important}
  .tt-soft-home .soft-hero-foot{margin-top:-4px}}
 /* Верх постера растворяется в фоне, а не обрывается ровной линией.
