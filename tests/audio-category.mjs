@@ -148,7 +148,7 @@ try{
    main.scrollTop=0;return res;});
   assert.ok(v.scroll<=v.W,w+': горизонтальная прокрутка '+v.scroll+' при ширине '+v.W);
   assert.equal(v.title,'Внутри\nистории',w+': заголовок «'+v.title+'»');
-  assert.equal(v.kicker,'Истории о выживании.\nМузыка, которая погружает.',w+': подзаголовок');
+  assert.equal(v.kicker,'Истории о выживании. Музыка, которая погружает.',w+': подзаголовок');
   assert.equal(v.search,'Найти историю или музыку');assert.equal(v.sort,'Сначала новые');
   assert.equal(v.nav,'Аудио',w+': вкладка «'+v.nav+'»');assert.equal(v.card,false,w+': карточка «новый эпизод» вернулась');
   const tag=t=>v.tags.find(x=>x.title===t)?.tag;

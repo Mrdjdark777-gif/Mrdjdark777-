@@ -1,26 +1,35 @@
 'use client';
+import {Fragment} from 'react';
 import {useT} from '@/components/i18n-provider';
 
 /**
- * Шапка раздела «Аудио»: заголовок «Внутри истории.» с бирюзовой точкой и
- * подзаголовок под ним. Это верхняя часть раздела, а не вторая главная: сразу
- * под ней идёт настоящий каталог с поиском, сортировкой и списком.
+ * Общая шапка трёх разделов слушателя: «Аудио» — «Внутри истории.», «Видео» —
+ * «Истории в кадре.», «Истории» — «Истории на страницах.». Одна разметка и
+ * одни стили, чтобы разделы не расходились по оформлению.
  *
- * Карточки «новый эпизод» здесь больше нет — владелец убрал её вместе с
- * переходом на макет «Внутри истории»: свежий выпуск и так первый в списке
- * при «Сначала новые». Узкой колонки справа («Дикие, реальные, честные
- * истории») тоже нет: подзаголовок стоит под заголовком, по его левому краю.
+ * Заголовок слева, подзаголовок — колонкой справа от него, мельче. Владелец:
+ * верх первой строки подзаголовка — на высоте верха заголовка, низ последней —
+ * на линии низа заголовка. Поэтому строки подзаголовка — отдельные блоки,
+ * разнесённые по высоте заголовка (стили: .voice-kicker).
  *
- * Перенос строк заголовка и подзаголовка записан в словаре («Внутри⏎истории»):
- * на телефоне строки встают как на макете, на широком экране перенос
- * схлопывается в пробел (white-space в стилях).
+ * Переносы строк записаны в словаре («Внутри⏎истории»); если строка не
+ * помещается в колонку, она переносится дальше сама, а не обрезается.
  */
-export function VoiceHeader(){
+export type SectionHeaderView='podcasts'|'videos'|'stories';
+
+const KEYS:Record<SectionHeaderView,{headline:string;kicker:string}>={
+ podcasts:{headline:'voice.headline',kicker:'voice.kicker'},
+ videos:{headline:'video.headline',kicker:'video.kicker'},
+ stories:{headline:'stories.headline',kicker:'stories.kicker'},
+};
+
+export function VoiceHeader({view='podcasts'}:{view?:SectionHeaderView}){
  const {t}=useT();
- return <header className="voice-head">
+ const keys=KEYS[view];
+ return <header className="voice-head" data-section={view}>
   <div className="voice-headline">
-   <h1 className="voice-title">{t('voice.headline')}<span className="voice-stop" aria-hidden="true"/></h1>
-   <p className="voice-kicker">{t('voice.kicker')}</p>
+   <h1 className="voice-title">{t(keys.headline)}<span className="voice-stop" aria-hidden="true"/></h1>
+   <p className="voice-kicker">{t(keys.kicker).split('\n').map((line,i)=><Fragment key={i}>{i>0&&' '}<span className="voice-kicker-line">{line}</span></Fragment>)}</p>
   </div>
  </header>;
 }

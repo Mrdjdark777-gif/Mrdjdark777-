@@ -143,14 +143,21 @@ try{
      const cut=/(hidden|clip)/.test(getComputedStyle(st).overflow);
      if(!cut&&(b.bottom>a.bottom+1||b.top<a.top-1))
       found.push('фотография плеера вылезает из рамки: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при рамке '+Math.round(a.top)+'…'+Math.round(a.bottom));}}
-   // Заголовки «Видео» и «Истории» с подписью — по середине (просьба
-   // владельца), стоя и боком.
-   const view=document.querySelector('.listener-main')?.dataset.view;
-   if(view==='videos'||view==='stories'){const m=document.querySelector('.listener-main'),r=m.getBoundingClientRect(),cs=getComputedStyle(m);
-    const mid=r.left+parseFloat(cs.paddingLeft)+(r.width-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight))/2;
-    for(const sel of ['.page-heading h1','.page-heading .heading-description']){const n=document.querySelector(sel);if(!n)continue;
-     const range=document.createRange();range.selectNodeContents(n);const b=range.getBoundingClientRect();
-     if(Math.abs(b.left+b.width/2-mid)>3)found.push('«'+sel+'» не по середине: центр текста '+Math.round(b.left+b.width/2)+' при середине '+Math.round(mid));}}
+   // Шапка разделов «Аудио», «Видео», «Истории» — одна на три: заголовок
+   // слева, подзаголовок колонкой справа; верх первой строки подзаголовка —
+   // на высоте верха заголовка, низ последней — на линии его низа (просьба
+   // владельца). Стоя и боком. Поиск и сортировка — одной строкой.
+   {const head=document.querySelector('.listener-main .voice-headline');
+    if(head&&vis(head)){const t=head.querySelector('.voice-title').getBoundingClientRect(),
+     lines=[...head.querySelectorAll('.voice-kicker-line')].map(n=>n.getBoundingClientRect());
+     if(!lines.length)found.push('в шапке раздела нет подзаголовка');
+     else{if(lines[0].left<t.right-1)found.push('подзаголовок раздела не справа от заголовка');
+      if(Math.abs(lines[0].top-t.top)>2||Math.abs(lines.at(-1).bottom-t.bottom)>2)
+       found.push('подзаголовок раздела не по высоте заголовка: '+Math.round(lines[0].top)+'…'+Math.round(lines.at(-1).bottom)+' при заголовке '+Math.round(t.top)+'…'+Math.round(t.bottom));}
+     if(t.right>innerWidth)found.push('заголовок раздела вылез за край экрана');
+     const se=document.querySelector('.listener-main .catalog-search'),so=document.querySelector('.listener-main .catalog-sort');
+     if(se&&so&&vis(se)){const a=se.getBoundingClientRect(),c=so.getBoundingClientRect();
+      if(c.top>=a.bottom||c.left<a.right)found.push('поиск и сортировка разъехались на две строки');}}}
    // Эфир в покое: нижней «Поделиться» нет — она повторяла кнопку в шапке,
    // которая делится тем же эфиром. Надписи под кругом сгруппированы, но
    // кольцо, растущее в такт дыханию, на «Вдох» не наезжает.
@@ -197,7 +204,7 @@ try{
  // весь экран в ширину. Проверка сравнивает с настоящим телефоном того же
  // логического размера: опорные блоки обязаны стоять там же, до 2 точек.
  const anchors=['.top-header','.scene','.soft-hero-foot .scene-action','.soft-catalog-head','.soft-carousel','.soft-archive-row',
-  '.page-heading','.post-list>.post-card','.post-cover','.voice-hero,.voice-header','.player-stage','.player-title','.podcast-toggle',
+  '.page-heading','.voice-headline','.catalog-tools','.post-list>.post-card','.post-cover','.voice-hero,.voice-header','.player-stage','.player-title','.podcast-toggle',
   '.live-orb','.live-stage','.settings-panel','.tt-reader-page','.bottom-nav'];
  const frame=(page,reader=false)=>page.evaluate(([anchors,reader])=>{
   // В полном экране планшет забывает meta viewport, и читалка возвращает

@@ -623,6 +623,9 @@ try{
     if(!h||!d)return null;const hr=h.getBoundingClientRect(),dr=d.getBoundingClientRect();
     return Math.round(dr.top-hr.bottom);});
    if(head!==null&&head<5)problems.push('в разделе «'+v+'» пояснение прилипло к заголовку: '+head+'px');
+   // У слушателя у всех трёх разделов одна шапка — общая с «Аудио».
+   if(head===null&&!await page.locator('.listener-main .voice-headline .voice-kicker-line').count())
+    problems.push('в разделе «'+v+'» нет шапки с подзаголовком');
   }
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);await page.waitForTimeout(200);
   if(await page.locator('.catalog-scope').count())problems.push('в каталоге остался переключатель записей эфиров');
@@ -638,10 +641,12 @@ try{
   }
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
 
- // Раздел «Аудио»: заголовок «Внутри истории.», под ним подзаголовок по его
- // левому краю, потом строка поиска с сортировкой и список. Карточки «новый
- // эпизод» больше нет — владелец убрал её вместе с переходом на макет. Ритм
- // каталога ровный — один и тот же промежуток между блоками.
+ // Раздел «Аудио»: заголовок «Внутри истории.», подзаголовок колонкой справа
+ // от него (владелец: верх и низ строк — на высоте заголовка), потом строка
+ // поиска с сортировкой и список. Карточки «новый эпизод» больше нет —
+ // владелец убрал её вместе с переходом на макет. Ритм каталога ровный —
+ // один и тот же промежуток между блоками. Все три раздела на 360/390/430
+ // подробно проверяет tests/section-catalogs.mjs.
  {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);
   step('раздел «Аудио»');
   const head=await page.evaluate(()=>{const b=s=>{const n=document.querySelector(s);return n?n.getBoundingClientRect():null;};
@@ -651,8 +656,8 @@ try{
     nav:document.querySelector('.bottom-nav-podcasts')?.textContent.trim(),search:document.querySelector('.catalog-search input')?.placeholder};});
   if(head.card)problems.push('аудио: карточка «новый эпизод» вернулась — владелец её убрал');
   if(!head.t||!head.k)problems.push('аудио: нет заголовка или подзаголовка');
-  else{if(head.k.top<head.t.bottom-1)problems.push('аудио: подзаголовок не под заголовком, а сбоку');
-   if(Math.abs(head.k.left-head.t.left)>2)problems.push('аудио: подзаголовок не по левому краю заголовка ('+Math.round(head.k.left)+' против '+Math.round(head.t.left)+')');}
+  else{if(head.k.left<head.t.right-1)problems.push('аудио: подзаголовок не справа от заголовка');
+   if(Math.abs(head.k.top-head.t.top)>2)problems.push('аудио: подзаголовок не на одной высоте с заголовком');}
   if(!/Внутри\s+истории/.test(head.title||''))problems.push('аудио: заголовок не «Внутри истории.»: «'+head.title+'»');
   if(head.nav!=='Аудио')problems.push('нижняя панель: вкладка раздела подписана «'+head.nav+'» вместо «Аудио»');
   if(head.search!=='Найти историю или музыку')problems.push('аудио: в поиске «'+head.search+'»');
