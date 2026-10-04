@@ -58,7 +58,12 @@ public class PlaybackService extends MediaSessionService {
             }
         };
         player = new ExoPlayer.Builder(this, renderers).build();
-        player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(), true);
+        // Тип содержимого — музыка, а не речь. В каталоге теперь и музыка, и
+        // аудиоистории с музыкой; на части телефонов система и звуковые
+        // эффекты производителя подбирают обработку по этому типу, и «речь»
+        // могла получить голосовую обработку вместо полной полосы. Владелец:
+        // «аудио должно быть такое же, как в оригинале, без искажений».
+        player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true);
         player.setHandleAudioBecomingNoisy(true); player.setWakeMode(C.WAKE_MODE_NETWORK);
         player.addListener(new Player.Listener() {
             @Override public void onIsPlayingChanged(boolean playing) { if(playing) networkRetries=0; save(); }

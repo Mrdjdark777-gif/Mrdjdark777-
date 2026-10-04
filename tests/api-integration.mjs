@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { build } from 'esbuild';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {existsSync,readdirSync} from 'node:fs';
@@ -317,6 +317,39 @@ try {
     if (bad === 'bytes=4-2') { assert.equal(r.status, 416, bad); continue; }
     assert.equal(r.status, 200, 'Непонятный Range не должен ломать выдачу: ' + bad);
     assert.equal(await r.text(), 'abcdef');
+  }
+
+  // Звук слушатель получает ровно тот, что загрузил автор, — байт в байт, без
+  // перекодирования, в каждом формате, который принимает студия. Владелец:
+  // «мне кажется, качество искажается… аудио должно быть такое же, как в
+  // оригинале». Настоящие файлы с настоящим кодеком (320 кбит/с MP3, 24-бит
+  // WAV, FLAC, AAC в M4A, Opus), а не шесть букв: проверяем всю цепочку
+  // загрузка → хранилище → выдача, по контрольной сумме и по типу.
+  {
+   const { createHash } = await import('node:crypto');
+   const ff = (...args) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000,aformat=channel_layouts=stereo', '-t', '4', ...args]);
+   const formats = [
+    ['song.mp3', 'audio/mpeg', ['-c:a', 'libmp3lame', '-b:a', '320k']],
+    ['song.wav', 'audio/wav', ['-c:a', 'pcm_s24le']],
+    ['song.flac', 'audio/flac', ['-c:a', 'flac']],
+    ['song.m4a', 'audio/mp4', ['-c:a', 'aac', '-b:a', '256k']],
+    ['song.ogg', 'audio/ogg', ['-c:a', 'libopus', '-b:a', '192k']],
+   ];
+   for (const [name, mime, codec] of formats) {
+    const file = path.join(dir, name); ff(...codec, file);
+    const bytes = await readFile(file), sum = createHash('sha256').update(bytes).digest('hex');
+    const up = await dispatch('audio', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': mime, 'X-Upload-Size': String(bytes.length) }, body: new Blob([bytes]).stream(), duplex: 'half' });
+    assert.equal(up.status, 200, name + ': загрузка не прошла');
+    const made = await request('library', { kind: 'podcast', audioCategory: 'music', title: 'Звук ' + name, audioKey: (await up.json()).key, published: true });
+    assert.equal(made.status, 200, name + ': запись не создалась');
+    const got = await dispatch('audio', { search: '?id=' + made.data.id });
+    assert.equal(got.status, 200, name + ': слушателю не отдаётся');
+    const back = Buffer.from(await got.arrayBuffer());
+    assert.equal(back.length, bytes.length, name + ': размер у слушателя ' + back.length + ' вместо ' + bytes.length);
+    assert.equal(createHash('sha256').update(back).digest('hex'), sum, name + ': слушатель получает не тот файл, что загружен');
+    assert.equal(got.headers.get('content-type'), mime, name + ': тип при выдаче изменился');
+    await request('library', { action: 'delete', id: made.data.id });
+   }
   }
 
   // Обложки: загрузка своего изображения вместо ссылки, и фон эфира (channelArt).

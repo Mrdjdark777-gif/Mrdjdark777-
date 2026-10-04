@@ -642,7 +642,7 @@ try{
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
 
  // Раздел «Аудио»: заголовок «Внутри истории.», подзаголовок колонкой справа
- // от него (владелец: верх и низ строк — на высоте заголовка), потом строка
+ // от него, по центру высоты заголовка, потом строка
  // поиска с сортировкой и список. Карточки «новый эпизод» больше нет —
  // владелец убрал её вместе с переходом на макет. Ритм каталога ровный —
  // один и тот же промежуток между блоками. Все три раздела на 360/390/430
@@ -657,7 +657,7 @@ try{
   if(head.card)problems.push('аудио: карточка «новый эпизод» вернулась — владелец её убрал');
   if(!head.t||!head.k)problems.push('аудио: нет заголовка или подзаголовка');
   else{if(head.k.left<head.t.right-1)problems.push('аудио: подзаголовок не справа от заголовка');
-   if(Math.abs(head.k.top-head.t.top)>2)problems.push('аудио: подзаголовок не на одной высоте с заголовком');}
+   if(Math.abs((head.k.top+head.k.bottom)-(head.t.top+head.t.bottom))>4)problems.push('аудио: подзаголовок не по центру высоты заголовка');}
   if(!/Внутри\s+истории/.test(head.title||''))problems.push('аудио: заголовок не «Внутри истории.»: «'+head.title+'»');
   if(head.nav!=='Аудио')problems.push('нижняя панель: вкладка раздела подписана «'+head.nav+'» вместо «Аудио»');
   if(head.search!=='Найти историю или музыку')problems.push('аудио: в поиске «'+head.search+'»');
@@ -2518,7 +2518,7 @@ try{
    check(!!size&&/1800×840/.test(size.text),'в панели постера под описанием нет размера 1800×840: '+(size?.text||'строки нет'));
    if(size)check(size.above&&size.after,'размер постера стоит не сразу под описанием');
    const kinds=(await kind.locator('option').allTextContents()).join(', ');
-   check(kinds==='Подкаст, Видео, История','в постере главной не те типы контента: '+kinds);
+   check(kinds==='Аудио, Видео, История','в постере главной не те типы контента: '+kinds);
    await kind.selectOption('story');
    const titles=await target.locator('option').allTextContents();
    check(titles.includes('Там, где заканчивается дорога'),'среди историй для постера нет опубликованной истории: '+titles.join(' | '));

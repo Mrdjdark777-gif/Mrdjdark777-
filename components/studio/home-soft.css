@@ -88,10 +88,7 @@
  min-width:0!important;max-width:100%;min-height:46px!important;margin:0!important;
  padding:0 22px!important;border-radius:999px!important;font-size:16px!important;font-weight:650!important;
  display:inline-flex!important;align-items:center;justify-content:center;gap:8px}
-.tt-soft-home .soft-hero-progress{display:flex;align-items:center;gap:10px;width:100%}
-.tt-soft-home .soft-hero-time{font-size:11.5px;color:#cfdad9;font-variant-numeric:tabular-nums;flex:none}
-.tt-soft-home .soft-hero-track{flex:1;height:4px;border-radius:999px;background:#ffffff33;overflow:hidden}
-.tt-soft-home .soft-hero-fill{display:block;height:100%;border-radius:999px;background:#6fe7de}
+.tt-soft-home .scene-action-time{font-variant-numeric:tabular-nums;font-weight:500;opacity:.78}
 .tt-soft-home .scene-menu{position:absolute;top:10px;right:10px;min-width:40px;min-height:40px;border-radius:50%;background:#0d0f1288}
 
 /* ── Правая колонка на мониторе, обычный поток на телефоне ───────────── */
@@ -349,5 +346,10 @@ body:has(.podcast-player.is-mini) .listener-main .soft-tail{height:92px}
    заливка кадра снята, иначе на месте прозрачного верха осталась бы полоса;
    у пустого кадра (без обложки) она остаётся. */
 .tt-soft-home .scene:not(.scene-fallback){background:transparent}
+/* Растворяется только узкая полоска у самого края, а не верхняя четверть:
+   владелец: «хочется, чтоб она не так обрезалась наверху… чтоб вплотную
+   подходило к лого True Thrills». При 26 % на телефоне гасли верхние 47
+   точек постера — это и читалось как обрезка. Теперь ~16 точек: ровной линии
+   по-прежнему нет, а картинка начинается сразу под шапкой. */
 .tt-soft-home .scene-photo,.tt-soft-home .scene-shade{
- -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%);mask-image:linear-gradient(180deg,transparent 0,#000 26%)}
+ -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 9%);mask-image:linear-gradient(180deg,transparent 0,#000 9%)}

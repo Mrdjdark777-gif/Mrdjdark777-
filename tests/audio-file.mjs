@@ -27,5 +27,13 @@ try{
  const mp3Blob=new Blob([await readFile(mp3)],{type:'audio/mpeg'});const mp3Result=await prepareAudio(mp3Blob);assert.strictEqual(mp3Result.blob,mp3Blob);assert.ok(mp3Result.duration>2.9&&mp3Result.duration<3.2);
  await assert.rejects(prepareAudio(new Blob(['not an audio file'])));
  await assert.rejects(prepareAudio(new Blob([])));
+ // Android-плеер не обрабатывает звук: тип содержимого — музыка (не речь, под
+ // которую часть телефонов включает голосовую обработку), а единственный
+ // свой обработчик — ответвление для индикатора, которое ничего не меняет.
+ {const java=await readFile('android/app/src/main/java/com/truethrills/listener/PlaybackService.java','utf8');
+  assert.match(java,/setContentType\(C\.AUDIO_CONTENT_TYPE_MUSIC\)/,'Android-плеер объявляет звук не музыкой');
+  assert.doesNotMatch(java,/AUDIO_CONTENT_TYPE_SPEECH/,'Android-плеер снова объявляет звук речью');
+  assert.match(java,/setAudioProcessors\(new AudioProcessor\[\]\{ new TeeAudioProcessor\(new LevelTap\(\)\) \}\)/,'в Android-плеер добавлена обработка звука сверх ответвления для индикатора');
+  assert.doesNotMatch(java,/SkipSilence|LoudnessEnhancer|Equalizer|DynamicsProcessing/,'в Android-плеере появилась обработка звука');}
  console.log('PASS: missing duration reproduced; finite duration and seek index restored; audio packets unchanged; seeking decodes; finalized WebM and MP3 preserved; invalid files rejected.');
 }finally{await rm(dir,{recursive:true,force:true});}

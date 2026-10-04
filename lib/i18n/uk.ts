@@ -364,7 +364,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "settings.posterText": "Велика афіша вгорі головної. Обери, що відкривається натисканням на неї, і завантаж постер. Обкладинка самого випуску лишається в каруселі, каталозі й плеєрі.",
   "settings.posterSize": "Розмір постера: 1800×840 пікселів (15:7), JPEG або PNG, до 12 МБ.",
   "settings.posterKind": "Тип",
-  "settings.posterKindPodcast": "Подкаст",
+  "settings.posterKindPodcast": "Аудіо",
   "settings.posterKindVideo": "Відео",
   "settings.posterKindStory": "Історія",
   "settings.posterTarget": "Що відкривати",

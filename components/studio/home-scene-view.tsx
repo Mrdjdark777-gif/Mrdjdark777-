@@ -95,7 +95,6 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
  const heroKind=hero?t(kindTagKey(hero)):'';
  // Полоса под кнопкой показывает настоящее место в выпуске, а не оформление:
  // нет длительности — нет и полосы.
- const heroPart=heroResume&&heroResume.duration>0?Math.min(1,Math.max(0,heroResume.position/heroResume.duration)):0;
  const press=hero?{
   onPointerDown:(e:React.PointerEvent)=>{if(e.button!==0)return;held.current=false;if(hold.current)clearTimeout(hold.current);hold.current=setTimeout(()=>{held.current=true;haptic();setMenu({id:hero.id,title:hero.title});},HOLD_MS);},
   onPointerUp:()=>{if(hold.current)clearTimeout(hold.current);},
@@ -123,16 +122,15 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
     </div>
    </>:<div className="scene-copy"><h2 className="scene-title">{t('home.emptyTitle')}</h2><p className="scene-meta">{t('home.emptyNote')}</p></div>}
   </section>
-  {/* Кнопка стоит ПОД постером, а не на нём: на афише внизу своя надпись, и
+  {/* Полосы прогресса под кнопкой больше нет — владелец убрал её («что это
+      за полоса… почему её нельзя убрать»). Место остановки видно в самой
+      кнопке: «Продолжить · 1:29».
+      Кнопка стоит ПОД постером, а не на нём: на афише внизу своя надпись, и
       кнопка её закрывала. Долгое нажатие обрабатывается и здесь: выйдя из
       кадра, кнопка перестала открывать меню выпуска, потому что обработчик
       висел только на кадре. */}
   {hero&&<div className="soft-hero-foot" {...press}>
-   <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}</button>
-   {heroResume&&heroResume.duration>0&&<div className="soft-hero-progress">
-    <span className="soft-hero-time">{clock(heroResume.position)} / {clock(heroResume.duration)}</span>
-    <span className="soft-hero-track" aria-hidden="true"><span className="soft-hero-fill" style={{width:(heroPart*100).toFixed(1)+'%'}}/></span>
-   </div>}
+   <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="scene-action-time">· {clock(heroResume.position)}</span>}</button>
   </div>}
 
   {/* Всё, что не кадр, собрано в одну обёртку. На телефоне она прозрачна

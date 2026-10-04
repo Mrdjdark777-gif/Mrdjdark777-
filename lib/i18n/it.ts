@@ -405,7 +405,7 @@ export const it: Record<keyof typeof ru, string> = {
   'settings.posterText': "La grande locandina in cima alla home. Scegli cosa si apre toccandola e carica il poster. La copertina della puntata resta nel carosello, nel catalogo e nel player.",
   'settings.posterSize': "Dimensioni del poster: 1800×840 pixel (15:7), JPEG o PNG, fino a 12 MB.",
   'settings.posterKind': "Tipo",
-  'settings.posterKindPodcast': "Podcast",
+  'settings.posterKindPodcast': "Audio",
   'settings.posterKindVideo': "Video",
   'settings.posterKindStory': "Storia",
   'settings.posterTarget': "Cosa aprire",

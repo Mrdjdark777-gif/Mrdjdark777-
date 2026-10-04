@@ -16,7 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "test:live": "node tests/live-archive-integration.mjs",
-    "test:browser": "node tests/audio-category.mjs && node tests/section-catalogs.mjs && node tests/browser-integration.mjs && node tests/kinetic-grid.mjs && node tests/live-about.mjs && node tests/live-archive-after.mjs && node tests/live-archives.mjs && node tests/player-swipe.mjs",
+    "test:browser": "node tests/audio-category.mjs && node tests/section-catalogs.mjs && node tests/hero-poster-form.mjs && node tests/browser-integration.mjs && node tests/kinetic-grid.mjs && node tests/live-about.mjs && node tests/live-archive-after.mjs && node tests/live-archives.mjs && node tests/player-swipe.mjs",
     "test:design": "node tests/design-preview.mjs",
     "test:reader": "node scripts/check-reader-browser.mjs",
     "test:player-enhancements": "node scripts/check-player-enhancements.mjs",

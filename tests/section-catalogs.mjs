@@ -4,8 +4,8 @@
  *
  * Шапка у всех одна: заголовок с засечками слева двумя строками («Внутри
  * истории.», «Истории в кадре.», «Истории на страницах.»), подзаголовок —
- * колонкой справа. Владелец: верх подзаголовка — на высоте верха заголовка,
- * низ — на линии его низа. Поиск и сортировка — одной строкой (его правка
+ * колонкой справа: строки вплотную и по центру высоты заголовка, сверху и
+ * снизу поровну; шапка не заходит под затемнение у верхней кромки. Поиск и сортировка — одной строкой (его правка
  * поверх макетов, где сортировка стояла ниже). Заголовок, поиск и список
  * начинаются от одного левого края; размер заголовка одинаков во всех трёх.
  *
@@ -75,7 +75,12 @@ try{
   for(const s of SECTIONS){
    await open(s.view);
    const v=await page.evaluate(()=>{const q=x=>document.querySelector(x),r=x=>q(x)?.getBoundingClientRect();
-    const main=q('.listener-main');main.scrollTop=main.scrollHeight;
+    // Шапку меряем до прокрутки: после неё список уезжает вверх вместе с ней.
+    const main=q('.listener-main');main.scrollTop=0;
+    const head={t:r('.voice-title'),k:r('.voice-kicker'),mainTop:main.getBoundingClientRect().top,
+     lines:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const b=e.getBoundingClientRect();return {text:e.textContent,over:e.scrollWidth>e.clientWidth+1,top:b.top,bottom:b.bottom};}),
+     search:r('.catalog-search'),sort:r('.catalog-sort'),list:r('.post-list')};
+    main.scrollTop=main.scrollHeight;
     const cards=[...document.querySelectorAll('.post-card')].map(c=>{const b=c.getBoundingClientRect(),cover=c.querySelector('.post-cover').getBoundingClientRect(),
      title=c.querySelector('.post-title').getBoundingClientRect(),note=c.querySelector('.post-note').getBoundingClientRect(),
      act=c.querySelector('.text-button').getBoundingClientRect(),sh=c.querySelector('.post-share').getBoundingClientRect();
@@ -86,10 +91,9 @@ try{
       tag:[...c.querySelector('.post-meta').childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim(),
       date:c.querySelector('.post-meta span')?.textContent};});
     const lastBtn=[...document.querySelectorAll('.post-card .text-button')].pop()?.getBoundingClientRect();
-    const res={W:innerWidth,scroll:document.documentElement.scrollWidth,t:r('.voice-title'),k:r('.voice-kicker'),
-     lines:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const b=e.getBoundingClientRect();return {text:e.textContent,over:e.scrollWidth>e.clientWidth+1,top:b.top,bottom:b.bottom};}),
-     title:q('.voice-title')?.textContent,size:q('.voice-title')&&getComputedStyle(q('.voice-title')).fontSize,
-     search:r('.catalog-search'),sort:r('.catalog-sort'),list:r('.post-list'),ph:q('.catalog-search input')?.placeholder,
+    const res={W:innerWidth,scroll:document.documentElement.scrollWidth,...head,
+     title:q('.voice-title')?.textContent,kickFont:q('.voice-kicker')&&parseFloat(getComputedStyle(q('.voice-kicker')).fontSize),size:q('.voice-title')&&getComputedStyle(q('.voice-title')).fontSize,
+     ph:q('.catalog-search input')?.placeholder,
      phFits:(()=>{const i=q('.catalog-search input');if(!i)return false;const c=document.createElement('canvas').getContext('2d');const st=getComputedStyle(i);c.font=st.fontSize+' '+st.fontFamily;return c.measureText(i.placeholder).width<=i.clientWidth+1;})(),
      sortText:q('.catalog-sort')?.selectedOptions[0]?.textContent,nav:q('.bottom-nav')?.getBoundingClientRect().top,
      navText:null,lastBtn:lastBtn&&lastBtn.bottom,cards};
@@ -103,11 +107,17 @@ try{
    if(!v.t||!v.k)problems.push(at+'нет заголовка или подзаголовка');
    else{
     if(v.k.left<v.t.right-1)problems.push(at+'подзаголовок не справа от заголовка');
-    // Меряем сами строки подзаголовка, а не его рамку: рамка тянется на
-    // высоту заголовка всегда, даже если строки сбились наверх.
+    // Меряем сами строки подзаголовка, а не его рамку. Владелец: строки
+    // вплотную друг к другу и по центру высоты заголовка — сверху и снизу
+    // поровну («без такого большого пространства посередине»).
     const top=v.lines[0]?.top,bottom=v.lines.at(-1)?.bottom;
-    if(!(Math.abs(top-v.t.top)<=2))problems.push(at+'верх подзаголовка не на высоте верха заголовка ('+Math.round(top)+' против '+Math.round(v.t.top)+')');
-    if(!(Math.abs(bottom-v.t.bottom)<=2))problems.push(at+'низ подзаголовка не на линии низа заголовка ('+Math.round(bottom)+' против '+Math.round(v.t.bottom)+')');
+    const off=((top+bottom)-(v.t.top+v.t.bottom))/2;
+    if(!(Math.abs(off)<=2))problems.push(at+'подзаголовок не по центру высоты заголовка: сдвиг '+Math.round(off)+' (строки '+Math.round(top)+'…'+Math.round(bottom)+', заголовок '+Math.round(v.t.top)+'…'+Math.round(v.t.bottom)+')');
+    for(let i=1;i<v.lines.length;i++){const gap=v.lines[i].top-v.lines[i-1].bottom;
+     if(gap>v.kickFont*0.75)problems.push(at+'между строками подзаголовка провал '+Math.round(gap)+' точек');}
+    // Верх экрана под шапкой гаснет маской на 20 точек — заголовок туда не
+    // заходит, с запасом.
+    if(v.t.top-v.mainTop<30)problems.push(at+'заголовок у самой верхней кромки, под затемнением: '+Math.round(v.t.top-v.mainTop)+' точек от края');
     if(v.k.right>v.W-15)problems.push(at+'подзаголовок у самого края экрана');
     if(Math.abs(v.t.left-v.search.left)>1||Math.abs(v.t.left-v.list.left)>1)problems.push(at+'заголовок, поиск и список с разных левых краёв');
    }

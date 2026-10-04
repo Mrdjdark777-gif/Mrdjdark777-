@@ -404,7 +404,7 @@ export const ru = {
   'settings.posterText': "Большая афиша вверху главной. Выбери, что открывается нажатием на неё, и загрузи постер. Обложка самого выпуска остаётся в карусели, каталоге и плеере.",
   'settings.posterSize': "Размер постера: 1800×840 пикселей (15:7), JPEG или PNG, до 12 МБ.",
   'settings.posterKind': "Тип",
-  'settings.posterKindPodcast': "Подкаст",
+  'settings.posterKindPodcast': "Аудио",
   'settings.posterKindVideo': "Видео",
   'settings.posterKindStory': "История",
   'settings.posterTarget': "Что открывать",

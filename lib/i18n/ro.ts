@@ -364,7 +364,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.posterText": "Afișul mare din partea de sus a paginii principale. Alege ce se deschide la atingerea lui și încarcă posterul. Coperta episodului rămâne în carusel, în catalog și în player.",
   "settings.posterSize": "Dimensiunea posterului: 1800×840 pixeli (15:7), JPEG sau PNG, până la 12 MB.",
   "settings.posterKind": "Tip",
-  "settings.posterKindPodcast": "Podcast",
+  "settings.posterKindPodcast": "Audio",
   "settings.posterKindVideo": "Video",
   "settings.posterKindStory": "Poveste",
   "settings.posterTarget": "Ce se deschide",

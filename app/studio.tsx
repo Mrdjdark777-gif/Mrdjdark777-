@@ -89,16 +89,21 @@ export default function Studio(){
  // Тип аудиоматериала в форме. У новой записи не выбран: угадывать его нельзя.
  const [audioCategory,setAudioCategory]=useState(''),[categoryError,setCategoryError]=useState(false);
  // Постер главной: тип и выпуск, который открывается нажатием, и сам постер.
- const [heroKind,setHeroKind]=useState<'podcast'|'video'|'story'>('podcast'),[heroTarget,setHeroTarget]=useState(''),[heroFile,setHeroFile]=useState<File|null>(null),[heroPreview,setHeroPreview]=useState('');
+ const [heroDraft,setHeroDraft]=useState<{kind:'podcast'|'video'|'story';target:string}|null>(null),[heroFile,setHeroFile]=useState<File|null>(null),[heroPreview,setHeroPreview]=useState('');
  // Картинка круга покоя живёт под одним адресом, поэтому в ссылку идёт версия:
  // иначе браузер и WebView показывают прежнюю, пока не истечёт их кэш.
  const calmSrc=data?.calmArt?'/api/cover?id=calm&v='+encodeURIComponent(data.calmArt):'';
  // Постер главной — по тому же правилу: адрес один, версия в ссылке.
  const posterSrc=data?.poster?'/api/cover?id=hero&v='+encodeURIComponent(data.poster.v):'';
- // Форма постера встаёт на то, что сейчас закреплено, всякий раз, когда это
- // меняется: сохранили здесь или закрепили кнопкой в каталоге.
- useEffect(()=>{const id=data?.pinned??'',p=id?data?.items.find(x=>x.id===id):undefined;
-  setHeroTarget(p?id:'');if(p&&(p.kind==='podcast'||p.kind==='video'||p.kind==='story'))setHeroKind(p.kind);},[data?.pinned,data?.items]);
+ // Форма постера показывает то, что сейчас закреплено, пока автор ничего в
+ // ней не трогал; тронул — держит его выбор до «Сохранить». Раньше форма
+ // перезаписывалась при каждой подгрузке данных (раз в 15 секунд и при
+ // возврате в окно — в том числе после окна выбора файла): выбранный тип и
+ // выпуск слетали на прежние, и постер «через раз» не сохранялся или уходил
+ // не на тот выпуск. Владелец: «не сразу работает, через раз всё подключается».
+ const pinnedPost=data?.pinned?data.items.find(x=>x.id===data.pinned):undefined;
+ const heroKind:'podcast'|'video'|'story'=heroDraft?.kind??(pinnedPost&&(pinnedPost.kind==='video'||pinnedPost.kind==='story')?pinnedPost.kind:'podcast');
+ const heroTarget=heroDraft?heroDraft.target:(pinnedPost?pinnedPost.id:'');
  const wideScreen=useWideScreen();
  // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
  const shell=useDesktopApp();
@@ -430,23 +435,25 @@ export default function Studio(){
   return <section className="settings-panel wide-panel hero-poster-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.posterTitle')}</h2><p>{t('settings.posterText')}</p><p className="hero-poster-size">{t('settings.posterSize')}</p>
    {shown?<img className="channel-art-preview hero-poster-preview" src={shown} alt=""/>:heroTarget?<small className="hero-poster-none">{t('settings.posterNone')}</small>:null}
    <div className="links-grid">
-    <label className="field">{t('settings.posterKind')}<select value={heroKind} onChange={e=>{setHeroKind(e.target.value as 'podcast'|'video'|'story');setHeroTarget('');}}>
+    <label className="field">{t('settings.posterKind')}<select value={heroKind} onChange={e=>setHeroDraft({kind:e.target.value as 'podcast'|'video'|'story',target:''})}>
      <option value="podcast">{t('settings.posterKindPodcast')}</option><option value="video">{t('settings.posterKindVideo')}</option><option value="story">{t('settings.posterKindStory')}</option></select></label>
-    <label className="field">{t('settings.posterTarget')}<select value={heroTarget} onChange={e=>setHeroTarget(e.target.value)} disabled={!choices.length}>
+    <label className="field">{t('settings.posterTarget')}<select value={heroTarget} onChange={e=>setHeroDraft({kind:heroKind,target:e.target.value})} disabled={!choices.length}>
      <option value="">{choices.length?t('settings.posterAuto'):t('settings.posterEmpty')}</option>
-     {choices.map(p=><option key={p.id} value={p.id}>{p.title}{isLiveArchive(p.audioKey)?' · '+t('live.archiveTitle'):''}</option>)}</select></label>
+     {choices.map(p=><option key={p.id} value={p.id}>{p.title}{p.kind==='podcast'&&audioCategoryOf(p.audioCategory)?' · '+t('audio.type.'+audioCategoryOf(p.audioCategory)):isLiveArchive(p.audioKey)?' · '+t('live.archiveTitle'):''}</option>)}</select></label>
    </div>
    <div className="hero-poster-actions">
     <button type="button" className="secondary-button" onClick={()=>heroInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button>
     <input type="file" accept="image/jpeg,image/png,image/webp" ref={heroInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setHeroFile(f);setHeroPreview(URL.createObjectURL(f));}e.target.value='';}}/>
     {bound&&!heroFile&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:heroTarget,key:''});},t('settings.posterRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}
     <button type="button" className="primary-button" onClick={()=>void run(async()=>{
-      if(!heroTarget){if(heroFile)throw new Error(t('settings.posterPick'));await api('library',{action:'hero',id:''});return;}
+      if(!heroTarget){if(heroFile)throw new Error(t('settings.posterPick'));await api('library',{action:'hero',id:''});if(await load())setHeroDraft(null);return;}
       const key=heroFile?await uploadCover(heroFile):undefined;
       await api('library',{action:'hero',id:heroTarget,...(key?{key}:{})});
-      setHeroFile(null);setHeroPreview('');
+      // Сначала свежие данные, потом сброс выбора и превью: иначе форма на
+      // миг вставала на прежний выпуск и теряла картинку.
+      if(await load())setHeroDraft(null);setHeroFile(null);setHeroPreview('');
      },heroTarget?t('settings.posterSaved'):t('settings.posterResetDone'))}><Check size={17}/>{t('settings.posterSave')}</button>
-    {data.pinned&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:''});setHeroFile(null);setHeroPreview('');},t('settings.posterResetDone'))}>{t('settings.posterReset')}</button>}
+    {data.pinned&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:''});if(await load())setHeroDraft(null);setHeroFile(null);setHeroPreview('');},t('settings.posterResetDone'))}>{t('settings.posterReset')}</button>}
    </div>
    <small>{t('settings.posterNote')}</small></section>;})()}
  {view==='home'&&<section className="settings-panel"><div className="section-icon"><Wind size={22}/></div><h2>{t('settings.calmTitle')}</h2><p>{t('settings.calmText')}</p>{!calmMissing&&(calmPreview||calmSrc)&&<img className="channel-art-preview calm-art-preview" src={calmPreview||calmSrc} alt="" onError={()=>setCalmMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>calmInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={calmInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setCalmFile(f);setCalmPreview(URL.createObjectURL(f));setCalmMissing(false);}e.target.value='';}}/>{!calmMissing&&(calmPreview||calmSrc)&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'calmArt',key:''});setCalmFile(null);setCalmPreview('');setCalmMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{calmFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(calmFile);await api('library',{action:'calmArt',key});setCalmFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.calmNote')}</small></section>}

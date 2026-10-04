@@ -144,16 +144,16 @@ try{
      if(!cut&&(b.bottom>a.bottom+1||b.top<a.top-1))
       found.push('фотография плеера вылезает из рамки: '+Math.round(b.top)+'…'+Math.round(b.bottom)+' при рамке '+Math.round(a.top)+'…'+Math.round(a.bottom));}}
    // Шапка разделов «Аудио», «Видео», «Истории» — одна на три: заголовок
-   // слева, подзаголовок колонкой справа; верх первой строки подзаголовка —
-   // на высоте верха заголовка, низ последней — на линии его низа (просьба
-   // владельца). Стоя и боком. Поиск и сортировка — одной строкой.
+   // слева, подзаголовок колонкой справа; его строки вплотную и по центру
+   // высоты заголовка (просьба владельца). Стоя и боком. Поиск и
+   // сортировка — одной строкой.
    {const head=document.querySelector('.listener-main .voice-headline');
     if(head&&vis(head)){const t=head.querySelector('.voice-title').getBoundingClientRect(),
      lines=[...head.querySelectorAll('.voice-kicker-line')].map(n=>n.getBoundingClientRect());
      if(!lines.length)found.push('в шапке раздела нет подзаголовка');
      else{if(lines[0].left<t.right-1)found.push('подзаголовок раздела не справа от заголовка');
-      if(Math.abs(lines[0].top-t.top)>2||Math.abs(lines.at(-1).bottom-t.bottom)>2)
-       found.push('подзаголовок раздела не по высоте заголовка: '+Math.round(lines[0].top)+'…'+Math.round(lines.at(-1).bottom)+' при заголовке '+Math.round(t.top)+'…'+Math.round(t.bottom));}
+      const off=((lines[0].top+lines.at(-1).bottom)-(t.top+t.bottom))/2;
+      if(Math.abs(off)>2)found.push('подзаголовок раздела не по центру высоты заголовка: сдвиг '+Math.round(off));}
      if(t.right>innerWidth)found.push('заголовок раздела вылез за край экрана');
      const se=document.querySelector('.listener-main .catalog-search'),so=document.querySelector('.listener-main .catalog-sort');
      if(se&&so&&vis(se)){const a=se.getBoundingClientRect(),c=so.getBoundingClientRect();
