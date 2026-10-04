@@ -32,7 +32,7 @@ try{
  const archiveKey='audio/live-'+crypto.randomUUID();
  await copyFile(path.join(env.STORAGE_DIR,audioKey),path.join(env.STORAGE_DIR,archiveKey));
  await copyFile(path.join(env.STORAGE_DIR,audioKey+'.meta.json'),path.join(env.STORAGE_DIR,archiveKey+'.meta.json')).catch(()=>{});
- const created=await post({kind:'podcast',title:'Запись эфира',description:'Тест',audioKey:archiveKey,published:true});
+ const created=await post({kind:'podcast',audioCategory:'podcast',title:'Запись эфира',description:'Тест',audioKey:archiveKey,published:true});
  const postId=(created.item||created.post||created).id;
  // Готовая запись эфира в базе: воркер создаёт такую же после обработки.
  const id=crypto.randomUUID();
@@ -77,7 +77,7 @@ try{
  {const orphanKey='audio/live-'+crypto.randomUUID();
   await copyFile(path.join(env.STORAGE_DIR,audioKey),path.join(env.STORAGE_DIR,orphanKey));
   await copyFile(path.join(env.STORAGE_DIR,audioKey+'.meta.json'),path.join(env.STORAGE_DIR,orphanKey+'.meta.json')).catch(()=>{});
-  const made=await post({kind:'podcast',title:'Забытая запись',description:'Осталась без строки эфира',audioKey:orphanKey,duration:seconds,published:true});
+  const made=await post({kind:'podcast',audioCategory:'podcast',title:'Забытая запись',description:'Осталась без строки эфира',audioKey:orphanKey,duration:seconds,published:true});
   assert.ok(!made.error,'не удалось создать осиротевшую запись: '+JSON.stringify(made));
   const orphanId=(made.item||made.post||made).id;
   assert.ok(orphanId,'у созданной записи нет идентификатора: '+JSON.stringify(made));

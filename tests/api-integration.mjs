@@ -240,6 +240,51 @@ try {
   assert.equal(r.headers.get('content-range'), 'bytes 1-3/6');
   assert.equal(await r.text(), 'bcd');
 
+  // Тип аудиоматериала. Хранится на сервере и приходит в списке; публикация
+  // без типа не проходит; незнакомое значение отклоняется; правка без поля
+  // (студия старой версии) тип не стирает; смена типа — тем же обновлением,
+  // без повторной загрузки файла; старая запись без типа читается как есть.
+  {
+   const item = async (id) => (await request('library', undefined)).data.items.find((x) => x.id === id);
+   const none = await request('library', { kind: 'podcast', title: 'Без типа', audioKey: key, published: true });
+   assert.equal(none.status, 400, 'аудио без типа опубликовалось');
+   assert.equal(none.data.error, '#err.audioCategory');
+   const bad = await request('library', { kind: 'podcast', title: 'Чужой тип', audioKey: key, audioCategory: 'mp3', published: true });
+   assert.equal(bad.status, 400, 'незнакомый тип аудио принят');
+   assert.equal(bad.data.error, '#err.audioCategoryBad');
+   const draft = await request('library', { kind: 'podcast', title: 'Черновик без типа', audioKey: key, published: false });
+   assert.equal(draft.status, 200, 'черновик без типа не сохранился');
+   assert.equal((await item(draft.data.id)).audioCategory, null);
+   const made3 = [];
+   for (const c of ['audio_story', 'podcast', 'music']) {
+    const made = await request('library', { kind: 'podcast', title: 'Тип ' + c, audioKey: key, audioCategory: c, published: true });
+    assert.equal(made.status, 200, 'не сохранился тип ' + c);
+    assert.equal((await item(made.data.id)).audioCategory, c, 'тип ' + c + ' не вернулся из списка');
+    made3.push(made.data.id);
+   }
+   const story = await request('library', { kind: 'podcast', title: '76 дней', description: 'Стивен Каллахэн.', audioKey: key, audioCategory: 'podcast', published: true });
+   const id = story.data.id;
+   // Смена типа тем же обновлением: файл тот же, ключ тот же.
+   assert.equal((await request('library', { id, kind: 'podcast', title: '76 дней', description: 'Стивен Каллахэн.', audioKey: key, audioCategory: 'audio_story', published: true })).status, 200);
+   const changed = await item(id);
+   assert.equal(changed.audioCategory, 'audio_story', 'тип не сменился');
+   assert.equal(changed.audioKey, key, 'при смене типа поменялся файл');
+   // Студия старой версии не знает о типе и не присылает поле: тип остаётся.
+   assert.equal((await request('library', { id, kind: 'podcast', title: '76 дней (правка)', audioKey: key, published: true })).status, 200);
+   assert.equal((await item(id)).audioCategory, 'audio_story', 'правка без поля стёрла тип');
+   // Снять тип у опубликованной записи нельзя.
+   assert.equal((await request('library', { id, kind: 'podcast', title: '76 дней', audioKey: key, audioCategory: '', published: true })).status, 400);
+   // Тип — только у аудио: видео и рассказ его не получают, что бы ни прислали.
+   const v = await request('library', { kind: 'story', title: 'Рассказ', body: 'Текст', audioCategory: 'music', published: false });
+   assert.equal((await item(v.data.id)).audioCategory, null, 'тип аудио приклеился к рассказу');
+   // Старая запись без типа (вставлена мимо API, как в рабочих данных)
+   // читается, а правка старой студией её не ломает.
+   getDb().$client.prepare("INSERT INTO posts(id,kind,title,description,body,audio_key,duration,published,created_at) VALUES('legacy-1','podcast','Старая','','',?,0,1,?)").run(key, Date.now());
+   assert.equal((await item('legacy-1')).audioCategory, null);
+   assert.equal((await request('library', { id: 'legacy-1', kind: 'podcast', title: 'Старая, правка', audioKey: key, published: true })).status, 200, 'старая запись без типа перестала сохраняться старой студией');
+   for (const pid of [draft.data.id, id, v.data.id, 'legacy-1', ...made3]) await request('library', { action: 'delete', id: pid });
+  }
+
   // Перемотка: плеер просит с середины и до конца, не зная точной длины.
   // Прежде конец диапазона не прижимался к размеру файла, и Content-Length
   // обещал байты, которых нет, — перемотка вставала на последних секундах.
@@ -381,7 +426,7 @@ try {
    const shared = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '5' }, body: new Blob(['live!']).stream(), duplex: 'half' });
    assert.equal(shared.status, 200);
    const sharedKey = (await shared.json()).key;
-   const archive = await request('library', { kind: 'podcast', title: 'Архив эфира', audioKey: key, coverKey: sharedKey, published: true });
+   const archive = await request('library', { kind: 'podcast', audioCategory: 'podcast', title: 'Архив эфира', audioKey: key, coverKey: sharedKey, published: true });
    assert.equal(archive.status, 200);
    db.prepare("INSERT INTO broadcasts(id,title,owner_id,heartbeat,active,cover_key) VALUES(?,?,?,?,0,?)").run(archive.data.id, 'Архив эфира', 'owner', Date.now() - 7200000, sharedKey);
    await request('library', { action: 'delete', id: archive.data.id });
@@ -392,7 +437,7 @@ try {
    // Когда исчезает последняя ссылка, файл всё-таки уходит: иначе хранилище
    // копило бы мусор, а уборка ради этого и написана.
    db.prepare('DELETE FROM broadcasts WHERE id=?').run(archive.data.id);
-   const second = await request('library', { kind: 'podcast', title: 'Ещё архив', audioKey: key, coverKey: sharedKey, published: true });
+   const second = await request('library', { kind: 'podcast', audioCategory: 'podcast', title: 'Ещё архив', audioKey: key, coverKey: sharedKey, published: true });
    assert.equal(second.status, 200);
    await request('library', { action: 'delete', id: second.data.id });
    assert.equal(existsSync(path.join(process.env.STORAGE_DIR, sharedKey)), false, 'файл остался в хранилище, хотя ссылок на него больше нет');

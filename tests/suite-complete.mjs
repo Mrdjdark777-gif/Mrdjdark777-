@@ -32,7 +32,7 @@ assert.deepEqual(orphans, [], 'эти проверки не запускает �
 // уже после прогона — то есть не запускал их вовсе.
 const separate = files.filter((f) => !scripts.test.includes('tests/' + f));
 assert.deepEqual(separate, [
- 'browser-integration.mjs', 'design-preview.mjs', 'kinetic-grid.mjs', 'live-archive-after.mjs',
+ 'audio-category.mjs', 'browser-integration.mjs', 'design-preview.mjs', 'kinetic-grid.mjs', 'live-archive-after.mjs',
  'live-archive-integration.mjs', 'live-about.mjs', 'live-archives.mjs', 'player-swipe.mjs',
 ].sort(),
  'список проверок вне общего прогона изменился: либо добавь тест в «npm test», либо объясни здесь, почему ему нужен свой сценарий');

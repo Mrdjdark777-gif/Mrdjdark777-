@@ -5,6 +5,7 @@ import {ChevronRight,Clock,EyeOff,Play,MoreHorizontal,X} from 'lucide-react';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {homeScene,heroPicture,type ScenePost} from '@/lib/home-scene';
+import {kindTagKey} from '@/lib/audio-category';
 import {useTilt} from '@/hooks/use-tilt';
 import {useDrum} from '@/hooks/use-drum';
 import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
@@ -89,9 +90,9 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
   const heroCover=hero?heroPicture(hero.id,poster,coverOf(hero)):'';
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
- // Надстрочная надпись в кадре — вид публикации, он уже записан заглавными
- // в словарях. Отдельной «темы» у выпусков нет, выдумывать её нельзя.
- const heroKind=hero?.kind==='video'?t('post.video'):hero?.kind==='story'?t('post.story'):t('post.podcast');
+ // Надстрочная надпись в кадре — вид публикации, а у аудио — его тип из
+ // данных записи (lib/audio-category.ts). Выдумывать «тему» нельзя.
+ const heroKind=hero?t(kindTagKey(hero)):'';
  // Полоса под кнопкой показывает настоящее место в выпуске, а не оформление:
  // нет длительности — нет и полосы.
  const heroPart=heroResume&&heroResume.duration>0?Math.min(1,Math.max(0,heroResume.position/heroResume.duration)):0;
@@ -173,7 +174,7 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
        кнопки, но скрыты от экранного диктора и клавиатуры. */}
    <div className="soft-carousel" ref={setView} role="region" aria-roledescription="carousel" aria-label={t('home.freshList')}>
    <ul className="soft-reel">
-    {tiles.map(({p,copy})=>{const kindLabel=p.kind==='podcast'?t('post.podcast'):p.kind==='video'?t('post.video'):t('post.story');
+    {tiles.map(({p,copy})=>{const kindLabel=t(kindTagKey(p));
      return <li key={p.id+':'+copy} aria-hidden={copy?true:undefined}>
       <button type="button" className="soft-episode tt-pressable" title={kindLabel+' · '+p.title} tabIndex={copy?-1:undefined} onClick={()=>{haptic();onOpen(p);}}>
       <span className="soft-art">

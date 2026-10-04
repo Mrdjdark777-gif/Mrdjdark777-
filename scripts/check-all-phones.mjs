@@ -64,9 +64,9 @@ try{
  const ids={};
  // Всё, что автор написал сам, — чтобы отличить его текст от интерфейса.
  const corpus=[];
- ids.pod1=(await post({kind:'podcast',title:'Тишина',description:'Короткое.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tile-forest.jpg')})).id;
- ids.pod2=(await post({kind:'podcast',title:long,description:'Описание выпуска. '.repeat(12),audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tall-lake.jpg')})).id;
- ids.pod3=(await post({kind:'podcast',title:'Голос северного ветра',description:'Без обложки.',audioKey:await audio(),duration:seconds,published:true})).id;
+ ids.pod1=(await post({kind:'podcast',audioCategory:'audio_story',title:'Тишина',description:'Короткое.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tile-forest.jpg')})).id;
+ ids.pod2=(await post({kind:'podcast',audioCategory:'podcast',title:long,description:'Описание выпуска. '.repeat(12),audioKey:await audio(),duration:seconds,published:true,coverKey:await cover('tall-lake.jpg')})).id;
+ ids.pod3=(await post({kind:'podcast',audioCategory:'music',title:'Голос северного ветра',description:'Без обложки.',audioKey:await audio(),duration:seconds,published:true})).id;
  ids.vid=(await post({kind:'video',title:'Наедине с горами',description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')})).id;
  ids.vid2=(await post({kind:'video',title:long,description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-forest.jpg')})).id;
  ids.story=(await post({kind:'story',title:'Там, где заканчивается дорога',description:'Рассказ.',body:Array.from({length:30},(_,i)=>'Абзац '+(i+1)+'. Тишина у горного озера. Дорога осталась позади.').join('\n\n'),published:true,coverKey:await cover('tile-mountains.jpg')})).id;
@@ -74,12 +74,18 @@ try{
  // Ещё выпуски, чтобы карусель на широком планшете шла по кругу: при шести
  // карточках Embla круг выключает, и ошибка круга (карточки наезжали друг на
  // друга) на снимке не появляется вовсе — проверка была бы слепой.
- for(let n=1;n<=6;n++)await post({kind:'podcast',title:'Выпуск '+n,description:'Ещё один.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover(n%2?'tile-forest.jpg':'tile-mountains.jpg')});
+ for(let n=1;n<=6;n++)await post({kind:'podcast',audioCategory:['audio_story','podcast','music'][n%3],title:'Выпуск '+n,description:'Ещё один.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover(n%2?'tile-forest.jpg':'tile-mountains.jpg')});
  ids.hero=(await post({kind:'video',title:'Постер',description:'Кадр.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('hero-lake.jpg')})).id;
  corpus.push('Выпуск 1','Выпуск 2','Выпуск 3','Выпуск 4','Выпуск 5','Выпуск 6','Выпуск','Ещё один.','Тишина','Короткое.',long,'Описание выпуска.','Голос северного ветра','Без обложки.','Наедине с горами','Видео.',
   'Там, где заканчивается дорога','Рассказ.','Абзац Тишина у горного озера. Дорога осталась позади.','Море не кончалось.','Постер','Кадр.');
+ // Старая запись без типа аудио — такая, какие уже лежат в рабочих данных:
+ // вставлена прямо в базу, мимо студии, с пустым audio_category. Карточка
+ // обязана показать нейтральное «АУДИО», а не угаданный тип.
+ const legacyKey=await audio();ids.legacy='legacy-audio-0001';corpus.push('Старая запись','Без типа.');
  // Счётчики: так, как их пишет сервер, — сумма в settings под usage:<id>.
  {const Database=(await import('better-sqlite3')).default;const db=new Database(env.DATABASE_PATH);
+  db.prepare("INSERT INTO posts(id,kind,title,description,body,audio_key,duration,published,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
+   .run(ids.legacy,'podcast','Старая запись','Без типа.','',legacyKey,seconds,1,Date.now()-86400000*30);
   for(const [id,n] of [[ids.pod1,17],[ids.pod2,3],[ids.story,42]])db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run('usage:'+id,String(n));
   db.close();}
 
@@ -379,8 +385,13 @@ try{
   await page.waitForTimeout(1200);await cdp.detach().catch(()=>{});};
  // Под вырезом и системной панелью сбоку не должно быть ни текста, ни кнопок:
  // на снимке владельца правый край страницы уходил под панель.
- const inspectSafe=async(page,where,side,cut)=>{
-  const bad=await page.evaluate(([side,cut])=>{const W=innerWidth,out=[];
+ const inspectSafe=async(page,where,side)=>{
+  const bad=await page.evaluate(([side])=>{const W=innerWidth,out=[];
+   // Ширину выреза берём у самой страницы: на планшете страница
+   // масштабирована, и в её точках вырез уже, чем задан эмуляции.
+   const probe=document.createElement('div');probe.style.cssText='position:fixed;top:0;left:0;width:0;height:0;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)';
+   document.body.appendChild(probe);const cs=getComputedStyle(probe);const cut=parseFloat(side==='left'?cs.paddingLeft:cs.paddingRight)||0;probe.remove();
+   if(cut<1)return ['стенд: вырез '+(side==='left'?'слева':'справа')+' не дошёл до страницы — проверять нечего'];
    for(const n of document.querySelectorAll('body *')){
     const s=getComputedStyle(n);if(s.visibility==='hidden'||s.display==='none'||+s.opacity===0)continue;
     const text=[...n.childNodes].some(c=>c.nodeType===3&&c.textContent.trim());
@@ -389,7 +400,7 @@ try{
     const b=n.getBoundingClientRect();if(!b.width||!b.height||b.bottom<0||b.top>innerHeight)continue;
     if(side==='left'&&b.left<cut-1||side==='right'&&b.right>W-cut+1)
      out.push((n.className&&typeof n.className==='string'?n.className.split(' ')[0]:n.tagName)+' «'+n.textContent.trim().slice(0,24)+'» '+Math.round(b.left)+'…'+Math.round(b.right));}
-   return out.slice(0,4);},[side,cut]);
+   return out.slice(0,4);},[side]);
   for(const x of bad)note(where+': под вырезом '+(side==='left'?'слева':'справа')+': '+x);
  };
  const checkRotation=async(w,h)=>{
@@ -401,7 +412,7 @@ try{
   for(const [W,H,label,side] of [[h,w,'боком','left'],[h,w,'боком-вправо','right'],[w,h,'снова стоя','left']]){
    await rotate(page,W,H,side);screens++;
    const where='поворот '+w+'×'+h+' → '+label+' ('+W+'×'+H+')';
-   await inspect(page,where,'ru');if(W>H)await inspectSafe(page,where,side,32);
+   await inspect(page,where,'ru');if(W>H)await inspectSafe(page,where,side);
    // Постер — картинка, он идёт под вырез до самого края стекла: отодвинутый
    // от выреза, он давал жёсткую границу и тёмную полосу у камеры.
    if(W>H){const sc=await page.evaluate(()=>{const n=document.querySelector('.tt-soft-home .scene');if(!n)return null;const b=n.getBoundingClientRect();return {l:b.left,r:b.right,W:innerWidth};});
@@ -419,7 +430,7 @@ try{
    const idx={'слушать':0,'видео':1,'эфир':3,'истории':4}[name];if(idx===undefined)continue;
    await page.locator('.bottom-nav > *').nth(idx).click();await page.waitForTimeout(900);screens++;
    const where='поворот '+w+'×'+h+' боком, вырез слева: '+name;
-   await inspect(page,where,'ru');await inspectLandscape(page,where);await inspectSafe(page,where,'left',32);
+   await inspect(page,where,'ru');await inspectLandscape(page,where);await inspectSafe(page,where,'left');
    await page.screenshot({path:path.join(out,`rotate-${w}x${h}-боком-${name}.png`)});
   }
   // Мало выпусков — как у владельца: на главной остаются четыре карточки
@@ -457,6 +468,17 @@ try{
    await inspectLandscape(page,lang+' '+w+'×'+h+' '+name);
    if(shots)await page.screenshot({path:path.join(out,`${lang}-${w}x${h}-${name}.png`)});
    if(name==='главная'&&lang==='ru')await checkCarousel(page,lang+' '+w+'×'+h+' главная');
+   // Тип аудио в карточках — из данных записи: три типа и нейтральное «АУДИО»
+   // у старой записи без типа. Тип читается целиком, а не обрезан.
+   if(name==='слушать'&&lang==='ru'){
+    const tags=await page.evaluate(()=>[...document.querySelectorAll('.post-card')].map(c=>{const m=c.querySelector('.post-meta');
+     const tag=m?[...m.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim():'';
+     return {title:c.querySelector('.post-title')?.textContent.trim(),tag,cut:m?m.scrollWidth>m.clientWidth+1:false};}));
+    const want={'Тишина':'АУДИОИСТОРИЯ','Голос северного ветра':'МУЗЫКА','Старая запись':'АУДИО'};
+    for(const [title,tag] of Object.entries(want)){const c=tags.find(x=>x.title===title);
+     if(!c)note(lang+' '+w+'×'+h+' слушать: нет карточки «'+title+'»');
+     else if(c.tag!==tag)note(lang+' '+w+'×'+h+' слушать: у «'+title+'» подпись «'+c.tag+'» вместо «'+tag+'»');}
+    for(const c of tags)if(c.cut)note(lang+' '+w+'×'+h+' слушать: тип «'+c.tag+'» обрезан');}
    // Читалка боком с выбором «одна страница» — как в Play Книгах: одна
    // страница во всю ширину, а не разворот.
    if(name==='читалка'&&w>h&&w>=600){

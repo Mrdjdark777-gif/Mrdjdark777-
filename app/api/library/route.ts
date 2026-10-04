@@ -1,4 +1,5 @@
 import {enqueueNotice,siteOrigin} from '@/lib/push';
+import {audioCategoryOf} from '@/lib/audio-category';
 import { desc, eq ,inArray,like} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, liveRecordings, posts, settings } from '@/db/schema';
@@ -143,8 +144,26 @@ export async function POST(req: Request){try{
     if(!audioKey?.startsWith('audio/'))throw new Error('#err.audioMissing');
     const obj=await bucket().head(audioKey);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.audioNotFound');
   }
+  // Тип аудиоматериала. Прислан — обязан быть одним из трёх. Не прислан вовсе
+  // (студия старой версии правит запись) — остаётся сохранённый: правка
+  // названия не должна стирать выбранный тип. Публиковать аудио без типа
+  // нельзя: новая запись и запись, у которой тип сняли, его требуют. Старую
+  // опубликованную запись без типа старая студия сохранить может — иначе
+  // правка подписи у неё сломалась бы до обновления студии.
+  let audioCategory:string|null=null;
+  const sentCategory=Object.prototype.hasOwnProperty.call(d,'audioCategory');
+  if(kind==='podcast'){
+   if(sentCategory&&d.audioCategory!==null&&d.audioCategory!==''){
+    audioCategory=audioCategoryOf(d.audioCategory);
+    if(!audioCategory)throw new Error('#err.audioCategoryBad');
+   }else if(!sentCategory&&d.id){
+    const was=await db.select({c:posts.audioCategory}).from(posts).where(eq(posts.id,String(d.id))).get();
+    audioCategory=audioCategoryOf(was?.c);
+   }
+   if(d.published&&!audioCategory&&(sentCategory||!d.id))throw new Error('#err.audioCategory');
+  }
   const id=d.id?String(d.id):crypto.randomUUID();
-  const values={kind,title,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,coverKey,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
+  const values={kind,title,audioCategory,description:String(d.description??'').slice(0,2000),body,audioKey,videoUrl,coverUrl,coverKey,duration:Math.max(0,Math.min(86400,Math.floor(Number(d.duration)||0))),published:d.published?1:0};
   // Правка несуществующего выпуска раньше проходила молча: update менял ноль
   // строк, маршрут отвечал «сохранено», а студия закрывала окно и теряла
   // набранный текст. Теперь такой id — ошибка, и правка остаётся на экране.

@@ -31,6 +31,8 @@ export type ScenePost = {
   createdAt: number;
   coverKey: string | null;
   coverUrl: string | null;
+  /** Тип аудиоматериала (lib/audio-category.ts); у старых записей пусто. */
+  audioCategory?: string | null;
 };
 export type SceneProgress = {id: string; position: number; duration: number};
 export type HomeScene = {

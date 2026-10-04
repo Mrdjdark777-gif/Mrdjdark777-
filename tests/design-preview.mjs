@@ -85,7 +85,7 @@ const grey=async(locator,base)=>{
   spread:Math.sqrt(square/data.length),
   dip:Math.max(middle-sorted[0],sorted[sorted.length-1]-middle),diff};
 };
-const MUST_RUN=['штамп сборки','поверхность плашек','читалка','новый выпуск в карточке','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
+const MUST_RUN=['штамп сборки','поверхность плашек','читалка','раздел «Аудио»','окно «Поделиться»','симметрия строки площадок','правовые страницы','движение на главной','замок телефона и студии','порядок новой главной'];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
  const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'design-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
@@ -134,15 +134,15 @@ try{
  const {copyFile}=await import('node:fs/promises');
  // Ещё один настоящий выпуск подкаста — чтобы у типографического S04 был
  // следующий: записи эфиров в цепочку «Далее» больше не входят.
- await post({kind:'podcast',title:'Первый маршрут',description:'Ранний выпуск.',audioKey:await audioUpload(),duration:seconds,published:true,coverKey:await demoCover('tile-forest.jpg')});
+ await post({kind:'podcast',audioCategory:'podcast',title:'Первый маршрут',description:'Ранний выпуск.',audioKey:await audioUpload(),duration:seconds,published:true,coverKey:await demoCover('tile-forest.jpg')});
  await new Promise(resolve=>setTimeout(resolve,5));
  const archiveKey='audio/live-'+crypto.randomUUID();
  for(const suffix of ['','.meta.json'])await copyFile(path.join(env.STORAGE_DIR,key+suffix),path.join(env.STORAGE_DIR,archiveKey+suffix));
- const archived=await post({kind:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
+ const archived=await post({kind:'podcast',audioCategory:'podcast',title:'Истории после заката',description:'Специальный выпуск.',audioKey:archiveKey,duration:seconds,published:true,coverKey:await demoCover('tile-mountains.jpg')});
  await new Promise(resolve=>setTimeout(resolve,5));
- const plain=await post({kind:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
+ const plain=await post({kind:'podcast',audioCategory:'podcast',title:'Голос северного ветра',description:'Люди. Маршруты. Выбор.',audioKey:plainKey,duration:seconds,published:true});
  await new Promise(resolve=>setTimeout(resolve,5));
- const podcast=await post({kind:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
+ const podcast=await post({kind:'podcast',audioCategory:'podcast',title:'По ту сторону тишины',description:'Демонстрационный выпуск: дорога, голос и истории, которые остаются.',audioKey:key,duration:seconds,published:true,coverKey:await demoCover('hero-lake.jpg')});
  // Форма звука на снимке настоящая: её считает тот же воркер, что и на VPS.
  // Ждём его недолго — если ffmpeg в окружении нет, снимок покажет спокойное
  // состояние ожидания, и это тоже правда, а не заглушка.
@@ -638,35 +638,27 @@ try{
   }
   await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
 
- // Карточка нового выпуска уходит, как только его открыли: висеть «новым»
- // тем, что уже слушали, она не должна. И ритм каталога ровный — один и тот
- // же промежуток между блоками, без «почти одинаковых» 14 и 18.
+ // Раздел «Аудио»: заголовок «Внутри истории.», под ним подзаголовок по его
+ // левому краю, потом строка поиска с сортировкой и список. Карточки «новый
+ // эпизод» больше нет — владелец убрал её вместе с переходом на макет. Ритм
+ // каталога ровный — один и тот же промежуток между блоками.
  {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);
-  // Выпуски выше по сценарию уже открывались, а открытый выпуск карточкой
-  // «нового» больше не показывается — чистим отметку, иначе проверять нечего.
-  await page.evaluate(()=>{try{localStorage.removeItem('tt-seen-v1');}catch{}});
-  await page.reload();await settle(page);await page.waitForTimeout(300);
-  const gaps=()=>page.evaluate(()=>{
-   const sel=['.voice-headline','.voice-card','.catalog-tools','.post-list'];
-   const out=[];let prev=null;
-   for(const s of sel){const e=document.querySelector(s);if(!e)continue;const r=e.getBoundingClientRect();
-    if(prev!==null)out.push(Math.round(r.top-prev));prev=r.bottom;}
-   return out;});
-  const rhythm=await gaps();
-  const bad=rhythm.filter(g=>Math.abs(g-16)>2);
-  if(bad.length)problems.push('каталог: промежутки между блоками разъехались — '+rhythm.join(', '));
-  if(await page.locator('.voice-card').count()){
-   step('новый выпуск в карточке');
-   const was=await page.locator('.voice-card-title').textContent();
-   await page.locator('.voice-card').click();await page.waitForTimeout(1200);
-   await page.evaluate(()=>{const c=document.querySelector('.player-collapse');if(c)c.click();});
-   await page.waitForTimeout(800);
-   // Выпуск, который уже открыли, «новым» больше не предлагается: карточка
-   // либо показывает следующий непрослушанный, либо исчезает совсем.
-   const now=await page.locator('.voice-card').count()?await page.locator('.voice-card-title').textContent():'';
-   if(now===was)problems.push('карточка нового выпуска предлагает тот же выпуск после прослушивания: «'+now+'»');
-  }else problems.push('каталог: карточки нового выпуска нет вовсе');
-  await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);}
+  step('раздел «Аудио»');
+  const head=await page.evaluate(()=>{const b=s=>{const n=document.querySelector(s);return n?n.getBoundingClientRect():null;};
+   const t=b('.voice-title'),k=b('.voice-kicker'),tools=b('.catalog-tools'),list=b('.post-list');
+   const gaps=[];let prev=null;for(const r of [b('.voice-headline'),tools,list]){if(!r)continue;if(prev!==null)gaps.push(Math.round(r.top-prev));prev=r.bottom;}
+   return {t,k,gaps,card:!!document.querySelector('.voice-card'),title:document.querySelector('.voice-title')?.textContent,
+    nav:document.querySelector('.bottom-nav-podcasts')?.textContent.trim(),search:document.querySelector('.catalog-search input')?.placeholder};});
+  if(head.card)problems.push('аудио: карточка «новый эпизод» вернулась — владелец её убрал');
+  if(!head.t||!head.k)problems.push('аудио: нет заголовка или подзаголовка');
+  else{if(head.k.top<head.t.bottom-1)problems.push('аудио: подзаголовок не под заголовком, а сбоку');
+   if(Math.abs(head.k.left-head.t.left)>2)problems.push('аудио: подзаголовок не по левому краю заголовка ('+Math.round(head.k.left)+' против '+Math.round(head.t.left)+')');}
+  if(!/Внутри\s+истории/.test(head.title||''))problems.push('аудио: заголовок не «Внутри истории.»: «'+head.title+'»');
+  if(head.nav!=='Аудио')problems.push('нижняя панель: вкладка раздела подписана «'+head.nav+'» вместо «Аудио»');
+  if(head.search!=='Найти историю или музыку')problems.push('аудио: в поиске «'+head.search+'»');
+  const bad=head.gaps.filter(g=>Math.abs(g-16)>2);
+  if(bad.length)problems.push('каталог: промежутки между блоками разъехались — '+head.gaps.join(', '));
+ }
  // Обложка в списке у слушателя заполняет плашку целиком, от верха карточки
  // до низа, в каждом разделе. Владелец: «во вкладке Слушать она идеально
  // становится в размеры плашки, а во вкладках видео и истории они там стоят

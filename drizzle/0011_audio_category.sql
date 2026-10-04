@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `audio_category` text;

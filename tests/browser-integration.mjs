@@ -19,7 +19,7 @@ worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env,stdio:'inherit'})
 const story=await post({kind:'story',title:'История у горного озера',body:'Дорога уходила к озеру. Ветер стихал, и становились слышны птицы.\n\n'.repeat(70),published:true});
 const wav=Buffer.alloc(44+44100*2*8);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
 const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();
-const podcast=await post({kind:'podcast',title:'Проверка подкаста',audioKey:key,duration:8,published:true});
+const podcast=await post({kind:'podcast',audioCategory:'podcast',title:'Проверка подкаста',audioKey:key,duration:8,published:true});
 browser=await chromium.launch({channel:process.env.TT_BROWSER_EXECUTABLE?undefined:(process.env.TT_BROWSER_CHANNEL||'chrome'),executablePath:process.env.TT_BROWSER_EXECUTABLE,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')console.log('Browser:',m.text());});

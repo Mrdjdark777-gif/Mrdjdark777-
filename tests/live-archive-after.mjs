@@ -40,7 +40,7 @@ try{
   const key='audio/live-'+crypto.randomUUID();
   await copyFile(path.join(env.STORAGE_DIR,audioKey),path.join(env.STORAGE_DIR,key));
   await copyFile(path.join(env.STORAGE_DIR,audioKey+'.meta.json'),path.join(env.STORAGE_DIR,key+'.meta.json')).catch(()=>{});
-  await api('library',{kind:'podcast',title,description:'Тест',audioKey:key,duration:seconds,published:true});
+  await api('library',{kind:'podcast',audioCategory:'podcast',title,description:'Тест',audioKey:key,duration:seconds,published:true});
  }
  // Запуск эфира требует живого воркера записи — он же потом делает выпуск.
  worker=spawn(process.execPath,[path.join(root,'scripts/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});

@@ -5,6 +5,11 @@ export const posts = sqliteTable('posts', {
   description: text('description').notNull().default(''), body: text('body').notNull().default(''),
   audioKey: text('audio_key'), videoUrl: text('video_url'), coverUrl:text('cover_url'), coverKey:text('cover_key'), duration: integer('duration').notNull().default(0),
   published: integer('published').notNull().default(0), createdAt: integer('created_at').notNull(),
+  // Тип аудиоматериала: audio_story, podcast или music (lib/audio-category.ts).
+  // Это классификация содержания, а не формат файла и не kind: kind по-прежнему
+  // говорит «аудио, видео или рассказ». У старых записей поле пустое — они
+  // показываются нейтральным «АУДИО», пока автор не выберет тип в студии.
+  audioCategory: text('audio_category'),
 });
 export const broadcasts = sqliteTable('broadcasts', {
   id: text('id').primaryKey(), title: text('title').notNull(), ownerId: text('owner_id').notNull(),

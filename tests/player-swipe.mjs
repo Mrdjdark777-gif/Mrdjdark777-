@@ -27,7 +27,7 @@ try{
  for(let i=0;i<rate*seconds;i++)wav.writeInt16LE(Math.round(Math.sin(2*Math.PI*180*i/rate)*12000),44+i*2);
  const up=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});
  const audioKey=(await up.json()).key;
- const created=await post({kind:'podcast',title:'Проба',description:'Тест',audioKey,published:true});
+ const created=await post({kind:'podcast',audioCategory:'podcast',title:'Проба',description:'Тест',audioKey,published:true});
  const postId=(created.item||created.post||created).id;
  browser=await chromium.launch({executablePath:process.env.TT_BROWSER_EXECUTABLE});
  const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
