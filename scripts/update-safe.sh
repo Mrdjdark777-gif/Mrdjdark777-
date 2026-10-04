@@ -14,7 +14,13 @@ exec 9>/run/lock/truethrills-maintenance.lock
 flock -n 9 || { echo 'Maintenance is already running.' >&2; exit 1; }
 [ -z "$(git status --porcelain --untracked-files=no)" ] || { echo 'Save local code changes before updating.' >&2; exit 1; }
 previous=$(git rev-parse HEAD)
-git fetch origin "$branch"
+# git пишет ход скачивания («From https://github.com/…», «* branch … ->
+# FETCH_HEAD») в поток ошибок, хотя это не ошибка. На компьютере владельца
+# PowerShell показывает каждую такую строку красным блоком NativeCommandError,
+# и при каждом обновлении он видел «красное» и спрашивал, что сломалось.
+# Обновление при этом шло дальше. Отправляем этот вывод в обычный поток:
+# настоящий сбой git всё равно остановит скрипт по коду выхода (set -e).
+git fetch origin "$branch" 2>&1
 target=$(git rev-parse FETCH_HEAD)
 [ -z "$expected" ] || [ "$target" = "$expected" ] || { echo 'Branch moved. Review the newer changes before updating.' >&2; exit 1; }
 git merge-base --is-ancestor HEAD "$target" || { echo 'Branches diverged; preserve local changes and merge manually.' >&2; exit 1; }
