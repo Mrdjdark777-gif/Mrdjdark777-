@@ -35,9 +35,9 @@ const port=3249,base='http://127.0.0.1:'+port;
 const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{env,stdio:['ignore','ignore','inherit']});
 let browser;
 const SECTIONS=[
- {view:'podcasts',nav:'.bottom-nav-podcasts',navText:'Аудио',title:'Внутри\nистории',kicker:['Истории о выживании.','Музыка, которая погружает.'],search:'Найти историю или музыку',button:'Слушать'},
- {view:'videos',nav:'.bottom-nav-videos',navText:'Видео',title:'Истории\nв кадре',kicker:['Истории о выживании.','Смотри True Thrills прямо в приложении.'],search:'Найти видео',button:'Смотреть'},
- {view:'stories',nav:'.bottom-nav-stories',navText:'Истории',title:'Истории\nна страницах',kicker:['Читай о тех, кто не сдался.','Вместе с True Thrills.'],search:'Найти историю',button:'Читать'},
+ {view:'podcasts',nav:'.bottom-nav-podcasts',navText:'Аудио',title:'Внутри\nистории',kicker:['Истории о выживании','Музыка, которая погружает'],search:'Найти историю или музыку',button:'Слушать'},
+ {view:'videos',nav:'.bottom-nav-videos',navText:'Видео',title:'Истории\nв кадре',kicker:['Истории о выживании','Смотри True Thrills','прямо в приложении'],search:'Найти видео',button:'Смотреть'},
+ {view:'stories',nav:'.bottom-nav-stories',navText:'Истории',title:'Истории\nна страницах',kicker:['Читай о тех,','кто не сдался','Вместе с','True Thrills'],search:'Найти историю',button:'Читать'},
 ];
 try{
  for(let i=0;i<80;i++){try{await fetch(base+'/api/health');break;}catch{await new Promise(r=>setTimeout(r,250));}}
@@ -60,6 +60,10 @@ try{
  await api({kind:'podcast',audioCategory:'music',title:long,description:longNote,audioKey,duration:seconds,published:true,coverKey:await cover('tile-forest.jpg')});
  await api({kind:'video',title:'Он выжил. Но какой ценой?',description:'Стивен Каллахэн. 76 дней в Атлантике.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')});
  await api({kind:'video',title:long,description:longNote,videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true});
+ // По третьей записи в «Аудио» и «Видео»: три карточки на экран мерим во всех
+ // трёх разделах, а не только в «Историях».
+ await api({kind:'podcast',audioCategory:'podcast',title:'Третий выпуск',description:'Короткое описание.',audioKey,duration:seconds,published:true,coverKey:await cover('tile-mountains.jpg')});
+ await api({kind:'video',title:'Третье видео',description:'Короткое описание.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-forest.jpg')});
  const first=await api({kind:'story',title:'Первая история',description:'Ранняя запись.',body:'Море не кончалось.\n\nВторой абзац.',published:true,coverKey:await cover('tile-mountains.jpg')});
  await new Promise(r=>setTimeout(r,20));
  await api({kind:'story',title:long,description:longNote,body:'Текст.',published:true,coverKey:await cover('tile-forest.jpg')});
@@ -87,7 +91,7 @@ try{
      search:r('.catalog-search'),sort:r('.catalog-sort'),list:r('.post-list'),
      // Правый край текста каждой строки подзаголовка — по самому тексту, а
      // не по блоку: блок тянется на всю колонку при любом выравнивании.
-     kickRight:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const g=document.createRange();g.selectNodeContents(e);return g.getBoundingClientRect().right;}),
+     kickText:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const g=document.createRange();g.selectNodeContents(e);return [...g.getClientRects()].map(r=>({l:r.left,r:r.right}));}).flat(),
      // Первые три карточки до прокрутки — над нижней панелью, обложка 4:5.
      firstCards:[...document.querySelectorAll('.post-card')].slice(0,3).map(c=>{const b=c.getBoundingClientRect(),v=c.querySelector('.post-cover').getBoundingClientRect();return {bottom:b.bottom,ratio:v.height/v.width};}),
      navTop:q('.bottom-nav')?.getBoundingClientRect().top};
@@ -128,11 +132,21 @@ try{
      if(gap>v.kickFont*0.75)problems.push(at+'между строками подзаголовка провал '+Math.round(gap)+' точек');}
     // Верх экрана под шапкой гаснет маской на 20 точек — заголовок туда не
     // заходит, с запасом.
-    if(v.t.top-v.mainTop<30)problems.push(at+'заголовок у самой верхней кромки, под затемнением: '+Math.round(v.t.top-v.mainTop)+' точек от края');
+    // Заголовок близко к шапке, без пустого поля (владелец: «много свободного
+    // места без смысла»), но не под растворением верха списка (6 точек).
+    {const gap=v.t.top-v.mainTop;
+     if(gap<10)problems.push(at+'заголовок под затемнением верхней кромки: '+Math.round(gap)+' точек от края');
+     if(gap>22)problems.push(at+'над заголовком пустое поле: '+Math.round(gap)+' точек от края');}
     if(v.k.right>v.W-15)problems.push(at+'подзаголовок у самого края экрана');
     // Подзаголовок — у правого края экрана, по краю поиска и списка; между
     // ним и заголовком свободное место (владелец: «прям сбоку экрана»).
-    for(const x of v.kickRight)if(Math.abs(x-v.list.right)>2)problems.push(at+'подзаголовок не у правого края: строка кончается на '+Math.round(x)+', край '+Math.round(v.list.right));
+    // Подзаголовок — у правого края, его строки — по центру друг друга
+    // до пикселя (владелец: «идеально до пикселя отцентрованы по всем
+    // плоскостям»), без точек в конце.
+    {const right=Math.max(...v.kickText.map(x=>x.r)),left=Math.min(...v.kickText.map(x=>x.l)),mid=(left+right)/2;
+     if(Math.abs(right-v.list.right)>2)problems.push(at+'подзаголовок не у правого края: кончается на '+Math.round(right)+', край '+Math.round(v.list.right));
+     for(const x of v.kickText)if(Math.abs((x.l+x.r)/2-mid)>1)problems.push(at+'строки подзаголовка не по центру друг друга: сдвиг '+((x.l+x.r)/2-mid).toFixed(1));
+     for(const l of v.lines)if(/[.]$/.test(l.text))problems.push(at+'в конце строки подзаголовка точка: «'+l.text+'»');}
     if(Math.abs(v.t.left-v.search.left)>1||Math.abs(v.t.left-v.list.left)>1)problems.push(at+'заголовок, поиск и список с разных левых краёв');
    }
    if(v.ph!==s.search)problems.push(at+'в поиске «'+v.ph+'» вместо «'+s.search+'»');
@@ -165,6 +179,25 @@ try{
   if(new Set(Object.values(sizes)).size!==1)problems.push(w+': заголовки разделов разного размера — '+JSON.stringify(sizes));
  }
 
+ // Три карточки на один экран — на разных телефонах, в том числе на экране
+ // владельца (388×758 точек: Android-приложение без строки состояния и
+ // кнопок системы). Владелец: «уменьши плашки так, чтоб идеально помещались
+ // три выпуска на один экран». Обложка при этом ровно 4:5, текст влезает.
+ for(const [w,h] of [[388,758],[390,844],[360,780],[430,932],[412,860]]){
+  await page.setViewportSize({width:w,height:h});
+  for(const s of SECTIONS){
+   await open(s.view);
+   const c=await page.evaluate(()=>{const nav=document.querySelector('.bottom-nav').getBoundingClientRect().top;
+    return {nav,cards:[...document.querySelectorAll('.post-card')].slice(0,3).map(c=>{const b=c.getBoundingClientRect(),v=c.querySelector('.post-cover').getBoundingClientRect(),
+     n=c.querySelector('.post-content');return {bottom:b.bottom,ratio:v.height/v.width,over:n.scrollHeight>n.clientHeight+1||b.height>v.height+3};})};});
+   const at=w+'×'+h+' «'+s.navText+'»: ';
+   if(c.cards.length<3)problems.push(at+'меньше трёх карточек — мерить нечего');
+   else if(c.cards[2].bottom>c.nav+1)problems.push(at+'три карточки не входят на экран: третья кончается на '+Math.round(c.cards[2].bottom)+', панель с '+Math.round(c.nav));
+   for(const k of c.cards){if(Math.abs(k.ratio-1.25)>0.02)problems.push(at+'обложка не 4:5: '+k.ratio.toFixed(3));
+    if(k.over)problems.push(at+'текст карточки не влезает в высоту обложки');}
+  }
+ }
+ await page.setViewportSize({width:390,height:844});
  // «Истории»: поиск, сортировка, открытие, возврат, ссылка.
  await page.setViewportSize({width:390,height:844});await open('stories');
  const titles=()=>page.locator('.post-card .post-title').allTextContents();
@@ -210,18 +243,19 @@ try{
   await page.screenshot({path:path.join(out,`sections-player-${w}.png`)});
  }
  await page.setViewportSize({width:390,height:844});
- // Главная: постер от самого верха экрана, шапка с логотипом поверх него;
- // подпись типа и кнопка «…» — ниже шапки, а не под логотипом.
+ // Главная: постер сразу под логотипом шапки, с парой точек воздуха, и не
+ // заходит на неё (владелец: «смотрится ужасно, когда обложка заходит на
+ // название и настройки шапки»).
  {const items=(await (await fetch(base+'/api/library',{headers:{cookie}})).json()).items;
   const song=items.find(p=>p.title==='76 дней');await api({action:'hero',id:song.id,key:await cover('hero-lake.jpg')});
   await page.goto(base+'/?mode=listen');await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForTimeout(900);
   const h=await page.evaluate(()=>{const b=s=>document.querySelector(s)?.getBoundingClientRect();
    return {scene:b('.scene'),head:b('.top-header'),brand:b('.top-header-brand'),eyebrow:b('.scene .soft-eyebrow'),menu:b('.scene-menu')};});
   if(!h.scene)problems.push('главная: нет постера');
-  else{if(h.scene.top>1)problems.push('главная: постер начинается не от верха экрана, а с '+Math.round(h.scene.top));
-   if(h.brand.bottom>h.scene.bottom||h.brand.top<h.scene.top-1)problems.push('главная: логотип не лежит на постере');
-   if(h.eyebrow&&h.eyebrow.top<h.head.bottom)problems.push('главная: подпись типа на постере под логотипом шапки');
-   if(h.menu&&h.menu.top<h.head.bottom)problems.push('главная: кнопка «…» на постере под кнопками шапки');}
+  else{const air=h.scene.top-h.brand.bottom;
+   if(air<1)problems.push('главная: постер заходит на логотип шапки ('+Math.round(air)+')');
+   if(air>8)problems.push('главная: между логотипом и постером '+Math.round(air)+' точек — должно быть вплотную, пара точек воздуха');
+   if(h.eyebrow&&(h.eyebrow.top<h.scene.top||h.eyebrow.bottom>h.scene.bottom))problems.push('главная: подпись типа вне постера');}
   await page.screenshot({path:path.join(out,'sections-home-390.png')});}
  assert.deepEqual(errors,[],'ошибки на странице: '+errors.join('; '));
  assert.deepEqual(problems,[],'\n - '+problems.join('\n - '));

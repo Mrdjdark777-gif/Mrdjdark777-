@@ -712,18 +712,20 @@ try{
   if(!decodeURIComponent(String(art)).includes('/api/cover?id=notify:'+podcast.id))
    problems.push('шторка в браузере: в карточке медиасессии «'+(art||'ничего')+'», а не выбор сервера notify:<выпуск>');
   await web.close();}
- // Постер на главной — от самого верха экрана, шапка с логотипом лежит на
- // нём; кнопка — вплотную под постером. Владелец сначала просил опустить
- // постер ближе к кнопке, потом — «чтоб она стала выше и ближе к лого
- // True Thrills, или даже была до конца». Действует последнее.
+ // Постер на главной — сразу под логотипом шапки, с парой точек воздуха, и
+ // не заходит на шапку; кнопка — вплотную под постером. Владелец просил по
+ // очереди: опустить постер, поднять «до конца», и наконец: «смотрится
+ // ужасно, когда обложка заходит на название и настройки шапки… держи
+ // обложку сразу же ниже названия True Thrills». Действует последнее.
  {await page.goto(base+'/?mode=listen');await settle(page);
   const gaps=await page.evaluate(()=>{const h=document.querySelector('.top-header')?.getBoundingClientRect(),
    p=document.querySelector('.scene')?.getBoundingClientRect(),a=document.querySelector('.soft-hero-foot .scene-action')?.getBoundingClientRect();
-   return h&&p&&a?{верх:Math.round(p.top),шапка:Math.round(h.bottom),под:Math.round(a.top-p.bottom)}:null;});
+   const logo=document.querySelector('.top-header-brand')?.getBoundingClientRect();
+   return h&&p&&a&&logo?{воздух:Math.round(p.top-logo.bottom),под:Math.round(a.top-p.bottom)}:null;});
   if(!gaps)problems.push('главная: нет шапки, постера или кнопки под ним');
   else{
-   if(gaps.верх>1)problems.push('главная: постер начинается не от верха экрана, а с '+gaps.верх+'px');
-   if(gaps.шапка<=gaps.верх)problems.push('главная: шапка не лежит на постере');
+   if(gaps.воздух<1)problems.push('главная: постер заходит на логотип шапки ('+gaps.воздух+'px)');
+   if(gaps.воздух>8)problems.push('главная: между логотипом и постером '+gaps.воздух+'px — должно быть вплотную');
    if(gaps.под<6||gaps.под>10)problems.push('главная: постер далеко от кнопки — между ними '+gaps.под+'px вместо 8');
   }}
 
@@ -2539,27 +2541,9 @@ try{
     return {src:img?.getAttribute('src')||'',kind:document.querySelector('.scene .soft-eyebrow')?.textContent||''};});
    check(/[?&]id=hero(&|$)/.test(seen.src)&&/[?&]v=/.test(seen.src),'в кадре главной не постер, а '+(seen.src||'пусто'));
    check(/истори/i.test(seen.kind),'подпись над постером не говорит, что это история: «'+seen.kind+'»');
-   // Постер начинается от верхнего края экрана, и шапка лежит на нём со своим
-   // затемнением. Ровной линии быть не должно нигде: ни там, где кончается
-   // затемнение шапки, ни в самом постере (владелец уже жаловался: «слишком
-   // резко идёт переход»). Меряем пикселями полосу от низа шапки до середины
-   // постера по середине экрана: соседние строки не отличаются скачком.
-   // Здесь, а не раньше: в кадре настоящий постер, а не пустой кадр.
-   {await lp.waitForFunction(()=>{const i=document.querySelector('.scene-photo');return i&&i.complete&&i.naturalWidth>0;},null,{timeout:8000}).catch(()=>{});
-    const box=await lp.locator('.scene').boundingBox();
-    const head=await lp.locator('.top-header').boundingBox();
-    const y0=Math.max(0,Math.round(head.y+head.height-6));
-    const png=await lp.screenshot({clip:{x:Math.round(box.x+box.width*.2),y:y0,width:Math.round(box.width*.6),height:Math.round(box.y+box.height*.5-y0)}});
-    const {data,info}=await sharp(png).greyscale().raw().toBuffer({resolveWithObject:true});
-    const rows=[];for(let y=0;y<info.height;y++){let sum=0;for(let x=0;x<info.width;x++)sum+=data[y*info.width+x];rows.push(sum/info.width);}
-    let jump=0,at=0;for(let y=1;y<rows.length;y++){const d=Math.abs(rows[y]-rows[y-1]);if(d>jump){jump=d;at=y;}}
-    // Страховка от слепоты: в полосе должен быть сам постер — он заметно
-    // светлее угольного фона приложения (~22). Ровный туманный снимок даёт
-    // мало перепада, поэтому меряем не перепад, а среднюю яркость.
-    const mean=rows.reduce((a,b)=>a+b,0)/rows.length;
-    if(mean<45)problems.push('главная: проверка верха постера слепая — в полосе нет постера, средняя яркость '+mean.toFixed(1));
-    if(jump>6){await writeFile(path.join(root,'outputs/ui/poster-edge.png'),png);
-     problems.push('главная: на постере под шапкой ровная линия — скачок яркости '+jump.toFixed(1)+' на строке '+at+' от низа шапки (снимок outputs/ui/poster-edge.png)');}}
+   // Проверки плавного верха постера больше нет: владелец попросил поставить
+   // постер сразу под логотип с парой точек воздуха — край постера там
+   // задуман. Верхние углы скруглены, чтобы край читался как край карточки.
    // Нажимаем на сам постер, а не на кнопку под ним: владелец спросил прямо,
    // можно ли будет на него нажать.
    const box=await lp.locator('.scene').boundingBox();

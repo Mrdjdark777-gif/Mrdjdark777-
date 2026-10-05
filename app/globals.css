@@ -2462,7 +2462,7 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
    Колонке подзаголовка оставлен минимум ширины: если заголовок не влезает
    рядом, он переносится ещё раз, а не вылезает за край; строка подзаголовка,
    не влезающая в колонку, тоже переносится сама. */
-.listener-main .voice-head{margin:26px 0 16px}
+.listener-main .voice-head{margin:8px 0 16px}
 .listener-main .voice-headline{display:flex;align-items:center;column-gap:clamp(12px,calc(3.6 * var(--vw, 1vw)),28px)}
 .listener-main .voice-title{flex:0 1 auto;min-width:0;font-size:clamp(30px,calc(8.4 * var(--vw, 1vw)),46px);line-height:1.04;letter-spacing:-.015em;
  white-space:pre-line;text-wrap:wrap;overflow-wrap:break-word;text-box:trim-both cap alphabetic}
@@ -2531,42 +2531,50 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 }
 
 /* ── Каталог: три карточки на экран ─────────────────────────────────────────
-   Владелец: «две плашки — и весь экран заполнен… сделать плашки меньше, чтоб
-   на один экран входило их три, не меняя соотношение обложек». Карточка
-   теперь ровно высотой обложки 4:5 (132×165), а не выше неё: раньше текст
-   вытягивал карточку до ~192 точек, и обложка в ней обрезалась по бокам.
-   Текст плотнее: название до двух строк, описание до двух. Раскрытое по
-   нажатию описание по-прежнему растит карточку. */
+   Владелец: «чтоб на один экран входило их три… уменьши плашки так, чтоб
+   идеально помещались три выпуска». Высота карточки считается от высоты
+   экрана: всё, что над списком (шапка приложения, заголовок, поиск), и
+   нижняя панель вычитаются, остаток делится на три. Карточка ровно высотой
+   обложки 4:5, обложка не обрезается; не выше 165 точек, не ниже 118.
+   На невысоком экране описание — одна строка, иначе текст не влез бы. */
 @media (max-width:767px),(hover:none) and (pointer:coarse){
+ .listener-main{--tt-card-h:clamp(118px,calc((100svh - var(--bottom-nav-h) - env(safe-area-inset-bottom) - 288px) / 3),165px)}
  .listener-main .post-list{gap:8px}
- .listener-main .post-cover{width:132px;min-height:165px}
- .listener-main .post-content{align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:8px 14px 6px}
+ .listener-main .post-cover{width:calc(var(--tt-card-h) * .8);min-height:var(--tt-card-h)}
+ .listener-main .post-content{align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:7px 14px 5px}
  .listener-main .post-meta{font-size:10.5px}
- .listener-main .post-title{font-size:16px;line-height:1.25;margin:4px 0 3px}
+ .listener-main .post-title{font-size:16px;line-height:1.25;margin:3px 0 2px}
  .listener-main .post-note{font-size:13px;line-height:1.4}
  .listener-main .post-note:not(.is-open){-webkit-line-clamp:2}
- .listener-main .post-actions{margin-top:4px}
+ .listener-main .post-actions{margin-top:3px}
  .listener-main .post-actions button{padding:4px 0}
+ .listener-main .post-actions{min-height:0;height:36px}
+ .listener-main .post-actions .post-share{width:36px;height:36px;min-height:0}
 }
-
-/* ── Главная: постер от самого верха экрана ─────────────────────────────────
-   Владелец: «чтоб она стала выше и ближе к лого True Thrills, или даже была
-   до конца». Шапка на главной лежит поверх постера, прозрачная, с мягким
-   затемнением под логотипом и кнопками; постер начинается от верхнего края.
-   Подпись типа и кнопка «…» на постере стоят ниже шапки, а не под логотипом.
-   Только телефон: на мониторе шапка в потоке. */
+@media (max-width:767px) and (max-height:819px),(hover:none) and (pointer:coarse) and (max-height:819px){
+ .listener-main .post-note:not(.is-open){-webkit-line-clamp:1}
+}
+/* ── Главная: постер сразу под шапкой ──────────────────────────────────────
+   Владелец: «смотрится ужасно, когда обложка заходит на название и
+   настройки шапки… держи обложку сразу же ниже названия True Thrills, оставь
+   пару пикселей для воздуха». Постер начинается в 4 точках под логотипом,
+   целиком, без растворения верха; верхние углы скруглены — край постера
+   читается как край карточки, а не как обрезка. Только телефон. */
 @media (max-width:767px),(hover:none) and (pointer:coarse){
- .app-shell.is-immersive{position:relative}
- .app-shell.is-immersive>.top-header{position:absolute;top:0;left:0;right:0;z-index:30;
-  background:linear-gradient(180deg,rgba(8,11,13,.6) 0,rgba(8,11,13,.3) 62%,rgba(8,11,13,0) 100%)}
  body.tt-shell-locked .app-shell.is-immersive .listener-main{-webkit-mask-image:none;mask-image:none}
- .listener-main .immersion.tt-soft-home .scene{margin-top:0!important}
+ .listener-main .immersion.tt-soft-home .scene{margin-top:-3px!important;border-radius:18px 18px var(--soft-radius) var(--soft-radius)!important}
  .tt-soft-home .scene-photo,.tt-soft-home .scene-shade{-webkit-mask-image:none;mask-image:none}
- .listener-main .immersion.tt-soft-home .scene .scene-copy{top:calc(64px + env(safe-area-inset-top))!important}
- .listener-main .tt-soft-home .scene-menu{top:calc(58px + env(safe-area-inset-top))}
 }
 
 /* Подзаголовок шапки разделов — у правого края экрана, по центру высоты
-   заголовка; между ними свободное место. Владелец: «прям сбоку экрана, а не
-   по середине». */
-.listener-main .voice-kicker{margin-left:auto;text-align:right}
+   заголовка; строки — по центру друг друга. Владелец: «прям сбоку экрана»,
+   «идеально до пикселя отцентрованы по всем плоскостям». Заголовок поднят
+   ближе к шапке (владелец: «там много свободного места без смысла»), а
+   растворение верха списка в этих разделах сужено до 6 точек, чтобы буквы
+   под ним не тускнели. */
+@media(max-width:1023px),(hover:none) and (pointer:coarse){
+ body.tt-shell-locked .listener-main:is([data-view=podcasts],[data-view=videos],[data-view=stories]){
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 6px,#000 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 6px,#000 100%)}
+}
+.listener-main .voice-kicker{flex:0 1 auto;margin-left:auto;text-align:center}
+.listener-main .voice-title{flex:0 0 auto;max-width:calc(100% - 96px)}
