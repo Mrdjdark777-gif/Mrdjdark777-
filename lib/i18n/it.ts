@@ -418,7 +418,7 @@ export const it: Record<keyof typeof ru, string> = {
   'settings.posterResetDone': "La home sceglie di nuovo da sola",
   'settings.posterPick': "Scegli cosa aprire toccando il poster",
   'settings.posterNone': "Nessun poster — nella home c'è la copertina della puntata.",
-  'settings.posterNote': "Tieni l'essenziale tra 90 e 1710 in larghezza e tra 200 e 780 in altezza; lascia vuoti gli angoli in alto: lì ci sono l'etichetta e il pulsante «…». Il poster è legato alla puntata scelta: se ne scegli un'altra, caricane uno nuovo.",
+  'settings.posterNote': "Il poster parte dal bordo superiore dello schermo: i primi 250 punti stanno sotto l'intestazione con il logo e i pulsanti. Tieni l'essenziale tra 90 e 1710 in larghezza e tra 270 e 780 in altezza; lascia vuoti gli angoli sotto l'intestazione (fino a 400 dal bordo, fino a 460 in altezza): lì ci sono l'etichetta e il pulsante «…». Il poster è legato alla puntata scelta: se ne scegli un'altra, caricane uno nuovo.",
   'settings.artText': "L'immagine nella tendina delle notifiche e sulla schermata di blocco mentre qualcosa è in riproduzione. Se caricata, appare per tutte le puntate e le dirette. Se non c'è, nella tendina appare la copertina di ciò che sta suonando.",
   'settings.artUpload': 'Carica immagine',
   'settings.artRemove': 'Rimuovi l\'immagine',

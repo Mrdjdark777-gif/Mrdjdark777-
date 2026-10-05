@@ -377,7 +377,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.posterResetDone": "Pagina principală alege din nou singură",
   "settings.posterPick": "Alege ce se deschide la atingerea posterului",
   "settings.posterNone": "Nu există poster — în cadru e coperta episodului.",
-  "settings.posterNote": "Ține esențialul între 90 și 1710 pe lățime și între 200 și 780 pe înălțime; lasă goale colțurile de sus: acolo sunt eticheta și butonul «…». Posterul e legat de episodul ales — dacă alegi altul, încarcă unul nou pentru el.",
+  "settings.posterNote": "Posterul începe de la marginea de sus a ecranului: primele 250 de puncte stau sub antetul cu logo și butoane. Ține esențialul între 90 și 1710 pe lățime și între 270 și 780 pe înălțime; lasă goale colțurile de sub antet (până la 400 de la margine, până la 460 pe înălțime) — acolo sunt eticheta și butonul «…». Posterul e legat de episodul ales — dacă alegi altul, încarcă unul nou pentru el.",
   "settings.artText": "Imaginea din bara de notificări și de pe ecranul blocat cât timp se redă ceva. Dacă e încărcată, apare la toate episoadele și transmisiunile. Dacă nu, în bară apare coperta a ceea ce se redă.",
   "settings.artUpload": "Încarcă o imagine",
   "settings.artRemove": "Șterge imaginea",

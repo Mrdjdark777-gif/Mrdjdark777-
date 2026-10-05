@@ -109,7 +109,13 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  </section>;
  return <section className={'podcast-player is-open is-'+view.presentation} onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
   {children}
+  {/* Фон плеера — размытая копия обложки. Сама обложка стоит в колонке
+      плеера (player-cover ниже): целиком, своей пропорцией, между кнопками
+      сверху и названием. Раньше снимок растягивался на всю рамку другой
+      пропорции и терял верх и низ — владелец: «всё растянуто и вообще
+      неправильно отображается». Боком снимок по-прежнему лежит фоном. */}
   {!archive&&<div className="player-stage" aria-hidden="true">
+   <Artwork className="player-stage-blur" src={view.cover}/>
    <Artwork className="player-stage-photo" src={view.cover} fallback={<img className="player-stage-mark" src="/brand/logo.png?v=0.4.1" alt=""/>}/>
    <span className="player-stage-shade"/>
   </div>}
@@ -129,6 +135,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   </div>
 
   <div className="player-body">
+   {!archive&&!type&&view.cover&&<div className="player-cover-frame" aria-hidden="true"><Artwork className="player-cover" src={view.cover}/></div>}
    {archive&&<div className="player-orb" aria-hidden="true">
     <svg className="player-orb-ring" viewBox="0 0 100 100">
      <circle className="player-orb-track" cx="50" cy="50" r="46"/>

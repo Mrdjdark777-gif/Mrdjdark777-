@@ -25,6 +25,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,rm,mkdir,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import sharp from 'sharp';
 
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-sec-'));
 const out=path.join(root,'outputs','ui');await mkdir(out,{recursive:true});
@@ -51,7 +52,11 @@ try{
  const audioKey=(await (await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav})).json()).key;
  const long='Очень длинное название, которое никак не помещается в две строки узкой карточки на телефоне';
  const longNote='Длинное описание без конца. '.repeat(16);
- await api({kind:'podcast',audioCategory:'audio_story',title:'76 дней',description:'Стивен Каллахэн. 76 дней на плоту посреди Атлантики.',audioKey,duration:seconds,published:true,coverKey:await cover('hero-lake.jpg')});
+ // Обложка как у владельца — 1080×1350 (4:5): по ней видно, что плеер
+ // показывает её своей пропорцией.
+ const portrait=await sharp({create:{width:1080,height:1350,channels:3,background:{r:40,g:60,b:90}}}).jpeg().toBuffer();
+ const coverKey45=(await (await fetch(base+'/api/cover',{method:'POST',headers:{cookie,'content-type':'image/jpeg','x-upload-size':String(portrait.length)},body:portrait})).json()).key;
+ await api({kind:'podcast',audioCategory:'audio_story',title:'76 дней',description:'Стивен Каллахэн. 76 дней на плоту посреди Атлантики.',audioKey,duration:seconds,published:true,coverKey:coverKey45});
  await api({kind:'podcast',audioCategory:'music',title:long,description:longNote,audioKey,duration:seconds,published:true,coverKey:await cover('tile-forest.jpg')});
  await api({kind:'video',title:'Он выжил. Но какой ценой?',description:'Стивен Каллахэн. 76 дней в Атлантике.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')});
  await api({kind:'video',title:long,description:longNote,videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true});
@@ -79,7 +84,13 @@ try{
     const main=q('.listener-main');main.scrollTop=0;
     const head={t:r('.voice-title'),k:r('.voice-kicker'),mainTop:main.getBoundingClientRect().top,
      lines:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const b=e.getBoundingClientRect();return {text:e.textContent,over:e.scrollWidth>e.clientWidth+1,top:b.top,bottom:b.bottom};}),
-     search:r('.catalog-search'),sort:r('.catalog-sort'),list:r('.post-list')};
+     search:r('.catalog-search'),sort:r('.catalog-sort'),list:r('.post-list'),
+     // Правый край текста каждой строки подзаголовка — по самому тексту, а
+     // не по блоку: блок тянется на всю колонку при любом выравнивании.
+     kickRight:[...document.querySelectorAll('.voice-kicker-line')].map(e=>{const g=document.createRange();g.selectNodeContents(e);return g.getBoundingClientRect().right;}),
+     // Первые три карточки до прокрутки — над нижней панелью, обложка 4:5.
+     firstCards:[...document.querySelectorAll('.post-card')].slice(0,3).map(c=>{const b=c.getBoundingClientRect(),v=c.querySelector('.post-cover').getBoundingClientRect();return {bottom:b.bottom,ratio:v.height/v.width};}),
+     navTop:q('.bottom-nav')?.getBoundingClientRect().top};
     main.scrollTop=main.scrollHeight;
     const cards=[...document.querySelectorAll('.post-card')].map(c=>{const b=c.getBoundingClientRect(),cover=c.querySelector('.post-cover').getBoundingClientRect(),
      title=c.querySelector('.post-title').getBoundingClientRect(),note=c.querySelector('.post-note').getBoundingClientRect(),
@@ -119,6 +130,9 @@ try{
     // заходит, с запасом.
     if(v.t.top-v.mainTop<30)problems.push(at+'заголовок у самой верхней кромки, под затемнением: '+Math.round(v.t.top-v.mainTop)+' точек от края');
     if(v.k.right>v.W-15)problems.push(at+'подзаголовок у самого края экрана');
+    // Подзаголовок — у правого края экрана, по краю поиска и списка; между
+    // ним и заголовком свободное место (владелец: «прям сбоку экрана»).
+    for(const x of v.kickRight)if(Math.abs(x-v.list.right)>2)problems.push(at+'подзаголовок не у правого края: строка кончается на '+Math.round(x)+', край '+Math.round(v.list.right));
     if(Math.abs(v.t.left-v.search.left)>1||Math.abs(v.t.left-v.list.left)>1)problems.push(at+'заголовок, поиск и список с разных левых краёв');
    }
    if(v.ph!==s.search)problems.push(at+'в поиске «'+v.ph+'» вместо «'+s.search+'»');
@@ -140,6 +154,11 @@ try{
    if(s.view==='stories'&&v.cards.some(c=>c.tag!=='ИСТОРИЯ'))problems.push(at+'тип в карточке истории не «ИСТОРИЯ»');
    if(s.view==='videos'&&v.cards.some(c=>c.tag!=='ВИДЕО'))problems.push(at+'тип в карточке видео не «ВИДЕО»');
    if(v.lastBtn>v.nav+1)problems.push(at+'нижняя панель закрывает кнопку последней карточки');
+   // Три карточки на экран (владелец: «чтоб на один экран входило их три»):
+   // при высоте 844 первые три видны целиком, до нижней панели. Обложка в
+   // них ровно 4:5 — карточка не выше обложки и не режет её по бокам.
+   if(v.firstCards.length>=3&&v.firstCards[2].bottom>v.navTop+1)problems.push(at+'на экран не входят три карточки: третья кончается на '+Math.round(v.firstCards[2].bottom)+', панель с '+Math.round(v.navTop));
+   for(const c of v.firstCards)if(Math.abs(c.ratio-1.25)>0.02)problems.push(at+'обложка в карточке не 4:5: '+c.ratio.toFixed(3));
    sizes[s.view]=v.size;
    await page.screenshot({path:path.join(out,`sections-${s.view}-${w}.png`)});
   }
@@ -171,6 +190,39 @@ try{
  await page.locator('.tt-reader').waitFor({state:'detached',timeout:8000});
  assert.equal(await page.locator('.voice-title').textContent(),'Истории\nна страницах','после чтения вернулись не к списку историй');
  assert.ok(await page.locator('.post-card').count()>=3,'после чтения список историй пуст');
+ // Плеер: обложка целиком, своей пропорцией — не растянута и не обрезана,
+ // в рамке плеера и выше названия. Владелец: «всё растянуто и вообще
+ // неправильно отображается».
+ for(const w of [360,390,430]){
+  await page.setViewportSize({width:w,height:w===360?640:844});await open('podcasts');
+  await page.locator('.post-card',{hasText:'76 дней'}).locator('.text-button').click();
+  await page.locator('.podcast-player.is-open .player-cover').waitFor({timeout:8000});
+  await page.waitForFunction(()=>{const i=document.querySelector('.player-cover');return i&&i.complete&&i.naturalWidth>0;},null,{timeout:8000});
+  const pl=await page.evaluate(()=>{const st=document.querySelector('.podcast-player.is-open').getBoundingClientRect(),img=document.querySelector('.player-cover'),
+   r=img.getBoundingClientRect(),title=document.querySelector('.podcast-player .player-body')?.querySelector('h2,.player-title,.player-brand');
+   return {st:{t:st.top,b:st.bottom,l:st.left,r:st.right},r:{t:r.top,b:r.bottom,l:r.left,r:r.right,w:r.width,h:r.height},nat:img.naturalHeight/img.naturalWidth,
+    fit:getComputedStyle(img).objectFit,text:title?title.getBoundingClientRect().top:null};});
+  const at=w+' плеер: ';
+  if(Math.abs(pl.r.h/pl.r.w-pl.nat)>0.02)problems.push(at+'обложка не своей пропорции: '+(pl.r.h/pl.r.w).toFixed(3)+' при '+pl.nat.toFixed(3));
+  if(pl.r.t<pl.st.t-1||pl.r.b>pl.st.b+1||pl.r.l<pl.st.l-1||pl.r.r>pl.st.r+1)problems.push(at+'обложка вылезла за экран плеера');
+  if(pl.text!==null&&pl.r.b>pl.text+1)problems.push(at+'обложка заходит под надписи плеера');
+  if(pl.r.w<150)problems.push(at+'обложка слишком мелкая: '+Math.round(pl.r.w)+' точек');
+  await page.screenshot({path:path.join(out,`sections-player-${w}.png`)});
+ }
+ await page.setViewportSize({width:390,height:844});
+ // Главная: постер от самого верха экрана, шапка с логотипом поверх него;
+ // подпись типа и кнопка «…» — ниже шапки, а не под логотипом.
+ {const items=(await (await fetch(base+'/api/library',{headers:{cookie}})).json()).items;
+  const song=items.find(p=>p.title==='76 дней');await api({action:'hero',id:song.id,key:await cover('hero-lake.jpg')});
+  await page.goto(base+'/?mode=listen');await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForTimeout(900);
+  const h=await page.evaluate(()=>{const b=s=>document.querySelector(s)?.getBoundingClientRect();
+   return {scene:b('.scene'),head:b('.top-header'),brand:b('.top-header-brand'),eyebrow:b('.scene .soft-eyebrow'),menu:b('.scene-menu')};});
+  if(!h.scene)problems.push('главная: нет постера');
+  else{if(h.scene.top>1)problems.push('главная: постер начинается не от верха экрана, а с '+Math.round(h.scene.top));
+   if(h.brand.bottom>h.scene.bottom||h.brand.top<h.scene.top-1)problems.push('главная: логотип не лежит на постере');
+   if(h.eyebrow&&h.eyebrow.top<h.head.bottom)problems.push('главная: подпись типа на постере под логотипом шапки');
+   if(h.menu&&h.menu.top<h.head.bottom)problems.push('главная: кнопка «…» на постере под кнопками шапки');}
+  await page.screenshot({path:path.join(out,'sections-home-390.png')});}
  assert.deepEqual(errors,[],'ошибки на странице: '+errors.join('; '));
  assert.deepEqual(problems,[],'\n - '+problems.join('\n - '));
  console.log('Разделы «Аудио», «Видео», «Истории»: одна шапка, одна строка поиска, карточки в границах на 360/390/430; поиск, сортировка, чтение и «Поделиться» в «Историях» работают.');

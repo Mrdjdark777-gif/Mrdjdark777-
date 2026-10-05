@@ -2510,3 +2510,63 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .listener-main .catalog-search input{text-overflow:ellipsis}
 .listener-main .catalog-tools{flex-wrap:nowrap}
 .listener-main .catalog-search{flex:1 1 0}
+
+/* ── Плеер: обложка целиком ─────────────────────────────────────────────────
+   Рамка плеера не 4:5 (на 393×770 — 393×447, на 360×640 — 360×371), и
+   снимок, растянутый на неё, терял до пятой части высоты и выглядел
+   увеличенным. Теперь обложка стоит в колонке плеера: занимает всё свободное
+   место между кнопками сверху и названием, своей пропорцией, целиком, и на
+   коротком экране уменьшается, а не наезжает на текст. Фон за ней — её же
+   размытая притушенная копия. Боком — прежний вид: снимок фоном. */
+.player-stage-blur{position:absolute;inset:-28px;width:calc(100% + 56px);height:calc(100% + 56px);max-width:none;
+ object-fit:cover;filter:blur(28px) brightness(.5) saturate(1.15);transform:translateZ(0)}
+.podcast-player.is-open:has(.player-cover) .player-stage{height:100%;max-height:none}
+.podcast-player.is-open .player-stage-photo{display:none}
+.player-cover-frame{flex:1 1 0;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;padding:6px 0 4px}
+.player-cover{display:block;width:auto;height:auto;max-width:100%;max-height:100%;border-radius:16px;
+ box-shadow:0 18px 44px rgba(0,0,0,.5)}
+@media (orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px){
+ .podcast-player.is-open .player-stage-photo{display:block}
+ .podcast-player.is-open .player-stage-blur,.podcast-player.is-open .player-cover-frame{display:none}
+}
+
+/* ── Каталог: три карточки на экран ─────────────────────────────────────────
+   Владелец: «две плашки — и весь экран заполнен… сделать плашки меньше, чтоб
+   на один экран входило их три, не меняя соотношение обложек». Карточка
+   теперь ровно высотой обложки 4:5 (132×165), а не выше неё: раньше текст
+   вытягивал карточку до ~192 точек, и обложка в ней обрезалась по бокам.
+   Текст плотнее: название до двух строк, описание до двух. Раскрытое по
+   нажатию описание по-прежнему растит карточку. */
+@media (max-width:767px),(hover:none) and (pointer:coarse){
+ .listener-main .post-list{gap:8px}
+ .listener-main .post-cover{width:132px;min-height:165px}
+ .listener-main .post-content{align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:8px 14px 6px}
+ .listener-main .post-meta{font-size:10.5px}
+ .listener-main .post-title{font-size:16px;line-height:1.25;margin:4px 0 3px}
+ .listener-main .post-note{font-size:13px;line-height:1.4}
+ .listener-main .post-note:not(.is-open){-webkit-line-clamp:2}
+ .listener-main .post-actions{margin-top:4px}
+ .listener-main .post-actions button{padding:4px 0}
+}
+
+/* ── Главная: постер от самого верха экрана ─────────────────────────────────
+   Владелец: «чтоб она стала выше и ближе к лого True Thrills, или даже была
+   до конца». Шапка на главной лежит поверх постера, прозрачная, с мягким
+   затемнением под логотипом и кнопками; постер начинается от верхнего края.
+   Подпись типа и кнопка «…» на постере стоят ниже шапки, а не под логотипом.
+   Только телефон: на мониторе шапка в потоке. */
+@media (max-width:767px),(hover:none) and (pointer:coarse){
+ .app-shell.is-immersive{position:relative}
+ .app-shell.is-immersive>.top-header{position:absolute;top:0;left:0;right:0;z-index:30;
+  background:linear-gradient(180deg,rgba(8,11,13,.6) 0,rgba(8,11,13,.3) 62%,rgba(8,11,13,0) 100%)}
+ body.tt-shell-locked .app-shell.is-immersive .listener-main{-webkit-mask-image:none;mask-image:none}
+ .listener-main .immersion.tt-soft-home .scene{margin-top:0!important}
+ .tt-soft-home .scene-photo,.tt-soft-home .scene-shade{-webkit-mask-image:none;mask-image:none}
+ .listener-main .immersion.tt-soft-home .scene .scene-copy{top:calc(64px + env(safe-area-inset-top))!important}
+ .listener-main .tt-soft-home .scene-menu{top:calc(58px + env(safe-area-inset-top))}
+}
+
+/* Подзаголовок шапки разделов — у правого края экрана, по центру высоты
+   заголовка; между ними свободное место. Владелец: «прям сбоку экрана, а не
+   по середине». */
+.listener-main .voice-kicker{margin-left:auto;text-align:right}
