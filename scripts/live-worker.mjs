@@ -17,13 +17,19 @@ async function atomic(file,data){const tmp=file+'.tmp';await writeFile(tmp,data,
 // запись эфира попадает в хранилище мимо него, и без этого проверка бэкапа
 // могла бы сверить у неё только размер.
 async function sha256(file){const hash=createHash('sha256');for await(const chunk of createReadStream(file))hash.update(chunk);return hash.digest('hex');}
+// Качество эфира для слушателей и архива. Владелец: «мне нужно, чтоб было
+// максимальное качество для эфира». С ПК звук приходит в Opus 320 кбит/с;
+// здесь он второй раз сжимается в AAC — тоже с запасом, 320 кбит/с, чтобы
+// второе сжатие не съедало то, что сохранило первое. Час эфира — около
+// 145 МБ на слушателя.
+const LIVE_AAC_BITRATE='320k';
 async function processRecording(row){
  console.log(JSON.stringify({event:'live-open',id:row.id,title:String(row.title).slice(0,80),state:row.state}));
  const dir=path.join(root,row.id),generation='g-'+randomUUID(),out=path.join(dir,generation);await mkdir(out,{recursive:true,mode:0o700});
  const archive=path.join(out,'archive.m4a');
  const args=['-hide_banner','-loglevel','error','-nostdin','-y','-protocol_whitelist','file,pipe','-f','matroska','-i','pipe:0',
-  '-map','0:a:0','-vn','-c:a','aac','-b:a','192k','-ar','48000','-ac','2','-f','hls','-hls_time','3','-hls_list_size','0','-hls_flags','temp_file','-hls_segment_filename',path.join(out,'seg-%06d.ts'),path.join(out,'index.m3u8'),
-  '-map','0:a:0','-vn','-c:a','aac','-b:a','192k','-ar','48000','-ac','2','-movflags','+faststart',archive];
+  '-map','0:a:0','-vn','-c:a','aac','-b:a',LIVE_AAC_BITRATE,'-ar','48000','-ac','2','-f','hls','-hls_time','3','-hls_list_size','0','-hls_flags','temp_file','-hls_segment_filename',path.join(out,'seg-%06d.ts'),path.join(out,'index.m3u8'),
+  '-map','0:a:0','-vn','-c:a','aac','-b:a',LIVE_AAC_BITRATE,'-ar','48000','-ac','2','-movflags','+faststart',archive];
  const ff=spawn('ffmpeg',args,{stdio:['pipe','ignore','pipe']});children.add(ff);ff.once('close',()=>children.delete(ff));let errorText='',exited=false,code=null;
  ff.stderr.on('data',b=>{errorText=(errorText+b.toString()).slice(-3000);});
  ff.stdin.on('error',()=>{}); // The write callback and exit status carry the failure.

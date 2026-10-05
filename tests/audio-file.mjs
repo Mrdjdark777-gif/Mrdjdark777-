@@ -35,5 +35,14 @@ try{
   assert.doesNotMatch(java,/AUDIO_CONTENT_TYPE_SPEECH/,'Android-плеер снова объявляет звук речью');
   assert.match(java,/setAudioProcessors\(new AudioProcessor\[\]\{ new TeeAudioProcessor\(new LevelTap\(\)\) \}\)/,'в Android-плеер добавлена обработка звука сверх ответвления для индикатора');
   assert.doesNotMatch(java,/SkipSilence|LoudnessEnhancer|Equalizer|DynamicsProcessing/,'в Android-плеере появилась обработка звука');}
+ // Эфир и запись в студии — с запасом по качеству (владелец: «максимальное
+ // качество для эфира»): с ПК Opus 320 кбит/с, на сервере AAC 320 кбит/с и
+ // для слушателей, и для архива; запись черновика в студии — 320 кбит/с.
+ {const live=await readFile('hooks/use-live.ts','utf8'),cap=await readFile('hooks/use-capture.ts','utf8'),worker=await readFile('scripts/live-worker.mjs','utf8');
+  const bits=src=>[...src.matchAll(/audioBitsPerSecond:(\d+)/g)].map(m=>Number(m[1]));
+  assert.ok(bits(live).length&&bits(live).every(b=>b>=320000),'эфир с ПК сжимается ниже 320 кбит/с: '+bits(live));
+  assert.ok(bits(cap).length&&bits(cap).every(b=>b>=320000),'запись в студии сжимается ниже 320 кбит/с: '+bits(cap));
+  assert.match(worker,/LIVE_AAC_BITRATE='3[2-9]\dk'/,'эфир на сервере сжимается ниже 320 кбит/с');
+  assert.equal((worker.match(/'-b:a',LIVE_AAC_BITRATE/g)||[]).length,2,'поток слушателям и архив эфира сжимаются не с одним и тем же качеством');}
  console.log('PASS: missing duration reproduced; finite duration and seek index restored; audio packets unchanged; seeking decodes; finalized WebM and MP3 preserved; invalid files rejected.');
 }finally{await rm(dir,{recursive:true,force:true});}

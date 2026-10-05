@@ -74,7 +74,7 @@ export function useCapture(){
   if(typeof MediaRecorder==='undefined')throw new Error(t('capture.unsupportedBrowser'));
   const s=stream.current??await connect();if(!s)return;
   const mime=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw new Error(t('capture.noRecorder'));
-  const chunks:BlobPart[]=[];let size=0;const recorder=new MediaRecorder(s,{mimeType:mime,audioBitsPerSecond:128000});rec.current=recorder;
+  const chunks:BlobPart[]=[];let size=0;const recorder=new MediaRecorder(s,{mimeType:mime,audioBitsPerSecond:320000});rec.current=recorder;
   recorder.ondataavailable=e=>{if(e.data.size){chunks.push(e.data);size+=e.data.size;if(size>75*1024*1024&&recorder.state!=='inactive'){recorder.stop();toast.warning(t('capture.stoppedAtLimit'));}}};
   recorder.onstop=()=>{if(time.current)clearInterval(time.current);setRecording(false);setPaused(false);void accept(new Blob(chunks,{type:recorder.mimeType}));};recorder.onerror=()=>toast.error(t('capture.recordError'));
   setSeconds(0);setPaused(false);setRecording(true);recorder.start(1000);time.current=setInterval(()=>{if(recorder.state==='recording')setSeconds(s=>s+1);},1000);
