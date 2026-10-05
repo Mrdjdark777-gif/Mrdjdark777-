@@ -182,6 +182,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "desc.live": "Voce și ascultători. În timp real.",
   "desc.settingsAuthor": "Susținere, platforme și notificări.",
   "desc.settingsListener": "Notificări, platforme și susținerea autorului.",
+  "home.addAudio": "Încarcă\naudio",
   "home.addVideo": "Adaugă\nvideo",
   "home.writeStory": "Scrie\no poveste",
   "home.startLive": "Pornește\nemisiunea",

@@ -50,6 +50,25 @@ try{
  const eq=cookie.indexOf('=');await ctx.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
  const page=await ctx.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base+'/');await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForTimeout(600);
+ // Студия на ПК: активный пункт боковой панели подсвечен по размеру самой
+ // иконки — кольцом вокруг круга, без плашки и без полоски с конусом света
+ // (владелец: «плохо выглядит… подогнать под размеры самой иконки»). На
+ // главной студии пять быстрых действий в один ряд, первое — «Загрузить
+ // аудио» (владелец: «почему нет кнопки, чтобы добавить аудио?»).
+ {const rail=await page.evaluate(()=>{const a=document.querySelector('.bottom-nav-item[data-active=true]'),m=a?.querySelector('.tt-metal'),l=document.querySelector('.bottom-nav .tt-limelight');
+   return {bg:a&&getComputedStyle(a).backgroundColor,ring:m?getComputedStyle(m).boxShadow:'',lamp:l?getComputedStyle(l).display==='none'||Number(getComputedStyle(l).opacity)===0:true};});
+  assert.ok(/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(rail.bg||''),'активный пункт боковой панели снова с плашкой: '+rail.bg);
+  assert.ok(rail.lamp,'у активного пункта боковой панели снова полоска с конусом света');
+  assert.match(rail.ring,/rgb\(111, 231, 222\) 0px 0px 0px 2px/,'у активной иконки боковой панели нет бирюзового кольца: '+rail.ring);
+  const tiles=await page.locator('.home-actions .home-tile').evaluateAll(b=>b.map(x=>({text:x.textContent.trim(),top:Math.round(x.getBoundingClientRect().top)})));
+  assert.equal(tiles.length,5,'быстрых действий в студии не пять: '+tiles.length);
+  assert.equal(tiles[0].text.replace(/\s+/g,' '),'Загрузить аудио','первое действие не «Загрузить аудио»: «'+tiles[0].text+'»');
+  assert.equal(new Set(tiles.map(x=>x.top)).size,1,'быстрые действия не в один ряд: '+tiles.map(x=>x.top).join(', '));
+  const chooser=page.waitForEvent('filechooser',{timeout:5000}).catch(()=>null);
+  await page.locator('.home-actions .home-tile').first().click();
+  const fc=await chooser;
+  assert.ok(fc,'«Загрузить аудио» не открывает выбор файла');
+  assert.match(String(await page.locator('input[type=file][accept^="audio"]').getAttribute('accept')),/audio/,'выбор файла открылся не для аудио');}
  const panel=page.locator('.hero-poster-panel');await panel.waitFor();
  // Сервер у владельца — через интернет, ответ идёт не мгновенно. Без
  // задержки окно, в котором форма стояла на прежнем, локально не видно.

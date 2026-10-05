@@ -182,6 +182,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "desc.live": "Голос і слухачі. У реальному часі.",
   "desc.settingsAuthor": "Підтримка, майданчики та сповіщення.",
   "desc.settingsListener": "Сповіщення, майданчики та підтримка автора.",
+  "home.addAudio": "Завантажити\nаудіо",
   "home.addVideo": "Додати\nвідео",
   "home.writeStory": "Написати\nісторію",
   "home.startLive": "Почати\nефір",

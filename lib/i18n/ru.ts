@@ -214,6 +214,7 @@ export const ru = {
   'desc.settingsAuthor': 'Поддержка, площадки и уведомления.',
   'desc.settingsListener': 'Уведомления, площадки и поддержка автора.',
 
+  'home.addAudio': "Загрузить\nаудио",
   'home.addVideo': 'Добавить\nвидео',
   'home.writeStory': 'Написать\nисторию',
   'home.startLive': 'Начать\nэфир',

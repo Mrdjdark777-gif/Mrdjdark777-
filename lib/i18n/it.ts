@@ -215,6 +215,7 @@ export const it: Record<keyof typeof ru, string> = {
   'desc.settingsAuthor': 'Sostegno, piattaforme e notifiche.',
   'desc.settingsListener': 'Notifiche, piattaforme e sostegno all’autore.',
 
+  'home.addAudio': "Carica\nun audio",
   'home.addVideo': 'Aggiungi\nun video',
   'home.writeStory': 'Scrivi\nun racconto',
   'home.startLive': 'Avvia\nla diretta',

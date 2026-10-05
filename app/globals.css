@@ -2620,3 +2620,20 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  .podcast-player.is-open.is-bare .player-sheet-top,.podcast-player.is-open.is-bare .player-sheet-top *,
  .podcast-player.is-open.is-bare .player-body,.podcast-player.is-open.is-bare .player-body *{pointer-events:none!important}
 }
+
+/* Боковая панель студии на ПК: активный пункт подсвечен по размеру самой
+   иконки — бирюзовым кольцом и мягким свечением вокруг круга, — а не
+   крупной плашкой с полоской и конусом света, которые стояли мимо иконки
+   (владелец: «плохо выглядит… подогнать под размеры самой иконки»). */
+@media(min-width:1024px) and (hover:hover){
+ .is-author .bottom-nav .tt-limelight{display:none}
+ .is-author .bottom-nav-item[data-active=true]{background:none}
+ .is-author .bottom-nav-item[data-active=true] .tt-metal{box-shadow:0 0 0 2px var(--teal),0 0 18px -2px rgba(111,231,222,.55)}
+}
+/* Плиток быстрых действий в студии пять («Загрузить аудио» добавлена
+   первой): на ПК — во всю ширину, как остальные ряды главной студии, в один
+   ряд, когда помещаются; без одинокой последней во всю ширину. */
+@media(min-width:640px) and (not ((hover:none) and (pointer:coarse))){
+ .main-content:not(.listener-main) .home-actions{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));max-width:none}
+ .main-content:not(.listener-main) .home-actions>button:last-child:nth-child(odd){grid-column:auto}
+}
