@@ -2605,3 +2605,18 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 }
 .listener-main .voice-kicker{flex:0 1 auto;margin-left:auto;text-align:center}
 .listener-main .voice-title{flex:0 0 auto;max-width:calc(100% - 96px)}
+
+/* Новые подписи длиннее прежних (владелец: «если текст длиннее прежнего,
+   разреши аккуратный перенос без обрезки»): подпись архива эфиров и
+   заголовок плашки поддержки на главной переносятся, а не гаснут многоточием. */
+.listener-main .live-archive-copy span{white-space:normal;overflow:visible;text-overflow:clip}
+.support-card .support-strip-label,.scene-strips .support-card .support-strip-label{white-space:normal;overflow:visible;text-overflow:clip}
+
+/* Плеер боком: касание пустого места прячет всё управление — остаётся одна
+   обложка, без затемнения; следующее касание возвращает. */
+@media (orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px){
+ .podcast-player.is-open .player-sheet-top,.podcast-player.is-open .player-body,.podcast-player.is-open .player-stage-shade{transition:opacity .25s ease}
+ .podcast-player.is-open.is-bare .player-sheet-top,.podcast-player.is-open.is-bare .player-body,.podcast-player.is-open.is-bare .player-stage-shade{opacity:0}
+ .podcast-player.is-open.is-bare .player-sheet-top,.podcast-player.is-open.is-bare .player-sheet-top *,
+ .podcast-player.is-open.is-bare .player-body,.podcast-player.is-open.is-bare .player-body *{pointer-events:none!important}
+}

@@ -62,10 +62,10 @@ export const ru = {
   "donate.unavailable": "Поддержку пока не подключили.",
 
 
-  "donate.free": "Всё бесплатно и останется бесплатным.",
+  "donate.free": "Свободный доступ к каждой истории. Добровольная поддержка новых.",
 
   "donate.action": "Поддержать True Thrills",
-  "donate.supportLiveNote": "Сервер, техника и никакой рекламы",
+  "donate.supportLiveNote": "Для тех, кому важен живой разговор.",
   "donate.supportLive": "Поддержать эфир",
 
   "donate.boosty": "Boosty",
@@ -146,9 +146,9 @@ export const ru = {
   'home.emptyNote': 'Автор ещё не опубликовал материалы.',
   'home.fresh': 'новое',
   'home.freshList': "Новое",
-  'home.supportTitle': "Поддержать проект",
-  'home.supportNote': "Помочь новым историям звучать",
-  'home.socialsLabel': "Мы в соцсетях",
+  'home.supportTitle': "За каждой историей — работа.",
+  'home.supportNote': "Поддержка помогает создавать новые выпуски True Thrills.",
+  'home.socialsLabel': "За пределами приложения",
   'catalog.search': 'Поиск по названию и описанию',
   'catalog.sortNew': 'Сначала новые',
   'catalog.searchAudio': "Найти историю или музыку",
@@ -282,7 +282,7 @@ export const ru = {
   'live.endedTitle': 'Эфир завершён',
   'live.stopListening': 'Остановить',
   'live.archiveTitle': 'Архив эфиров',
-  'live.archiveNote': 'Прошлые выпуски и специальные записи',
+  'live.archiveNote': "То, что было вживую. Теперь — в записи.",
   'live.archiveSearch': 'Поиск по записям',
   'live.archiveEmpty': 'Записей пока нет — они появятся после первого эфира.',
   "live.archivePending": "Запись последнего эфира готовится — она появится здесь сама.",

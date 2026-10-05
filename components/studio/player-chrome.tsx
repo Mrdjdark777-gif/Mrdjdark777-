@@ -47,6 +47,20 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
  const {t}=useT();
  // Описание в плеере обрезано двумя строками: нажатие раскрывает его целиком.
  const [noteOpen,setNoteOpen]=useState(false);
+ // Боком касание пустого места прячет всё управление — остаётся одна
+ // обложка; следующее касание возвращает (владелец: «должна остаться только
+ // обложка и всё»). Стоя и у записи эфира не действует.
+ const [bare,setBare]=useState(false);
+ const landscape='(orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px)';
+ const toggleBare=(e:React.MouseEvent<HTMLElement>)=>{
+  if(view.presentation!=='photo'||typeof window==='undefined'||!window.matchMedia(landscape).matches)return;
+  const target=e.target as HTMLElement;
+  if(!bare&&target.closest('button,a,input,select,label,[role=button],[role=slider],.podcast-timeline,.player-extras'))return;
+  setBare(v=>!v);
+ };
+ // Повернули обратно стоя — управление возвращается само.
+ useEffect(()=>{if(typeof window==='undefined')return;const m=window.matchMedia(landscape);
+  const off=()=>{if(!m.matches)setBare(false);};m.addEventListener('change',off);return()=>m.removeEventListener('change',off);},[]);
  const [swipe,setSwipe]=useState({x:0});
  useUsage(view.postId,view.playing&&!view.loading);
  const total=view.duration>0?clock(view.duration):t('player.measuring');
@@ -107,7 +121,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   {toggle}
   <button type="button" className="player-expand" aria-label={t('player.expand')} onClick={()=>onExpand(true)}><ChevronUp size={22}/></button>
  </section>;
- return <section className={'podcast-player is-open is-'+view.presentation} onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
+ return <section className={'podcast-player is-open is-'+view.presentation+(bare?' is-bare':'')} onClickCapture={tactile} onClick={toggleBare} aria-label={t('player.aria',{title:view.title})}>
   {children}
   {/* Фон плеера — размытая копия обложки. Сама обложка стоит в колонке
       плеера (player-cover ниже): целиком, своей пропорцией, между кнопками

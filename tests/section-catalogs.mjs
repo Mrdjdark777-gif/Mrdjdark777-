@@ -264,6 +264,25 @@ try{
   for(const x of L.extras){if(hit(x,L.transport))problems.push(at+'скорость или таймер налезают на кнопки воспроизведения');if(hit(x,L.timeline))problems.push(at+'скорость или таймер налезают на дорожку');if(!inside(x))problems.push(at+'скорость или таймер за краем экрана');}
   for(const [n,x] of [['название',L.title],['кнопки',L.transport],['дорожка',L.timeline]])if(!inside(x))problems.push(at+n+' за краем экрана');
   await page.screenshot({path:path.join(out,`sections-player-land-${w}.png`)});
+  // Касание кнопки ▶ управление не прячет; касание пустого места — прячет
+  // всё, остаётся одна обложка; следующее касание возвращает (владелец:
+  // «должна остаться только обложка и всё»).
+  const shown=()=>page.evaluate(()=>{const o=s=>{const e=document.querySelector('.podcast-player.is-open '+s);return e?Number(getComputedStyle(e).opacity):0;};
+   const b=document.querySelector('.podcast-transport button:nth-child(2)')?.getBoundingClientRect();const hitEl=b?document.elementFromPoint(b.left+b.width/2,b.top+b.height/2):null;
+   return {top:o('.player-sheet-top'),body:o('.player-body'),photo:o('.player-stage-photo'),playHit:!!hitEl?.closest('.podcast-transport')};});
+  await page.locator('.podcast-transport button').nth(1).click();await page.waitForTimeout(400);
+  if((await shown()).body<0.9){problems.push(at+'нажатие на ▶ спрятало управление');
+   await page.mouse.click(Math.round(L.W*0.5),Math.round(L.H*0.5));await page.waitForTimeout(450);}
+  else{await page.locator('.podcast-transport button').nth(1).click();await page.waitForTimeout(200);}
+  await page.mouse.click(Math.round(L.W*0.12),Math.round(L.H*0.62));await page.waitForTimeout(450);
+  const hid=await shown();
+  if(hid.top>0.05||hid.body>0.05)problems.push(at+'касание пустого места не спрятало управление');
+  if(hid.playHit)problems.push(at+'спрятанная кнопка ▶ всё ещё нажимается');
+  if(hid.photo<0.95)problems.push(at+'вместе с управлением пропала и обложка');
+  await page.screenshot({path:path.join(out,`sections-player-land-bare-${w}.png`)});
+  await page.mouse.click(Math.round(L.W*0.5),Math.round(L.H*0.5));await page.waitForTimeout(450);
+  const back=await shown();
+  if(back.top<0.95||back.body<0.95)problems.push(at+'повторное касание не вернуло управление');
  }
  await page.setViewportSize({width:390,height:844});
  // Главная: постер сразу под логотипом шапки, с парой точек воздуха, и не
@@ -280,6 +299,29 @@ try{
    if(air>8)problems.push('главная: между логотипом и постером '+Math.round(air)+' точек — должно быть вплотную, пара точек воздуха');
    if(h.eyebrow&&(h.eyebrow.top<h.scene.top||h.eyebrow.bottom>h.scene.bottom))problems.push('главная: подпись типа вне постера');}
   await page.screenshot({path:path.join(out,'sections-home-390.png')});}
+ // Подписи поддержки, эфира и соцсетей — тексты владельца, дословно, и
+ // целиком: длиннее прежних, поэтому переносятся, а не обрезаются.
+ {await api({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'}]});
+  await api({action:'links',links:[{kind:'tiktok',url:'https://tiktok.com/@true_thrills'}]});
+  const texts=async sel=>page.evaluate(sel=>[...document.querySelectorAll(sel)].map(e=>({text:e.textContent.trim(),cut:e.scrollWidth>e.clientWidth+1})),sel);
+  const expect=(where,got,want)=>{const hit=got.find(x=>x.text===want);
+   if(!hit)problems.push(where+': нет текста «'+want+'» (есть: '+got.map(x=>'«'+x.text+'»').join(', ')+')');
+   else if(hit.cut)problems.push(where+': текст «'+want+'» обрезан');};
+  for(const [w,h] of [[360,780],[390,844]]){
+   await page.setViewportSize({width:w,height:h});
+   await page.goto(base+'/?mode=listen');await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForTimeout(800);
+   expect(w+' главная',await texts('.support-card .support-strip-label'),'За каждой историей — работа.');
+   expect(w+' главная',await texts('.support-card .support-card-note'),'Поддержка помогает создавать новые выпуски True Thrills.');
+   expect(w+' главная',await texts('.soft-socials-label'),'За пределами приложения');
+   await open('live');
+   expect(w+' эфир',await texts('.live-archive-copy span'),'То, что было вживую. Теперь — в записи.');
+   expect(w+' эфир',await texts('.support-strip-copy span'),'Для тех, кому важен живой разговор.');
+   await page.locator('.support-button').first().click();await page.waitForTimeout(500);
+   expect(w+' окно поддержки',await texts('[role=dialog] h2,[role=dialog] [data-slot=dialog-title]'),'Поддержать True Thrills');
+   expect(w+' окно поддержки',await texts('.donate-note'),'Свободный доступ к каждой истории. Добровольная поддержка новых.');
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+  }
+  await page.setViewportSize({width:390,height:844});}
  assert.deepEqual(errors,[],'ошибки на странице: '+errors.join('; '));
  assert.deepEqual(problems,[],'\n - '+problems.join('\n - '));
  console.log('Разделы «Аудио», «Видео», «Истории»: одна шапка, одна строка поиска, карточки в границах на 360/390/430; поиск, сортировка, чтение и «Поделиться» в «Историях» работают.');

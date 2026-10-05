@@ -63,10 +63,10 @@ export const it: Record<keyof typeof ru, string> = {
   "donate.unavailable": "Il sostegno non è ancora attivo.",
 
 
-  "donate.free": "Tutto è gratuito e resterà gratuito.",
+  "donate.free": "Accesso libero a ogni storia. Sostegno volontario per le nuove.",
 
   "donate.action": "Sostieni True Thrills",
-  "donate.supportLiveNote": "Server, attrezzatura e zero pubblicità",
+  "donate.supportLiveNote": "Per chi tiene a una conversazione dal vivo.",
   "donate.supportLive": "Sostieni la diretta",
 
   "donate.boosty": "Boosty",
@@ -147,9 +147,9 @@ export const it: Record<keyof typeof ru, string> = {
   'home.emptyNote': "L'autore non ha ancora pubblicato nulla.",
   'home.fresh': 'nuovo',
   'home.freshList': "Novità",
-  'home.supportTitle': "Sostieni il progetto",
-  'home.supportNote': "Aiuta le nuove storie a farsi sentire",
-  'home.socialsLabel': "Siamo sui social",
+  'home.supportTitle': "Dietro ogni storia c'è lavoro.",
+  'home.supportNote': "Il sostegno aiuta a creare nuove puntate di True Thrills.",
+  'home.socialsLabel': "Fuori dall'app",
   'catalog.search': 'Cerca per titolo e descrizione',
   'catalog.sortNew': 'Prima i nuovi',
   'catalog.searchAudio': "Trova una storia o musica",
@@ -283,7 +283,7 @@ export const it: Record<keyof typeof ru, string> = {
   'live.endedTitle': 'Diretta conclusa',
   'live.stopListening': 'Ferma',
   'live.archiveTitle': 'Archivio dirette',
-  'live.archiveNote': 'Puntate passate e registrazioni speciali',
+  'live.archiveNote': "Ciò che era dal vivo. Ora — registrato.",
   'live.archiveSearch': 'Cerca tra le registrazioni',
   'live.archiveEmpty': 'Ancora nessuna registrazione: appariranno dopo la prima diretta.',
   "live.archivePending": "La registrazione dell’ultima diretta è in preparazione — comparirà qui da sola.",
