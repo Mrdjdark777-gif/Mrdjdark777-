@@ -242,6 +242,29 @@ try{
   if(pl.r.w<150)problems.push(at+'обложка слишком мелкая: '+Math.round(pl.r.w)+' точек');
   await page.screenshot({path:path.join(out,`sections-player-${w}.png`)});
  }
+ // Плеер боком — как у YouTube Music (владелец прислал снимок): обложка на
+ // весь экран, название мелко вверху слева, «−15 / ▶ / +15» по центру,
+ // скорость и таймер по бокам от них, дорожка внизу. Ничто ни на что не
+ // налезает и не выходит за экран; описания поверх картинки нет.
+ for(const [w,h] of [[844,390],[915,412]]){
+  await page.setViewportSize({width:w,height:h});await open('podcasts');
+  await page.locator('.post-card',{hasText:'76 дней'}).locator('.text-button').click();
+  await page.locator('.podcast-player.is-open').waitFor({timeout:8000});await page.waitForTimeout(600);
+  const L=await page.evaluate(()=>{const r=s=>{const e=document.querySelector('.podcast-player.is-open '+s);if(!e||getComputedStyle(e).display==='none')return null;const b=e.getBoundingClientRect();return {l:b.left,t:b.top,r:b.right,b:b.bottom};};
+   const kids=[...document.querySelectorAll('.podcast-player.is-open .player-extras>*')].map(e=>{const b=e.getBoundingClientRect();return {l:b.left,t:b.top,r:b.right,b:b.bottom};});
+   return {W:innerWidth,H:innerHeight,photo:r('.player-stage-photo'),title:r('.player-title'),actions:r('.player-sheet-actions'),collapse:r('.player-collapse'),
+    transport:r('.podcast-transport'),timeline:r('.podcast-timeline'),extras:kids,note:r('.player-note'),cover:r('.player-cover-frame')};});
+  const at=w+'×'+h+' плеер боком: ',hit=(a,b)=>a&&b&&a.l<b.r-1&&b.l<a.r-1&&a.t<b.b-1&&b.t<a.b-1,inside=x=>x&&x.l>=-1&&x.t>=-1&&x.r<=L.W+1&&x.b<=L.H+1;
+  if(!L.photo||L.photo.r-L.photo.l<L.W-2||L.photo.b-L.photo.t<L.H-2)problems.push(at+'обложка не на весь экран');
+  if(L.cover)problems.push(at+'обложка видна ещё и карточкой');
+  if(L.note)problems.push(at+'описание лежит поверх обложки');
+  if(!L.title||L.title.t>L.H*0.2||L.title.l>L.W*0.2)problems.push(at+'название не вверху слева');
+  if(hit(L.title,L.actions)||hit(L.title,L.collapse))problems.push(at+'название налезает на кнопки шапки');
+  if(!L.transport||Math.abs((L.transport.l+L.transport.r)/2-L.W/2)>2||Math.abs((L.transport.t+L.transport.b)/2-L.H/2)>L.H*0.12)problems.push(at+'кнопки воспроизведения не по центру');
+  for(const x of L.extras){if(hit(x,L.transport))problems.push(at+'скорость или таймер налезают на кнопки воспроизведения');if(hit(x,L.timeline))problems.push(at+'скорость или таймер налезают на дорожку');if(!inside(x))problems.push(at+'скорость или таймер за краем экрана');}
+  for(const [n,x] of [['название',L.title],['кнопки',L.transport],['дорожка',L.timeline]])if(!inside(x))problems.push(at+n+' за краем экрана');
+  await page.screenshot({path:path.join(out,`sections-player-land-${w}.png`)});
+ }
  await page.setViewportSize({width:390,height:844});
  // Главная: постер сразу под логотипом шапки, с парой точек воздуха, и не
  // заходит на неё (владелец: «смотрится ужасно, когда обложка заходит на

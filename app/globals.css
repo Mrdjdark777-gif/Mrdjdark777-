@@ -2525,9 +2525,36 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .player-cover-frame{flex:1 1 0;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;padding:6px 0 4px}
 .player-cover{display:block;width:auto;height:auto;max-width:100%;max-height:100%;border-radius:16px;
  box-shadow:0 18px 44px rgba(0,0,0,.5)}
+/* Плеер боком — как у YouTube Music (владелец прислал снимок): обложка на
+   весь экран по центру, поверх неё — только нужное: стрелка и название
+   мелко вверху слева, кнопки справа вверху, «−15 / ▶ / +15» по центру,
+   скорость и таймер — по бокам от них (как «перемешать» и «повтор» у
+   YouTube Music), дорожка внизу. Описание и
+   крупное название, которые раньше лезли на надпись обложки, боком не
+   показываются. Стоя плеер прежний. Запись эфира и «текстовый» вид — как были. */
 @media (orientation:landscape) and (hover:none) and (pointer:coarse),(orientation:landscape) and (max-width:767px){
- .podcast-player.is-open .player-stage-photo{display:block}
- .podcast-player.is-open .player-stage-blur,.podcast-player.is-open .player-cover-frame{display:none}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-stage-photo{display:block;object-position:50% 50%}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-stage-blur,
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-body>.player-cover-frame,
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-note,
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-brand{display:none}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-stage-shade{z-index:1;
+  background:linear-gradient(180deg,rgba(10,13,15,.62) 0,rgba(10,13,15,.22) 26%,rgba(10,13,15,.22) 62%,rgba(10,13,15,.72) 100%)}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-body{position:absolute;inset:0;padding:0;display:block;pointer-events:none;overflow:visible}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-body>*{pointer-events:auto;width:auto;max-width:none}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-caption{position:absolute;top:calc(39px + env(safe-area-inset-top));left:calc(68px + env(safe-area-inset-left));
+  align-items:flex-start;text-align:left}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-title{position:absolute;top:calc(12px + env(safe-area-inset-top));left:calc(68px + env(safe-area-inset-left));
+  right:calc(170px + env(safe-area-inset-right));margin:0;text-align:left;font-size:20px;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;-webkit-line-clamp:unset}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .podcast-transport{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .podcast-timeline{position:absolute;left:calc(24px + env(safe-area-inset-left));right:calc(24px + env(safe-area-inset-right));
+  bottom:calc(14px + env(safe-area-inset-bottom));margin:0}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-extras{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(calc(100% - 48px),520px);margin:0;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .player-extras>*{pointer-events:auto}
+ .podcast-player.is-open:not(.is-archive):not(.is-type) .podcast-player-message{position:absolute;left:calc(24px + env(safe-area-inset-left));bottom:calc(70px + env(safe-area-inset-bottom));
+  right:40%;margin:0;text-align:left;font-size:12px}
 }
 
 /* ── Каталог: три карточки на экран ─────────────────────────────────────────
