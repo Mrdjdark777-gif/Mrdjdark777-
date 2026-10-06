@@ -11,7 +11,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Браузерные наборы, дизайн, читалка, плеер и главная идут друг за другом.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,7 +50,14 @@ jobs:
       # падал на первой из них, потому что playwright ещё не был установлен.
       # Теперь playwright — закреплённая devDependency и приезжает с npm ci,
       # здесь остаётся только сам браузер.
-      - run: npx playwright install chrome
+      # Два браузера. Google Chrome — для проверок, которые берут браузер из
+      # TT_BROWSER_EXECUTABLE: в нём есть AAC, без которого эфир в
+      # browser-integration не играет. Встроенный Chromium — для проверок,
+      # которые запускают браузер Playwright без пути (читалка, плеер, главная).
+      # Раньше ставился только Chrome, и первая же проверка падала:
+      # «Executable doesn't exist … chromium_headless_shell».
+      - run: npx playwright install chrome chromium
+      - run: echo "TT_BROWSER_EXECUTABLE=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - run: npm run test:browser
       # Экраны нового дизайна на production-сборке: снимки в артефакт, главная
       # без переполнения и без прокрутки на трёх телефонах.
