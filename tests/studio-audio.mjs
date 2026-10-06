@@ -3,6 +3,9 @@ import {build} from 'esbuild';
 const {outputFiles}=await build({stdin:{contents:"export * from './lib/capture-settings';export * from './lib/capture-graph';",resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node'});
 const {parseCaptureSettings,captureGraph}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 assert.equal(parseCaptureSettings('{bad').device,'default');assert.equal(parseCaptureSettings(JSON.stringify({mode:'daw',device:'cable',channel:'stereo',gainDb:999})).gainDb,12);assert.equal(parseCaptureSettings(JSON.stringify({channel:'3'})).channel,'0');
+// Канал и срез низких выбираются на пульте и запоминаются; без сохранённого канала — по источнику.
+{const kept=parseCaptureSettings(JSON.stringify({mode:'daw',device:'cable',channel:'1',lowCut:true}));assert.equal(kept.channel,'1','выбранный на пульте канал не сохранился');assert.equal(kept.lowCut,true,'срез низких не сохранился');
+ assert.equal(parseCaptureSettings(JSON.stringify({mode:'daw'})).channel,'stereo');assert.equal(parseCaptureSettings(JSON.stringify({mode:'mic',lowCut:'yes'})).lowCut,false);}
 const nodes=[];function node(type){const n={type,links:[],gain:{value:1},frequency:{value:0},Q:{value:0},stream:{},connect(target,output=0){this.links.push({target,output});}};nodes.push(n);return n;}
 const context={createMediaStreamSource:()=>node('source'),createChannelSplitter:()=>node('split'),createGain:()=>node('gain'),createBiquadFilter:()=>node('filter'),createMediaStreamDestination:()=>node('dest'),createAnalyser:()=>node('analyser')};
 const stereo=captureGraph(context,{},'stereo',{gainDb:0,muted:false,lowCut:false});assert.equal(stereo.gain.channelCount,2);assert.equal(nodes.find(n=>n.type==='dest').channelCount,2);assert.equal(nodes[0].links[0].target,stereo.filter);assert.equal(stereo.analysers.length,2);

@@ -58,6 +58,12 @@ export function useCapture(){
  function changeMode(value:CaptureSettings['mode']){release();setMode(value);setChannel(channelForMode(value));setGainDb(0);setLowCut(false);setMuted(false);}
  useEffect(()=>{if(gain.current&&ctx.current)gain.current.gain.setTargetAtTime(muted?0:Math.pow(10,gainDb/20),ctx.current.currentTime,0.02);},[gainDb,muted]);
  useEffect(()=>{if(filter.current)filter.current.type=lowCut?'highpass':'allpass';},[lowCut]);
+ // Другое устройство или канал — это другой поток: пока вход открыт (проверка
+ // голоса), он переподключается сам. Во время записи и эфира пульт эти поля не
+ // даёт менять, а здесь это ещё и проверяется, чтобы не оборвать запись.
+ const route=useRef({device,channel});
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- Реагирует только на смену входа; connect читает актуальные значения из этого же рендера.
+ useEffect(()=>{const was=route.current;route.current={device,channel};if((was.device!==device||was.channel!==channel)&&raw.current&&!recording&&!connecting.current)void connect();},[device,channel]);
  async function accept(b:Blob){
   const generation=++prepareGeneration.current;prepareAbort.current?.abort();const abort=new AbortController();prepareAbort.current=abort;
   setBusy(true);setBlob(b);
