@@ -9,7 +9,7 @@
  */
 import {chromium} from 'playwright';
 import {spawn,execFileSync} from 'node:child_process';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=process.cwd(),dir=await mkdtemp(path.join(root,'.test-tmp-grid-'));
@@ -56,15 +56,23 @@ try{
  const empty=await page.evaluate(()=>{const m=document.querySelector('.main-content');
   const r=m.getBoundingClientRect();return {x:Math.round(r.left+8),y:Math.round(r.bottom-8)};});
  await page.mouse.move(empty.x,empty.y);
+ const born=Date.now();
  await page.mouse.down();
  await page.waitForTimeout(120);
  const live=await snap();
  await page.screenshot({path:'outputs/ui/grid-wave.png'});
  await page.mouse.up();
+ const lifted=Date.now();
  assert.notEqual(live,rest1,'касание пустого места не подняло волну');
 
- // Волна затухает, и холст снова замирает.
- await page.waitForTimeout(1800);
+ // Волна затухает, и холст снова замирает. Ждём от самого касания столько,
+ // сколько волна живёт по коду сетки (RIPPLE_LIFE), и от отрыва пальца —
+ // сколько сетка его отпускает (RELEASE), с запасом. Раньше здесь стояли
+ // ровные 1800 мс после снимка экрана: проходило, только пока снимок был
+ // медленным; на GitHub Chrome снимает быстро, и замер попадал в живую волну.
+ {const src=await readFile('components/ui/kinetic-grid.tsx','utf8'),num=n=>Number(src.match(new RegExp('const '+n+'=(\\d+)'))?.[1]);
+  const life=num('RIPPLE_LIFE'),release=num('RELEASE');assert.ok(life>0&&release>0,'в сетке не нашлись RIPPLE_LIFE и RELEASE');
+  await page.waitForTimeout(Math.max(0,Math.max(born+life,lifted+release)+300-Date.now()));}
  const calm1=await snap();
  await page.waitForTimeout(400);
  const calm2=await snap();
