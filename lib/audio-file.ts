@@ -1,9 +1,10 @@
 import {t} from '@/lib/i18n/runtime';
+import {AUDIO_MAX_BYTES} from '@/lib/audio-limits';
 import {Input,ALL_FORMATS,WEBM,BlobSource,Output,BufferTarget,WebMOutputFormat,EncodedAudioPacketSource,EncodedPacketSink} from 'mediabunny';
 
 /** Finalize MediaRecorder WebM metadata/index without decoding or recompressing voice. */
 export async function prepareAudio(blob:Blob){
- if(!blob.size||blob.size>80*1024*1024)throw new Error(t('audio.tooBig'));
+ if(!blob.size||blob.size>AUDIO_MAX_BYTES)throw new Error(t('audio.tooBig'));
  const input=new Input({source:new BlobSource(blob),formats:ALL_FORMATS});
  let output:Output<WebMOutputFormat,BufferTarget>|undefined;
  try{

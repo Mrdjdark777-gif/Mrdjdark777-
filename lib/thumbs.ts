@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, normalize } from 'node:path';
 
 /**
@@ -85,7 +85,19 @@ export function thumbTag(key: string, width: number) {
  * необязательной зависимостью next, и на машине, где он не собрался, экран
  * обязан остаться целым.
  */
-export async function thumbnail(
+const pending = new Map<string, Promise<Uint8Array | null>>();
+
+export function thumbnail(key: string, width: Width | 0, source: () => Promise<Uint8Array>): Promise<Uint8Array | null> {
+  if (!width) return Promise.resolve(null);
+  const cacheKey = fileFor(key, width);
+  const running = pending.get(cacheKey);
+  if (running) return running;
+  const job = createThumbnail(key, width, source).finally(() => pending.delete(cacheKey));
+  pending.set(cacheKey, job);
+  return job;
+}
+
+async function createThumbnail(
   key: string,
   width: Width | 0,
   source: () => Promise<Uint8Array>,
@@ -112,6 +124,7 @@ export async function thumbnail(
   } catch {
     return null;
   }
+  let temp: string | undefined;
   try {
     const small = await sharp(await source(), { failOn: 'none' })
       // Поворот по метке камеры: без него снятая боком обложка ложится боком.
@@ -123,11 +136,13 @@ export async function thumbnail(
     await mkdir(DIR, { recursive: true });
     // Через временное имя: оборванная запись не должна оставить обрезанный
     // файл, который потом раздавался бы как готовый.
-    const temp = file + '.' + process.pid + '.tmp';
+    temp = file + '.' + randomUUID() + '.tmp';
     await writeFile(temp, small);
     await rename(temp, file);
     return small;
   } catch {
     return null;
+  } finally {
+    if (temp) await rm(temp, { force: true }).catch(() => {});
   }
 }

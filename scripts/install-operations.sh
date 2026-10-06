@@ -166,3 +166,22 @@ UNIT
 systemctl daemon-reload
 systemctl enable truethrills.service
 systemctl enable --now truethrills-live.service truethrills-backup.timer truethrills-monitor.timer
+
+# Предел тела запроса в nginx — под аудио до 300 МБ (lib/audio-limits.ts),
+# то есть выпуск на полтора–два часа при 320 кбит/с. Конфигурацию с доменом и
+# HTTPS не переписываем: меняется только эта строка, и только если там меньше.
+# Если nginx после правки не принимает конфигурацию — возвращаем как было.
+nginx_conf=/etc/nginx/sites-available/truethrills
+if [ -f "$nginx_conf" ] && command -v nginx >/dev/null; then
+ if grep -Eq 'client_max_body_size[[:space:]]+([0-9]|[0-9][0-9]|[12][0-9][0-9]|30[0-9]|31[0-9])M;' "$nginx_conf"; then
+  cp -p "$nginx_conf" "$nginx_conf.before-320m"
+  sed -E -i 's/client_max_body_size[[:space:]]+[0-9]+M;/client_max_body_size 320M;/' "$nginx_conf"
+  if nginx -t 2>/dev/null; then
+   systemctl reload nginx
+   echo 'nginx: предел загрузки — 320M'
+  else
+   cp -p "$nginx_conf.before-320m" "$nginx_conf"
+   echo 'nginx не принял новый предел — оставлен прежний' >&2
+  fi
+ fi
+fi

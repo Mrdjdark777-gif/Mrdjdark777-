@@ -593,7 +593,7 @@ simple-concat,1.0.1,MIT,да
 simple-get,4.0.1,MIT,да
 sonner,2.0.8,MIT,да
 source-map,0.6.1,BSD-3-Clause,нет
-source-map-js,1.2.1,BSD-3-Clause,да
+source-map-js,1.2.2,BSD-3-Clause,да
 source-map-support,0.5.21,MIT,нет
 stable-hash,0.0.5,MIT,нет
 stop-iteration-iterator,1.1.0,MIT,нет

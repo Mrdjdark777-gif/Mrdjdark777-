@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState,type RefObject} from 'react';
 import {errorText,notifySrc} from '@/lib/client';
 import {prepareAudioFile} from '@/lib/prepare-audio';
+import {AUDIO_MAX_BYTES} from '@/lib/audio-limits';
 import {hasNativeClient} from '@/lib/native-client';
 import {NativePodcastPlayer} from './native-podcast-player';
 import {PlayerChrome} from './player-chrome';
@@ -41,7 +42,7 @@ function WebPodcastPlayer({src,title,duration:initialDuration=0,cover,note,archi
   const abort=new AbortController();controller.current=abort;
   try{
    const response=await fetch(src,{signal:abort.signal});if(!response.ok)throw new Error(t('player.loadFailed'));
-   const size=Number(response.headers.get('content-length'));if(size>80*1024*1024)throw new Error(t('player.tooBig'));
+   const size=Number(response.headers.get('content-length'));if(size>AUDIO_MAX_BYTES)throw new Error(t('player.tooBig'));
    const result=await prepareAudioFile(await response.blob(),abort.signal);if(abort.signal.aborted||!alive.current)return;
    objectUrl.current=URL.createObjectURL(result.blob);setDuration(result.duration);el.src=objectUrl.current;el.load();
    el.currentTime=Math.min(resumeAt,result.duration);setMessage('');

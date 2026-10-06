@@ -1,8 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { posts } from '@/db/schema';
+import { AUDIO_MAX_BYTES } from '@/lib/audio-limits';
 import { bucket, failure, owner, requireOwner, result, userId } from '@/lib/server';
-const MAX=80*1024*1024;
+const MAX=AUDIO_MAX_BYTES;
 export async function POST(req: Request){try{
   await requireOwner(req);const mime=(req.headers.get('content-type')??'').split(';')[0];
   if(!['audio/webm','audio/mp4','audio/mpeg','audio/wav','audio/x-wav','audio/ogg','audio/flac','audio/aac'].includes(mime))throw new Error('#err.uploadType');

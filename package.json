@@ -5,13 +5,13 @@
   "license": "UNLICENSED",
   "author": "True Thrills",
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.13.0 <23"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p ${PORT:-3000}",
-    "test": "npm run build && node tests/suite-complete.mjs && node tests/selectors-alive.mjs && node tests/licenses.mjs && node tests/i18n-keys.mjs && node tests/legal-docs.mjs && node tests/community.mjs && node tests/media-refs.mjs && node tests/live-archive-list.mjs && node tests/windows-scripts.mjs && node tests/backup-export.mjs && node tests/audio-file.mjs && node tests/device-discovery.mjs && node tests/studio-audio.mjs && node tests/api-integration.mjs && node tests/backup-integration.mjs && node tests/prune-orphans.mjs && node tests/player-presentation.mjs && node tests/waveform.mjs && node tests/next-episode.mjs && node tests/live-stage.mjs && node tests/back-stack.mjs && node tests/share.mjs && node tests/swipe.mjs && node tests/app-release.mjs && node tests/home-scene.mjs && node tests/page-text.mjs && node tests/device-tilt.mjs && node tests/motion-bridge.mjs && node tests/reader-shadow.mjs && node tests/playback-restore.mjs && node tests/live-resilience.mjs && node tests/desktop-shell.mjs && node tests/service-hardening.mjs && node tests/android-push-logic.mjs && node tests/worker-priority.mjs && node tests/usage.mjs && node tests/usage-route.mjs",
+    "test": "npm run build && node tests/suite-complete.mjs && node tests/selectors-alive.mjs && node tests/licenses.mjs && node tests/i18n-keys.mjs && node tests/legal-docs.mjs && node tests/community.mjs && node tests/media-refs.mjs && node tests/live-archive-list.mjs && node tests/windows-scripts.mjs && node tests/backup-export.mjs && node tests/audio-file.mjs && node tests/device-discovery.mjs && node tests/studio-audio.mjs && node tests/api-integration.mjs && node tests/backup-integration.mjs && node tests/prune-orphans.mjs && node tests/player-presentation.mjs && node tests/waveform.mjs && node tests/next-episode.mjs && node tests/live-stage.mjs && node tests/back-stack.mjs && node tests/share.mjs && node tests/swipe.mjs && node tests/app-release.mjs && node tests/home-scene.mjs && node tests/page-text.mjs && node tests/device-tilt.mjs && node tests/motion-bridge.mjs && node tests/reader-shadow.mjs && node tests/playback-restore.mjs && node tests/live-resilience.mjs && node tests/desktop-shell.mjs && node tests/service-hardening.mjs && node tests/android-push-logic.mjs && node tests/worker-priority.mjs && node tests/usage.mjs && node tests/usage-route.mjs && node tests/audit-regressions.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

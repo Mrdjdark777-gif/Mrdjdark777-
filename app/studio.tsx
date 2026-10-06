@@ -19,6 +19,7 @@ import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
 import {nextEpisode} from '@/lib/next-episode';
+import {AUDIO_MAX_BYTES} from '@/lib/audio-limits';
 import {LimelightNav} from '@/components/ui/limelight-nav';
 import {DonationGlow} from '@/components/ui/donation-glow';
 import {HeartBeam} from '@/components/ui/heart-beam';
@@ -193,7 +194,7 @@ export default function Studio(){
  const run=async(fn:()=>Promise<unknown>,message?:string)=>{try{await fn();if(message)toast.success(message);await load();}catch(e){toast.error(errorText(e));}};
  function openEditor(kind:'story'|'podcast'|'video',p?:Post){setEditing(p??null);setAudioCategory(audioCategoryOf(p?.audioCategory)??'');setCategoryError(false);setVideoDuration(kind==='video'&&p?.duration?clock(p.duration):'');setTitle(p?.title??'');setDescription(p?.description??'');setBody(p?.body??'');setVideoUrl(p?.videoUrl??'');setCoverUrl(p?.coverUrl??'');setCoverFile(null);setCoverPreview(p?coverSrc(p):'');setDirty(false);setEditor(kind);if(kind==='story'&&!p){try{const saved=JSON.parse(localStorage.getItem('tt-story-draft')||'null');if(saved){setTitle(saved.title||'');setBody(saved.body||'');setDescription(saved.description||'');}}catch{}}}
  async function setup(){setSaving(true);await run(async()=>{await api('library',{action:'setup'});setView('home');},t('studio.ready0'));setSaving(false);}
- async function uploadFile(b:Blob){if(!b.size)throw new Error(t('capture.emptyFile'));if(b.size>80*1024*1024)throw new Error(t('capture.tooBigUpload'));let mime=b.type||'audio/mpeg';if(mime==='video/webm')mime='audio/webm';if(mime==='audio/x-m4a')mime='audio/mp4';const r=await fetch('/api/audio',{method:'POST',headers:{'Content-Type':mime,'X-Upload-Size':String(b.size)},body:b});const d=await r.json() as {error?:string;key:string};if(!r.ok)throw new Error(d.error?t(d.error.replace(/^#/,'')):t('capture.uploadFailed'));return d.key as string;}
+ async function uploadFile(b:Blob){if(!b.size)throw new Error(t('capture.emptyFile'));if(b.size>AUDIO_MAX_BYTES)throw new Error(t('capture.tooBigUpload'));let mime=b.type||'audio/mpeg';if(mime==='video/webm')mime='audio/webm';if(mime==='audio/x-m4a')mime='audio/mp4';const r=await fetch('/api/audio',{method:'POST',headers:{'Content-Type':mime,'X-Upload-Size':String(b.size)},body:b});const d=await r.json() as {error?:string;key:string};if(!r.ok)throw new Error(d.error?t(d.error.replace(/^#/,'')):t('capture.uploadFailed'));return d.key as string;}
  async function uploadCover(f:File){if(!f.size)throw new Error(t('capture.emptyFile'));if(f.size>12*1024*1024)throw new Error(t('editor.coverTooBig'));const r=await fetch('/api/cover',{method:'POST',headers:{'Content-Type':f.type,'X-Upload-Size':String(f.size)},body:f});const d=await r.json() as {error?:string;key:string};if(!r.ok)throw new Error(d.error?t(d.error.replace(/^#/,'')):t('capture.uploadFailed'));return d.key as string;}
  async function save(published:boolean){
   if(!title.trim()){toast.error(t('editor.needTitle'));return;}if(editor==='story'&&!body.trim()){toast.error(t('editor.needStory'));return;}if(editor==='video'&&!videoUrl.trim()){toast.error(t('editor.needVideoUrl'));return;}
@@ -209,7 +210,7 @@ export default function Studio(){
    await api('library',{id:editing?.id,kind:editor,title,description,body,videoUrl,coverUrl,coverKey,audioKey,audioCategory:editor==='podcast'?audioCategory:null,duration:editor==='video'?videoSeconds:(editing?.duration??(editor==='podcast'?capture.seconds:0)),published});if(editor==='story'&&!editing){try{localStorage.removeItem('tt-story-draft');}catch{}}setEditor(null);setDirty(false);toast.success(published?t('editor.publishedToast'):t('editor.draftSaved'));setView(editor==='story'?'stories':editor==='video'?'videos':'podcasts');await load();
   }catch(e){toast.error(errorText(e));}finally{setSaving(false);}
  }
- async function pickFile(e:React.ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>80*1024*1024){toast.error(t('capture.tooBigUpload'));return;}await capture.accept(file);openEditor('podcast');setTitle(file.name.replace(/\.[^.]+$/,''));}
+ async function pickFile(e:React.ChangeEvent<HTMLInputElement>){const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>AUDIO_MAX_BYTES){toast.error(t('capture.tooBigUpload'));return;}await capture.accept(file);openEditor('podcast');setTitle(file.name.replace(/\.[^.]+$/,''));}
  async function startLive(){if(!liveTitle.trim()){toast.error(t('live.titleRequired'));return;}stopNativePlayer();player.current?.pause();live.leave();const s=capture.stream.current??await capture.connect();if(s){let cover:string|undefined;if(liveCoverFile){try{cover=await uploadCover(liveCoverFile);}catch(e){toast.error(errorText(e));return;}}await live.start(liveTitle,s,cover,liveNote);await refreshLive();await load();}}
  async function stopLive(){await run(()=>live.stop(),t('live.stopped'));capture.release();await refreshLive();}
  /**

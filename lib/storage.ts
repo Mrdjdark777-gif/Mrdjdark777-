@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize, relative } from 'node:path';
+import { dirname, isAbsolute, join, normalize, relative } from 'node:path';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 
@@ -23,8 +23,8 @@ type Meta = { contentType: string; customMetadata: Record<string, string>; size:
 
 function dataPath(key: string) {
   const target = normalize(join(/*turbopackIgnore: true*/ ROOT, key));
-  if (target !== ROOT && !target.startsWith(ROOT + '/')) throw new Error('#err.badStorageKey');
-  if (relative(ROOT, target).startsWith('..')) throw new Error('#err.badStorageKey');
+  const rel = relative(ROOT, target);
+  if (isAbsolute(rel) || rel === '..' || rel.startsWith('../') || rel.startsWith('..\\')) throw new Error('#err.badStorageKey');
   return target;
 }
 function metaPath(key: string) {

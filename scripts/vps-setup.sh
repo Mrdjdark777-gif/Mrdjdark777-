@@ -104,7 +104,7 @@ server {
     listen 80;
     server_name _;
 
-    client_max_body_size 90M;
+    client_max_body_size 320M;
 
     location / {
         proxy_pass http://127.0.0.1:3000;

@@ -2,9 +2,9 @@ name: Web checks
 on:
   workflow_dispatch: {}
   push:
-    branches: [truethrills-app]
+    branches: [truethrills-app, design/six-screens]
   pull_request:
-    branches: [truethrills-app]
+    branches: [truethrills-app, design/six-screens]
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: true
@@ -54,6 +54,8 @@ jobs:
       # Экраны нового дизайна на production-сборке: снимки в артефакт, главная
       # без переполнения и без прокрутки на трёх телефонах.
       - run: npm run test:design
+      - name: Reader, player and home regressions
+        run: npm run test:reader && npm run test:player-enhancements && npm run test:home-depth
       - uses: actions/upload-artifact@v4
         if: always()
         with:

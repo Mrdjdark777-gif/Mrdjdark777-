@@ -44,5 +44,19 @@ try{
   assert.ok(bits(cap).length&&bits(cap).every(b=>b>=320000),'запись в студии сжимается ниже 320 кбит/с: '+bits(cap));
   assert.match(worker,/LIVE_AAC_BITRATE='3[2-9]\dk'/,'эфир на сервере сжимается ниже 320 кбит/с');
   assert.equal((worker.match(/'-b:a',LIVE_AAC_BITRATE/g)||[]).length,2,'поток слушателям и архив эфира сжимаются не с одним и тем же качеством');}
+ // Полтора часа на 320 кбит/с (владелец: «лайв будет примерно на полтора
+ // часа») — около 216 МБ. Один предел на весь путь: студия останавливает
+ // запись не раньше 1 ч 40 мин, загрузка и плеер принимают такой файл, nginx
+ // пропускает его тело. Своих чисел размера аудио (от 50 МБ) в коде быть не должно,
+ // обложки (12 МБ) — отдельный предел.
+ {const limits=await readFile('lib/audio-limits.ts','utf8'),mb=name=>{const m=limits.match(new RegExp(name+'\\s*=\\s*(\\d+)\\s*\\*\\s*1024\\s*\\*\\s*1024'));assert.ok(m,'нет предела '+name);return Number(m[1]);};
+  const max=mb('AUDIO_MAX_BYTES'),stop=mb('RECORDING_STOP_BYTES'),minutes=bytesMb=>bytesMb*1024*1024*8/320000/60;
+  assert.ok(minutes(stop)>=100,'запись в студии на 320 кбит/с остановится раньше 1 ч 40 мин: '+minutes(stop).toFixed(0)+' мин');
+  assert.ok(stop<max,'запись останавливается позже, чем сервер готов её принять');
+  for(const [file,use] of [['app/api/audio/route.ts','AUDIO_MAX_BYTES'],['lib/audio-file.ts','AUDIO_MAX_BYTES'],['app/studio.tsx','AUDIO_MAX_BYTES'],['components/studio/podcast-player.tsx','AUDIO_MAX_BYTES'],['hooks/use-capture.ts','RECORDING_STOP_BYTES']]){
+   const src=await readFile(file,'utf8');assert.ok(src.includes(use),file+' не пользуется общим пределом '+use);
+   assert.doesNotMatch(src,/\b([5-9]\d|[1-9]\d{2,})\s*\*\s*1024\s*\*\s*1024\b/,file+': свой предел размера вместо lib/audio-limits.ts');}
+  const nginx=Number((await readFile('scripts/install-operations.sh','utf8')).match(/client_max_body_size (\d+)M;\//)?.[1]),setup=Number((await readFile('scripts/vps-setup.sh','utf8')).match(/client_max_body_size (\d+)M;/)?.[1]);
+  assert.ok(nginx>max&&setup>max,'nginx отрежет файл раньше сервера: nginx '+nginx+'M/'+setup+'M, предел '+max+'M');}
  console.log('PASS: missing duration reproduced; finite duration and seek index restored; audio packets unchanged; seeking decodes; finalized WebM and MP3 preserved; invalid files rejected.');
 }finally{await rm(dir,{recursive:true,force:true});}

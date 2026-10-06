@@ -19,7 +19,7 @@ export async function GET(req:Request){try{
   // старше двадцать пятого эфира, и удалить оттуда было нечего.
   const limit=Math.min(200,Math.max(1,Number(q.get('limit'))||50));
   const offset=Math.max(0,Number(q.get('offset'))||0);
-  const window=limit+offset;
+  const window=limit+offset+1;
   const rows=await db.select({id:liveRecordings.id,title:liveRecordings.title,state:liveRecordings.state,
    postId:liveRecordings.postId,createdAt:liveRecordings.createdAt,
    duration:posts.duration,cover:posts.coverKey,description:posts.description})
