@@ -64,6 +64,13 @@ await build({
 const { uiClient, video: videoLib, library, audio, cover, live, auth, login, ice, notifications, push, liveRecording, storage, thumbs, dicts, getDb } = await import(pathToFileURL(outfile).href);
 const liveLimit = liveRecording.liveListenerLimit;
 const routes = { library, audio, cover, live, notifications, login, ice };
+// Обложки здесь — настоящие картинки 8×8 своего цвета на каждую метку: сервер
+// теперь проверяет содержимое загрузки, и «xyz» под видом PNG не примет.
+const sharpLib = (await import('sharp')).default;
+const PIC = {};
+const pic = async (tag) => (PIC[tag] ??= await sharpLib({ create: { width: 8, height: 8, channels: 3, background: { r: tag.length * 20 % 256, g: tag.charCodeAt(0), b: tag.charCodeAt(tag.length - 1) } } }).png().toBuffer());
+const same = async (res, tag) => Buffer.from(await res.arrayBuffer()).equals(PIC[tag]);
+const coverUpload = async (tag, mime = 'image/png') => { const b = await pic(tag); return dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': mime, 'X-Upload-Size': String(b.length) }, body: new Blob([b]).stream(), duplex: 'half' }); };
 
 const ORIGIN = 'https://true-thrills.test';
 let ownerCookie = auth.createSessionCookie(new Request(ORIGIN)).split(';')[0];
@@ -222,14 +229,23 @@ try {
   assert.equal((await request('library', { action: 'links', links: [{ kind: 'tiktok', url: 'tiktok.com/@true_thrills' }] })).status, 200);
   assert.deepEqual((await request('library', undefined, false)).data.links, [{ kind: 'tiktok', url: 'https://tiktok.com/@true_thrills' }]);
 
+  // Шесть байт «abcdef» под видом MP3 — не звук: сервер смотрит содержимое и
+  // не сохраняет такое (аудит 6 октября, п. 7), и файла после отказа не остаётся.
   let r = await dispatch('audio', {
     method: 'POST',
     headers: { cookie: ownerCookie, 'Content-Type': 'audio/mpeg', 'X-Upload-Size': '6' },
     body: new Blob(['abcdef']).stream(),
     duplex: 'half',
   });
-  assert.equal(r.status, 200);
-  const { key } = await r.json();
+  assert.equal(r.status, 400, 'шесть байт текста под видом MP3 приняты как звук');
+  assert.equal((await r.json()).error, '#err.audioInvalid');
+  assert.deepEqual(readdirSync(path.join(process.env.STORAGE_DIR, 'audio')).filter(f => !f.startsWith('.')), [], 'отвергнутый файл остался в хранилище');
+  // Диапазоны и права проверяются на тех же шести байтах, но положенных в
+  // хранилище напрямую: проверка содержимого тут ни при чём, а по шести
+  // известным байтам видно каждый край диапазона.
+  const ownerId = auth.sessionUserId(new Request(ORIGIN, { headers: { cookie: ownerCookie } }));
+  const key = 'audio/range-abcdef';
+  await storage.localBucket().put(key, new Blob(['abcdef']).stream(), { httpMetadata: { contentType: 'audio/mpeg' }, customMetadata: { owner: ownerId } });
   const p = await request('library', { kind: 'podcast', title: 'Test audio', audioKey: key, published: false });
   assert.equal(p.status, 200);
   r = await dispatch('audio', { search: '?id=' + p.data.id });
@@ -354,7 +370,11 @@ try {
 
   // Обложки: загрузка своего изображения вместо ссылки, и фон эфира (channelArt).
   assert.equal((await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'text/plain', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' })).status, 400);
+  // Три байта под видом PNG — не картинка: отказ, и файла не остаётся.
   let cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' });
+  assert.equal(cr.status, 400, 'три байта текста под видом PNG приняты как обложка');
+  assert.equal((await cr.json()).error, '#err.coverInvalid');
+  cr = await coverUpload('xyz');
   assert.equal(cr.status, 200);
   const { key: coverKey } = await cr.json();
   const withCover = await request('library', { kind: 'video', title: 'Cover test', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey, published: false });
@@ -363,7 +383,7 @@ try {
   await request('library', { action: 'visibility', id: withCover.data.id, published: true });
   cr = await dispatch('cover', { search: '?id=' + withCover.data.id });
   assert.equal(cr.status, 200);
-  assert.equal(await cr.text(), 'xyz');
+  assert.ok(await same(cr, 'xyz'), 'обложка отдалась не та');
   await request('library', { action: 'delete', id: withCover.data.id });
   assert.equal((await dispatch('cover', { search: '?id=' + withCover.data.id })).status, 404);
 
@@ -434,8 +454,10 @@ try {
    assert.equal(Buffer.from(await odd.arrayBuffer()).length, full.length, 'ширина не из списка всё-таки пересжала картинку');
 
    // Файл, который не картинка, уменьшить нельзя — и экран от этого не пустеет.
-   const broken = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '3' }, body: new Blob(['xyz']).stream(), duplex: 'half' });
-   const { key: brokenKey } = await broken.json();
+   // Загрузить такое теперь нельзя, но старые файлы на диске могли остаться:
+   // кладём битую «картинку» в хранилище напрямую.
+   const brokenKey = 'cover/broken-xyz';
+   await storage.localBucket().put(brokenKey, new Blob(['xyz']).stream(), { httpMetadata: { contentType: 'image/png' }, customMetadata: { owner: auth.sessionUserId(new Request(ORIGIN, { headers: { cookie: ownerCookie } })) } });
    const brokenPost = await request('library', { kind: 'video', title: 'Битая обложка', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: brokenKey, published: true });
    const fallback = await dispatch('cover', { search: '?id=' + brokenPost.data.id + '&w=480' });
    assert.equal(fallback.status, 200, 'на нечитаемой картинке маршрут упал, а должен отдать как есть');
@@ -456,7 +478,7 @@ try {
   // и строка эфира остаётся верной.
   {
    const db = getDb().$client;
-   const shared = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '5' }, body: new Blob(['live!']).stream(), duplex: 'half' });
+   const shared = await coverUpload('live!');
    assert.equal(shared.status, 200);
    const sharedKey = (await shared.json()).key;
    const archive = await request('library', { kind: 'podcast', audioCategory: 'podcast', title: 'Архив эфира', audioKey: key, coverKey: sharedKey, published: true });
@@ -477,19 +499,19 @@ try {
   }
 
   assert.equal((await dispatch('cover', { search: '?id=channel' })).status, 404);
-  cr = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': '6' }, body: new Blob(['channl']).stream(), duplex: 'half' });
+  cr = await coverUpload('channl');
   const { key: artKey } = await cr.json();
   assert.equal((await request('library', { action: 'channelArt', key: 'not-a-cover-key' })).status, 400);
   assert.equal((await request('library', { action: 'channelArt', key: artKey })).status, 200);
   cr = await dispatch('cover', { search: '?id=channel' });
   assert.equal(cr.status, 200);
-  assert.equal(await cr.text(), 'channl');
+  assert.ok(await same(cr, 'channl'), 'фон эфира отдался не тот');
 
   // Картинка шторки уведомлений. Правило владельца: загружен «Фон
   // уведомлений» — он у всего, что играет; не загружен — обложка того, что
   // играет; нет и её — знак канала.
   {
-   const upload = async (text) => (await (await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': String(text.length) }, body: new Blob([text]).stream(), duplex: 'half' })).json()).key;
+   const upload = async (tag) => (await (await coverUpload(tag)).json()).key;
    const covered = await request('library', { kind: 'video', title: 'Шторка с обложкой', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: await upload('epcover'), published: true });
    const bare = await request('library', { kind: 'video', title: 'Шторка без обложки', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
    const hidden = await request('library', { kind: 'video', title: 'Шторка черновик', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', coverKey: await upload('drcover'), published: false });
@@ -497,7 +519,7 @@ try {
    await request('library', { action: 'channelArt', key: '' });
    let r = await notify(covered.data.id);
    assert.equal(r.status, 200, 'без фона уведомлений шторка не получила обложку выпуска');
-   assert.equal(await r.text(), 'epcover', 'без фона уведомлений в шторке не обложка выпуска');
+   assert.ok(await same(r, 'epcover'), 'без фона уведомлений в шторке не обложка выпуска');
    assert.match(r.headers.get('cache-control'), /no-store/, 'картинка шторки кэшируется — замена фона уведомлений не будет видна');
    r = await notify(bare.data.id);
    assert.equal(r.status, 302, 'ни фона, ни обложки — шторка должна получить знак канала, а не пустоту');
@@ -507,7 +529,7 @@ try {
    for (const p of [covered, bare]) {
     r = await notify(p.data.id);
     assert.equal(r.status, 200);
-    assert.equal(await r.text(), 'channl', 'фон уведомлений загружен, а в шторке «' + p.data.id + '» не он');
+    assert.ok(await same(r, 'channl'), 'фон уведомлений загружен, а в шторке «' + p.data.id + '» не он');
    }
    for (const p of [covered, bare, hidden]) await request('library', { action: 'delete', id: p.data.id });
   }
@@ -515,7 +537,7 @@ try {
   // Постер главной. Загружается отдельно от обложки выпуска и привязан к
   // выпуску, который открывается нажатием на него.
   {
-   const up = async (text) => (await (await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/jpeg', 'X-Upload-Size': String(text.length) }, body: new Blob([text]).stream(), duplex: 'half' })).json()).key;
+   const up = async (tag) => (await (await coverUpload(tag)).json()).key;
    const posterKey = await up('poster');
    const a = await request('library', { kind: 'video', title: 'Постер А', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
    const b = await request('library', { kind: 'video', title: 'Постер Б', videoUrl: 'https://youtu.be/dQw4w9WgXcQ', published: true });
@@ -534,7 +556,7 @@ try {
    assert.deepEqual(lib.poster, { post: a.data.id, v: posterKey.replace(/^cover\//, '') }, 'слушатель не получил постер главной');
    cr = await dispatch('cover', { search: '?id=hero' });
    assert.equal(cr.status, 200);
-   assert.equal(await cr.text(), 'poster');
+   assert.ok(await same(cr, 'poster'), 'постер главной отдался не тот');
    assert.match(cr.headers.get('cache-control'), /no-store/, 'постер без версии в адресе закэширован — замена не будет видна');
    cr = await dispatch('cover', { search: '?id=hero&v=' + encodeURIComponent(lib.poster.v) });
    assert.match(cr.headers.get('cache-control'), /immutable/, 'постер с нынешней версией в адресе качается заново при каждом запуске');
@@ -632,11 +654,11 @@ try {
   {
    const fallback = await dispatch('cover', { search: '?id=live:' + liveRes.data.id });
    assert.equal(fallback.status, 200, 'эфир без своей обложки должен получать картинку канала');
-   assert.equal(await fallback.text(), 'channl', 'подставилась не картинка канала');
+   assert.ok(await same(fallback, 'channl'), 'подставилась не картинка канала');
    // Шторка эфира: фон уведомлений загружен — он, а не обложка эфира.
    const liveNotify = await dispatch('cover', { search: '?id=' + encodeURIComponent('notify:live:' + liveRes.data.id) });
    assert.equal(liveNotify.status, 200);
-   assert.equal(await liveNotify.text(), 'channl', 'в шторке эфира не фон уведомлений');
+   assert.ok(await same(liveNotify, 'channl'), 'в шторке эфира не фон уведомлений');
    // А если и оформления канала нет — отдавать нечего.
    await request('library', { action: 'channelArt', key: '' });
    assert.equal((await dispatch('cover', { search: '?id=live:' + liveRes.data.id })).status, 404,
@@ -646,18 +668,18 @@ try {
    await request('library', { action: 'channelArt', key: artKey });
   }
   assert.equal((await request('live', { action: 'start', title: 'Bad cover', coverKey: 'audio/not-a-cover' })).status, 400);
-  const liveCover = await dispatch('cover', { method: 'POST', headers: { cookie: ownerCookie, 'Content-Type': 'image/png', 'X-Upload-Size': '4' }, body: new Blob(['live']).stream(), duplex: 'half' });
+  const liveCover = await coverUpload('live');
   const withArt = await request('live', { action: 'start', title: 'Cover live', coverKey: (await liveCover.json()).key });
   assert.equal(withArt.status, 200);
   const shownCover = await dispatch('cover', { search: '?id=live:' + withArt.data.id });
   assert.equal(shownCover.status, 200);
-  assert.equal(await shownCover.text(), 'live');
+  assert.ok(await same(shownCover, 'live'), 'обложка эфира отдалась не та');
   {
    // Фона уведомлений нет — в шторке эфира его собственная обложка.
    await request('library', { action: 'channelArt', key: '' });
    const own = await dispatch('cover', { search: '?id=' + encodeURIComponent('notify:live:' + withArt.data.id) });
    assert.equal(own.status, 200);
-   assert.equal(await own.text(), 'live', 'без фона уведомлений в шторке эфира не его обложка');
+   assert.ok(await same(own, 'live'), 'без фона уведомлений в шторке эфира не его обложка');
    await request('library', { action: 'channelArt', key: artKey });
   }
   await request('live', { action: 'stop', id: withArt.data.id });

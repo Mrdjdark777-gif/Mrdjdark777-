@@ -181,6 +181,10 @@ class LocalBucket {
     await rm(dataPath(key), { force: true });
     await rm(metaPath(key), { force: true });
   }
+  /** Путь к файлу на диске — для проверки содержимого (ffprobe, sharp). */
+  filePath(key: string) {
+    return dataPath(key);
+  }
 }
 
 let instance: LocalBucket | undefined;

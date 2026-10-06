@@ -1,11 +1,11 @@
 import {consumeLoginAttempt,resetLoginAttempts} from '@/lib/rate-limit';
 import { clearSessionCookie, createSessionCookie, revokeAllSessions, verifyPassword } from '@/lib/auth';
-import { failure, originCheck, requireOwner, result } from '@/lib/server';
+import { BODY_SMALL, failure, originCheck, readJson, requireOwner, result } from '@/lib/server';
 
 export async function POST(req: Request) {
   try {
     originCheck(req);
-    const d = (await req.json()) as Record<string, unknown>;
+    const d = await readJson(req, BODY_SMALL);
     if (d.action === 'logout') {
       return result({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
     }

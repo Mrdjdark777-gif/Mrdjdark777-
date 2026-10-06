@@ -3,7 +3,7 @@ import {enqueueNotice,siteOrigin} from '@/lib/push';
 import { and, desc, eq, gt, lt ,isNotNull} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { liveRecordings, broadcasts, peers } from '@/db/schema';
-import { bucket, failure, hash, originCheck, requireOwner, result, userId } from '@/lib/server';
+import { BODY_LIVE, bucket, failure, hash, originCheck, readJson, requireOwner, result, userId } from '@/lib/server';
 export async function GET(req: Request){try{
   const q=new URL(req.url).searchParams,db=getDb();
   if(q.has('status')){const live=await db.select({id:broadcasts.id,title:broadcasts.title,description:broadcasts.description,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(and(eq(broadcasts.active,1),gt(broadcasts.heartbeat,Date.now()-90000))).orderBy(desc(broadcasts.heartbeat)).get();return result({live:live?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});}
@@ -13,7 +13,7 @@ export async function GET(req: Request){try{
   const live=await db.select().from(broadcasts).where(eq(broadcasts.id,p.broadcastId)).get();return result({answer:p.answer,active:!!live?.active&&live.heartbeat>Date.now()-90000});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
-  originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb(),now=Date.now();
+  originCheck(req);const d=await readJson(req,BODY_LIVE),db=getDb(),now=Date.now();
   if(['start','stop','heartbeat','answer'].includes(String(d.action))){
     await requireOwner(req);
     if(d.action==='start'){

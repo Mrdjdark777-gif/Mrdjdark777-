@@ -3,7 +3,7 @@ import {audioCategoryOf} from '@/lib/audio-category';
 import { desc, eq ,inArray,like} from 'drizzle-orm';
 import { getDb } from '@/db';
 import { broadcasts, liveRecordings, posts, settings } from '@/db/schema';
-import { bucket, failure, originCheck, owner, requireOwner, result, setting, userId } from '@/lib/server';
+import { BODY_SMALL, BODY_STORY, bucket, failure, originCheck, owner, readJson, requireOwner, result, setting, userId } from '@/lib/server';
 import { unlinkIfUnused } from '@/lib/media-unlink';
 import { LIVE_BUSY_STATES } from '@/lib/live-states.mjs';
 import { parseDonations, parseLinks, parseVideo } from '@/lib/video';
@@ -17,9 +17,21 @@ async function posterOf(){
   if(!key||!post||post!==await setting('heroPost'))return null;
   return {post,v:key.replace(/^cover\//,'')};
 }
+/** Начало текста истории для карточки каталога: столько, сколько она показывает. */
+const EXCERPT=160;
 export async function GET(req: Request){try{
   const isOwner=await owner(req),db=getDb();
-  const items=await db.select().from(posts).where(isOwner?undefined:eq(posts.published,1)).orderBy(desc(posts.createdAt));
+  // Одна запись целиком — с полным текстом истории. Каталог текст не носит:
+  // раньше каждый его опрос (раз в 15 секунд) тащил тексты всех историй
+  // разом — при десяти историях по 150 000 знаков это три мегабайта JSON.
+  const one=new URL(req.url).searchParams.get('id');
+  if(one!==null){
+   const p=await db.select().from(posts).where(eq(posts.id,one)).get();
+   if(!p||(!p.published&&!isOwner))return result({error:'#err.notFound'},404);
+   return result({item:p});
+  }
+  const items=(await db.select().from(posts).where(isOwner?undefined:eq(posts.published,1)).orderBy(desc(posts.createdAt)))
+   .map(({body,...p})=>({...p,...(p.kind==='story'?{excerpt:body.slice(0,EXCERPT)}:{})}));
   const usage=isOwner?await db.select().from(settings).where(like(settings.key,'usage:%')):[];
   const counts=new Map(usage.map(row=>[row.key.slice(6),Number(row.value)||0]));
   const live=await db.select({id:broadcasts.id,title:broadcasts.title,description:broadcasts.description,heartbeat:broadcasts.heartbeat,startedAt:liveRecordings.createdAt,coverKey:broadcasts.coverKey}).from(broadcasts).leftJoin(liveRecordings,eq(liveRecordings.id,broadcasts.id)).where(eq(broadcasts.active,1)).orderBy(desc(broadcasts.heartbeat)).get();
@@ -31,7 +43,9 @@ export async function GET(req: Request){try{
   return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,poster:await posterOf(),...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
-  originCheck(req);const d=await req.json() as Record<string,unknown>,db=getDb();
+  // Длинный текст истории (до 150 000 знаков) шлёт только автор; остальным —
+  // небольшой предел, и он проверяется до чтения тела.
+  originCheck(req);const d=await readJson(req,await owner(req)?BODY_STORY:BODY_SMALL),db=getDb();
   if(d.action==='setup'){
     const id=userId(req);if(!id)return result({error:'#err.signIn'},401);
     // Bootstrap only while platform audience is owner-private; bind permanently before sharing.

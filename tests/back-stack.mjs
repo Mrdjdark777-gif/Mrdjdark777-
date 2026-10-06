@@ -63,6 +63,16 @@ const activity=await readFile(path.join(root,'android/app/src/main/java/com/true
 const studio=await readFile(path.join(root,'app/studio.tsx'),'utf8');
 assert.match(activity,/window\.trueThrills&&window\.trueThrills\.back/,'Android спрашивает страницу перед закрытием приложения');
 assert.match(activity,/private void systemBack\(\)/,'прежнее поведение осталось запасным путём');
+// С targetSdk 36 на Android 16 onBackPressed не вызывается: Back приходит
+// только через OnBackInvokedCallback. Оба пути обязаны вести в одно место —
+// иначе на новых телефонах Back сразу сворачивал бы приложение.
+assert.match(activity,/registerOnBackInvokedCallback\(OnBackInvokedDispatcher\.PRIORITY_DEFAULT, backCallback\)/,'Back на Android 13+ не зарегистрирован через OnBackInvokedCallback');
+assert.match(activity,/backCallback = this::handleBack;/,'обработчик Back на Android 13+ не ведёт к странице');
+assert.match(activity,/public void onBackPressed\(\) \{[^}]*handleBack\(\);/,'на Android 12 и старше Back не ведёт к странице');
+const manifest=await readFile(path.join(root,'android/app/src/main/AndroidManifest.xml'),'utf8');
+assert.match(manifest,/android:enableOnBackInvokedCallback="true"/,'в манифесте не включён новый Back — на Android 13–15 обработчик не получал бы нажатий');
+const gradle=await readFile(path.join(root,'android/app/build.gradle'),'utf8');
+assert.ok(Number(gradle.match(/targetSdk (\d+)/)?.[1])>=36,'targetSdk ниже 36 — Google Play не примет обновление');
 assert.match(studio,/host\.trueThrills=\{\.\.\.host\.trueThrills,back:runBack\}/,'страница выставляет мост под тем же именем');
 assert.match(studio,/pushBackLayer\(BACK_OVERLAY/,'листы поверх экрана участвуют в порядке');
 assert.match(studio,/pushBackLayer\(BACK_NAV/,'возврат на главную участвует в порядке');

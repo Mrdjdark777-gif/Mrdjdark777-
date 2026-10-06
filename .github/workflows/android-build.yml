@@ -1,7 +1,12 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Выложить APK на сайт: положить в public/app и обновить lib/app-release.ts коммитом в эту ветку"
+        type: boolean
+        default: false
   push:
     branches: [truethrills-app]
     paths:
@@ -11,6 +16,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Запись нужна только шагу «выложить на сайт» (коммит APK в ветку).
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -23,12 +31,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Install Android SDK packages
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Decode release signing key and Firebase config
         run: |
@@ -56,3 +64,28 @@ jobs:
           name: TrueThrills-Android-apk
           path: ${{ runner.temp }}/out/*.apk
           retention-days: 30
+
+      # По просьбе (publish=true): новый APK — на сайт. Файл ложится в
+      # public/app вместо прежнего, lib/app-release.ts получает его размер и
+      # сумму, tests/app-release.mjs проверяет, и всё это — одним коммитом в
+      # ту же ветку. Сервер получит его обычным обновлением.
+      - uses: actions/setup-node@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        with:
+          node-version: "22"
+      - name: Publish APK to the site
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        run: |
+          set -euo pipefail
+          version=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android/app/build.gradle)
+          code=$(sed -n "s/.*versionCode \([0-9]*\);.*/\1/p" android/app/build.gradle)
+          git rm -q --ignore-unmatch 'public/app/*.apk'
+          cp "$RUNNER_TEMP/out/TrueThrills-Android-${version}.apk" "public/app/TrueThrills-${version}.apk"
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/set-app-release.mjs "$version" "$code" "public/app/TrueThrills-${version}.apk"
+          node tests/app-release.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/app lib/app-release.ts
+          git commit -m "Android ${version}: APK на сайте (сборка ${GITHUB_RUN_ID})"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

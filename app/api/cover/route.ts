@@ -3,6 +3,7 @@ import { getDb } from '@/db';
 import { broadcasts, posts } from '@/db/schema';
 import { bucket, failure, owner, requireOwner, result, setting, userId } from '@/lib/server';
 import { askedWidth, bodyOf, thumbnail, thumbTag } from '@/lib/thumbs';
+import { probeImage } from '@/lib/media-check';
 const MAX = 12 * 1024 * 1024;
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
     const key = 'cover/' + crypto.randomUUID();
     const stored = await bucket().put(key, req.body, { httpMetadata: { contentType: mime }, customMetadata: { owner: userId(req)! }, maxBytes: MAX });
     if (stored.size !== size) { await bucket().delete(key); throw new Error('#err.uploadMismatch'); }
+    // Под видом картинки может прийти что угодно: проверяем, что это она.
+    if (await probeImage(bucket().filePath(key)) === 'bad') { await bucket().delete(key); throw new Error('#err.coverInvalid'); }
     return result({ key });
   } catch (e) { return failure(e); }
 }

@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 let writes=0;globalThis.__usageTest={write:()=>{writes++;return true;}};
 const modules={
  '@/db':'export const getDb=()=>({$client:{}});',
- '@/lib/server':`export const originCheck=()=>{};export const owner=async req=>req.headers.get('x-test-owner')==='yes';export const result=(data,status=200,headers={})=>Response.json(data,{status,headers});export const failure=()=>Response.json({error:'bad request'},{status:400});`,
+ '@/lib/server':`export const originCheck=()=>{};export const owner=async req=>req.headers.get('x-test-owner')==='yes';export const result=(data,status=200,headers={})=>Response.json(data,{status,headers});export const failure=()=>Response.json({error:'bad request'},{status:400});export const readText=async(req,limit)=>{const text=await req.text();if(new TextEncoder().encode(text).length>limit)throw new Error('#err.requestTooLarge');return text;};`,
  '@/lib/rate-limit':`export const consumePublicAttempt=req=>req.headers.get('x-test-rate')?30:0;`,
  '@/lib/usage':`export const recordUsage=()=>globalThis.__usageTest.write();`
 };

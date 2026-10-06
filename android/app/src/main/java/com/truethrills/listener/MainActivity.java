@@ -13,6 +13,8 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.widget.FrameLayout;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -106,6 +108,14 @@ public class MainActivity extends Activity {
         root = new FrameLayout(this);
         root.addView(webView);
         setContentView(root);
+        // Android 13+ отдаёт «Назад» через OnBackInvokedCallback (в манифесте
+        // enableOnBackInvokedCallback=true). С targetSdk 36 на Android 16
+        // onBackPressed больше не вызывается вовсе: без этого Back сразу
+        // сворачивал бы приложение, не закрыв ни меню, ни плеер.
+        if (Build.VERSION.SDK_INT >= 33) {
+            backCallback = this::handleBack;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
+        }
         String deepLink = savedInstanceState == null ? getIntent().getStringExtra("url") : null;
         if (savedInstanceState != null) webView.restoreState(savedInstanceState);
         else webView.loadUrl(deepLink != null ? resolveUrl(deepLink) : url("home"));
@@ -165,6 +175,13 @@ public class MainActivity extends Activity {
      */
     @Override
     public void onBackPressed() {
+        // Android 12 и старше; на 13+ сюда не приходят — там backCallback.
+        handleBack();
+    }
+
+    private OnBackInvokedCallback backCallback;
+
+    private void handleBack() {
         if (fullscreenView != null) { chrome.onHideCustomView(); return; }
         webView.evaluateJavascript(
             "(function(){try{return !!(window.trueThrills&&window.trueThrills.back&&window.trueThrills.back());}catch(e){return false;}})()",
@@ -174,11 +191,16 @@ public class MainActivity extends Activity {
     /** Прежнее поведение: история страницы, затем сама система. */
     private void systemBack() {
         if (webView.canGoBack()) webView.goBack();
+        // На Android 13+ «Назад» перехвачен нашим обработчиком, и системного
+        // действия за ним нет: делаем то же, что система для главного окна
+        // приложения с Android 12, — убираем его в фон, не закрывая.
+        else if (Build.VERSION.SDK_INT >= 33) { if (isTaskRoot()) moveTaskToBack(true); else finish(); }
         else super.onBackPressed();
     }
 
     @Override
     protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33 && backCallback != null) getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
         bridge.close();
         webView.destroy();
         super.onDestroy();

@@ -1,9 +1,11 @@
 plugins { id 'com.android.application'; id 'com.google.gms.google-services' }
 android {
  namespace 'com.truethrills.listener'
- compileSdk 35
- buildToolsVersion '35.0.0'
- defaultConfig { applicationId 'com.truethrills.listener'; minSdk 26; targetSdk 35; versionCode 23; versionName '0.9.3' }
+ // targetSdk 36 — требование Google Play для обновлений с 31.08.2026 (аудит
+ // 6 октября, п. 1). Back на Android 16 — через OnBackInvokedCallback.
+ compileSdk 36
+ buildToolsVersion '36.0.0'
+ defaultConfig { applicationId 'com.truethrills.listener'; minSdk 26; targetSdk 36; versionCode 24; versionName '0.9.4' }
  signingConfigs {
   release {
    storeFile file(System.getenv('RELEASE_KEYSTORE') ?: 'release.jks')

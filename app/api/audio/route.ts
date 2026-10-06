@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { posts } from '@/db/schema';
 import { AUDIO_MAX_BYTES } from '@/lib/audio-limits';
+import { probeAudio } from '@/lib/media-check';
 import { bucket, failure, owner, requireOwner, result, userId } from '@/lib/server';
 const MAX=AUDIO_MAX_BYTES;
 export async function POST(req: Request){try{
@@ -12,6 +13,8 @@ export async function POST(req: Request){try{
   const key='audio/'+crypto.randomUUID();
   const stored=await bucket().put(key,req.body,{httpMetadata:{contentType:mime},customMetadata:{owner:userId(req)!},maxBytes:MAX});
   if(stored.size!==size){await bucket().delete(key);throw new Error('#err.uploadMismatch');}
+  // Под видом звука может прийти что угодно: смотрим, есть ли в файле звук.
+  if(await probeAudio(bucket().filePath(key))==='bad'){await bucket().delete(key);throw new Error('#err.audioInvalid');}
   return result({key});
 }catch(e){return failure(e);}}
 export async function GET(req: Request){try{

@@ -1,5 +1,5 @@
 import {getDb} from '@/db';
-import {failure,originCheck,result} from '@/lib/server';
+import {BODY_SMALL,failure,originCheck,readJson,result} from '@/lib/server';
 import {deviceLimit,newDeviceToken,pushKeys,renderNotice,sendFcmNotice,sendNotice,siteOrigin,tokenHash,validateFcmToken,validateSubscription} from '@/lib/push';
 import {consumeSubscribeAttempt} from '@/lib/rate-limit';
 import {DEFAULT_LOCALE,isLocale,localeFromHeader} from '@/lib/i18n';
@@ -12,7 +12,7 @@ export async function GET(req:Request){try{
  return result({publicKey:(await pushKeys()).publicKey,current});
  }catch(e){return failure(e);}}
 export async function POST(req:Request){try{
- originCheck(req);const d=await req.json() as Record<string,unknown>;
+ originCheck(req);const d=await readJson(req,BODY_SMALL);
  if(d.action==='subscribe'){
   // Своё устройство человек перерегистрирует редко; частые попытки с одного
   // адреса — это не слушатель, а попытка забить предел устройств.
