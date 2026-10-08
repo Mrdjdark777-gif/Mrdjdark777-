@@ -80,6 +80,9 @@ jobs:
           version=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android/app/build.gradle)
           code=$(sed -n "s/.*versionCode \([0-9]*\);.*/\1/p" android/app/build.gradle)
           git rm -q --ignore-unmatch 'public/app/*.apk'
+          # git rm убирает и папку, если в ней был один файл: без mkdir cp падал
+          # «No such file or directory» (первая выкладка 0.9.4).
+          mkdir -p public/app
           cp "$RUNNER_TEMP/out/TrueThrills-Android-${version}.apk" "public/app/TrueThrills-${version}.apk"
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/set-app-release.mjs "$version" "$code" "public/app/TrueThrills-${version}.apk"
