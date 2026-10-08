@@ -1,0 +1,170 @@
+/* ============================================================================
+   Слушатель на ПК — концепция «Студия звука» (выбрана владельцем 8 октября).
+
+   Включается классом .is-desk на .app-shell: его ставит app/studio.tsx только
+   для слушателя на экране от 1024px с мышью (useWideScreen). Телефон и
+   сенсорный планшет этот класс не получают никогда — их раскладка и замок
+   tests/fixtures/layout-lock.json отсюда не задеваются.
+
+   Каркас: боковое меню слева (264px), верхняя строка с поиском, содержимое,
+   плеер полосой внизу экрана.
+   ========================================================================== */
+.desk-rail,.desk-search{display:none}
+.is-desk{--desk-rail:264px;--desk-player:0px;--desk-pad:44px;padding-left:var(--desk-rail);background:#101316}
+:root:has(.desk-player-bar) .is-desk{--desk-player:88px}
+.is-desk .bottom-nav{display:none!important}
+
+/* Боковое меню */
+.is-desk .desk-rail{display:flex;flex-direction:column;gap:4px;position:fixed;z-index:40;left:0;top:0;bottom:var(--desk-player);
+ width:var(--desk-rail);padding:24px 18px 20px;background:#0c0f12;border-right:1px solid #22272c;overflow-y:auto;scrollbar-width:none}
+.desk-brand{display:flex;align-items:center;gap:12px;padding:0 8px;margin-bottom:26px;color:#f4f3f1;
+ font-family:var(--font-display),var(--font-display-fallback);font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:14.5px;text-align:left}
+.desk-brand img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none}
+.desk-nav{display:flex;flex-direction:column;gap:4px}
+.desk-nav-item{display:flex;align-items:center;gap:14px;height:46px;padding:0 14px;border-radius:12px;color:#a4a8ae;font-weight:600;font-size:15px;text-align:left;width:100%}
+.desk-nav-item:hover{background:rgba(255,255,255,.05);color:#e6e8e9}
+.desk-nav-item[data-active=true]{background:rgba(111,231,222,.1);color:var(--teal)}
+.desk-nav-item:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.desk-live-pill{margin-left:auto;font-size:10px;letter-spacing:.12em;font-weight:700;color:#6f757c;border:1px solid #2a2f35;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.desk-live-pill.is-on{color:#fff;background:#d9483b;border-color:#d9483b}
+.desk-rail-grow{flex:1;min-height:20px}
+.desk-support{background:linear-gradient(160deg,#173230,#141a1d);border:1px solid #23413e;border-radius:16px;padding:16px}
+.desk-support strong{display:block;font-size:14.5px;line-height:1.35;margin-bottom:6px}
+.desk-support p{font-size:12.5px;color:#a4a8ae;line-height:1.5;margin:0 0 12px}
+.desk-support .desk-support-off{margin:0}
+.desk-support-button{width:100%;justify-content:center;height:40px;font-size:14px}
+.desk-app{display:flex;align-items:center;gap:10px;padding:14px 10px 6px;font-size:13px;color:#a4a8ae}
+.desk-app svg{width:18px;height:18px;flex:none}
+.desk-app em{margin-left:auto;font-style:normal;color:#6f757c;font-family:ui-monospace,monospace;font-size:12px}
+.desk-app:hover{color:#e6e8e9}
+.desk-socials{display:flex;flex-wrap:wrap;gap:8px;padding:8px 8px 0}
+.desk-social{width:38px;height:38px;border-radius:50%;border:1px solid #2a2f35;display:grid;place-items:center;color:#a4a8ae}
+.desk-social:hover{color:var(--teal);border-color:#2f5552}
+
+/* Верхняя строка: поиск слева, действия справа. Знак канала — в меню. */
+.is-desk .top-header{position:sticky;top:0;z-index:30;width:100%;max-width:none;margin:0;gap:16px;justify-content:flex-start;
+ padding:18px max(var(--desk-pad),calc((100% - 1680px) / 2 + var(--desk-pad))) 14px;background:rgba(16,19,22,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.is-desk .top-header-brand{display:none}
+.is-desk .top-header-actions{margin-left:auto}
+.is-desk .desk-search{display:flex;align-items:center;gap:12px;flex:1;max-width:560px;height:46px;padding:0 18px;border-radius:999px;
+ background:#15191d;border:1px solid #2a2f35;color:#6f757c}
+.is-desk .desk-search:focus-within{border-color:#3c6965;color:var(--teal)}
+.is-desk .desk-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;color:#f4f3f1;font:inherit;font-size:14.5px}
+.is-desk .desk-search input::placeholder{color:#6f757c}
+
+/* Содержимое */
+.is-desk .listener-main{width:100%;max-width:1680px;margin:0 auto;padding:10px var(--desk-pad) calc(48px + var(--desk-player))!important;min-height:0}
+.is-desk .site-footer{max-width:1680px;padding-left:var(--desk-pad);padding-right:var(--desk-pad);margin-bottom:var(--desk-player)}
+.is-desk .listener-main.is-searching>:not(.desk-results){display:none!important}
+.desk-results{margin-top:8px}
+.desk-results-empty{color:#a4a8ae;font-size:15px;padding:40px 0}
+
+/* Кнопки */
+.desk-cta{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 26px;border-radius:999px;background:var(--teal);color:#06211f;
+ font-weight:700;font-size:15px;box-shadow:0 10px 30px -10px rgba(111,231,222,.6);white-space:nowrap}
+.desk-cta:hover{background:#8ff0e8}
+.desk-cta-time{font-variant-numeric:tabular-nums;opacity:.85}
+.desk-ghost{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:999px;background:rgba(255,255,255,.07);
+ border:1px solid rgba(255,255,255,.14);color:#f4f3f1;font-weight:600;font-size:15px;white-space:nowrap}
+.desk-ghost:hover{background:rgba(255,255,255,.12)}
+
+/* Главная: баннер с постером целиком, строка под ним, полки */
+.desk-home{display:flex;flex-direction:column;gap:34px;padding-top:4px}
+.desk-onair{display:flex;align-items:center;gap:14px;padding:16px 22px;border-radius:18px;background:linear-gradient(110deg,#45271f,#251f20);
+ border:1px solid #a1543f;color:#ffd2c4;text-align:left}
+.desk-onair-dot{width:10px;height:10px;border-radius:50%;background:#ff6a4d;box-shadow:0 0 0 6px rgba(255,106,77,.18);flex:none}
+.desk-onair-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.desk-onair-copy span{font-size:11px;letter-spacing:.14em;font-weight:700;color:#ffad95}
+.desk-onair-copy strong{font-size:18px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-onair-action{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#fff;white-space:nowrap}
+.desk-hero{display:flex;flex-direction:column;gap:20px}
+.desk-banner{position:relative;display:block;width:100%;height:clamp(300px,calc(46vh - var(--desk-player) / 2),560px);border-radius:26px;overflow:hidden;
+ background:#15191d;cursor:pointer;isolation:isolate}
+.desk-banner-blur{position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(44px) brightness(.5) saturate(1.15);transform:scale(1.15);z-index:0}
+.desk-banner .desk-banner-art,.desk-banner>img.desk-banner-art{position:relative;z-index:1;display:block;height:100%;width:auto;max-width:100%;margin:0 auto;object-fit:contain;
+ box-shadow:0 30px 60px -20px rgba(0,0,0,.7);
+ -webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.desk-banner .desk-cover-mark{position:relative;z-index:1;display:block;margin:0 auto;top:50%;transform:translateY(-50%);width:132px;height:132px;border-radius:50%}
+.desk-banner:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
+.desk-hero-bar{display:flex;align-items:center;gap:32px}
+.desk-hero-copy{min-width:0;flex:1}
+.desk-eyebrow{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#a4a8ae;font-weight:700}
+.desk-hero-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(30px,2.4vw,44px);line-height:1.1;font-weight:600;margin:8px 0 6px;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-hero-note{font-size:15px;line-height:1.55;color:#bfc3c8;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:820px}
+.desk-hero-actions{display:flex;gap:12px;flex:none}
+.desk-hero.is-empty{padding:80px 0;text-align:center}
+.desk-resume{display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:16px;border:1px solid #2a2f35;background:#15191d;color:#a4a8ae;text-align:left;font-size:14px}
+.desk-resume strong{color:#f4f3f1;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-resume-time{margin-left:auto;font-variant-numeric:tabular-nums}
+.desk-resume:hover{background:#1a1f23}
+.desk-shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:16px}
+.desk-shelf-head h2{font-size:24px;font-weight:600;margin:0}
+.desk-shelf-all{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;color:var(--teal);font-weight:600}
+.desk-shelf-all:hover{color:#8ff0e8}
+/* Один ряд при любой ширине: лишние плитки уходят в ряды нулевой высоты. */
+.desk-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));grid-template-rows:auto;grid-auto-rows:0;row-gap:0;column-gap:22px;overflow:hidden}
+.desk-tile{display:flex;flex-direction:column;min-width:0;text-align:left;color:inherit}
+.desk-cover{position:relative;display:block;aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:#15191d}
+.desk-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.desk-cover .desk-cover-mark{width:72px;height:72px;margin:auto;position:absolute;inset:0;border-radius:50%;object-fit:cover}
+.desk-tag{position:absolute;left:10px;top:10px;font-size:10px;letter-spacing:.14em;font-weight:700;color:#fff;background:rgba(0,0,0,.45);
+ -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:5px 9px;border-radius:999px;text-transform:uppercase;max-width:calc(100% - 20px);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-tile-play{position:absolute;right:10px;bottom:10px;width:42px;height:42px;border-radius:50%;background:var(--teal);color:#06211f;display:grid;place-items:center;
+ box-shadow:0 8px 20px rgba(0,0,0,.4);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
+.desk-tile:hover .desk-tile-play,.desk-tile:focus-visible .desk-tile-play{opacity:1;transform:none}
+.desk-tile:hover .desk-cover img{transform:scale(1.04)}
+.desk-tile:focus-visible{outline:none}.desk-tile:focus-visible .desk-cover{outline:2px solid var(--teal);outline-offset:3px}
+.desk-tile strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:12px;font-size:15px;font-weight:700;line-height:1.3}
+.desk-tile-meta{display:block;margin-top:4px;font-size:12.5px;color:#a4a8ae;font-variant-numeric:tabular-nums}
+
+/* Плеер полосой внизу экрана (свёрнутый). Перебивает телефонную мини-панель:
+   у той свои bottom/left/width/transform с !important. */
+.podcast-player.desk-player-bar{position:fixed!important;z-index:45;left:0!important;right:0!important;bottom:0!important;top:auto;width:auto!important;transform:none!important;
+ height:88px;display:grid;grid-template-columns:minmax(220px,340px) minmax(0,1fr) minmax(220px,340px);align-items:center;gap:24px;padding:0 24px!important;border-radius:0;
+ background:rgba(13,16,19,.94)!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:0!important;border-top:1px solid #23292e!important;box-shadow:0 -10px 30px rgba(0,0,0,.35)}
+.desk-bar-now{display:flex;align-items:center;gap:14px;min-width:0;text-align:left;color:inherit}
+.desk-bar-now .podcast-player-logo{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none}
+.desk-bar-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.desk-bar-copy strong{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-bar-copy span{font-size:12px;color:#a4a8ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desk-bar-mid{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.desk-bar-transport{display:flex;align-items:center;gap:20px}
+.desk-bar-transport>button:not(.podcast-toggle){width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#d6d9db}
+.desk-bar-transport>button:not(.podcast-toggle):hover{background:rgba(255,255,255,.08)}
+.desk-bar-transport .podcast-toggle{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:var(--teal)!important;color:#06211f!important;box-shadow:0 8px 22px -10px rgba(111,231,222,.8)}
+.desk-bar-transport .podcast-toggle svg{width:18px;height:18px}
+.desk-bar-line{display:flex;align-items:center;gap:12px;width:100%;max-width:640px;font-size:12px;color:#a4a8ae;font-variant-numeric:tabular-nums}
+.desk-bar-line [data-slot=slider]{flex:1}
+.desk-bar-right{display:flex;align-items:center;justify-content:flex-end;gap:6px;color:#a4a8ae}
+.desk-bar-extra{position:relative;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 10px;border-radius:999px;font-size:13px;color:#c8ccd0;cursor:pointer}
+.desk-bar-extra:hover,.desk-bar-icon:hover{background:rgba(255,255,255,.08);color:#f4f3f1}
+.desk-bar-extra.is-set{color:var(--teal)}
+.desk-bar-extra .player-extra-select{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.desk-bar-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#c8ccd0}
+
+/* Развёрнутый плеер на ПК: обложка слева, название и управление по центру,
+   «Дальше» справа. Фон — размытая обложка (как на телефоне), сама фотография
+   фоном не лежит: она стоит обложкой в левой колонке целиком. */
+.podcast-player.desk-player-open .player-stage-photo,.podcast-player.desk-player-open .player-stage-mark{display:none}
+.podcast-player.desk-player-open .player-body{display:grid!important;grid-template-columns:minmax(0,min(54vh,540px)) minmax(0,640px) minmax(0,340px);
+ grid-template-rows:1fr repeat(6,auto) 1fr;column-gap:64px;row-gap:0;justify-content:center;align-items:center;
+ width:100%;max-width:none;height:100%;padding:84px 64px 56px!important;margin:0;text-align:left}
+.podcast-player.desk-player-open .player-body>*{grid-column:2;max-width:none;margin-left:0;margin-right:0;text-align:left}
+.podcast-player.desk-player-open .player-cover-frame,.podcast-player.desk-player-open .player-orb{grid-column:1;grid-row:1/-1;align-self:center;justify-self:end;width:100%;height:auto;max-height:none;flex:none;margin:0}
+.podcast-player.desk-player-open .player-cover-frame .player-cover{width:100%;height:auto;max-height:76vh;object-fit:contain;border-radius:24px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+.podcast-player.desk-player-open .player-caption{grid-row:2;align-items:flex-start;text-align:left}
+.podcast-player.desk-player-open .player-tagline{text-align:left}
+.podcast-player.desk-player-open .player-title{grid-row:3;font-size:clamp(40px,3.4vw,64px);line-height:1.05;margin:14px 0 14px;text-align:left}
+.podcast-player.desk-player-open .player-note{grid-row:4;font-size:16px;line-height:1.65;max-width:620px;text-align:left}
+.podcast-player.desk-player-open .podcast-timeline{grid-row:5;width:100%;margin-top:28px}
+.podcast-player.desk-player-open .podcast-transport{grid-row:6;justify-content:flex-start;margin-top:18px}
+.podcast-player.desk-player-open .player-extras{grid-row:7;justify-content:flex-start;margin-top:14px}
+.podcast-player.desk-player-open .podcast-player-message{grid-row:8;align-self:start}
+.podcast-player.desk-player-open .player-next{grid-column:3;grid-row:1/-1;align-self:center;width:100%;margin:0}
+.podcast-player.desk-player-open .player-sheet-top{padding:22px 32px}
+.podcast-player.desk-player-open .player-title{width:100%;max-width:none}
+.podcast-player.desk-player-open .player-extras{display:flex!important;gap:10px;width:auto}
+.podcast-player.desk-player-open .player-extra{flex-direction:row;gap:8px;min-width:0;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.podcast-player.desk-player-open .player-next{padding:20px;border-radius:22px;background:rgba(12,15,18,.55);border:1px solid rgba(255,255,255,.08)}

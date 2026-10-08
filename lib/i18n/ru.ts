@@ -178,6 +178,9 @@ export const ru = {
   'catalog.sortOld': 'Сначала старые',
   'catalog.sortAria': 'Порядок',
   'catalog.nothingFound': 'Ничего не найдено',
+  'desk.search': 'Найти историю, видео или музыку',
+  'desk.found': 'Найдено: {n}',
+  'desk.seeAll': 'Все',
   'player.expand': 'Развернуть плеер',
   'player.collapse': 'Свернуть плеер',
 

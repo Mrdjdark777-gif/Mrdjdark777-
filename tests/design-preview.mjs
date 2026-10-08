@@ -2226,48 +2226,30 @@ try{
    if(m.beams)problems.push('слушатель '+w+': фон студии с лучами показан гостю');
    if(m.w>m.iw+1)problems.push('слушатель '+w+': переполнение по ширине');
    // Ссылка на приложение — то, за чем человек и приходит на сайт с
-   // компьютера. Она должна быть видна и вести на существующий файл.
-   const app=await g.evaluate(async()=>{const a=document.querySelector('.app-strip');
+   // компьютера. На ПК она в боковом меню; должна вести на существующий файл.
+   const app=await g.evaluate(async()=>{const a=document.querySelector('.desk-app');
     if(!a)return null;const r=await fetch(a.getAttribute('href'),{method:'HEAD'});
-    return {href:a.getAttribute('href'),status:r.status,type:r.headers.get('content-type')};});
-   if(!app)problems.push('слушатель '+w+': на главной нет ссылки на приложение');
+    return {href:a.getAttribute('href'),status:r.status};});
+   if(!app)problems.push('слушатель '+w+': в боковом меню нет ссылки на приложение');
    else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
-   // Каркас страницы: разделы строкой наверху, а не плавающей пилюлей внизу,
-   // и подвал в конце. Порядок задан свойством order — в разметке панель
-   // идёт последней, ради телефона.
-   const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),
-    main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),
-    head=document.querySelector('.top-header');
+   // Каркас ПК «Студия звука» (выбран владельцем 8 октября): боковое меню
+   // слева, телефонной панели разделов нет, подвал после содержимого,
+   // строка поиска на одной линии с содержимым. Подробно — tests/desk-layout.mjs.
+   const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-rail'),
+    main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),search=document.querySelector('.desk-search'),
+    home=document.querySelector('.desk-home');
     const top=el=>el?Math.round(el.getBoundingClientRect().top+scrollY):null;
-    return {navFixed:nav?getComputedStyle(nav).position:'нет',nav:top(nav),main:top(main),
-     foot:top(foot),head:top(head),footShown:!!foot&&getComputedStyle(foot).display!=='none',
-     headRight:head?Math.round(head.getBoundingClientRect().right):0,
-     mainRight:main?Math.round(main.getBoundingClientRect().right):0};});
-   if(frame.navFixed==='fixed')problems.push('слушатель '+w+': панель разделов всё ещё плавающая');
-   if(!(frame.head<frame.nav&&frame.nav<frame.main))problems.push('слушатель '+w+': порядок каркаса '+JSON.stringify(frame));
+    return {desk:document.querySelector('.app-shell')?.classList.contains('is-desk')??false,
+     rail:!!rail&&getComputedStyle(rail).display!=='none',navShown:!!nav&&getComputedStyle(nav).display!=='none',
+     main:top(main),foot:top(foot),footShown:!!foot&&getComputedStyle(foot).display!=='none',
+     searchLeft:search?Math.round(search.getBoundingClientRect().left):null,homeLeft:home?Math.round(home.getBoundingClientRect().left):null,
+     banner:!!document.querySelector('.desk-home .desk-banner'),shelves:document.querySelectorAll('.desk-home .desk-shelf').length};});
+   if(!frame.desk||!frame.rail)problems.push('слушатель '+w+': нет каркаса ПК с боковым меню '+JSON.stringify(frame));
+   if(frame.navShown)problems.push('слушатель '+w+': телефонная панель разделов видна на ПК');
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
-   if(Math.abs(frame.headRight-frame.mainRight)>1)problems.push('слушатель '+w+': шапка не по колонке содержимого ('+frame.headRight+' против '+frame.mainRight+')');
-   // Главная 2.0 на мониторе — одна колонка по центру, не растянутая на всю
-   // ширину: кадр, карусель, поддержка. Прежняя раскладка в две колонки с
-   // описанием канала справа ушла вместе со старой главной.
-   {const wide=await g.evaluate(()=>{const sc=document.querySelector('.immersion>.scene'),
-     home=document.querySelector('.immersion.tt-soft-home'),car=document.querySelector('.soft-carousel'),
-     sup=document.querySelector('.soft-support');
-     if(!sc||!home)return null;const a=sc.getBoundingClientRect(),h=home.getBoundingClientRect();
-     return {sceneH:Math.round(a.height),viewport:innerHeight,columnW:Math.round(h.width),
-      cards:document.querySelectorAll('.soft-reel>li').length,
-      carousel:!!car,support:!!sup,
-      overflow:Math.round(car?car.scrollWidth-car.clientWidth:0)};});
-    if(!wide)problems.push('слушатель '+w+': на главной нет кадра или новой обёртки');
-    else{
-     if(!wide.carousel)problems.push('слушатель '+w+': карусели свежего нет');
-     if(!wide.support)problems.push('слушатель '+w+': блока поддержки нет');
-     if(wide.cards<2)problems.push('слушатель '+w+': в карусели '+wide.cards+' карточек — архив и выпуски не собрались');
-     if(wide.sceneH>wide.viewport*0.75)problems.push('слушатель '+w+': кадр занимает '+wide.sceneH+'px при экране '+wide.viewport);
-     if(wide.columnW>1000)problems.push('слушатель '+w+': колонка содержимого растянута на '+wide.columnW+'px');
-    }
-   }
+   if(frame.searchLeft===null||frame.homeLeft===null||Math.abs(frame.searchLeft-frame.homeLeft)>2)problems.push('слушатель '+w+': поиск не по колонке содержимого ('+frame.searchLeft+' против '+frame.homeLeft+')');
+   if(!frame.banner||frame.shelves<1)problems.push('слушатель '+w+': на главной нет баннера или полок ('+JSON.stringify(frame)+')');
   }
   // 1023 — последний пиксель телефонной раскладки. Проверяем, что за границей
   // ничего настольного не включилось: панель разделов снова плавающая внизу,

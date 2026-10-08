@@ -179,6 +179,9 @@ export const it: Record<keyof typeof ru, string> = {
   'catalog.sortOld': 'Prima i vecchi',
   'catalog.sortAria': 'Ordine',
   'catalog.nothingFound': 'Nessun risultato',
+  'desk.search': 'Cerca una storia, un video o musica',
+  'desk.found': 'Trovati: {n}',
+  'desk.seeAll': 'Tutti',
   'player.expand': 'Espandi il lettore',
   'player.collapse': 'Riduci il lettore',
 

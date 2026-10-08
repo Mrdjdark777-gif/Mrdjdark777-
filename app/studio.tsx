@@ -15,6 +15,9 @@ import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress,unhideResume} from '@/lib/listening-progress';
 import {HomeSceneView} from '@/components/studio/home-scene-view';
+import {DeskHome,DeskShelf} from '@/components/studio/desk-home';
+import {DeskRail} from '@/components/studio/desk-rail';
+import '@/components/studio/desk.css';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
 import {isLiveArchive} from '@/lib/player-presentation';
@@ -135,6 +138,11 @@ export default function Studio(){
  // Оформление студии — только автору на широком экране. Слушателю страница
  // канала показывается одинаково и в браузере на ПК, и в приложении.
  const wide=wideScreen&&author;
+ // Слушатель на ПК с мышью — свой каркас «Студия звука» (боковое меню, поиск
+ // сверху, широкий баннер, полки, плеер внизу). Телефон и сенсорный планшет
+ // сюда не попадают: их разметка и замок раскладки остаются как были.
+ const desk=wideScreen&&!author;
+ const [deskQuery,setDeskQuery]=useState('');
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
  const [liveNow,setLiveNow]=useState<Data['live']>(null),[liveError,setLiveError]=useState(false);
  const liveStatus=liveNow;
@@ -259,7 +267,7 @@ export default function Studio(){
  // «Всё начинается с голоса.» — последние два слова во всех четырёх языках
  // и есть смысловой акцент, их и подсвечиваем.
  const accent=(text:string)=>{const words=text.split(' ');if(words.length<3)return text;return <>{words.slice(0,-2).join(' ')+' '}<span className="accent">{words.slice(-2).join(' ')}</span></>;};
- const goto=(v:string)=>{setView(RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setPlayerExpanded(false);};
+ const goto=(v:string)=>{setView(RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setDeskQuery('');setPlayerExpanded(false);};
  const listKind=view==='podcasts'?'podcast':view==='videos'?'video':'story';
  const searchKey=view==='podcasts'?'catalog.searchAudio':view==='videos'?'catalog.searchVideo':'catalog.searchStory';
  const sectionOrder=visible.filter(p=>p.kind==='podcast'&&!isLiveArchive(p.audioKey)).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
@@ -276,6 +284,10 @@ export default function Studio(){
  const archiveNeedle=archiveQuery.trim().toLowerCase();
  const archiveShown=archiveNeedle?liveArchives.filter(p=>p.title.toLowerCase().includes(archiveNeedle)):liveArchives;
  const needle=query.trim().toLowerCase();
+ // Поиск в верхней строке на ПК — по всем разделам сразу (по названию и
+ // описанию, как поиск в разделе).
+ const deskNeedle=deskQuery.trim().toLowerCase();
+ const deskFound=deskNeedle?visible.filter(p=>(p.title+' '+p.description).toLowerCase().includes(deskNeedle)).sort((a,b)=>b.createdAt-a.createdAt):[];
  // Эфир и подкаст — разные вещи: записи эфиров живут в архиве эфиров и в
  // каталог подкастов не попадают ни у слушателя, ни у автора.
  const listed=visible.filter(p=>p.kind===listKind&&!(p.kind==='podcast'&&isLiveArchive(p.audioKey))&&(!needle||(p.title+' '+p.description).toLowerCase().includes(needle))).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
@@ -288,11 +300,17 @@ export default function Studio(){
 
  return <>
  <Toaster theme="dark" richColors position="top-center"/>
- <div className={'app-shell '+(author?'is-author':'is-listener')+(!author&&view==='home'?' is-immersive':'')}>
+ {/* На ПК у слушателя класс is-desk вместо is-listener: прежние настольные
+     правила (.is-listener в медиазапросах) к новому каркасу не относятся. */}
+ <div className={'app-shell '+(author?'is-author':desk?'is-desk':'is-listener')+(!author&&!desk&&view==='home'?' is-immersive':'')}>
+ {desk&&data&&!data.needsSetup&&<DeskRail view={view} onGoto={goto} onAir={!!liveStatus} onSupport={canDonate?()=>setDonateOpen(true):undefined}
+  app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href,version:APP_RELEASE.version}:null}
+  socials={data.links?.length?data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
  {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={96} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="82" height="82" alt=""/>}/>:<img src="/brand/logo.png?v=0.4.1" width="34" height="34" alt=""/>}<span className="wordmark">True Thrills</span></button>
+  {desk&&data&&!data.needsSetup&&<label className="desk-search"><Search size={18}/><input type="search" value={deskQuery} placeholder={t('desk.search')} aria-label={t('desk.search')} onChange={e=>setDeskQuery(e.target.value)}/></label>}
   <div className="top-header-actions">
    {shell&&<div className="shell-menu">
     <button className="quiet-button tt-pressable" aria-label={t('shell.menu')} title={t('shell.menu')} aria-expanded={shellOpen} onClick={()=>setShellOpen(v=>!v)}><MoreHorizontal size={20}/></button>
@@ -316,7 +334,8 @@ export default function Studio(){
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
   </div>
  </header>
- <main className={'main-content '+(!author?'listener-main':'')} data-view={view}>
+ <main className={'main-content '+(!author?'listener-main':'')+(desk&&deskNeedle?' is-searching':'')} data-view={view}>
+ {desk&&deskNeedle&&data&&<section className="desk-results">{deskFound.length?<DeskShelf title={t('desk.found',{n:deskFound.length})} posts={deskFound} onOpen={p=>openPost(p)}/>:<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}</section>}
  {error&&<div className="error-box" role="alert">{error}<button onClick={()=>void load()}>{t('common.retry')}</button></div>}
  {!data&&!error&&<div className="loading-state"><Loader2 className="spin"/>{t('common.loading')}</div>}
  {data?.needsSetup&&<section className="setup-card"><span className="eyebrow">{t('setup.eyebrow')}</span><h1 className="wrap-lines">{t('setup.title')}</h1><p>{t('setup.text')}</p>{data.signedIn?<button className="primary-button" onClick={()=>void setup()} disabled={saving}>{t('setup.cta')}<ArrowUpRight size={18}/></button>:<a className="primary-button" href="/login">{t('common.login')}</a>}<small>{t('setup.note')}</small></section>}
@@ -336,7 +355,11 @@ export default function Studio(){
  {/* Счётчики разделов переехали сюда со страницы записи: сама страница ушла,
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
- {view==='home'&&!author&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
+ {view==='home'&&!author&&desk&&<DeskHome posts={homePosts} live={liveStatus} onOpen={openPost} onOpenLive={openLive} noHero={liveArchiveIds}
+  onShare={p=>void share(postPath(p.id),p.title)} onGoto={goto}
+  liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
+  pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null}/>}
+ {view==='home'&&!author&&!desk&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
   archive={<button type="button" className="support-strip archive-strip tt-pressable" onClick={()=>{haptic();setArchiveOpen(true);goto('live');
     // С главной человек идёт именно за записями: подводим к списку сразу,
     // иначе он открывается ниже сгиба и выглядит как «ничего не произошло».
@@ -503,7 +526,7 @@ export default function Studio(){
  ]}/> }
  </div>
  <input type="file" accept="audio/*,.mp3,.wav,.m4a,.webm,.ogg,.flac" ref={fileInput} onChange={pickFile} hidden/>
- {playing&&<PodcastPlayer key={playing.id+':'+playFrom} src={'/api/audio?id='+playing.id} title={playing.title} duration={playing.duration} cover={coverSrc(playing,960)||undefined} note={playing.description||undefined} archived={isLiveArchive(playing.audioKey)} onDonate={canDonate?()=>{haptic();setDonateOpen(true);}:undefined} from={playFrom} onShare={()=>void share(postPath(playing.id),playing.title)}
+ {playing&&<PodcastPlayer key={playing.id+':'+playFrom} desk={desk} src={'/api/audio?id='+playing.id} title={playing.title} duration={playing.duration} cover={coverSrc(playing,960)||undefined} note={playing.description||undefined} archived={isLiveArchive(playing.audioKey)} onDonate={canDonate?()=>{haptic();setDonateOpen(true);}:undefined} from={playFrom} onShare={()=>void share(postPath(playing.id),playing.title)}
   next={(()=>{const after=nextEpisode(sectionOrder,playing.id);return after?{id:after.id,title:after.title,duration:after.duration,cover:coverSrc(after,320)||undefined}:null;})()}
   onNext={id=>{const post=(data?.items??[]).find(p=>p.id===id);if(post)playPost(post);}} audioRef={player} autoplay={playerAutoplay} expanded={playerExpanded} onExpand={setPlayerExpanded} onClose={()=>{stopNativePlayer();player.current?.pause();setPlaying(null);}}/>}
  <Dialog open={!!editor} onOpenChange={o=>{if(!o&&!saving){setEditor(null);}}}><DialogContent className="editor-dialog" onInteractOutside={e=>{if(dirty||saving)e.preventDefault();}} onEscapeKeyDown={e=>{if(dirty||saving)e.preventDefault();}} showCloseButton={!saving&&!dirty}><DialogHeader><DialogTitle>{editing?t('editor.editing'):editor==='story'?t('editor.newStory'):editor==='video'?t('editor.newVideo'):t('editor.newPodcast')}</DialogTitle><DialogDescription>{editor==='story'?t('editor.storyHint'):editor==='video'?t('editor.videoHint'):t('editor.podcastHint')}</DialogDescription></DialogHeader><label className="field">{t('editor.title')}<input value={title} maxLength={160} onChange={e=>{setTitle(e.target.value);setDirty(true);}} placeholder={editor==='story'?t('editor.titleStory'):editor==='video'?t('editor.titleVideo'):t('editor.titleEpisode')}/></label><label className="field">{t('editor.description')}<textarea value={description} maxLength={2000} rows={2} onChange={e=>{setDescription(e.target.value);setDirty(true);}} placeholder={t('editor.descriptionPlaceholder')}/></label>{editor==='podcast'&&<fieldset className={'field audio-type'+(categoryError?' is-error':'')} aria-invalid={categoryError||undefined}>

@@ -43,7 +43,11 @@ export type PlayerActions={
  donate?:()=>void;
 };
 const RING=2*Math.PI*46;
-export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode}){
+/** desk — слушатель на ПК (концепция «Студия звука»): свёрнутый плеер —
+ *  полоса во всю ширину внизу экрана, развёрнутый — обложка слева, название и
+ *  управление по центру, «Дальше» справа. Телефон и приложение desk не
+ *  получают никогда. */
+export function PlayerChrome({view,act,expanded,onExpand,children,desk=false}:{view:PlayerView;act:PlayerActions;expanded:boolean;onExpand:(next:boolean)=>void;children?:React.ReactNode;desk?:boolean}){
  const {t}=useT();
  // Описание в плеере обрезано двумя строками: нажатие раскрывает его целиком.
  const [noteOpen,setNoteOpen]=useState(false);
@@ -112,6 +116,27 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   setSwipe({x:0});
   if(from?.axis==='horizontal'&&swipeCloses(from.dx,document.body.clientWidth||window.innerWidth)){haptic();act.close();}
  };
+ const seekSlider=<Slider aria-label={t('player.seekAria')} aria-valuetext={t('player.seekValue',{position:clock(view.position),duration:clock(view.duration)})} value={[Math.min(view.position,view.duration||0)]} min={0} max={view.duration||1} step={0.1} disabled={!view.seekable} onValueChange={v=>(act.scrub??act.seekTo)(v[0])} onValueCommit={v=>act.seekTo(v[0])}/>;
+ const rateSelect=<select className="player-extra-select" aria-label={t('player.rate')} value={view.rate} onChange={e=>act.setRate(Number(e.target.value))}>{[.75,1,1.25,1.5,1.75,2].map(value=><option key={value} value={value}>{value}×</option>)}</select>;
+ const sleepSelect=<select className="player-extra-select" aria-label={t('player.sleep')} value={view.sleepValue} onChange={e=>act.setSleep(e.target.value)}>{view.sleepOptions.map(o=><option key={String(o.value)} value={o.value}>{o.label}</option>)}</select>;
+ // ПК: свёрнутый плеер — полоса внизу экрана. Слева выпуск (нажатие
+ // разворачивает), по центру перемотка и полоса времени, справа скорость,
+ // таймер, поделиться, развернуть и закрыть.
+ if(!expanded&&desk)return <section className="podcast-player desk-player-bar" onClickCapture={tactile} aria-label={t('player.aria',{title:view.title})}>
+  {children}
+  <button type="button" className="desk-bar-now" aria-label={t('player.expand')} onClick={()=>onExpand(true)}>{art}<span className="desk-bar-copy"><strong>{view.title}</strong><span>{view.kindLabel}</span></span></button>
+  <div className="desk-bar-mid">
+   <div className="desk-bar-transport"><button type="button" onClick={()=>act.seekBy(-15)} disabled={!view.seekable} aria-label={t('player.back15')}><RotateCcw size={18}/></button>{toggle}<button type="button" onClick={()=>act.seekBy(15)} disabled={!view.seekable} aria-label={t('player.forward15')}><RotateCw size={18}/></button></div>
+   <div className="desk-bar-line"><span>{clock(view.position)}</span>{seekSlider}<span>{total}</span></div>
+  </div>
+  <div className="desk-bar-right">
+   <label className="desk-bar-extra" title={t('player.rate')}><span>{view.rate}×</span>{rateSelect}</label>
+   <label className={'desk-bar-extra'+(sleepSet?' is-set':'')} title={t('player.sleep')}><Timer size={18}/>{sleepSet&&<span>{sleepLabel}</span>}{sleepSelect}</label>
+   {act.share&&<button type="button" className="desk-bar-icon" aria-label={t('share.action')} title={t('share.action')} onClick={()=>act.share!()}><Share2 size={18}/></button>}
+   <button type="button" className="desk-bar-icon" aria-label={t('player.expand')} title={t('player.expand')} onClick={()=>onExpand(true)}><ChevronUp size={20}/></button>
+   <button type="button" className="desk-bar-icon" aria-label={t('player.close')} title={t('player.close')} onClick={()=>act.close()}><X size={19}/></button>
+  </div>
+ </section>;
  if(!expanded)return <section className={'podcast-player is-mini'+(swipe.x?' is-swiping':'')}
   style={swipe.x?{transform:'translateX('+swipe.x+'px)',opacity:swipeFade(swipe.x,document.body.clientWidth||window.innerWidth)}:undefined}
   onTouchStart={swipeStart} onTouchMove={swipeMove} onTouchEnd={swipeEnd} onTouchCancel={swipeEnd}
@@ -121,7 +146,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
   {toggle}
   <button type="button" className="player-expand" aria-label={t('player.expand')} onClick={()=>onExpand(true)}><ChevronUp size={22}/></button>
  </section>;
- return <section className={'podcast-player is-open is-'+view.presentation+(bare?' is-bare':'')} onClickCapture={tactile} onClick={toggleBare} aria-label={t('player.aria',{title:view.title})}>
+ return <section className={'podcast-player is-open is-'+view.presentation+(bare?' is-bare':'')+(desk?' desk-player-open':'')} onClickCapture={tactile} onClick={toggleBare} aria-label={t('player.aria',{title:view.title})}>
   {children}
   {/* Фон плеера — размытая копия обложки. Сама обложка стоит в колонке
       плеера (player-cover ниже): целиком, своей пропорцией, между кнопками
@@ -194,7 +219,7 @@ export function PlayerChrome({view,act,expanded,onExpand,children}:{view:PlayerV
     </label>
    </div>
    {view.message&&<p className="podcast-player-message" role="status">{view.message}</p>}
-   {type&&view.next&&act.openNext&&<button type="button" className="player-next tt-pressable" onClick={()=>act.openNext!(view.next!.id)}>
+   {(type||desk)&&view.next&&act.openNext&&<button type="button" className="player-next tt-pressable" onClick={()=>act.openNext!(view.next!.id)}>
     <span className="player-next-label">{t('player.next')}</span>
     <span className="player-next-row">
      <Artwork src={view.next.cover} loading="lazy" fallback={<span className="player-next-mark"/>}/>

@@ -12,7 +12,9 @@ try{
  browser=await chromium.launch({args:['--no-sandbox']});await mkdir('outputs/home-depth',{recursive:true});
  const lock=JSON.parse(await readFile('tests/fixtures/layout-lock.json','utf8'));
  for(const [w,h] of [[320,568],[360,640],[390,844],[412,915],[1024,573]]){
-  const context=await browser.newContext({viewport:{width:w,height:h},hasTouch:w<768,isMobile:w<768});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  // 1024 — сенсорный планшет: телефонную главную получает он, а ПК с мышью —
+  // свой каркас «Студия звука» (tests/desk-layout.mjs).
+  const context=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',async route=>{const u=new URL(route.request().url());
    if(u.pathname==='/api/library')return route.fulfill({json:library});
    if(u.pathname==='/api/cover')return route.fulfill({contentType:'image/jpeg',body:await readFile('tests/fixtures/demo-covers/'+(u.search.includes('0')?'hero-lake.jpg':'tile-mountains.jpg'))});
