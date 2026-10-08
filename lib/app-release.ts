@@ -10,11 +10,11 @@
  * тест не пройдёт.
  */
 export const APP_RELEASE={
- version:'0.9.2',
- versionCode:22,
+ version:'0.9.4',
+ versionCode:24,
  /** Путь внутри сайта; он же имя файла в public/app. */
- href:'/app/TrueThrills-0.9.2.apk',
- bytes:5080563,
- sha256:'1064aee67da890226879bb735f746a779afb52ea3691801914de43b0efd5c526',
- builtAt:'2026-09-15',
+ href:'/app/TrueThrills-0.9.4.apk',
+ bytes:5075651,
+ sha256:'fcb3d060792ec57403c56412362b642ba7311fe204123050d96d09ce365a38aa',
+ builtAt:'2026-10-08',
 } as const;
