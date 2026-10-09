@@ -14,15 +14,15 @@ jobs:
     # Браузерные наборы, дизайн, читалка, плеер и главная идут друг за другом.
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
       # Решения об уведомлениях в приложении Android вынесены в чистый класс
       # без Android: tests/integration/android-push-logic.mjs компилирует его настоящим
       # javac и гоняет на JVM, поэтому SDK и эмулятор не нужны.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -64,7 +64,7 @@ jobs:
       - run: npm run test:design
       - name: Reader, player and home regressions
         run: npm run test:reader && npm run test:player-enhancements && npm run test:home-depth
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: TrueThrills-UI-checks

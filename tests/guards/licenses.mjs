@@ -63,7 +63,9 @@ for(const [file,what] of DOCUMENTS){
  assert.ok(text.includes(HOLDER),'правообладатель не назван: '+what+' ('+file+')');
 }
 const documents=new Set([...DOCUMENTS.map(([file])=>file),'tests/guards/licenses.mjs']);
-const tracked=execFileSync('git',['ls-files','-z'],{cwd:root,maxBuffer:1<<26}).toString('utf8').split('\0').filter(Boolean);
+// И новые файлы, ещё не добавленные в git (кроме игнорируемых): имя должно
+// ловиться до коммита, а не в CI.
+const tracked=[...new Set(execFileSync('git',['ls-files','-z','--cached','--others','--exclude-standard'],{cwd:root,maxBuffer:1<<26}).toString('utf8').split('\0').filter(Boolean))];
 assert.ok(tracked.length>200,'список файлов проекта не прочитан: '+tracked.length);
 const leaked=tracked.filter(file=>{
  if(documents.has(file))return false;

@@ -96,8 +96,8 @@ Set-ExecutionPolicy -Scope Process Bypass -Force; $f=$null; foreach($r in 'D:\',
    - со снимка экрана декодируется, но с настоящего телефона ещё не сканировался.
 7. **Раскладка репозитория** — карта в `README.md`:
    - `server/`, `tools/windows/`, `tools/dev/`;
-   - `tests/unit|integration|browser|sweeps|guards`;
-   - `docs/owner|releases|operations|audits|legal|design`.
+   - проверки — `tests/unit/`, `tests/integration/`, `tests/browser/`, `tests/sweeps/`, `tests/guards/`;
+   - документы — `docs/owner/`, `docs/releases/`, `docs/operations/`, `docs/audits/`, `docs/legal/`, `docs/design/`.
    - Сторожа порядка: `tests/guards/suite-complete.mjs`, `tests/guards/compat-shims.mjs`, `tests/guards/doc-links.mjs`.
    - Переезд сервера на новую раскладку проверен сквозным прогоном и подтверждён настоящим обновлением владельца.
 8. **ECC-роли** — шесть помощников и порядок работы `tt-ecc-workflow` в `.claude/`, подробно в `docs/owner/ECC-SETUP-RU.md`.

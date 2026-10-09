@@ -20,7 +20,10 @@ import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
-const tracked = execFileSync('git', ['-c', 'core.quotepath=off', 'ls-files'], {cwd: root}).toString().split('\n').filter(Boolean);
+// Файлы репозитория и новые, ещё не добавленные в git (кроме игнорируемых):
+// иначе документ проверяется только после git add, и ошибка в нём доезжает
+// до CI — так и случилось с HANDOFF-RU.md 9 октября.
+const tracked = [...new Set(execFileSync('git', ['-c', 'core.quotepath=off', 'ls-files', '--cached', '--others', '--exclude-standard'], {cwd: root}).toString().split('\n').filter(Boolean))];
 const files = new Set(tracked);
 const dirs = new Set(tracked.flatMap((f) => f.split('/').slice(0, -1).map((_, i, a) => a.slice(0, i + 1).join('/'))));
 const broken = [];
