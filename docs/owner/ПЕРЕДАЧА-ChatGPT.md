@@ -177,8 +177,8 @@ Get-ChildItem -Recurse -Filter *.ps1 | Unblock-File
 
 1. GitHub → репозиторий → **Actions** → слева **Build Android APK**.
 2. Кнопка **Run workflow**, в списке ветку **`design/six-screens`**, запустить.
-   По этой ветке автосборки нет — только руками; сама по себе она запускается
-   только на `truethrills-app`.
+   Сама она запускается при правках `android/` в этой ветке, но без выкладки
+   на сайт; выложить — только руками, с отметкой publish.
 3. Несколько минут. Когда прогон позеленеет — открыть его и внизу, в
    **Artifacts**, скачать `TrueThrills-Android-apk`. Внутри
    `TrueThrills-Android-0.9.2.apk`.
