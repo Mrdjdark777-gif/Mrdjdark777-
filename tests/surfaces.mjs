@@ -74,7 +74,7 @@ try{
     const shown=el=>!!el&&getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>0;
     const navBox=nav?.getBoundingClientRect();
     return {cls:shell?.className??'',nav:shown(nav),navSide:navBox?(navBox.width<160&&navBox.height>navBox.width):false,rail:shown(rail),railDom:!!rail,
-     app:!!document.querySelector('.desk-app'),shellMenu:!!document.querySelector('.shell-menu'),
+     app:!!document.querySelector('.desk-app'),footApp:!!document.querySelector('.site-footer-app'),shellMenu:!!document.querySelector('.shell-menu'),
      scroll:document.documentElement.scrollWidth-innerWidth,
      // Кнопки карточки выпуска не выходят за её край (поделиться, слушать).
      spill:[...document.querySelectorAll('.post-card')].flatMap(c=>{const r=c.getBoundingClientRect();return [...c.querySelectorAll('button,a')].filter(b=>{const q=b.getBoundingClientRect();return q.width>0&&(q.right>r.right+1||q.left<r.left-1);}).map(b=>(b.getAttribute('aria-label')||b.textContent.trim()).slice(0,30));}).slice(0,3)};});
@@ -86,6 +86,7 @@ try{
    if(s.nav==='none')check(!st.nav,at+'на ПК видна телефонная панель разделов');
    if(s.nav==='studio')check(st.nav&&st.navSide,at+'у студии на ПК нет боковой панели студии');
    if(s.rail)check(st.app===s.app,at+(s.app?'в меню нет «Скачать приложение»':'внутри программы для ПК предлагается скачать приложение'));
+   if(s.exe)check(!st.footApp,at+'в подвале программы для ПК предлагается скачать приложение');
    if(s.exe&&s.owner)check(st.shellMenu,at+'в программе для ПК нет меню программы');
    check(st.scroll<=1,at+'страница шире экрана на '+st.scroll+'px');
    check(st.spill.length===0,at+'кнопки карточки за её краем: '+st.spill.join(', '));
@@ -109,9 +110,9 @@ try{
    const stuck=await page.evaluate(()=>!!document.querySelector('.video-frame,.video-dialog'));
    check(!stuck,s.name+': видео не закрывается по Escape (фокус ушёл в плеер?)');
    if(stuck){await ctx.close();continue;}
-   await page.locator('.desk-support-button').click();await page.waitForTimeout(600);
+   await page.locator('.top-header .support-button').click();await page.waitForTimeout(600);
    const dialog=await page.evaluate(()=>{const d=document.querySelector('[role=dialog]');return !!d&&getComputedStyle(d).display!=='none';});
-   check(dialog,s.name+': кнопка «Поддержать» в меню не открыла окно площадок');
+   check(dialog,s.name+': сердечко «Поддержать» вверху не открыло окно площадок');
    if(dialog)check(await covered(),s.name+': боковое меню торчит поверх окна поддержки');
    await page.keyboard.press('Escape');await page.waitForTimeout(400);
   }

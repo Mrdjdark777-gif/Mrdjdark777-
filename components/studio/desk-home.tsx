@@ -10,24 +10,30 @@ import {Artwork} from './artwork';
 
 /**
  * Главная слушателя на ПК (концепция «Студия звука», выбрана владельцем
- * 8 октября): широкий баннер с постером, под ним строка с типом, названием и
- * кнопками, ниже — полки выпусков по одному ряду.
+ * 8 октября; первый экран переделан 9 октября).
  *
- * Постер показывается целиком, без обрезки, — на нём своя надпись, и поверх
- * неё мы ничего не кладём (то же правило, что на телефоне). Бока баннера
- * заполняет размытая копия той же картинки.
+ * Первый экран — ровно высота окна: сверху обложка во всю ширину, под ней
+ * строка с типом, названием и кнопками, под строкой полка «Новое» целиком.
+ * Обложка забирает всё место, что остаётся, — полка не уходит за край экрана
+ * ни на каком окне.
+ *
+ * Поверх обложки ничего не кладём: на ней своя надпись (выбор владельца —
+ * «под обложкой, поверх ничего»). Обложка — отдельная картинка 16:9 из
+ * студии; нет её — постер или обложка выпуска целиком на размытом фоне.
+ *
+ * Ниже первого экрана — полки разделов по одному ряду.
  *
  * Телефон и планшет этот компонент не видят: им — HomeSceneView.
  */
 type Live={id:string;title:string;cover:boolean};
 export type DeskPost=ScenePost&{audioKey?:string|null};
 
-export function DeskTile<T extends DeskPost>({post,onOpen}:{post:T;onOpen:(p:T)=>void}){
+export function DeskTile<T extends DeskPost>({post,onOpen,wide}:{post:T;onOpen:(p:T)=>void;wide?:boolean}){
  const {t,tag}=useT();
  const meta=post.duration>0?clock(post.duration):new Date(post.createdAt).toLocaleDateString(tag);
- return <button type="button" className="desk-tile" title={post.title} onClick={()=>{haptic();onOpen(post);}}>
+ return <button type="button" className={'desk-tile'+(wide?' is-wide':'')} title={post.title} onClick={()=>{haptic();onOpen(post);}}>
   <span className="desk-cover">
-   <Artwork src={coverSrc(post,480)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
+   <Artwork src={coverSrc(post,wide?640:480)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
    <span className="desk-tag">{t(kindTagKey(post))}</span>
    <span className="desk-tile-play" aria-hidden="true"><Play size={16} fill="currentColor"/></span>
   </span>
@@ -45,9 +51,9 @@ export function DeskShelf<T extends DeskPost>({title,posts,onOpen,onAll,allLabel
  </section>;
 }
 
-export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpenLive,onShare,onGoto,pinned,poster,noHero}:{
+export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpenLive,onShare,onGoto,pinned,poster,wide,noHero}:{
  posts:T[];live:Live|null;liveAction:string;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;
- onShare:(post:T)=>void;onGoto:(view:string)=>void;pinned?:string|null;poster?:{post:string;src:string}|null;noHero?:string[];
+ onShare:(post:T)=>void;onGoto:(view:string)=>void;pinned?:string|null;poster?:{post:string;src:string}|null;wide?:{post:string;src:string}|null;noHero?:string[];
 }){
  const {t}=useT();
  const [progress,setProgress]=useState<ReturnType<typeof readProgress>>([]);
@@ -62,6 +68,7 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
  const resume=picked.resume?{...picked.resume,post:posts.find(p=>p.id===picked.resume!.post.id)!}:null;
  const heroResume=resume?.post.id===hero?.id?resume:null;
  const heroCover=hero?heroPicture(hero.id,poster,coverSrc(hero)):'';
+ const heroWide=hero&&wide&&wide.post===hero.id?wide.src:'';
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
  const archives=new Set(noHero??[]);
  const published=posts.filter(p=>p.published===1).sort((a,b)=>b.createdAt-a.createdAt);
@@ -75,9 +82,10 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
    <span className="desk-onair-action">{liveAction}<ChevronRight size={18}/></span>
   </button>}
   {hero?<section className="desk-hero">
-   <button type="button" className="desk-banner" aria-label={heroAction+' · '+hero.title} onClick={()=>{haptic();onOpen(hero,!!heroResume);}}>
-    {heroCover&&<img className="desk-banner-blur" src={heroCover} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>}
-    <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/>
+   <button type="button" className={'desk-banner'+(heroWide?' is-wide':'')} aria-label={heroAction+' · '+hero.title} onClick={()=>{haptic();onOpen(hero,!!heroResume);}}>
+    {heroWide?<img className="desk-banner-wide" src={heroWide} alt="" referrerPolicy="no-referrer"/>:<>
+     {heroCover&&<img className="desk-banner-blur" src={heroCover} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>}
+     <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/></>}
    </button>
    <div className="desk-hero-bar">
     <div className="desk-hero-copy">
@@ -90,11 +98,12 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
      <button type="button" className="desk-ghost" onClick={()=>{haptic();onShare(hero);}}><Share2 size={17}/>{t('share.action')}</button>
     </div>
    </div>
+   <DeskShelf title={t('home.freshList')} posts={fresh} onOpen={p=>onOpen(p)}/>
   </section>:<section className="desk-hero is-empty"><h1 className="desk-hero-title">{t('home.emptyTitle')}</h1><p className="desk-hero-note">{t('home.emptyNote')}</p></section>}
   {resume&&!heroResume&&<button type="button" className="desk-resume" onClick={()=>{haptic();onOpen(resume.post,true);}}>
    <Clock size={18}/><span>{t('home.continue')}</span><strong>{resume.post.title}</strong><span className="desk-resume-time">{clock(resume.position)}</span><ChevronRight size={17}/>
   </button>}
-  <DeskShelf title={t('home.freshList')} posts={fresh} onOpen={p=>onOpen(p)}/>
+  {!hero&&<DeskShelf title={t('home.freshList')} posts={fresh} onOpen={p=>onOpen(p)}/>}
   <DeskShelf title={t('nav.podcasts')} posts={ofKind('podcast')} onOpen={p=>onOpen(p)} onAll={()=>onGoto('podcasts')} allLabel={t('desk.seeAll')}/>
   <DeskShelf title={t('nav.videos')} posts={ofKind('video')} onOpen={p=>onOpen(p)} onAll={()=>onGoto('videos')} allLabel={t('desk.seeAll')}/>
   <DeskShelf title={t('nav.stories')} posts={ofKind('story')} onOpen={p=>onOpen(p)} onAll={()=>onGoto('stories')} allLabel={t('desk.seeAll')}/>

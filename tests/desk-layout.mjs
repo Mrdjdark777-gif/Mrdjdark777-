@@ -10,7 +10,14 @@
  * Проверяется на настоящей сборке в Chromium, 1280×800 — 2560×1440:
  * - каркас .is-desk, меню слева (первая — «Главная»), нижней панели нет;
  * - нигде нет прокрутки вбок и ничего не уходит за край;
- * - постер в баннере целиком: своя пропорция, в границах баннера;
+ * - первый экран (9 октября): обложка во всю ширину без ничего поверх,
+ *   под ней название и полка «Новое» — целиком в окне; обложка 16:9 из
+ *   студии ложится на весь баннер, без неё постер целиком;
+ * - меню: без карточки поддержки, «Скачать приложение» — заметной карточкой
+ *   без номера сборки, YouTube — отдельной кнопкой; в подвале ни номера,
+ *   ни «Поддержать»;
+ * - разделы — витрина: крупно последний выпуск, переключатели типа и
+ *   порядка, сетка плиток; карточек телефонного списка нет;
  * - полка — один ряд плиток;
  * - поиск сверху ищет по всем разделам и возвращает главную, когда стёрт;
  * - плеер: полоса внизу во всю ширину, меню над ней не заходит под неё;
@@ -85,7 +92,20 @@ try{
    return {natural:img.naturalWidth/img.naturalHeight,shown:ir.width/ir.height,inside:ir.left>=br.left-1&&ir.right<=br.right+1&&ir.top>=br.top-1&&ir.bottom<=br.bottom+1,fit:getComputedStyle(img).objectFit,h:Math.round(br.height)};});
   check(banner,at+'на главной нет баннера с постером');
   if(banner){check(Math.abs(banner.shown-banner.natural)/banner.natural<0.02&&banner.fit!=='cover',at+'постер в баннере искажён или обрезан: пропорция '+banner.shown.toFixed(3)+' вместо '+banner.natural.toFixed(3)+', object-fit '+banner.fit);
-   check(banner.inside,at+'постер вылез за баннер');check(banner.h>=280&&banner.h<=0.62*h,at+'баннер высотой '+banner.h+' при экране '+h);}
+   check(banner.inside,at+'постер вылез за баннер');check(banner.h>=240,at+'баннер высотой '+banner.h+' при экране '+h);}
+  // Первый экран: обложка во всю ширину содержимого, «Новое» целиком в окне,
+  // поверх обложки — ничего (строка названия ниже её нижнего края).
+  const first=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),rail=document.querySelector('.desk-rail').getBoundingClientRect(),
+   shelf=document.querySelector('.desk-hero>.desk-shelf')?.getBoundingClientRect(),bar=document.querySelector('.desk-hero>.desk-hero-bar')?.getBoundingClientRect();
+   return b&&shelf&&bar?{left:Math.round(b.left),right:Math.round(b.right),rail:Math.round(rail.right),shelfBottom:Math.round(shelf.bottom),barTop:Math.round(bar.top),bannerBottom:Math.round(b.bottom),
+    title:document.querySelector('.desk-hero>.desk-shelf h2')?.textContent}:null;});
+  check(first,at+'на первом экране нет обложки, строки названия или полки «Новое»');
+  if(first){
+   check(first.title==='Новое',at+'под обложкой не «Новое», а '+first.title);
+   check(first.shelfBottom<=h,at+'полка «Новое» обрезана низом окна: низ полки '+first.shelfBottom+' при окне '+h);
+   check(first.barTop>=first.bannerBottom,at+'название легло на обложку');
+   if(w<1944)check(first.left===first.rail&&first.right===w,at+'обложка не во всю ширину: '+first.left+'–'+first.right+' при меню до '+first.rail);
+  }
   // Полки — по одному ряду.
   const rows=await page.evaluate(()=>[...document.querySelectorAll('.desk-row')].map(r=>{const tops=[...r.children].map(c=>c.getBoundingClientRect()).filter(b=>b.height>0).map(b=>Math.round(b.top));return {n:tops.length,total:r.children.length,rows:new Set(tops).size};}));
   check(rows.length>=2,at+'на главной меньше двух полок: '+rows.length);
@@ -94,6 +114,18 @@ try{
   const align=await page.evaluate(()=>({search:Math.round(document.querySelector('.desk-search')?.getBoundingClientRect().left??-1),main:Math.round(document.querySelector('.desk-home')?.getBoundingClientRect().left??-999)}));
   check(Math.abs(align.search-align.main)<=2,at+'поиск и содержимое начинаются с разных мест: '+align.search+' и '+align.main);
   if(w===1440){
+   // Меню и подвал — по замечаниям владельца 9 октября.
+   const rail=await page.evaluate(()=>{const app=document.querySelector('.desk-rail .desk-app'),yt=document.querySelector('.desk-rail .desk-youtube'),foot=document.querySelector('.site-footer');
+    return {support:!!document.querySelector('.desk-rail .desk-support,.desk-rail .desk-support-button'),appText:app?.textContent??'',appH:Math.round(app?.getBoundingClientRect().height??0),
+     yt:yt?.getAttribute('href')??'',ytIcon:!![...document.querySelectorAll('.desk-rail .desk-social')].find(a=>/youtube/.test(a.getAttribute('href')??'')),
+     foot:foot?.textContent??'',footGlow:!!foot?.querySelector('.donation-glow,[class*=glow]')};});
+   check(!rail.support,at+'в боковом меню снова карточка поддержки');
+   check(rail.appH>=120,at+'«Скачать приложение» в меню — не заметная карточка, высота '+rail.appH);
+   check(!/\d+\.\d+\.\d+/.test(rail.appText),at+'у «Скачать приложение» в меню номер сборки: '+rail.appText);
+   check(/youtube\.com/.test(rail.yt),at+'в меню нет кнопки YouTube');
+   check(!rail.ytIcon,at+'YouTube продублирован значком рядом с кнопкой');
+   check(!/\d+\.\d+\.\d+/.test(rail.foot),at+'в подвале номер сборки: '+rail.foot);
+   check(!/Поддержать/.test(rail.foot)&&!rail.footGlow,at+'в подвале снова «Поддержать» с подсветкой');
    // Поиск по всем разделам.
    await page.fill('.desk-search input','ледян');await page.waitForTimeout(300);
    const found=await page.evaluate(()=>({titles:[...document.querySelectorAll('.desk-results .desk-tile strong')].map(e=>e.textContent),home:!!document.querySelector('.desk-home')&&getComputedStyle(document.querySelector('.desk-home')).display!=='none'}));
@@ -114,7 +146,46 @@ try{
     check(bar.railBottom<=h-bar.h+1,at+'боковое меню заходит под полосу плеера: низ меню '+bar.railBottom+', верх полосы '+(h-bar.h));
     check(bar.toggle&&bar.slider,at+'в полосе плеера нет кнопки воспроизведения или полосы времени');}
   }
+  if(w===1440){
+   // Раздел — витрина: крупно последний, переключатели, сетка.
+   await page.goto(base+'/?mode=listen&view=podcasts');await ready(page);
+   const shop=await page.evaluate(()=>({feature:document.querySelector('.desk-feature-title')?.textContent??'',cards:document.querySelectorAll('.post-card').length,
+    chips:[...document.querySelectorAll('.desk-chip')].map(c=>c.textContent),
+    cols:new Set([...document.querySelectorAll('.desk-grid>.desk-tile')].map(t=>Math.round(t.getBoundingClientRect().top))).size,tiles:document.querySelectorAll('.desk-grid>.desk-tile').length}));
+   check(shop.feature==='Ледник',at+'в «Аудио» крупно не последний выпуск: '+shop.feature);
+   check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
+   check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
+   check(shop.tiles===titles.length-1,at+'в сетке '+shop.tiles+' плиток, ждали '+(titles.length-1)+' (все, кроме крупного)');
+   check(shop.cols<shop.tiles,at+'сетка витрины идёт одной колонкой');
+   await page.locator('.desk-chip',{hasText:'Музыка'}).click();await page.waitForTimeout(200);
+   const music=await page.evaluate(()=>[...document.querySelectorAll('.desk-grid .desk-tag')].map(e=>e.textContent));
+   check(music.length===titles.filter((_,n)=>n%3===2).length&&music.every(x=>/музыка/i.test(x)),at+'«Музыка» показывает не только музыку: '+music.join(', '));
+   await page.locator('.desk-chip',{hasText:'Все'}).click();await page.locator('.desk-chip',{hasText:'Сначала старые'}).click();await page.waitForTimeout(200);
+   const oldest=await page.evaluate(()=>document.querySelector('.desk-grid .desk-tile strong')?.textContent);
+   check(oldest==='Плот',at+'«Сначала старые» начинает не с первого выпуска: '+oldest);
+   await page.goto(base+'/?mode=listen&view=videos');await ready(page);
+   const video=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect();return c?c.width/c.height:0;});
+   check(Math.abs(video-16/9)<0.02,at+'у видео крупная обложка не 16:9: '+video.toFixed(3));
+  }
   check(errors.length===0,at+'ошибки страницы: '+errors.join('; '));
+  await ctx.close();
+ }
+ // Обложка 16:9 из студии: ложится на весь баннер; снимается; сервер отдаёт её всем.
+ {
+  const raft=lib.items.find(p=>p.title==='Плот').id;
+  await post({action:'hero',id:raft,wide:await cover('hero-lake.jpg')});
+  const data=await (await fetch(base+'/api/library')).json();
+  check(data.posterWide?.post===raft,'сервер не отдаёт обложку 16:9 гостю: '+JSON.stringify(data.posterWide));
+  check((await fetch(base+'/api/cover?id=hero-wide&v=1')).status===200,'адрес обложки 16:9 не отвечает');
+  const ctx=await browser.newContext({viewport:{width:1440,height:900},locale:'ru-RU'});const page=await ctx.newPage();
+  await page.goto(base+'/?mode=listen&view=home');await ready(page);
+  await page.waitForFunction(()=>document.querySelector('.desk-banner-wide')?.complete,null,{timeout:15000}).catch(()=>{});
+  const wide=await page.evaluate(()=>{const b=document.querySelector('.desk-banner')?.getBoundingClientRect(),img=document.querySelector('.desk-banner img.desk-banner-wide');
+   const r=img?.getBoundingClientRect();return img&&b?{fit:getComputedStyle(img).objectFit,fills:Math.abs(r.width-b.width)<=1&&Math.abs(r.height-b.height)<=1,blur:!!document.querySelector('.desk-banner .desk-banner-blur')}:null;});
+  check(wide,'обложка 16:9 загружена, а на главной ПК её нет');
+  if(wide){check(wide.fit==='cover'&&wide.fills,'обложка 16:9 не на весь баннер: '+JSON.stringify(wide));check(!wide.blur,'под обложкой 16:9 лишний размытый фон');}
+  await post({action:'hero',id:raft,wide:''});
+  check(!(await (await fetch(base+'/api/library')).json()).posterWide,'обложка 16:9 не снимается');
   await ctx.close();
  }
  // Телефон и сенсорный планшет — без каркаса ПК.
@@ -126,5 +197,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой, YouTube кнопкой, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 16:9 из студии, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

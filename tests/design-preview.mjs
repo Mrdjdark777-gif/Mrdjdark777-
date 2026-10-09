@@ -2203,7 +2203,8 @@ try{
    await g.screenshot({path:'outputs/ui/guest-catalog-'+w+'.png',fullPage:true});
    // Каталог сеткой: одной колонкой карточка выпуска пустовала справа на две
    // трети. И подвал на странице должен быть один — их было два подряд.
-   const cat=await g.evaluate(()=>{const cards=[...document.querySelectorAll('.post-card')];
+   // На ПК раздел — витрина (плитки .desk-grid), на планшете — карточки.
+   const cat=await g.evaluate(()=>{const cards=[...document.querySelectorAll('.post-card,.desk-grid>.desk-tile')];
     const tops=new Set(cards.map(c=>Math.round(c.getBoundingClientRect().top)));
     return {cards:cards.length,rows:tops.size,
      feet:[...document.querySelectorAll('.site-footer,.listener-main .content-footer')]

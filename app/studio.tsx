@@ -35,6 +35,7 @@ import {useDesktopApp} from '@/hooks/use-desktop-app';
 import {pushBackLayer,runBack,BACK_OVERLAY,BACK_NAV} from '@/lib/back-stack';
 import {AUDIO_CATEGORIES,audioCategoryOf,kindTagKey} from '@/lib/audio-category';
 import {VoiceHeader} from '@/components/studio/voice-header';
+import {DeskSection} from '@/components/studio/desk-section';
 import {LiveStageView} from '@/components/studio/live-stage-view';
 import {InputPicker,SignalMeter,AudioControls} from '@/components/studio/audio-console';
 import {NotificationSettings} from '@/components/studio/notification-settings';
@@ -43,7 +44,7 @@ import {api,clock,parseClock,errorText,haptic,coverSrc} from '@/lib/client';
 import {VideoFrame} from '@/components/studio/video-player';
 import {APP_RELEASE} from '@/lib/app-release';
 import {AndroidMark} from '@/components/studio/android-mark';
-import {ShieldCheck} from 'lucide-react';
+import {Monitor,ShieldCheck} from 'lucide-react';
 import {markSeen} from '@/lib/seen-posts';
 import {YoutubeIcon,BoostyIcon,PaypalIcon} from '@/components/studio/brand-icons';
 import {SOCIALS,DONATIONS,type SocialKind,type SocialLink,type DonationKind,type DonationLink} from '@/lib/video';
@@ -52,7 +53,7 @@ import {useT} from '@/components/i18n-provider';
 // Текст истории (body) каталог не носит — только начало (excerpt); целиком
 // он приходит, когда историю открывают читать или править (fullPost).
 type Post={usageCount?:number;id:string;kind:string;title:string;description:string;body?:string;excerpt?:string;audioKey:string|null;videoUrl:string|null;coverUrl:string|null;coverKey:string|null;duration:number;published:number;createdAt:number;audioCategory?:string|null};
-type Data={archivePending?:boolean;items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];legal?:{name:string;contact:string};live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;poster?:{post:string;v:string}|null;calmArt?:string|null};
+type Data={archivePending?:boolean;items:Post[];isOwner:boolean;needsSetup:boolean;signedIn:boolean;donations:DonationLink[];links:SocialLink[];legal?:{name:string;contact:string};live:{id:string;title:string;description?:string;startedAt:number|null;cover:boolean}|null;pinned:string|null;poster?:{post:string;v:string}|null;posterWide?:{post:string;v:string}|null;calmArt?:string|null};
 const SOCIAL_ICON:Record<SocialKind,React.ComponentType<{size?:number}>>={youtube:YoutubeIcon,tiktok:Music2,instagram:Camera,telegram:Send,vk:MessageCircle,site:Globe};
 const DONATION_ICON:Record<DonationKind,React.ComponentType<{size?:number}>>={boosty:BoostyIcon,paypal:PaypalIcon};
 const LISTEN_VIEWS=['home','podcasts','videos','stories','live','settings'];
@@ -95,12 +96,13 @@ export default function Studio(){
  // Тип аудиоматериала в форме. У новой записи не выбран: угадывать его нельзя.
  const [audioCategory,setAudioCategory]=useState(''),[categoryError,setCategoryError]=useState(false);
  // Постер главной: тип и выпуск, который открывается нажатием, и сам постер.
- const [heroDraft,setHeroDraft]=useState<{kind:'podcast'|'video'|'story';target:string}|null>(null),[heroFile,setHeroFile]=useState<File|null>(null),[heroPreview,setHeroPreview]=useState('');
+ const [heroDraft,setHeroDraft]=useState<{kind:'podcast'|'video'|'story';target:string}|null>(null),[heroFile,setHeroFile]=useState<File|null>(null),[heroPreview,setHeroPreview]=useState(''),[wideFile,setWideFile]=useState<File|null>(null),[widePreview,setWidePreview]=useState('');
  // Картинка круга покоя живёт под одним адресом, поэтому в ссылку идёт версия:
  // иначе браузер и WebView показывают прежнюю, пока не истечёт их кэш.
  const calmSrc=data?.calmArt?'/api/cover?id=calm&v='+encodeURIComponent(data.calmArt):'';
  // Постер главной — по тому же правилу: адрес один, версия в ссылке.
  const posterSrc=data?.poster?'/api/cover?id=hero&v='+encodeURIComponent(data.poster.v):'';
+ const wideSrc=data?.posterWide?'/api/cover?id=hero-wide&v='+encodeURIComponent(data.posterWide.v):'';
  // Форма постера показывает то, что сейчас закреплено, пока автор ничего в
  // ней не трогал; тронул — держит его выбор до «Сохранить». Раньше форма
  // перезаписывалась при каждой подгрузке данных (раз в 15 секунд и при
@@ -114,7 +116,7 @@ export default function Studio(){
  // Мост появляется только внутри оконного приложения; в браузере кнопок нет.
  const shell=useDesktopApp();
  const [shellOpen,setShellOpen]=useState(false);
- const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),heroInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
+ const capture=useCapture(),live=useLive(),player=useRef<HTMLAudioElement|null>(null),fileInput=useRef<HTMLInputElement|null>(null),coverInput=useRef<HTMLInputElement|null>(null),channelArtInput=useRef<HTMLInputElement|null>(null),calmInput=useRef<HTMLInputElement|null>(null),heroInput=useRef<HTMLInputElement|null>(null),wideInput=useRef<HTMLInputElement|null>(null),liveCoverInput=useRef<HTMLInputElement|null>(null);
  const author=!!data?.isOwner&&!audience;
  // У слушателя страница не прокручивается сама: приложение становится
  // колонкой высотой в окно, а прокручивается только содержимое раздела. Так
@@ -132,7 +134,6 @@ export default function Studio(){
   <a className="support-strip app-strip tt-pressable" href={APP_RELEASE.href} download>
    <AndroidMark/>
    <span className="support-strip-label">{t('app.download')}</span>
-   <span className="support-strip-note">{APP_RELEASE.version}</span>
    <ChevronRight size={18}/>
   </a>):null;
  // Оформление студии — только автору на широком экране. Слушателю страница
@@ -303,9 +304,10 @@ export default function Studio(){
  {/* На ПК у слушателя класс is-desk вместо is-listener: прежние настольные
      правила (.is-listener в медиазапросах) к новому каркасу не относятся. */}
  <div className={'app-shell '+(author?'is-author':desk?'is-desk':'is-listener')+(!author&&!desk&&view==='home'?' is-immersive':'')}>
- {desk&&data&&!data.needsSetup&&<DeskRail view={view} onGoto={goto} onAir={!!liveStatus} onSupport={canDonate?()=>setDonateOpen(true):undefined}
-  app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href,version:APP_RELEASE.version}:null}
-  socials={data.links?.length?data.links.map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
+ {desk&&data&&!data.needsSetup&&<DeskRail view={view} onGoto={goto} onAir={!!liveStatus}
+  app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href}:null}
+  youtube={data.links?.find(l=>l.kind==='youtube')?.url??null}
+  socials={data.links?.some(l=>l.kind!=='youtube')?data.links.filter(l=>l.kind!=='youtube').map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
  {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
@@ -358,7 +360,7 @@ export default function Studio(){
  {view==='home'&&!author&&desk&&<DeskHome posts={homePosts} live={liveStatus} onOpen={openPost} onOpenLive={openLive} noHero={liveArchiveIds}
   onShare={p=>void share(postPath(p.id),p.title)} onGoto={goto}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
-  pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null}/>}
+  pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null} wide={data.posterWide&&wideSrc?{post:data.posterWide.post,src:wideSrc}:null}/>}
  {view==='home'&&!author&&!desk&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
   archive={<button type="button" className="support-strip archive-strip tt-pressable" onClick={()=>{haptic();setArchiveOpen(true);goto('live');
     // С главной человек идёт именно за записями: подводим к списку сразу,
@@ -368,7 +370,10 @@ export default function Studio(){
   support={heartLink?<a className="support-strip support-card tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><span className="support-card-copy"><span className="support-strip-label tt-shimmer">{t('home.supportTitle')}</span><span className="support-card-note">{t('home.supportNote')}</span></span><span className="support-card-heart" aria-hidden="true"><HeartBeam size={24}/></span></a>:<span className="support-strip support-card is-empty"><span className="support-card-copy"><span className="support-strip-label">{t('home.supportTitle')}</span><span className="support-card-note">{t('donate.unavailable')}</span></span><span className="support-card-heart" aria-hidden="true"><HeartBeam size={22}/></span></span>}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null}/>}
- {(view==='podcasts'||view==='stories'||view==='videos')&&<>
+ {/* Раздел на ПК — витрина (DeskSection), а не длинный список карточек.
+     Пустой раздел — прежняя пустая заглушка ниже. */}
+ {(view==='podcasts'||view==='stories'||view==='videos')&&desk&&listed.length>0&&<DeskSection key={view} kind={listKind} posts={listed} onOpen={p=>openPost(p)} onShare={p=>void share(postPath(p.id),p.title)}/>}
+ {(view==='podcasts'||view==='stories'||view==='videos')&&!(desk&&listed.length>0)&&<>
  {!author&&<VoiceHeader view={view}/>}
  {!author&&<div className="catalog-tools"><label className="catalog-search"><Search size={18}/><input type="search" value={query} placeholder={t(searchKey)} aria-label={t(searchKey)} onChange={e=>setQuery(e.target.value)}/></label><select className="catalog-sort" aria-label={t('catalog.sortAria')} value={sort} onChange={e=>setSort(e.target.value as 'new'|'old')}><option value="new">{t('catalog.sortNew')}</option><option value="old">{t('catalog.sortOld')}</option></select></div>}
  {author&&<Tabs value={filter} onValueChange={setFilter}><TabsList className="filter-tabs"><TabsTrigger value="published">{t('filter.published')}</TabsTrigger><TabsTrigger value="draft">{t('filter.drafts')}</TabsTrigger></TabsList></Tabs>}
@@ -485,10 +490,32 @@ export default function Studio(){
       // миг вставала на прежний выпуск и теряла картинку.
       if(await load())setHeroDraft(null);setHeroFile(null);setHeroPreview('');
      },heroTarget?t('settings.posterSaved'):t('settings.posterResetDone'))}><Check size={17}/>{t('settings.posterSave')}</button>
-    {data.pinned&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:''});if(await load())setHeroDraft(null);setHeroFile(null);setHeroPreview('');},t('settings.posterResetDone'))}>{t('settings.posterReset')}</button>}
+    {data.pinned&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:''});if(await load())setHeroDraft(null);setHeroFile(null);setHeroPreview('');setWideFile(null);setWidePreview('');},t('settings.posterResetDone'))}>{t('settings.posterReset')}</button>}
    </div>
    <small>{t('settings.posterNote')}</small></section>;})()}
  {view==='home'&&<section className="settings-panel"><div className="section-icon"><Wind size={22}/></div><h2>{t('settings.calmTitle')}</h2><p>{t('settings.calmText')}</p>{!calmMissing&&(calmPreview||calmSrc)&&<img className="channel-art-preview calm-art-preview" src={calmPreview||calmSrc} alt="" onError={()=>setCalmMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>calmInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={calmInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setCalmFile(f);setCalmPreview(URL.createObjectURL(f));setCalmMissing(false);}e.target.value='';}}/>{!calmMissing&&(calmPreview||calmSrc)&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'calmArt',key:''});setCalmFile(null);setCalmPreview('');setCalmMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{calmFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(calmFile);await api('library',{action:'calmArt',key});setCalmFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.calmNote')}</small></section>}
+ {/* Третья колонка главной студии — обложка 16:9 для первого экрана сайта на
+     ПК (владелец, 9 октября). Привязана к выпуску из «Постера на главной»:
+     сменил выпуск — на ПК его обычная картинка, пока не загрузишь новую. */}
+ {view==='home'&&(()=>{
+  // Только сохранённый выбор: несохранённый выпуск в списке постера ещё не закреплён.
+  const target=pinnedPost?pinnedPost.id:'';
+  const post=pinnedPost;
+  const bound=!!data.posterWide&&data.posterWide.post===target;
+  const shown=widePreview||(bound?wideSrc:'');
+  return <section className="settings-panel hero-wide-panel"><div className="section-icon"><Monitor size={22}/></div><h2>{t('settings.posterWide')}</h2><p>{t('settings.posterWideText')}</p><p className="hero-poster-size">{t('settings.posterWideSize')}</p>
+   {shown?<img className="channel-art-preview hero-wide-preview" src={shown} alt=""/>:<span className="hero-wide-empty">16:9</span>}
+   <p className="hero-wide-target">{post?t('settings.posterWideFor',{title:post.title}):t('settings.posterWidePick')}</p>
+   <div className="hero-poster-actions">
+    <button type="button" className="secondary-button" disabled={!post} onClick={()=>wideInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button>
+    <input type="file" accept="image/jpeg,image/png,image/webp" ref={wideInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setWideFile(f);setWidePreview(URL.createObjectURL(f));}e.target.value='';}}/>
+    {bound&&!wideFile&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'hero',id:target,wide:''});await load();},t('settings.posterRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}
+    {wideFile&&post&&<button type="button" className="primary-button" onClick={()=>void run(async()=>{
+      const wide=await uploadCover(wideFile);
+      await api('library',{action:'hero',id:target,wide});
+      if(await load()){setWideFile(null);setWidePreview('');}
+     },t('settings.posterSaved'))}><Check size={17}/>{t('settings.posterSave')}</button>}
+   </div></section>;})()}
  {view==='settings'&&<section className="settings-panel"><div className="section-icon"><ImageIcon size={22}/></div><h2>{t('settings.artTitle')}</h2><p>{t('settings.artText')}</p>{!artMissing&&<img className="channel-art-preview" src={channelArtPreview} alt="" onError={()=>setArtMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>channelArtInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={channelArtInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setChannelArtFile(f);setChannelArtPreview(URL.createObjectURL(f));setArtMissing(false);}e.target.value='';}}/>{!artMissing&&channelArtPreview&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'channelArt',key:''});setChannelArtFile(null);setChannelArtPreview('');setArtMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{channelArtFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(channelArtFile);await api('library',{action:'channelArt',key});setChannelArtFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.artNote')}</small></section>}
  {view==='settings'&&<section className="settings-panel wide-panel"><div className="section-icon"><Link2 size={22}/></div><h2>{t('settings.linksTitle')}</h2><p>{t('settings.linksText')}</p><div className="links-grid">{SOCIALS.map(sc=><label className="field" key={sc.kind}>{t(sc.labelKey)}<input type="url" value={linkDraft[sc.kind]??''} placeholder="https://…" onChange={e=>setLinkDraft(prev=>({...prev,[sc.kind]:e.target.value}))}/></label>)}</div><button className="primary-button" onClick={()=>void run(()=>api('library',{action:'links',links:SOCIALS.map(sc=>({kind:sc.kind,url:(linkDraft[sc.kind]??'').trim()})).filter(l=>l.url)}),t('settings.linksSaved'))}><Check size={17}/>{t('settings.saveLinks')}</button><small>{t('settings.linksNote')}</small></section>}
  </>:null}
@@ -510,8 +537,10 @@ export default function Studio(){
  {!author&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
- <a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}<span>{APP_RELEASE.version}</span></a>
- {!!heartLink&&<DonationGlow><a className="site-footer-link" href={heartLink.url} target="_blank" rel="noopener noreferrer">{t('header.support')}</a></DonationGlow>}
+ {/* Без номера сборки и без «Поддержать» с подсветкой: владелец убрал их
+     9 октября — номер слушателю ни о чём не говорит, а подсветка была лишней
+     и срабатывала криво. Поддержка — сердечком вверху. */}
+ {!shell&&<a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}</a>}
  <a className="site-footer-link" href="/privacy">{t('legal.privacy')}</a>
  <a className="site-footer-link" href="/rules">{t('legal.rules')}</a>
  <span className="site-footer-note">{t('app.footerNote')}</span>

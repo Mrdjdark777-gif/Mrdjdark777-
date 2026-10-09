@@ -12,8 +12,8 @@ import { parseDonations, parseLinks, parseVideo } from '@/lib/video';
  * закреплён. `v` — версия для адреса картинки: адрес у постера один, и без
  * версии телефон показывал бы прежний.
  */
-async function posterOf(){
-  const key=await setting('heroArt'),post=await setting('heroArtPost');
+async function posterOf(art='heroArt'){
+  const key=await setting(art),post=await setting(art+'Post');
   if(!key||!post||post!==await setting('heroPost'))return null;
   return {post,v:key.replace(/^cover\//,'')};
 }
@@ -40,7 +40,7 @@ export async function GET(req: Request){try{
   // готовится», чем показывать пустой архив, будто записей не было вовсе.
   const pending=await db.select({id:liveRecordings.id}).from(liveRecordings)
     .where(inArray(liveRecordings.state,[...LIVE_BUSY_STATES])).get();
-  return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,poster:await posterOf(),...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
+  return result({archivePending:!!pending,items:isOwner?items.map(p=>({...p,...(p.kind!=='video'?{usageCount:counts.get(p.id)??0}:{})})):items,isOwner,needsSetup:!(await setting('owner')),signedIn:!!userId(req),donations:parseDonations(await setting('donations')),links:parseLinks(await setting('links')),pinned:(await setting('heroPost'))||null,poster:await posterOf(),posterWide:await posterOf('heroWide'),...(isOwner?{legal:{name:await setting('legalName'),contact:await setting('legalContact')}}:{}),calmArt:((await setting('calmArt'))||'').replace(/^cover\//,'')||null,live:live&&live.heartbeat>Date.now()-90000?{id:live.id,title:live.title,description:live.description,startedAt:live.startedAt,cover:!!live.coverKey}:null});
 }catch(e){return failure(e);}}
 export async function POST(req: Request){try{
   // Длинный текст истории (до 150 000 знаков) шлёт только автор; остальным —
@@ -108,14 +108,17 @@ export async function POST(req: Request){try{
   if(d.action==='hero'){
     const id=String(d.id??'');
     const put=(key:string,value:string)=>db.insert(settings).values({key,value}).onConflictDoUpdate({target:settings.key,set:{value}});
-    if(!id){await put('heroPost','');await put('heroArt','');await put('heroArtPost','');return result({ok:true});}
+    if(!id){for(const k of ['heroPost','heroArt','heroArtPost','heroWide','heroWidePost'])await put(k,'');return result({ok:true});}
     const p=await db.select().from(posts).where(eq(posts.id,id)).get();
     if(!p)throw new Error('#err.notFound');
     if(!p.published)throw new Error('#err.pinDraft');
-    if(typeof d.key==='string'){
-      const key=d.key.trim();
+    // key — постер 15:7 для телефона, wide — обложка 16:9 для сайта на ПК.
+    // Устроены одинаково: привязаны к выпуску, пустая строка снимает.
+    for(const [field,art] of [['key','heroArt'],['wide','heroWide']] as const){
+      if(typeof d[field]!=='string')continue;
+      const key=String(d[field]).trim();
       if(key){if(!key.startsWith('cover/'))throw new Error('#err.coverUpload');const obj=await bucket().head(key);if(!obj||obj.customMetadata?.owner!==userId(req))throw new Error('#err.coverNotFound');}
-      await put('heroArt',key);await put('heroArtPost',key?id:'');
+      await put(art,key);await put(art+'Post',key?id:'');
     }
     await put('heroPost',id);return result({ok:true});
   }

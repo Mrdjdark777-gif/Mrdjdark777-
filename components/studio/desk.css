@@ -28,16 +28,26 @@
 .desk-live-pill{margin-left:auto;font-size:10px;letter-spacing:.12em;font-weight:700;color:#6f757c;border:1px solid #2a2f35;padding:3px 7px;border-radius:999px;white-space:nowrap}
 .desk-live-pill.is-on{color:#fff;background:#d9483b;border-color:#d9483b}
 .desk-rail-grow{flex:1;min-height:20px}
-.desk-support{background:linear-gradient(160deg,#173230,#141a1d);border:1px solid #23413e;border-radius:16px;padding:16px}
-.desk-support strong{display:block;font-size:14.5px;line-height:1.35;margin-bottom:6px}
-.desk-support p{font-size:12.5px;color:#a4a8ae;line-height:1.5;margin:0 0 12px}
-.desk-support .desk-support-off{margin:0}
-.desk-support-button{width:100%;justify-content:center;height:40px;font-size:14px}
-.desk-app{display:flex;align-items:center;gap:10px;padding:14px 10px 6px;font-size:13px;color:#a4a8ae}
-.desk-app svg{width:18px;height:18px;flex:none}
-.desk-app em{margin-left:auto;font-style:normal;color:#6f757c;font-family:ui-monospace,monospace;font-size:12px}
-.desk-app:hover{color:#e6e8e9}
-.desk-socials{display:flex;flex-wrap:wrap;gap:8px;padding:8px 8px 0}
+/* Карточка приложения — главный шаг для человека с компьютера, поэтому
+   крупно и в цвете канала, с кнопкой, а не строчкой мелким шрифтом. */
+.desk-app{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:18px;color:#f4f3f1;text-align:left;
+ background:linear-gradient(155deg,#1d4a46 0%,#14302e 55%,#111a1c 100%);border:1px solid #2f6a64;box-shadow:0 18px 40px -22px rgba(111,231,222,.55)}
+.desk-app-head{display:flex;align-items:center;gap:12px}
+.desk-app-mark{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(111,231,222,.16);color:var(--teal);flex:none}
+.desk-app-mark svg{width:22px;height:22px}
+.desk-app-head strong{font-size:15px;line-height:1.25;font-weight:700}
+.desk-app-note{font-size:12.5px;line-height:1.5;color:#b9d7d3}
+.desk-app-action{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;border-radius:999px;background:var(--teal);color:#06211f;font-weight:700;font-size:14.5px;
+ box-shadow:0 10px 24px -12px rgba(111,231,222,.9);transition:background .15s}
+.desk-app:hover .desk-app-action{background:#8ff0e8}
+.desk-app:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+/* Соцсети: YouTube — кнопкой (там ролики канала), остальное — значками. */
+.desk-social-block{display:flex;flex-direction:column;gap:10px;margin-top:16px;padding:0 2px}
+.desk-social-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#6f757c;padding:0 6px}
+.desk-youtube{display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:14px;background:#1a1d21;border:1px solid #2a2f35;color:#f4f3f1;font-weight:600;font-size:14.5px}
+.desk-youtube:hover{background:#221d1f;border-color:#5a2a33}
+.desk-youtube-mark{flex:none}
+.desk-socials{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
 .desk-social{width:38px;height:38px;border-radius:50%;border:1px solid #2a2f35;display:grid;place-items:center;color:#a4a8ae}
 .desk-social:hover{color:var(--teal);border-color:#2f5552}
 
@@ -87,6 +97,23 @@
 .desk-banner .desk-cover-mark{position:relative;z-index:1;display:block;margin:0 auto;top:50%;transform:translateY(-50%);width:132px;height:132px;border-radius:50%}
 .desk-banner:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
 .desk-hero-bar{display:flex;align-items:center;gap:32px}
+/* Первый экран главной (9 октября): высота окна без верхней строки и плеера.
+   Обложка во всю ширину забирает всё, что остаётся после строки с названием
+   и полки «Новое», — полка видна целиком на любом окне. Поверх обложки
+   ничего нет: так выбрал владелец. */
+.is-desk{--desk-head:78px}
+.desk-home>.desk-hero:not(.is-empty){height:calc(100dvh - var(--desk-head) - var(--desk-player) - 34px);min-height:600px;gap:18px}
+.desk-home>.desk-onair+.desk-hero:not(.is-empty){height:calc(100dvh - var(--desk-head) - var(--desk-player) - 124px)}
+.desk-hero>.desk-banner{flex:1 1 auto;height:auto;min-height:240px;width:auto;margin:-10px calc(-1 * var(--desk-pad)) 0;border-radius:0}
+.desk-banner-wide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.desk-hero>.desk-hero-bar,.desk-hero>.desk-shelf{flex:none}
+.desk-hero>.desk-shelf .desk-shelf-head{margin-bottom:12px}
+.desk-hero>.desk-shelf .desk-row{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));column-gap:18px}
+.desk-hero>.desk-shelf .desk-tile strong{-webkit-line-clamp:1;margin-top:10px;font-size:14px}
+/* Шире 1680 + меню содержимое стоит по центру с полями — там обложка
+   с закруглением, как карточка, а не обрезанная полоса. */
+@media(min-width:1944px){.desk-hero>.desk-banner{margin:0;border-radius:24px}}
+
 .desk-hero-copy{min-width:0;flex:1}
 .desk-eyebrow{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#a4a8ae;font-weight:700}
 .desk-hero-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(30px,2.4vw,44px);line-height:1.1;font-weight:600;margin:8px 0 6px;
@@ -169,8 +196,35 @@
 .podcast-player.desk-player-open .player-extra{flex-direction:row;gap:8px;min-width:0;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
 .podcast-player.desk-player-open .player-next{padding:20px;border-radius:22px;background:rgba(12,15,18,.55);border:1px solid rgba(255,255,255,.08)}
 
-/* Каталог разделов на ПК: колонки по настоящему месту, а не по ширине окна.
-   Прежнее правило ставило 2 колонки от 1024 и 3 от 1440, считая весь экран
-   свободным; с боковым меню (264) и полями карточки сжимались до 330 точек,
-   и «Поделиться» вылезала за край карточки (нашла tests/surfaces.mjs). */
-.is-desk .listener-main .post-list{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}
+
+/* Раздел на ПК — витрина (9 октября): крупно последний выпуск, переключатели,
+   сетка плиток. Плитки те же, что на главной; видео — 16:9. */
+.desk-section{display:flex;flex-direction:column;gap:28px;padding-top:6px}
+.desk-feature{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:44px;align-items:center;padding:28px;border-radius:28px;
+ background:linear-gradient(120deg,#162024 0%,#121619 60%,#101316 100%);border:1px solid #22292e}
+.desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,clamp(220px,21vw,360px)) minmax(0,1fr)}
+.desk-feature-cover{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#15191d;
+ box-shadow:0 30px 60px -28px rgba(0,0,0,.8)}
+.desk-section.is-podcast .desk-feature-cover,.desk-section.is-story .desk-feature-cover{aspect-ratio:4/5}
+.desk-feature-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.desk-feature-cover:hover img{transform:scale(1.03)}
+.desk-feature-cover:hover .desk-tile-play,.desk-feature-cover:focus-visible .desk-tile-play{opacity:1;transform:none}
+.desk-feature-cover .desk-tile-play{width:56px;height:56px;right:16px;bottom:16px}
+.desk-feature-cover:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
+.desk-feature-mark{position:absolute;inset:0;display:grid;place-items:center;color:#3c6965}
+.desk-feature-copy{display:flex;flex-direction:column;gap:12px;min-width:0}
+.desk-feature-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(30px,2.6vw,52px);line-height:1.08;font-weight:600;margin:4px 0 0;
+ display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.desk-feature-note{font-size:15.5px;line-height:1.6;color:#bfc3c8;margin:0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;max-width:640px}
+.desk-feature .desk-hero-actions{margin-top:10px;flex-wrap:wrap}
+.desk-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.desk-chips-grow{flex:1}
+.desk-chip{height:38px;padding:0 16px;border-radius:999px;border:1px solid #2a2f35;background:#15191d;color:#a4a8ae;font-size:14px;font-weight:600;white-space:nowrap}
+.desk-chip:hover{color:#e6e8e9;border-color:#3a4147}
+.desk-chip[aria-pressed=true]{background:rgba(111,231,222,.12);border-color:#2f6a64;color:var(--teal)}
+.desk-chip:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.desk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:30px 22px}
+.desk-section.is-video .desk-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.desk-tile.is-wide .desk-cover{aspect-ratio:16/9}
+@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,1fr);gap:24px}
+ .desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,220px) minmax(0,1fr)}}

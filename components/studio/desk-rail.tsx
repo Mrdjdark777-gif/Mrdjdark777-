@@ -1,8 +1,7 @@
 'use client';
-import {BookOpen,Headphones,Home,Radio,Video} from 'lucide-react';
+import {BookOpen,Download,Headphones,Home,Radio,Video} from 'lucide-react';
 import {useT} from '@/components/i18n-provider';
 import {haptic} from '@/lib/client';
-import {HeartBeam} from '@/components/ui/heart-beam';
 import {AndroidMark} from './android-mark';
 
 /**
@@ -10,9 +9,12 @@ import {AndroidMark} from './android-mark';
  * планшете его нет: там разделы внизу экрана под пальцем.
  *
  * Сверху — знак канала и разделы, «Главная» первой; у «Эфира» — состояние
- * станции. Внизу — то, что на телефоне живёт в конце главной: поддержка,
- * ссылка на приложение, соцсети. На ПК главная занята выпусками, а меню видно
- * с любого экрана.
+ * станции. Внизу — то, ради чего человек приходит на сайт с компьютера:
+ * карточка приложения (главный шаг, поэтому крупно) и соцсети, YouTube —
+ * отдельной кнопкой: там ролики канала.
+ *
+ * Поддержки в меню нет: владелец убрал карточку 9 октября («слишком броская»).
+ * Поддержать можно сердечком вверху справа.
  */
 const ITEMS=[
  {id:'home',key:'nav.home',Icon:Home},
@@ -22,12 +24,12 @@ const ITEMS=[
  {id:'live',key:'nav.live',Icon:Radio},
 ] as const;
 
-export function DeskRail({view,onGoto,onAir,onSupport,app,socials}:{
+export function DeskRail({view,onGoto,onAir,app,youtube,socials}:{
  view:string;onGoto:(view:string)=>void;onAir:boolean;
- /** Окно выбора площадки поддержки; нет площадок — нет и кнопки. */
- onSupport?:()=>void;
  /** Ссылка на приложение — только в браузере (не внутри самого приложения). */
- app?:{href:string;version:string}|null;
+ app?:{href:string}|null;
+ /** Канал на YouTube — своей кнопкой; остальные площадки — значками. */
+ youtube?:string|null;
  socials?:React.ReactNode;
 }){
  const {t}=useT();
@@ -42,13 +44,20 @@ export function DeskRail({view,onGoto,onAir,onSupport,app,socials}:{
    </button>)}
   </nav>
   <div className="desk-rail-grow"/>
-  <div className="desk-support">
-   <strong>{t('home.supportTitle')}</strong>
-   <p>{t('home.supportNote')}</p>
-   {onSupport?<button type="button" className="desk-cta desk-support-button" onClick={()=>{haptic();onSupport();}}><HeartBeam size={18}/>{t('header.support')}</button>
-    :<p className="desk-support-off">{t('donate.unavailable')}</p>}
-  </div>
-  {app&&<a className="desk-app" href={app.href} download><AndroidMark/><span>{t('app.download')}</span><em>{app.version}</em></a>}
-  {socials&&<div className="desk-socials">{socials}</div>}
+  {app&&<a className="desk-app" href={app.href} download>
+   <span className="desk-app-head"><span className="desk-app-mark"><AndroidMark/></span><strong>{t('desk.appTitle')}</strong></span>
+   <span className="desk-app-note">{t('desk.appNote')}</span>
+   <span className="desk-app-action"><Download size={17}/>{t('desk.appAction')}</span>
+  </a>}
+  {(youtube||socials)&&<div className="desk-social-block">
+   <span className="desk-social-title">{t('desk.socialTitle')}</span>
+   {youtube&&<a className="desk-youtube" href={youtube} target="_blank" rel="noopener noreferrer"><YoutubeMark/>{t('desk.youtube')}</a>}
+   {socials&&<div className="desk-socials">{socials}</div>}
+  </div>}
  </aside>;
+}
+
+/** Знак YouTube: красная плашка с треугольником — узнаётся без подписи. */
+function YoutubeMark(){
+ return <svg className="desk-youtube-mark" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>;
 }
