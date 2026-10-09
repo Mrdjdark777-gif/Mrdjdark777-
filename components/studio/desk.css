@@ -50,6 +50,20 @@
 .desk-socials{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
 .desk-social{width:38px;height:38px;border-radius:50%;border:1px solid #2a2f35;display:grid;place-items:center;color:#a4a8ae}
 .desk-social:hover{color:var(--teal);border-color:#2f5552}
+/* Низкое окно (ноутбуки 1366×768, 1280×720): меню целиком, без прокрутки —
+   строки разделов ниже, у карточки приложения нет подписи, кнопки остаются. */
+@media(max-height:780px){
+ .is-desk .desk-rail{padding:16px 16px 14px}
+ .desk-brand{margin-bottom:14px}
+ .desk-nav-item{height:40px}
+ .desk-app{gap:8px;padding:12px}
+ .desk-app-note{display:none}
+ .desk-app-mark{width:34px;height:34px}
+ .desk-app-action{height:36px}
+ .desk-social-block{margin-top:10px;gap:8px}
+ .desk-youtube{height:40px}
+ .desk-social{width:34px;height:34px}
+}
 
 /* Верхняя строка: поиск слева, действия справа. Знак канала — в меню. */
 .is-desk .top-header{position:sticky;top:0;z-index:30;width:100%;max-width:none;margin:0;gap:16px;justify-content:flex-start;
@@ -97,23 +111,54 @@
 .desk-banner .desk-cover-mark{position:relative;z-index:1;display:block;margin:0 auto;top:50%;transform:translateY(-50%);width:132px;height:132px;border-radius:50%}
 .desk-banner:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
 .desk-hero-bar{display:flex;align-items:center;gap:32px}
-/* Первый экран главной (9 октября): не выше окна без верхней строки и плеера.
-   Обложка во всю ширину, рамка всегда 4:1 — у картинки один точный размер
-   (2400×600), и она видна целиком. Когда места мало (низкое окно, открыт
-   плеер), рамка становится ниже, а картинка не режется: стоит целиком,
-   по бокам её же размытое продолжение. Под обложкой название и «Новое» —
-   полка видна целиком. Поверх обложки ничего нет: так выбрал владелец. */
-.is-desk{--desk-head:78px}
-.desk-home>.desk-hero:not(.is-empty){max-height:calc(100dvh - var(--desk-head) - var(--desk-player) - 24px);gap:16px}
-.desk-home>.desk-onair+.desk-hero:not(.is-empty){max-height:calc(100dvh - var(--desk-head) - var(--desk-player) - 114px)}
-.desk-hero>.desk-banner{flex:0 1 auto;aspect-ratio:4/1;height:auto;min-height:150px;width:auto;margin:-10px calc(-1 * var(--desk-pad)) 0;border-radius:0}
+/* Первый экран главной — адаптивный (9 октября): обложка, строка с названием
+   и полка «Новое» помещаются в окно любого размера, от ноутбука 1280×720 до
+   широкого монитора.
+
+   Обложка во всю ширину, рамка 4:1. У картинки один точный размер —
+   2400×600, и она никогда не режется: поверх ничего нет (так выбрал
+   владелец), а если рамка всё же стала ниже 4:1, картинка стоит целиком, по
+   бокам — её же размытая копия.
+
+   Подстраивается всё остальное:
+   - плитки «Новое» считают свою ширину из свободной высоты: окно минус
+     верхняя строка, плеер, обложка 4:1, строка с названием и подписи плиток;
+     от 104 до 176 точек;
+   - на низком окне строка с названием компактнее: без описания, заголовок
+     меньше;
+   - только если и самых мелких плиток мало, рамка обложки становится ниже,
+     но не ниже 5:1. */
+.is-desk{--desk-head:78px;
+ --desk-bw:calc(100vw - var(--desk-rail));            /* ширина обложки */
+ --desk-avail:calc(100dvh - var(--desk-head) - var(--desk-player) - 24px);
+ --desk-bar:92px;                                    /* строка с названием */
+ --desk-shelf-fixed:calc(32px + 36px + 50px);         /* промежутки, заголовок полки, подписи плиток */
+ --desk-tile-h:calc(var(--desk-avail) - var(--desk-bw) / 4 - var(--desk-bar) - var(--desk-shelf-fixed));
+ --desk-tile:clamp(104px, calc(var(--desk-tile-h) * 0.8), 176px)}
+@media(max-height:859px){.is-desk{--desk-bar:56px}}
+/* Шире 1680 + меню содержимое стоит по центру с полями — там обложка
+   с закруглением, как карточка, и шириной по содержимому. */
+@media(min-width:1944px){.is-desk{--desk-bw:calc(min(100vw - var(--desk-rail), 1680px) - 2 * var(--desk-pad))}}
+.desk-home>.desk-hero:not(.is-empty){max-height:var(--desk-avail);gap:16px}
+.desk-home>.desk-onair+.desk-hero:not(.is-empty){max-height:calc(var(--desk-avail) - 90px)}
+.desk-hero>.desk-banner{flex:0 1 auto;aspect-ratio:4/1;height:auto;min-height:calc(var(--desk-bw) / 5);width:auto;margin:-10px calc(-1 * var(--desk-pad)) 0;border-radius:0}
 .desk-banner .desk-banner-wide{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;display:block}
 .desk-hero>.desk-hero-bar,.desk-hero>.desk-shelf{flex:none}
-.desk-hero>.desk-shelf .desk-shelf-head{margin-bottom:12px}
-.desk-hero>.desk-shelf .desk-row{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));column-gap:18px}
-.desk-hero>.desk-shelf .desk-tile strong{-webkit-line-clamp:1;margin-top:10px;font-size:14px}
-/* Шире 1680 + меню содержимое стоит по центру с полями — там обложка
-   с закруглением, как карточка, а не обрезанная полоса. */
+.desk-hero>.desk-hero-bar{height:var(--desk-bar);overflow:hidden}
+.desk-hero>.desk-hero-bar .desk-hero-title{margin:6px 0 4px}
+@media(max-height:859px){
+ .desk-hero>.desk-hero-bar .desk-hero-title{font-size:clamp(22px,3.4vh,30px);margin:4px 0 0}
+ .desk-hero>.desk-hero-bar .desk-hero-note{display:none}
+ .desk-hero>.desk-hero-bar .desk-cta,.desk-hero>.desk-hero-bar .desk-ghost{height:42px}
+}
+.desk-hero>.desk-hero-bar .desk-hero-note{-webkit-line-clamp:1}
+.desk-hero>.desk-shelf .desk-shelf-head{height:36px;margin:0;align-items:center}
+.desk-hero>.desk-shelf .desk-shelf-head h2{font-size:22px;line-height:1.2}
+/* Плитки ровно той ширины, что посчитана выше: одинаковые, ряд растянут по
+   ширине промежутками, а не самими плитками — иначе росла бы и высота. */
+.desk-hero>.desk-shelf .desk-row{grid-template-columns:repeat(auto-fill,var(--desk-tile));justify-content:space-between;column-gap:14px}
+.desk-hero>.desk-shelf .desk-tile strong{-webkit-line-clamp:1;margin-top:8px;font-size:14px;line-height:18px}
+.desk-hero>.desk-shelf .desk-tile-meta{margin-top:4px;line-height:16px}
 @media(min-width:1944px){.desk-hero>.desk-banner{margin:0;border-radius:24px}}
 
 .desk-hero-copy{min-width:0;flex:1}

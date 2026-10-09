@@ -170,9 +170,10 @@ try{
   check(errors.length===0,at+'ошибки страницы: '+errors.join('; '));
   await ctx.close();
  }
- // Обложка 4:1 из студии (2400×600): рамка 4:1, картинка ровно в неё и
- // никогда не режется; в низком окне рамка ниже, картинка целиком, «Новое»
- // видно. Снимается; сервер отдаёт её всем.
+ // Адаптивный первый экран с обложкой 4:1 из студии (2400×600), от ноутбука
+ // 1280×720 до 2K: картинка никогда не режется; от высоты окна 720 рамка
+ // ровно 4:1, ниже — не уже 5:1 с размытыми боками; «Новое» и меню целиком.
+ // Снимается; сервер отдаёт её всем.
  {
   const raft=lib.items.find(p=>p.title==='Плот').id;
   const {default:sharp}=await import('sharp');
@@ -182,7 +183,7 @@ try{
   const data=await (await fetch(base+'/api/library')).json();
   check(data.posterWide?.post===raft,'сервер не отдаёт обложку для ПК гостю: '+JSON.stringify(data.posterWide));
   check((await fetch(base+'/api/cover?id=hero-wide&v=1')).status===200,'адрес обложки для ПК не отвечает');
-  for(const [w,h,short] of [[1440,900,false],[1920,1080,false],[1920,945,false],[1366,657,true]]){
+  for(const [w,h] of [[1280,600],[1366,657],[1536,730],[1440,900],[1920,945],[1920,1080],[2560,1305]]){const short=h<720;
    const at='обложка 2400×600 на '+w+'×'+h+': ';
    const ctx=await browser.newContext({viewport:{width:w,height:h},locale:'ru-RU'});const page=await ctx.newPage();
    await page.goto(base+'/?mode=listen&view=home');await ready(page);
@@ -193,7 +194,8 @@ try{
     const fit=getComputedStyle(img).objectFit,nw=img.naturalWidth,nh=img.naturalHeight;
     const k=fit==='cover'?Math.max(b.width/nw,b.height/nh):Math.min(b.width/nw,b.height/nh);
     const shelf=document.querySelector('.desk-hero>.desk-shelf')?.getBoundingClientRect();
-    return {fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
+    const rail=document.querySelector('.desk-rail'),last=[...rail.querySelectorAll('a,button')].pop().getBoundingClientRect();
+    return {railFits:rail.scrollHeight<=rail.clientHeight+1&&last.bottom<=rail.getBoundingClientRect().bottom+1,fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
    check(m,at+'обложка загружена, а на главной ПК её нет');
    if(m){
     check(m.drawnW<=m.bw+1&&m.drawnH<=m.bh+1,at+'картинка обрезана: нарисована '+Math.round(m.drawnW)+'×'+Math.round(m.drawnH)+' в рамке '+Math.round(m.bw)+'×'+Math.round(m.bh));
@@ -201,11 +203,25 @@ try{
      check(Math.abs(m.frame-4)<0.02,at+'рамка не 4:1, а '+m.frame.toFixed(2)+':1 — у картинки не будет одного точного размера');
      check(Math.abs(m.drawnW-m.bw)<=2&&Math.abs(m.drawnH-m.bh)<=2,at+'картинка 2400×600 не заполняет рамку: '+Math.round(m.drawnW)+'×'+Math.round(m.drawnH)+' в '+Math.round(m.bw)+'×'+Math.round(m.bh));
     }else{
-     check(m.frame>4.02,at+'в низком окне рамка не стала ниже — «Новое» уйдёт за край');
-     check(m.blur,at+'в низком окне по бокам картинки пусто — нет размытого продолжения');
+     check(m.frame<=5.02,at+'в низком окне рамка ужалась до '+m.frame.toFixed(2)+':1 — обложка стала полоской');
+     if(m.frame>4.02)check(m.blur,at+'рамка шире картинки, а по бокам пусто — нет размытого продолжения');
     }
+    check(m.railFits,at+'боковое меню не помещается в окно — низ меню уходит за край');
     check(m.shelfBottom<=h,at+'полка «Новое» обрезана низом окна: низ '+m.shelfBottom+' при окне '+h);
    }
+   await ctx.close();
+  }
+  // С открытым плеером на маленьком ноутбуке места меньше всего: плитки уже
+  // самые мелкие, сжимается рамка — но не в полоску и без обрезки.
+  {
+   const ctx=await browser.newContext({viewport:{width:1280,height:600},locale:'ru-RU'});const page=await ctx.newPage();
+   await page.goto(base+'/?mode=listen&view=home');await ready(page);
+   await page.locator('.desk-hero .desk-cta').click();await page.waitForTimeout(1500);await page.keyboard.press('Escape');await page.waitForTimeout(900);
+   const m=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),img=document.querySelector('.desk-banner img.desk-banner-wide');
+    if(!b||!img||!document.querySelector('.desk-player-bar'))return null;const k=Math.min(b.width/img.naturalWidth,b.height/img.naturalHeight);
+    return {frame:b.width/b.height,cut:getComputedStyle(img).objectFit==='cover'};});
+   check(m,'обложка с плеером на 1280×600: плеер не открылся или обложки нет');
+   if(m){check(m.frame<=5.02,'обложка с плеером на 1280×600: рамка ужалась до '+m.frame.toFixed(2)+':1 — обложка стала полоской');check(!m.cut,'обложка с плеером на 1280×600: картинка режется');}
    await ctx.close();
   }
   await post({action:'hero',id:raft,wide:''});
