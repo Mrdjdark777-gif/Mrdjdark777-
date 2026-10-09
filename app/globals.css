@@ -2649,3 +2649,14 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 .audio-pult [data-slot=select-value]{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .audio-pult-switch{display:flex;align-items:center;gap:10px;min-height:36px;font-size:13px;cursor:pointer}
 @media(max-width:480px){.audio-pult{grid-template-columns:minmax(0,1fr);grid-template-areas:"src" "ch" "dev" "low"}}
+
+/* Студия с телефона: карточка выпуска. Шесть кнопок (слушать, поделиться,
+   править, в черновики, закрепить, удалить) в один ряд не помещались, и
+   «Закрепить» с «Удалить» уезжали за край экрана — их не было видно и нельзя
+   было нажать (нашла tests/surfaces.mjs). Ряд переносится, обложка — как у
+   слушателя на телефоне, колонка текста не сжимается до нуля. */
+@media(max-width:600px){
+ .main-content:not(.listener-main) .post-actions{flex-wrap:wrap;row-gap:10px}
+ .main-content:not(.listener-main) .post-cover{width:104px}
+ .main-content:not(.listener-main) .post-content{min-width:0}
+}

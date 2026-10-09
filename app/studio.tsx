@@ -547,7 +547,8 @@ export default function Studio(){
  {/* Читалка больше не окно поверх раздела: она открывается во весь экран и
      сама держит свою обвязку — панели, листание, закладки, чтение вслух. */}
  {reading&&<StoryReader key={reading.id} id={reading.id} title={reading.title} description={reading.description} body={reading.body??''} onClose={()=>setReading(null)}/>}
- <Dialog open={!!watching} onOpenChange={o=>{if(!o)setWatching(null);}}><DialogContent className="video-dialog"><DialogHeader><DialogDescription>{t('watching.eyebrow')}</DialogDescription><DialogTitle>{watching?.title}</DialogTitle></DialogHeader>{!!watching?.videoUrl&&<VideoFrame url={watching.videoUrl} title={watching.title}/>}{!!watching?.description&&<p className="reading-intro">{watching.description}</p>}</DialogContent></Dialog>
+ {/* Фокус — на окне, а не в плеере: иначе Escape уходит в YouTube и окно на ПК не закрывается (tests/surfaces.mjs). */}
+ <Dialog open={!!watching} onOpenChange={o=>{if(!o)setWatching(null);}}><DialogContent className="video-dialog" onOpenAutoFocus={e=>{e.preventDefault();(e.currentTarget as HTMLElement).focus();}}><DialogHeader><DialogDescription>{t('watching.eyebrow')}</DialogDescription><DialogTitle>{watching?.title}</DialogTitle></DialogHeader>{!!watching?.videoUrl&&<VideoFrame url={watching.videoUrl} title={watching.title}/>}{!!watching?.description&&<p className="reading-intro">{watching.description}</p>}</DialogContent></Dialog>
  <ShareSheet key={sharing?.url??''} payload={sharing} onClose={()=>setSharing(null)}/>
  <Dialog open={donateOpen} onOpenChange={setDonateOpen}><DialogContent className="donate-dialog">
   <DialogHeader><DialogTitle>{t('donate.action')}</DialogTitle></DialogHeader>

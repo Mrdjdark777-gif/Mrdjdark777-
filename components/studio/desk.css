@@ -168,3 +168,9 @@
 .podcast-player.desk-player-open .player-extras{display:flex!important;gap:10px;width:auto}
 .podcast-player.desk-player-open .player-extra{flex-direction:row;gap:8px;min-width:0;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
 .podcast-player.desk-player-open .player-next{padding:20px;border-radius:22px;background:rgba(12,15,18,.55);border:1px solid rgba(255,255,255,.08)}
+
+/* Каталог разделов на ПК: колонки по настоящему месту, а не по ширине окна.
+   Прежнее правило ставило 2 колонки от 1024 и 3 от 1440, считая весь экран
+   свободным; с боковым меню (264) и полями карточки сжимались до 330 точек,
+   и «Поделиться» вылезала за край карточки (нашла tests/surfaces.mjs). */
+.is-desk .listener-main .post-list{grid-template-columns:repeat(auto-fill,minmax(400px,1fr))}

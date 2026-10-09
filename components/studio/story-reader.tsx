@@ -512,6 +512,11 @@ export function StoryReader({id,title,description,body,onClose}:{
  useEffect(()=>stopRun,[stopRun]);
 
  useEffect(()=>sheet==='none'?undefined:pushBackLayer(BACK_MENU,()=>{setSheet('none');return true;}),[sheet]);
+ // Escape на клавиатуре (ПК) — как «Назад»: сначала закрывает открытую панель
+ // закладок или настроек, потом саму читалку. Видео и плеер закрывались по
+ // Escape, а читалка — нет (нашла проверка tests/surfaces.mjs).
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key!=='Escape'||e.defaultPrevented)return;e.preventDefault();if(sheet!=='none')setSheet('none');else onClose();};
+  document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key);},[sheet,onClose]);
 
  // Страница идёт за пальцем: сколько протянул — на столько лист и повёрнут.
  // Отпустил на полпути — сама решит, довернуться или лечь обратно; держишь
