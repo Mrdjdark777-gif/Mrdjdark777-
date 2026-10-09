@@ -124,9 +124,13 @@ try{
  await dialog.waitFor({state:'visible'});
  assert.equal(await dialog.locator('.audio-type-old').count(),1,'у старой записи нет просьбы выбрать тип');
  assert.equal(await dialog.locator('input[name=audio-category]:checked').count(),0,'старой записи тип выбран сам');
- await page.keyboard.press('Escape');await page.waitForTimeout(300);
- if(await dialog.isVisible())await dialog.getByRole('button',{name:'Отмена'}).click();
- await page.waitForTimeout(300);
+ // Escape закрывает окно с анимацией. Раньше здесь ждали 300 мс и, если окно
+ // ещё было видно, жали «Отмена» — на медленной машине CI кнопка исчезала
+ // вместе с окном прямо под нажатием, и проверка висела до таймаута. Теперь
+ // ждём закрытия, а «Отмена» — только если окно правда не закрылось.
+ await page.keyboard.press('Escape');
+ if(!(await dialog.waitFor({state:'hidden',timeout:3000}).then(()=>true,()=>false)))await dialog.getByRole('button',{name:'Отмена'}).click();
+ await dialog.waitFor({state:'hidden'});
 
  // 5. Слушатель: раздел «Аудио» на трёх ширинах.
  const listen=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true,locale:'ru-RU'});
