@@ -46,7 +46,7 @@ try{
  const post=async d=>{const r=await fetch(base+'/api/library',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify(d)});const t=await r.text();assert.equal(r.status,200,t);return JSON.parse(t);};
  await post({action:'setup'});
  await post({action:'donations',links:[{kind:'boosty',url:'https://boosty.to/truethrills'}]});
- await post({action:'links',links:[{kind:'youtube',url:'https://youtube.com/@truethrills'},{kind:'telegram',url:'https://t.me/truethrills'}]});
+ await post({action:'links',links:[{kind:'youtube',url:'https://youtube.com/@truethrills'},{kind:'tiktok',url:'https://www.tiktok.com/@truethrills'},{kind:'telegram',url:'https://t.me/truethrills'}]});
  const cover=async f=>{const b=await readFile(path.join(root,'tests/fixtures/demo-covers',f));return (await (await fetch(base+'/api/cover',{method:'POST',headers:{cookie,'content-type':'image/jpeg','x-upload-size':String(b.length)},body:b})).json()).key;};
  const seconds=6,rate=8000,wav=Buffer.alloc(44+rate*2*seconds);
  wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(rate,24);wav.writeUInt32LE(rate*2,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
@@ -118,12 +118,20 @@ try{
    const rail=await page.evaluate(()=>{const app=document.querySelector('.desk-rail .desk-app'),yt=document.querySelector('.desk-rail .desk-youtube'),foot=document.querySelector('.site-footer');
     return {support:!!document.querySelector('.desk-rail .desk-support,.desk-rail .desk-support-button'),appText:app?.textContent??'',appH:Math.round(app?.getBoundingClientRect().height??0),
      yt:yt?.getAttribute('href')??'',ytIcon:!![...document.querySelectorAll('.desk-rail .desk-social')].find(a=>/youtube/.test(a.getAttribute('href')??'')),
+     tt:document.querySelector('.desk-rail .desk-tiktok')?.getAttribute('href')??'',ttIcon:!![...document.querySelectorAll('.desk-rail .desk-social')].find(a=>/tiktok/.test(a.getAttribute('href')??'')),
+     qrUrl:document.querySelector('.desk-rail .desk-app .desk-qr')?.getAttribute('data-qr-url')??'',qrModules:(document.querySelector('.desk-rail .desk-qr path')?.getAttribute('d')??'').split('M').length-1,
+     qrSize:Math.round(document.querySelector('.desk-rail .desk-qr')?.getBoundingClientRect().width??0),
      foot:foot?.textContent??'',footGlow:!!foot?.querySelector('.donation-glow,[class*=glow]')};});
    check(!rail.support,at+'в боковом меню снова карточка поддержки');
    check(rail.appH>=120,at+'«Скачать приложение» в меню — не заметная карточка, высота '+rail.appH);
    check(!/\d+\.\d+\.\d+/.test(rail.appText),at+'у «Скачать приложение» в меню номер сборки: '+rail.appText);
    check(/youtube\.com/.test(rail.yt),at+'в меню нет кнопки YouTube');
    check(!rail.ytIcon,at+'YouTube продублирован значком рядом с кнопкой');
+   check(/tiktok\.com/.test(rail.tt)&&!rail.ttIcon,at+'TikTok не плашкой с логотипом, а значком (или его нет)');
+   // QR-код ведёт на APK этого сайта, и сервер этот файл отдаёт.
+   check(rail.qrUrl.startsWith(base+'/app/')&&rail.qrUrl.endsWith('.apk'),at+'QR-код ведёт не на APK этого сайта: '+rail.qrUrl);
+   check(rail.qrModules>200&&rail.qrSize>=60,at+'QR-код пустой или слишком мелкий для камеры: модулей '+rail.qrModules+', размер '+rail.qrSize);
+   if(rail.qrUrl)check((await fetch(rail.qrUrl,{method:'HEAD'})).status===200,at+'по адресу из QR-кода APK не отдаётся: '+rail.qrUrl);
    check(!/\d+\.\d+\.\d+/.test(rail.foot),at+'в подвале номер сборки: '+rail.foot);
    check(!/Поддержать/.test(rail.foot)&&!rail.footGlow,at+'в подвале снова «Поддержать» с подсветкой');
    // Поиск по всем разделам.
@@ -218,7 +226,7 @@ try{
    await page.goto(base+'/?mode=listen&view=home');await ready(page);
    await page.locator('.desk-hero .desk-cta').click();await page.waitForTimeout(1500);await page.keyboard.press('Escape');await page.waitForTimeout(900);
    const m=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),img=document.querySelector('.desk-banner img.desk-banner-wide');
-    if(!b||!img||!document.querySelector('.desk-player-bar'))return null;const k=Math.min(b.width/img.naturalWidth,b.height/img.naturalHeight);
+    if(!b||!img||!document.querySelector('.desk-player-bar'))return null;
     return {frame:b.width/b.height,cut:getComputedStyle(img).objectFit==='cover'};});
    check(m,'обложка с плеером на 1280×600: плеер не открылся или обложки нет');
    if(m){check(m.frame<=5.02,'обложка с плеером на 1280×600: рамка ужалась до '+m.frame.toFixed(2)+':1 — обложка стала полоской');check(!m.cut,'обложка с плеером на 1280×600: картинка режется');}
@@ -236,5 +244,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой, YouTube кнопкой, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

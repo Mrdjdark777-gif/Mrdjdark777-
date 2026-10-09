@@ -555,6 +555,7 @@ prelude-ls,1.2.1,MIT,нет
 prop-types,15.8.1,MIT,нет
 pump,3.0.4,MIT,да
 punycode,2.3.1,MIT,нет
+qrcode-generator,2.0.4,MIT,да
 queue-microtask,1.2.3,MIT,нет
 radix-ui,1.6.7,MIT,да
 rc,1.2.8,(BSD-2-Clause OR MIT OR Apache-2.0),да

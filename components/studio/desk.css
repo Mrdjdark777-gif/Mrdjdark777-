@@ -32,11 +32,13 @@
    крупно и в цвете канала, с кнопкой, а не строчкой мелким шрифтом. */
 .desk-app{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:18px;color:#f4f3f1;text-align:left;
  background:linear-gradient(155deg,#1d4a46 0%,#14302e 55%,#111a1c 100%);border:1px solid #2f6a64;box-shadow:0 18px 40px -22px rgba(111,231,222,.55)}
+.desk-app-title{font-size:15px;line-height:1.25;font-weight:700}
+/* QR-код на белой плашке: камере телефона нужен светлый фон и поле вокруг. */
 .desk-app-head{display:flex;align-items:center;gap:12px}
-.desk-app-mark{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(111,231,222,.16);color:var(--teal);flex:none}
-.desk-app-mark svg{width:22px;height:22px}
-.desk-app-head strong{font-size:15px;line-height:1.25;font-weight:700}
-.desk-app-note{font-size:12.5px;line-height:1.5;color:#b9d7d3}
+.desk-app-qr{flex:none;padding:6px;background:#fff;border-radius:12px;line-height:0;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.desk-qr{display:block;width:96px;height:96px}
+.desk-qr svg{display:block;width:100%;height:100%}
+.desk-app-scan{font-size:12.5px;line-height:1.45;color:#b9d7d3}
 .desk-app-action{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;border-radius:999px;background:var(--teal);color:#06211f;font-weight:700;font-size:14.5px;
  box-shadow:0 10px 24px -12px rgba(111,231,222,.9);transition:background .15s}
 .desk-app:hover .desk-app-action{background:#8ff0e8}
@@ -44,25 +46,41 @@
 /* Соцсети: YouTube — кнопкой (там ролики канала), остальное — значками. */
 .desk-social-block{display:flex;flex-direction:column;gap:10px;margin-top:16px;padding:0 2px}
 .desk-social-title{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#6f757c;padding:0 6px}
-.desk-youtube{display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:14px;background:#1a1d21;border:1px solid #2a2f35;color:#f4f3f1;font-weight:600;font-size:14.5px}
+.desk-brand-link{display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:14px;background:#1a1d21;border:1px solid #2a2f35;color:#f4f3f1;font-weight:600;font-size:14.5px;white-space:nowrap}
+.desk-brand-link svg{flex:none}
+.desk-brand-short{display:none}
 .desk-youtube:hover{background:#221d1f;border-color:#5a2a33}
-.desk-youtube-mark{flex:none}
+.desk-tiktok:hover{background:#1b2023;border-color:#2b5c5f}
 .desk-socials{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
 .desk-social{width:38px;height:38px;border-radius:50%;border:1px solid #2a2f35;display:grid;place-items:center;color:#a4a8ae}
 .desk-social:hover{color:var(--teal);border-color:#2f5552}
-/* Низкое окно (ноутбуки 1366×768, 1280×720): меню целиком, без прокрутки —
+/* Низкое окно (ноутбуки и Mac 1440×900): меню целиком, без прокрутки —
    строки разделов ниже, у карточки приложения нет подписи, кнопки остаются. */
-@media(max-height:780px){
+@media(max-height:860px){
  .is-desk .desk-rail{padding:16px 16px 14px}
  .desk-brand{margin-bottom:14px}
  .desk-nav-item{height:40px}
  .desk-app{gap:8px;padding:12px}
- .desk-app-note{display:none}
- .desk-app-mark{width:34px;height:34px}
+ .desk-qr{width:76px;height:76px}
+ .desk-app-scan{font-size:12px}
  .desk-app-action{height:36px}
- .desk-social-block{margin-top:10px;gap:8px}
- .desk-youtube{height:40px}
+ .desk-social-block{margin-top:10px;gap:8px;display:grid;grid-template-columns:1fr 1fr}
+ .desk-social-title,.desk-socials{grid-column:1 / -1}
+ .desk-brand-link{height:40px;gap:8px;padding:0 10px;font-size:13.5px}
+ .desk-brand-full{display:none}
+ .desk-brand-short{display:inline}
+ .desk-brand-link:only-of-type{grid-column:1 / -1}
  .desk-social{width:34px;height:34px}
+}
+/* Совсем низкое окно (1280×720 с панелями браузера): ещё плотнее, чтобы
+   меню с QR-кодом и соцсетями помещалось без прокрутки. */
+@media(max-height:680px){
+ .is-desk .desk-rail{padding-top:12px}
+ .desk-brand{margin-bottom:8px}
+ .desk-nav-item{height:36px}
+ .desk-qr{width:68px;height:68px}
+ .desk-social-title{display:none}
+ .desk-social-block{margin-top:8px}
 }
 
 /* Верхняя строка: поиск слева, действия справа. Знак канала — в меню. */

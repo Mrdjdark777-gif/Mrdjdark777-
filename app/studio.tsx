@@ -307,7 +307,8 @@ export default function Studio(){
  {desk&&data&&!data.needsSetup&&<DeskRail view={view} onGoto={goto} onAir={!!liveStatus}
   app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href}:null}
   youtube={data.links?.find(l=>l.kind==='youtube')?.url??null}
-  socials={data.links?.some(l=>l.kind!=='youtube')?data.links.filter(l=>l.kind!=='youtube').map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
+  tiktok={data.links?.find(l=>l.kind==='tiktok')?.url??null}
+  socials={data.links?.some(l=>l.kind!=='youtube'&&l.kind!=='tiktok')?data.links.filter(l=>l.kind!=='youtube'&&l.kind!=='tiktok').map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
  {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
