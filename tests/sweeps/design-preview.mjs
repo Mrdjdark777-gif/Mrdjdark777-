@@ -148,7 +148,7 @@ try{
  // состояние ожидания, и это тоже правда, а не заглушка.
  try{
   const Database=(await import('better-sqlite3')).default;
-  peaksWorker=spawn(process.execPath,[path.join(root,'scripts/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});
+  peaksWorker=spawn(process.execPath,[path.join(root,'server/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});
   const peaksDb=new Database(env.DATABASE_PATH,{readonly:true});
   const deadline=Date.now()+60000;
   while(Date.now()<deadline){
@@ -646,7 +646,7 @@ try{
  // поиска с сортировкой и список. Карточки «новый эпизод» больше нет —
  // владелец убрал её вместе с переходом на макет. Ритм каталога ровный —
  // один и тот же промежуток между блоками. Все три раздела на 360/390/430
- // подробно проверяет tests/section-catalogs.mjs.
+ // подробно проверяет tests/browser/section-catalogs.mjs.
  {await page.goto(base+'/?mode=listen&view=podcasts');await settle(page);
   step('раздел «Аудио»');
   const head=await page.evaluate(()=>{const b=s=>{const n=document.querySelector(s);return n?n.getBoundingClientRect():null;};
@@ -2235,7 +2235,7 @@ try{
    else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
    // Каркас ПК «Студия звука» (выбран владельцем 8 октября): боковое меню
    // слева, телефонной панели разделов нет, подвал после содержимого,
-   // строка поиска на одной линии с содержимым. Подробно — tests/desk-layout.mjs.
+   // строка поиска на одной линии с содержимым. Подробно — tests/browser/desk-layout.mjs.
    const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-rail'),
     main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),search=document.querySelector('.desk-search'),
     home=document.querySelector('.desk-home');
@@ -2277,9 +2277,9 @@ try{
  // Одно число во всех трёх местах: памятка автору, подсказка в приложении и
  // вёрстка. Раньше памятка говорила 4:5, а приложение — 9:16.
  {const {readFile}=await import('node:fs/promises');
-  const doc=await readFile('docs/COVERS-RU.md','utf8'),ru=await readFile('lib/i18n/ru.ts','utf8');
+  const doc=await readFile('docs/design/COVERS-RU.md','utf8'),ru=await readFile('lib/i18n/ru.ts','utf8');
   const hint=/'editor\.coverNote'|"editor\.coverNote"/.test(ru)?ru.split(/["']editor\.coverNote["']\s*:\s*/)[1].split('\n')[0]:'';
-  if(!/4:5/.test(doc)||!/1080\s*[×x]\s*1350/.test(doc))problems.push('памятка docs/COVERS-RU.md больше не называет 4:5 / 1080×1350');
+  if(!/4:5/.test(doc)||!/1080\s*[×x]\s*1350/.test(doc))problems.push('памятка docs/design/COVERS-RU.md больше не называет 4:5 / 1080×1350');
   if(!/4:5/.test(hint))problems.push('подсказка в редакторе не называет 4:5: '+hint.slice(0,80));
   if(!/1080×1350/.test(hint))problems.push('подсказка в редакторе не называет 1080×1350');
   // Картинка круга покоя квадратная — это сказано и в памятке, и в студии.

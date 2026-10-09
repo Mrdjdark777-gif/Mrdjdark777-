@@ -1,20 +1,135 @@
-# True Thrills 0.9
+# True Thrills
 
-Windows author studio and Android listener app. Podcasts, stories, external videos and server-delivered live audio, with voluntary donations only. Published content is available from the VPS while the author's PC is off; the PC is required during audio capture/broadcasting.
+Свой канал историй, аудио, видео и прямых эфиров на собственном сервере.
+Один код обслуживает:
+- сайт;
+- приложение слушателя для Android;
+- студию автора для Windows.
 
-Receiving the project for review: [ЧИТАТЬ-ПЕРВЫМ.md](ЧИТАТЬ-ПЕРВЫМ.md) (split by audience: engineers / legal). Owner deployment checklist: [START-HERE-RU.md](START-HERE-RU.md). Full project description in one document: [docs/PROJECT-BRIEF-RU.md](docs/PROJECT-BRIEF-RU.md). Current implementation and limits: [release 0.9](docs/RELEASE-0.9-RU.md). Deployment/PowerShell/backup: [operations](docs/OPERATIONS-0.9-RU.md). Continuation: [project context](docs/PROJECT-CONTEXT.md). For legal/diligence review: [rights](docs/RIGHTS-RU.md), [third-party licenses](docs/LICENSES-RU.md), [what personal data the system touches](docs/PRIVACY-DATA-RU.md).
+Поддержка канала — только добровольная. Выпуски доступны с сервера,
+даже когда компьютер автора выключен. Компьютер нужен только на время
+записи и эфира.
 
-Node 22, Next.js, SQLite/Drizzle, local audio storage. Android uses Media3 for podcasts and HLS live audio. A dedicated FFmpeg worker creates HLS and publishes finished M4A archives. Windows is a WebView2 author shell. Migration 0006 and the live worker are required for 0.9 broadcasting.
+Правообладатель и условия — в `LICENSE`.
+
+## С чего начать
+
+| Кто вы | Что читать |
+|---|---|
+| Принимаете проект на проверку | [docs/owner/ЧИТАТЬ-ПЕРВЫМ.md](docs/owner/ЧИТАТЬ-ПЕРВЫМ.md) — разделено для инженеров и юристов |
+| Владелец, выкладка и обслуживание | [docs/owner/START-HERE-RU.md](docs/owner/START-HERE-RU.md) |
+| Нужен весь проект одним документом | [docs/owner/PROJECT-BRIEF-RU.md](docs/owner/PROJECT-BRIEF-RU.md) |
+| Продолжаете разработку | [docs/owner/PROJECT-CONTEXT.md](docs/owner/PROJECT-CONTEXT.md), правила — [CLAUDE.md](CLAUDE.md) |
+| Что изменилось последним | [docs/owner/ИЗМЕНЕНО-СЕЙЧАС.md](docs/owner/ИЗМЕНЕНО-СЕЙЧАС.md) |
+
+## Карта репозитория
+
+```
+app/            страницы и API (Next.js 16, React 19, TypeScript)
+components/     интерфейс: studio/ — экраны, ui/ — общие элементы
+hooks/          захват звука, эфир, ширина экрана, программа для ПК
+lib/            общая логика: хранилище, проверки медиа, переводы (lib/i18n)
+db/ drizzle/    схема SQLite и миграции
+workers/        фоновый разбор аудио в браузере
+public/         статика, APK для скачивания (public/app)
+android/        приложение слушателя: Java, WebView, Media3, Firebase
+desktop/        студия автора для Windows: C++ и WebView2
+vendor/         сторонний CSS с лицензией рядом
+
+server/         всё, что работает на сервере (VPS):
+                update-safe.sh — обновление с копией и откатом;
+                install-operations.sh — службы и таймеры systemd;
+                live-worker.mjs — воркер эфира; monitor.mjs — мониторинг;
+                backup-*, export-backup.sh, verify-backup.mjs — копии и их проверка;
+                prune-*, server-cleanup.sh, data-status.mjs — уборка и отчёты;
+                vps-setup.sh, enable-https.sh — первая установка сервера
+tools/windows/  программы владельца для Windows: обновление сервера в один
+                клик, копия вне сервера, открытие копии
+tools/dev/      инструменты разработки: иконки, опись лицензий, выкладка APK
+scripts/        ТОЛЬКО переходники со старых адресов — см. ниже
+
+tests/unit/         чистая логика, без процессов и сети
+tests/integration/  временная база, сервер, ffmpeg, серверные скрипты
+tests/browser/      настоящая сборка в Chromium
+tests/sweeps/       большие обходы со снимками: дизайн, телефоны, читалка, плеер
+tests/guards/       порядок в самом репозитории (см. «Контроль»)
+tests/fixtures/     данные проверок: обложки, замок телефонной раскладки
+
+docs/owner/       передача проекта, контекст, что изменилось
+docs/releases/    описания выпусков
+docs/operations/  выкладка, обслуживание, TURN, процесс обновления
+docs/audits/      ревизии и разборы
+docs/legal/       права, лицензии сторонних компонентов, персональные данные
+docs/design/      обложки, договор поверхностей (SURFACES-RU.md)
+```
+
+### Почему есть `scripts/`
+
+Серверные скрипты переехали в `server/`, программы для Windows — в
+`tools/windows/` (9 октября 2026). Старые адреса продолжают работать, потому
+что ими пользуются:
+- программа обновления на компьютере владельца. Это старая копия из архива: она копирует с сервера `scripts/update-safe.sh`, `scripts/backup-data.mjs` и `scripts/verify-backup.mjs`;
+- таймеры и службы, записанные прежней установкой;
+- команды из старых инструкций.
+
+В `scripts/` лежат только переходники в две-три строки. Править нужно
+`server/` и `tools/`. За этим следит `tests/guards/compat-shims.mjs`:
+- у каждого файла есть переходник;
+- переходник ведёт куда нужно;
+- обновление из старой программы доходит до `server/update-safe.sh`.
+
+## Поверхности
+
+Сайт сам определяет, кто его открыл, и даёт каждому свой каркас:
+- **телефон и сенсорный планшет** — телефонный каркас;
+- **слушатель на ПК** — сайт «Студия звука» с боковым меню;
+- **программа для ПК** — то же, но без ссылки «Скачать приложение»;
+- **автор** — студия;
+- **Android** — родной плеер.
+
+Договор описан в [docs/design/SURFACES-RU.md](docs/design/SURFACES-RU.md), его держит `tests/browser/surfaces.mjs`.
+
+## Проверки
 
 ```bash
 npm ci
 npm run lint
-npm test            # build + 23 node suites, no browser needed (the whole list lives in package.json)
-npm run test:live   # real FFmpeg HLS pipeline
-npm run test:browser # 6 suites; needs `npx playwright install chrome` first
-npm run test:design  # production build screenshots, phone layouts
+npm test                # сборка + test:guards + test:unit + test:integration (браузер не нужен)
+npm run test:live       # настоящий конвейер эфира: FFmpeg и HLS
+npm run test:browser    # браузерные проверки; нужен Chrome: npx playwright install chrome chromium
+npm run test:design     # снимки на production-сборке, замок телефонной раскладки
+npm run test:reader && npm run test:player-enhancements && npm run test:home-depth && npm run test:phones
 ```
 
-CI (`.github/workflows/web-checks.yml`) runs `npm test` itself instead of repeating the list, then installs the browser and runs the suites that need one or need a live server; `tests/suite-complete.mjs` fails if any file under `tests/` is not wired to a script. `tests/audio-file.mjs` and the live test require ffmpeg/ffprobe; the browser test requires `playwright@1.56.1` with Google Chrome (`npx playwright install chrome`) — the open-source Chromium build lacks the AAC decoder the live step needs. Server-side tools live in `scripts/`: `update-safe.sh` (backup, fetch, build, rollback on failure), `server-cleanup.sh` (dry-run by default), `data-status.mjs`, `prune-live.mjs`, `prune-live-posts.mjs` (archive posts whose live row is gone; dry-run unless `--delete`), `prune-orphans.mjs`, `prune-backups.mjs` (keeps the last five verified copies; assumes an off-server copy exists), `verify-backup.mjs`; `license-inventory.mjs` (rebuilds `docs/third-party-licenses.csv`, guarded by `tests/licenses.mjs`); `TrueThrills-Update.cmd` updates the server from Windows in one click, `TrueThrills-Backup.cmd` pulls an encrypted off-server copy and `TrueThrills-Restore.cmd` opens it with nothing but Windows itself; `build-icons.py` regenerates the launcher/PWA icons from `public/brand/true-thrills-original.png`. Android release builds require the existing private keystore and Firebase config; do not commit either. All server/device acceptance must be recorded separately from automated tests.
+Браузерным проверкам можно указать браузер: `TT_BROWSER_EXECUTABLE=/путь/к/chrome`.
 
-Release history through 0.8.0 (listener simplification, player/branding, video/support/platforms, interface languages, push auto-enable) moved out of this file — see git history and `docs/` for the 0.9 write-up. Android versionName 0.9.2, versionCode 22.
+### Контроль
+
+- `tests/guards/suite-complete.mjs` — каждая проверка лежит в своей папке и
+  запускается сценарием этой папки; ни одна не осталась без запуска.
+- `tests/guards/selectors-alive.mjs` — проверки не ищут на страницах того, чего
+  в продукте больше нет.
+- `tests/guards/doc-links.mjs` — ссылки и пути в документах ведут на то, что есть.
+- `tests/guards/compat-shims.mjs` — старые адреса скриптов работают.
+- `tests/guards/licenses.mjs`, `legal-docs.mjs`, `i18n-keys.mjs`,
+  `windows-scripts.mjs`, `service-hardening.mjs` — лицензии, правовые
+  документы, переводы, кодировки скриптов Windows, права служб на сервере.
+
+Новые проверки прогоняются мутацией: код ломают нарочно и убеждаются, что
+проверка называет поломку словами (см. `CLAUDE.md`).
+
+CI — `.github/workflows/web-checks.yml`. Он запускает `npm test`, затем ставит браузер и прогоняет браузерные проверки и обходы. Сборка APK — `android-build.yml`, программы для Windows — `desktop-build.yml`.
+
+## Ветки
+
+| Ветка | Роль |
+|---|---|
+| `design/six-screens` | основная: по умолчанию на GitHub, с неё обновляется сервер (только перемотка вперёд, история не переписывается) |
+| `claude/…` | рабочие ветки сессий; после слияния удаляются |
+| `blender-helper-bot` | ветка владельца вне этого проекта; не трогается |
+| тег `archive/cinema-home` | сохранённый вариант главной «Кино», ветка удалена |
+
+## Чего в репозитории нет и не должно быть
+
+Ключ SSH, `.env` сервера, `firebase-service-account.json`, ключ подписи APK.
+Всё это хранится только у владельца, не в архивах и не в переписке.

@@ -3,7 +3,7 @@
 ## Проверенная исходная версия
 GitHub: Mrdjdark777-gif/Mrdjdark777-, ветка design/six-screens.
 База: d863ce0e288649bb3bfa22fc190726a0b5bb6348.
-Загруженный владельцем ИЗМЕНЕНО-СЕЙЧАС.md совпал с файлом этой версии байт в байт.
+Загруженный владельцем docs/owner/ИЗМЕНЕНО-СЕЙЧАС.md совпал с файлом этой версии байт в байт.
 
 Слияние выполнено по трём версиям: Reader Controls (6752928), текущая ветка Claude и подготовленные правки Reading/Player. Полные старые app/studio.tsx, словари и design-preview.mjs поверх новой ветки не копировались: в них сохранены изменения обеих сторон.
 
@@ -14,7 +14,7 @@ GitHub: Mrdjdark777-gif/Mrdjdark777-, ветка design/six-screens.
 - Новые проверки переливания, кольца эфира, отсутствия штампа, актуальный layout-lock и selectors-alive.
 - Обе ранее принятые правки читалки: тени/жесты и перемотка/безопасная шапка/название.
 
-app/globals.css, components/studio/home-soft.css, tests/fixtures/layout-lock.json и tests/selectors-alive.mjs совпадают с текущей версией Claude без изменений.
+app/globals.css, components/studio/home-soft.css, tests/fixtures/layout-lock.json и tests/guards/selectors-alive.mjs совпадают с текущей версией Claude без изменений.
 
 ## Добавлено из подготовленного пакета
 - Бирюзовый прогресс; режим чтения без панелей, прогресса и номера, с перерасчётом доступной высоты.

@@ -7,8 +7,8 @@
 //  2. Файлы в хранилище, на которые не ссылается ни один выпуск, ни обложка
 //     эфира, ни оформление канала.
 //
-//   sudo node --env-file=.env scripts/prune-orphans.mjs            # показать
-//   sudo node --env-file=.env scripts/prune-orphans.mjs --delete   # удалить
+//   sudo node --env-file=.env server/prune-orphans.mjs            # показать
+//   sudo node --env-file=.env server/prune-orphans.mjs --delete   # удалить
 //
 // Ничего не удаляется, пока нужное кем-то используется: строка с живым выпуском,
 // активный эфир и каталог с файлами на диске остаются нетронутыми.

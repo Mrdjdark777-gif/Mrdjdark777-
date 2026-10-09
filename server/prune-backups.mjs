@@ -4,9 +4,9 @@
 // VERIFIED.json — незавершённые и повреждённые копии не считаются и не
 // удаляются: с ними разбирается человек.
 //
-//   node scripts/prune-backups.mjs              # показать, что будет удалено
-//   node scripts/prune-backups.mjs --delete     # удалить
-//   node scripts/prune-backups.mjs --keep 3     # оставить три вместо пяти
+//   node server/prune-backups.mjs              # показать, что будет удалено
+//   node server/prune-backups.mjs --delete     # удалить
+//   node server/prune-backups.mjs --keep 3     # оставить три вместо пяти
 //
 // Ротацию можно включать только тогда, когда копия лежит ещё и вне сервера:
 // иначе уборка уменьшает и без того единственный экземпляр данных.

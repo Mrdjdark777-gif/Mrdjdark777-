@@ -47,4 +47,4 @@ for (const folder of ['audio', 'cover']) {
  }
 }
 console.log(`\nС суммой уже было: ${had}. ${apply ? 'Дописано' : 'К дописыванию'}: ${added}. Пропущено: ${skipped}.`);
-if (!apply && added) console.log('Это был отчёт. Записать: node --env-file=.env scripts/checksum-storage.mjs --apply');
+if (!apply && added) console.log('Это был отчёт. Записать: node --env-file=.env server/checksum-storage.mjs --apply');

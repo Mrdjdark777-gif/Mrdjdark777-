@@ -1,15 +1,15 @@
 # True Thrills 0.9.3 — начать здесь
 
 Порядок действий для владельца. Тому, кто получил проект на просмотр, —
-`ЧИТАТЬ-ПЕРВЫМ.md`.
+`docs/owner/ЧИТАТЬ-ПЕРВЫМ.md`.
 
 Весь контент бесплатный; поддержка автора — только добровольный донат.
 
-1. Прочитай `docs/RELEASE-0.9.3-RU.md` (что изменено после 0.9.2 и что ещё
-   не сделано), а за общей картиной — `docs/RELEASE-0.9.2-RU.md`.
-2. Обнови сервер по `docs/OPERATIONS-0.9-RU.md`. Есть три пути: `tt-update`
-   в Termux с телефона, `scripts/TrueThrills-Update.cmd` с Windows в одно
-   нажатие или `scripts/update-safe.sh` на самом сервере. Скрипт применит
+1. Прочитай `docs/releases/RELEASE-0.9.3-RU.md` (что изменено после 0.9.2 и что ещё
+   не сделано), а за общей картиной — `docs/releases/RELEASE-0.9.2-RU.md`.
+2. Обнови сервер по `docs/operations/OPERATIONS-0.9-RU.md`. Есть три пути: `tt-update`
+   в Termux с телефона, `tools/windows/TrueThrills-Update.cmd` с Windows в одно
+   нажатие или `server/update-safe.sh` на самом сервере. Скрипт применит
    миграции до 0011 и откатится сам, если сборка не удалась.
 3. Собери и установи APK и EXE. Рабочая ветка — `design/six-screens`, и
    автосборка по ней не запускается: Actions → Build Android APK или Build
@@ -23,7 +23,7 @@
    эфира ПК нужен как источник звука.
 6. Скачай приватную резервную копию на ПК и проверь восстановление.
 
-Для Claude: `docs/PROJECT-CONTEXT.md`. Рабочая ветка — `design/six-screens`,
-сервер обновляется с неё через `scripts/update-safe.sh`. Не накатывай старые
+Для Claude: `docs/owner/PROJECT-CONTEXT.md`. Рабочая ветка — `design/six-screens`,
+сервер обновляется с неё через `server/update-safe.sh`. Не накатывай старые
 документы поверх свежего кода. Не объявляй реальные проверки на телефоне
 выполненными по результату mock или CI.

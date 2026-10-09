@@ -2,8 +2,8 @@
 # Уборка на VPS. По умолчанию только показывает, что займёт место и что можно
 # убрать; ничего не удаляет, пока не передан --apply.
 #
-#   sudo bash /opt/truethrills/scripts/server-cleanup.sh          # отчёт
-#   sudo bash /opt/truethrills/scripts/server-cleanup.sh --apply  # уборка
+#   sudo bash /opt/truethrills/server/server-cleanup.sh          # отчёт
+#   sudo bash /opt/truethrills/server/server-cleanup.sh --apply  # уборка
 #
 # Что делает с --apply: удаляет остатки прерванных обновлений и тестов,
 # каталоги эфиров, чьи выпуски уже лежат в хранилище (prune-live.mjs), кэш npm,
@@ -11,7 +11,7 @@
 # старше последних пяти (prune-backups.mjs) и хвосты от проб — мёртвые записи
 # эфиров и файлы, на которые никто не ссылается (prune-orphans.mjs). Пять последних остаются всегда, и
 # ротация рассчитывает на то, что копия есть ещё и вне сервера — забирай её
-# через scripts/export-backup.sh.
+# через server/export-backup.sh.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo 'Run with sudo.' >&2; exit 1; }
 cd /opt/truethrills
@@ -30,14 +30,14 @@ for d in data/storage data/live /var/backups/truethrills .next .sites-runtime/np
 ls -1t /var/backups/truethrills 2>/dev/null | head -3 | sed 's/^/   свежие копии: /' || true
 
 say 'Резервные копии сверх последних пяти'
-if [ "$apply" = 1 ]; then node scripts/prune-backups.mjs --keep 5 --delete; else node scripts/prune-backups.mjs --keep 5; fi
+if [ "$apply" = 1 ]; then node server/prune-backups.mjs --keep 5 --delete; else node server/prune-backups.mjs --keep 5; fi
 
 say 'Остатки обновлений и тестов'
 stale=$(ls -d .update-staging .test-tmp-* .test-live-* 2>/dev/null || true)
 if [ -z "$stale" ]; then echo 'нет'; else echo "$stale"; [ "$apply" = 1 ] && rm -rf $stale && echo 'удалено'; fi
 
 say 'Каталоги завершённых эфиров'
-if [ "$apply" = 1 ]; then node --env-file=.env scripts/prune-live.mjs --delete; else node --env-file=.env scripts/prune-live.mjs; fi
+if [ "$apply" = 1 ]; then node --env-file=.env server/prune-live.mjs --delete; else node --env-file=.env server/prune-live.mjs; fi
 
 say 'Кэш npm'
 echo "$(size .sites-runtime/npm-cache)"
@@ -52,8 +52,8 @@ say 'Пакеты apt'
 if [ "$apply" = 1 ]; then apt-get -y autoremove >/dev/null 2>&1 && apt-get clean && echo 'осиротевшие пакеты удалены, кэш очищен'; else { apt-get -s autoremove 2>/dev/null | grep -cE '^(Remv|Удал)' || true; } | sed 's/$/ пакетов можно удалить/'; fi
 
 say 'Хвосты от проб и удалённых выпусков'
-if [ "$apply" = 1 ]; then node --env-file=.env scripts/prune-orphans.mjs --delete; else node --env-file=.env scripts/prune-orphans.mjs; fi
+if [ "$apply" = 1 ]; then node --env-file=.env server/prune-orphans.mjs --delete; else node --env-file=.env server/prune-orphans.mjs; fi
 
 say 'Состояние данных'
-node --env-file=.env scripts/data-status.mjs
+node --env-file=.env server/data-status.mjs
 [ "$apply" = 1 ] || printf '\nЭто был отчёт. Запусти с --apply, чтобы убрать перечисленное.\n'

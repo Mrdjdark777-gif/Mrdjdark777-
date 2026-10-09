@@ -16,7 +16,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 // Сборка кладётся внутрь проекта, а не в системный tmp: иначе Node не найдёт
 // node_modules для внешних пакетов маршрута.
 const dir = mkdtempSync(path.join(root, '.test-tmp-'));

@@ -10,7 +10,7 @@
  *
  * Здесь проверяется ровно это: реальный openssl шифрует файл, а расшифровка
  * идёт независимой реализацией — тем же способом, каким это делает
- * scripts/TrueThrills-Restore.ps1. Сам PowerShell отсюда запустить нельзя,
+ * tools/windows/TrueThrills-Restore.ps1. Сам PowerShell отсюда запустить нельзя,
  * поэтому дополнительно сверяются параметры: разойдись они хоть в одном
  * числе — восстановление не сработает, а узнать об этом хочется здесь.
  */
@@ -21,11 +21,11 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 const read = (f) => readFileSync(path.join(root, f), 'utf8');
 
-const shell = read('scripts/export-backup.sh');
-const restore = read('scripts/TrueThrills-Restore.ps1');
+const shell = read('server/export-backup.sh');
+const restore = read('tools/windows/TrueThrills-Restore.ps1');
 
 // Без пароля копия уезжает открытой — этого быть не должно, но и молча
 // шифровать нечем: пароль приходит снаружи. Проверяем, что путь с паролем

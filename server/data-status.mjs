@@ -3,7 +3,7 @@
 // меняет. Нужен, когда бэкап и приложение показывают разное.
 //
 //   cd /opt/truethrills
-//   sudo node --env-file=.env scripts/data-status.mjs
+//   sudo node --env-file=.env server/data-status.mjs
 import Database from 'better-sqlite3';
 import {readdir, stat} from 'node:fs/promises';
 import path from 'node:path';

@@ -82,11 +82,11 @@ if($Pass){
  # открытой. Пароль читается уже под sudo, из стандартного ввода, и живёт
  # только в окружении дочернего процесса — в списке процессов его не видно.
  $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
- try{ $Reply=$Pass | & ssh @SshOptions $Server 'cd /opt/truethrills && sudo sh -c ''read -r p; BACKUP_PASSPHRASE="$p" bash scripts/export-backup.sh''' } finally{ $ErrorActionPreference=$Was }
+ try{ $Reply=$Pass | & ssh @SshOptions $Server 'cd /opt/truethrills && sudo sh -c ''read -r p; BACKUP_PASSPHRASE="$p" bash server/export-backup.sh''' } finally{ $ErrorActionPreference=$Was }
  if($LASTEXITCODE -ne 0){throw 'SSH command failed. See the message above.'}
 }else{
  Write-Warning 'Пароль не задан: копия уедет открытой, а в ней .env и приватные ключи.'
- $Reply=Invoke-Remote 'cd /opt/truethrills && sudo bash scripts/export-backup.sh'
+ $Reply=Invoke-Remote 'cd /opt/truethrills && sudo bash server/export-backup.sh'
 }
 $Pass=$null
 $Info=($Reply -join "`n") | ConvertFrom-Json

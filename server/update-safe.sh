@@ -6,7 +6,7 @@ cd /opt/truethrills
 # Каталогом владеет системный пользователь сервиса, а git здесь работает от
 # root: без этого он откажется («dubious ownership») и обновление встанет.
 git config --global --add safe.directory /opt/truethrills 2>/dev/null || true
-branch=${1:-truethrills-app}
+branch=${1:-design/six-screens}
 expected=${2:-}
 [[ "$branch" =~ ^[A-Za-z0-9._/-]+$ ]] && [[ "$branch" != -* ]] || exit 2
 [[ -z "$expected" || "$expected" =~ ^[a-f0-9]{40}$ ]] || exit 2
@@ -71,7 +71,7 @@ node --env-file=.env node_modules/drizzle-kit/bin.cjs migrate
 node - <<'JS'
 const fs=require('node:fs');let text=fs.readFileSync('.env','utf8');text=/^LIVE_ENABLED=.*$/m.test(text)?text.replace(/^LIVE_ENABLED=.*$/m,'LIVE_ENABLED=true'):text+'\nLIVE_ENABLED=true\n';fs.writeFileSync('.env',text,{mode:0o600});
 JS
-bash scripts/install-operations.sh
+bash server/install-operations.sh
 systemctl start truethrills
 # Служба поднимается не мгновенно, и первая попытка законно не достаёт до
 # порта: curl печатал «Failed to connect to 127.0.0.1 port 3000», потом
@@ -91,4 +91,7 @@ case "$health" in
  *) echo "Служба отдаёт не ту сборку: ждали $want, ответ: $health" >&2; exit 1 ;;
 esac
 trap - ERR
+# Временная копия, из которой шёл запуск (её кладёт scripts/update-safe.sh),
+# больше не нужна. Удаляется только она и только по своему шаблону имени.
+case "$script_dir" in /opt/truethrills/.update-run.*) rm -rf -- "$script_dir" ;; esac
 echo "Updated successfully to $target. Previous commit: $previous"

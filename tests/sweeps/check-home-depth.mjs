@@ -13,7 +13,7 @@ try{
  const lock=JSON.parse(await readFile('tests/fixtures/layout-lock.json','utf8'));
  for(const [w,h] of [[320,568],[360,640],[390,844],[412,915],[1024,573]]){
   // 1024 — сенсорный планшет: телефонную главную получает он, а ПК с мышью —
-  // свой каркас «Студия звука» (tests/desk-layout.mjs).
+  // свой каркас «Студия звука» (tests/browser/desk-layout.mjs).
   const context=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true});const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',async route=>{const u=new URL(route.request().url());
    if(u.pathname==='/api/library')return route.fulfill({json:library});

@@ -6,8 +6,8 @@
 // слушатель видел, и дотянуться до неё было нечем. Этот скрипт убирает
 // оставшиеся хвосты: выпуск, его звук и обложку.
 //
-//   node --env-file=.env scripts/prune-live-posts.mjs           # показать
-//   node --env-file=.env scripts/prune-live-posts.mjs --delete  # удалить
+//   node --env-file=.env server/prune-live-posts.mjs           # показать
+//   node --env-file=.env server/prune-live-posts.mjs --delete  # удалить
 import Database from 'better-sqlite3';
 import {unlinkSync} from 'node:fs';
 import path from 'node:path';

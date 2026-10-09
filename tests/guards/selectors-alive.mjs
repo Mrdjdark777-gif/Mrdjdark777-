@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync,statSync} from 'node:fs';
 import path from 'node:path';
 
-const root=path.resolve(import.meta.dirname,'..');
+const root=path.resolve(import.meta.dirname,'..','..');
 
 /** Имена, которых в наших исходниках нет и быть не должно. */
 const ALLOWED=new Map([
@@ -32,6 +32,9 @@ const ALLOWED=new Map([
  ['player-support','надгробие: широкую плашку поддержки из плеера убрали'],
  ['footer-build','надгробие: штамп сборки из подвала убрали, проверка сторожит, что он не вернулся'],
  ['player-menu-button','надгробие: меню «…» в плеере убрали, его команды стоят кнопками в ряду'],
+ ['desk-support','надгробие: карточку поддержки из бокового меню ПК убрали (владелец, 9 октября), проверка сторожит, что она не вернулась'],
+ ['desk-support-button','надгробие: кнопку «Поддержать» из бокового меню ПК убрали вместе с карточкой'],
+ ['soft-all','надгробие: кнопку «Все» у карусели убрали по просьбе владельца, обход телефонов сторожит, что она не вернулась'],
 ]);
 
 function walk(dir,out=[]){
@@ -56,7 +59,9 @@ const CALLS=/(?:querySelectorAll|querySelector|locator|closest|matches|\$\$eval|
 const CLASSES=/classList\.contains\(\s*(['"`])([a-z][a-z0-9-]*)\1/gi;
 const dead=[];
 let checked=0;
-for(const file of readdirSync(path.join(root,'tests')).filter(f=>f.endsWith('.mjs'))){
+// Проверки лежат по папкам tests/<вид>/ — обходим все, кроме fixtures.
+const testFiles=readdirSync(path.join(root,'tests'),{recursive:true}).map(f=>String(f).split(path.sep).join('/')).filter(f=>f.endsWith('.mjs')&&!f.startsWith('fixtures/'));
+for(const file of testFiles){
  const lines=readFileSync(path.join(root,'tests',file),'utf8').split('\n');
  lines.forEach((line,index)=>{
   for(const call of line.matchAll(CALLS)){
@@ -84,7 +89,7 @@ assert.deepEqual(dead,[],'проверки ищут то, чего в проду
 // списка исключений нужно убрать, иначе список зарастёт.
 // Себя из выборки исключаем: иначе каждое имя нашлось бы в собственном
 // списке исключений и проверка всегда была бы довольна.
-const allTests=readdirSync(path.join(root,'tests')).filter(f=>f.endsWith('.mjs')&&f!=='selectors-alive.mjs')
+const allTests=testFiles.filter(f=>f!=='guards/selectors-alive.mjs')
  .map(f=>readFileSync(path.join(root,'tests',f),'utf8')).join('\n');
 const stale=[...ALLOWED.keys()].filter(name=>!allTests.includes(name));
 assert.deepEqual(stale,[],'исключения, которые никто не ищет — их пора убрать из списка:\n'+stale.join('\n'));

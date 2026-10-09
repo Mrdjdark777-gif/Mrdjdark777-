@@ -50,8 +50,11 @@ Claude Code работал **внутри** проекта: сам читал ф
 | Сайт и приложение (одно и то же) | корень репозитория | Next.js 16, React 19, TypeScript, SQLite |
 | Приложение слушателя для Android | `android/` | оболочка WebView вокруг сайта |
 | Студия автора для Windows | `desktop/` | оболочка WebView2, `desktop/client.cpp` |
-| Обслуживание сервера | `scripts/` | PowerShell для Windows, bash для сервера |
-| Документы | `docs/` и корень | см. ниже |
+| Обслуживание сервера | `server/` | bash и Node на сервере |
+| Программы владельца для Windows | `tools/windows/` | PowerShell |
+| Старые адреса скриптов | `scripts/` | только переходники в `server/` и `tools/windows/` |
+| Проверки | `tests/` | по папкам: unit, integration, browser, sweeps, guards |
+| Документы | `docs/` | по разделам; карта — `README.md` |
 
 Сервер: Oracle Cloud, `ubuntu@129.152.8.230`, каталог `/opt/truethrills`,
 домен `truethrills.com`. Служба `truethrills` под systemd, отдельная служба
@@ -61,19 +64,19 @@ Claude Code работал **внутри** проекта: сам читал ф
 
 ## 3. Какие документы читать и в каком порядке
 
-1. `ЧИТАТЬ-ПЕРВЫМ.md` — указатель для того, кто получил проект впервые.
-2. `ИЗМЕНЕНО-СЕЙЧАС.md` — что сделано в последних двух заходах и что в них
+1. `docs/owner/ЧИТАТЬ-ПЕРВЫМ.md` — указатель для того, кто получил проект впервые.
+2. `docs/owner/ИЗМЕНЕНО-СЕЙЧАС.md` — что сделано в последних двух заходах и что в них
    осталось непроверенным. Второй заход — целиком про читалку и переворот
    страницы, то есть про то, чем мы заняты сейчас.
-3. `docs/PROJECT-BRIEF-RU.md` — что это за проект целиком.
-4. `docs/PROJECT-CONTEXT.md` — где проект сейчас и что дальше.
-5. `docs/RELEASE-0.9.2-RU.md` — состав текущей версии.
+3. `docs/owner/PROJECT-BRIEF-RU.md` — что это за проект целиком.
+4. `docs/owner/PROJECT-CONTEXT.md` — где проект сейчас и что дальше.
+5. `docs/releases/RELEASE-0.9.2-RU.md` — состав текущей версии.
 6. `README.md` — команды, зависимости.
-7. `docs/OPERATIONS-0.9-RU.md` — сервер: обновление, копии, восстановление.
+7. `docs/operations/OPERATIONS-0.9-RU.md` — сервер: обновление, копии, восстановление.
 8. **`CLAUDE.md` — правила работы над проектом.** Их стоит соблюдать и новому
    помощнику; ниже они пересказаны.
-9. `docs/LICENSES-RU.md`, `docs/RIGHTS-RU.md`, `docs/LEGAL-RU.md`,
-   `docs/PRIVACY-DATA-RU.md` — лицензии, права, юридическая часть.
+9. `docs/legal/LICENSES-RU.md`, `docs/legal/RIGHTS-RU.md`, `docs/legal/LEGAL-RU.md`,
+   `docs/legal/PRIVACY-DATA-RU.md` — лицензии, права, юридическая часть.
 
 ---
 
@@ -132,7 +135,7 @@ git push origin design/six-screens
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 Get-ChildItem -Recurse -Filter *.ps1 | Unblock-File
-.\scripts\TrueThrills-Server.ps1 -Action Update -KeyPath "D:\True Thrills\Private SSH - Key\ssh-key-2026-09-06.key"
+.\tools\windows\TrueThrills-Server.ps1 -Action Update -KeyPath "D:\True Thrills\Private SSH - Key\ssh-key-2026-09-06.key"
 ```
 
 Идёт несколько минут. В конце обязаны быть **обе** строки:
@@ -253,7 +256,7 @@ npm run test:design   # снимки экранов и проверки по н�
 
 Готовый текст — можно отправить как есть вместе с архивом:
 
-> Вот архив проекта True Thrills. Прочитай `ПЕРЕДАЧА-ChatGPT.md` — там сказано,
+> Вот архив проекта True Thrills. Прочитай `docs/owner/ПЕРЕДАЧА-ChatGPT.md` — там сказано,
 > как мы работали и как я буду применять твои правки.
 >
 > Главное: отдавай файлы целиком, с путём, а не куски для вставки. Я не правлю

@@ -5,7 +5,7 @@ cd /opt/truethrills
 node --env-file=.env - <<'JS'
 const Database=require('better-sqlite3');const db=new Database(process.env.DATABASE_PATH||'data/truethrills.db',{readonly:true,fileMustExist:true});if(db.prepare('SELECT id FROM broadcasts WHERE active=1 AND heartbeat>?').get(Date.now()-90000))throw new Error('Finish the live before exporting a new backup.');db.close();
 JS
-bash scripts/backup-service.sh >&2
+bash server/backup-service.sh >&2
 backup=$(node --input-type=module - <<'JS'
 import {readdirSync,existsSync} from 'node:fs';const base='/var/backups/truethrills';const names=readdirSync(base).filter(n=>n.startsWith('TrueThrills-')&&existsSync(base+'/'+n+'/VERIFIED.json')).sort();if(!names.length)throw new Error('No verified backup');console.log(names.at(-1));
 JS

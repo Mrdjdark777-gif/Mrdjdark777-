@@ -94,7 +94,7 @@ export function useLive(){
    const r=await api<{id:string}>('live',{action:'start',title,transport:'hls',description:description??'',...(coverKey?{coverKey}:{})});
    host.current=r.id;uploadError.current=null;queue.current=Promise.resolve();queued.current=0;
    // Opus 320 кбит/с: с запасом выше порога, где сжатие слышно; сервер потом
-   // сжимает в AAC 320 (scripts/live-worker.mjs). Кусок в 2 с — около 80 КБ.
+   // сжимает в AAC 320 (server/live-worker.mjs). Кусок в 2 с — около 80 КБ.
    const rec=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus',audioBitsPerSecond:320000});recorder.current=rec;let seq=0;
    rec.ondataavailable=e=>{if(!e.data.size)return;const n=seq++;queued.current++;
     if(queued.current>45){uploadError.current=new Error('#err.liveUpload');if(rec.state!=='inactive')rec.stop();void api('live',{action:'stop',id:r.id,reason:'studio-queue-overflow: '+queued.current+' кусков не ушло, сеть не успевает'}).catch(()=>{});toast.error(t('liveArchive.partial'));}

@@ -38,7 +38,7 @@ try{
  // Эфир и запись в студии — с запасом по качеству (владелец: «максимальное
  // качество для эфира»): с ПК Opus 320 кбит/с, на сервере AAC 320 кбит/с и
  // для слушателей, и для архива; запись черновика в студии — 320 кбит/с.
- {const live=await readFile('hooks/use-live.ts','utf8'),cap=await readFile('hooks/use-capture.ts','utf8'),worker=await readFile('scripts/live-worker.mjs','utf8');
+ {const live=await readFile('hooks/use-live.ts','utf8'),cap=await readFile('hooks/use-capture.ts','utf8'),worker=await readFile('server/live-worker.mjs','utf8');
   const bits=src=>[...src.matchAll(/audioBitsPerSecond:(\d+)/g)].map(m=>Number(m[1]));
   assert.ok(bits(live).length&&bits(live).every(b=>b>=320000),'эфир с ПК сжимается ниже 320 кбит/с: '+bits(live));
   assert.ok(bits(cap).length&&bits(cap).every(b=>b>=320000),'запись в студии сжимается ниже 320 кбит/с: '+bits(cap));
@@ -56,7 +56,7 @@ try{
   for(const [file,use] of [['app/api/audio/route.ts','AUDIO_MAX_BYTES'],['lib/audio-file.ts','AUDIO_MAX_BYTES'],['app/studio.tsx','AUDIO_MAX_BYTES'],['components/studio/podcast-player.tsx','AUDIO_MAX_BYTES'],['hooks/use-capture.ts','RECORDING_STOP_BYTES']]){
    const src=await readFile(file,'utf8');assert.ok(src.includes(use),file+' не пользуется общим пределом '+use);
    assert.doesNotMatch(src,/\b([5-9]\d|[1-9]\d{2,})\s*\*\s*1024\s*\*\s*1024\b/,file+': свой предел размера вместо lib/audio-limits.ts');}
-  const nginx=Number((await readFile('scripts/install-operations.sh','utf8')).match(/client_max_body_size (\d+)M;\//)?.[1]),setup=Number((await readFile('scripts/vps-setup.sh','utf8')).match(/client_max_body_size (\d+)M;/)?.[1]);
+  const nginx=Number((await readFile('server/install-operations.sh','utf8')).match(/client_max_body_size (\d+)M;\//)?.[1]),setup=Number((await readFile('server/vps-setup.sh','utf8')).match(/client_max_body_size (\d+)M;/)?.[1]);
   assert.ok(nginx>max&&setup>max,'nginx отрежет файл раньше сервера: nginx '+nginx+'M/'+setup+'M, предел '+max+'M');}
  console.log('PASS: missing duration reproduced; finite duration and seek index restored; audio packets unchanged; seeking decodes; finalized WebM and MP3 preserved; invalid files rejected.');
 }finally{await rm(dir,{recursive:true,force:true});}

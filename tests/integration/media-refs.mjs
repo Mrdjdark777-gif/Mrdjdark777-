@@ -16,10 +16,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import {MEDIA_SETTING_KEYS, referencedMediaKeys} from '../lib/media-refs.mjs';
-import {LIVE_BUSY_STATES} from '../lib/live-states.mjs';
+import {MEDIA_SETTING_KEYS, referencedMediaKeys} from '../../lib/media-refs.mjs';
+import {LIVE_BUSY_STATES} from '../../lib/live-states.mjs';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 const read = (f) => readFileSync(path.join(root, f), 'utf8');
 
 // Настройка с картинкой, забытая в списке, — это и есть исходная поломка.
@@ -37,7 +37,7 @@ for (const match of library.matchAll(/d\.action==='([A-Za-z]*[Aa]rt)'/g)) {
 }
 
 // Никто не собирает ссылки в обход общего модуля.
-for (const file of ['scripts/prune-orphans.mjs', 'scripts/verify-backup.mjs']) {
+for (const file of ['server/prune-orphans.mjs', 'server/verify-backup.mjs']) {
  const text = read(file);
  assert.equal(/SELECT value FROM settings WHERE key = '[a-zA-Z]+'/.test(text), false,
   file + ': настройка с картинкой читается напрямую — ссылки собирает lib/media-refs.mjs');
@@ -88,7 +88,7 @@ try {
 // можно было снести во время сшивания, прямо из-под FFmpeg.
 assert.deepEqual([...LIVE_BUSY_STATES].sort(), ['closing', 'processing', 'receiving'],
  'список занятых состояний записи изменился — проверь все три места, которые им пользуются');
-for (const file of ['app/api/live-stream/route.ts', 'app/api/library/route.ts', 'scripts/prune-orphans.mjs']) {
+for (const file of ['app/api/live-stream/route.ts', 'app/api/library/route.ts', 'server/prune-orphans.mjs']) {
  const text = read(file);
  assert.match(text, /LIVE_BUSY_STATES/, file + ': занятые состояния перечисляются сами по себе, а не берутся из lib/live-states.mjs');
  assert.equal(/'receiving'\s*,\s*'closing'/.test(text), false,

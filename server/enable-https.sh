@@ -4,7 +4,7 @@ set -euo pipefail
 if [ "$(id -u)" -ne 0 ]; then echo 'Запусти через sudo.' >&2; exit 1; fi
 DOMAIN=${1:-}
 if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]] || [ "${#DOMAIN}" -gt 253 ] || [[ "$DOMAIN" =~ ^[0-9.]+$ ]]; then
-  echo 'Использование: sudo bash scripts/enable-https.sh example.com (без https:// и пути)' >&2; exit 1
+  echo 'Использование: sudo bash server/enable-https.sh example.com (без https:// и пути)' >&2; exit 1
 fi
 CONF=/etc/nginx/sites-available/truethrills
 if [ ! -s "$CONF" ]; then echo 'Сначала установи приложение через vps-setup.sh.' >&2; exit 1; fi

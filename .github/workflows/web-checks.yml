@@ -2,9 +2,9 @@ name: Web checks
 on:
   workflow_dispatch: {}
   push:
-    branches: [truethrills-app, design/six-screens]
+    branches: [design/six-screens]
   pull_request:
-    branches: [truethrills-app, design/six-screens]
+    branches: [design/six-screens]
 concurrency:
   group: web-checks-${{ github.ref }}
   cancel-in-progress: true
@@ -20,7 +20,7 @@ jobs:
           node-version: "22"
           cache: npm
       # Решения об уведомлениях в приложении Android вынесены в чистый класс
-      # без Android: tests/android-push-logic.mjs компилирует его настоящим
+      # без Android: tests/integration/android-push-logic.mjs компилирует его настоящим
       # javac и гоняет на JVM, поэтому SDK и эмулятор не нужны.
       - uses: actions/setup-java@v4
         with:
@@ -30,21 +30,21 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: npm ci --include=dev
       - name: Check server script syntax
-        run: bash -n scripts/update-safe.sh scripts/install-operations.sh scripts/backup-service.sh scripts/export-backup.sh
+        run: bash -n server/update-safe.sh server/install-operations.sh server/backup-service.sh server/export-backup.sh
       - name: Check PowerShell syntax
         shell: pwsh
         run: |
           $tokens = $null
           $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/TrueThrills-Server.ps1'), [ref]$tokens, [ref]$errors)
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'tools/windows/TrueThrills-Server.ps1'), [ref]$tokens, [ref]$errors)
           if ($errors.Count) { $errors | Format-List; exit 1 }
       - run: npm run lint
-      # Список проверок один — в package.json, а tests/suite-complete.mjs
+      # Список проверок один — в package.json, а tests/guards/suite-complete.mjs
       # следит, что ни один файл не остался без запуска. «npm test» сам
       # собирает проект, отдельный build не нужен и браузер ему не нужен.
       - run: npm test
       # Этому нужен поднятый сервер и настоящий FFmpeg.
-      - run: node tests/live-archive-integration.mjs
+      - run: node tests/integration/live-archive-integration.mjs
       # Браузер ставится ДО браузерных проверок. Раньше установка стояла после
       # «npm test», а сами проверки были внутри него: на чистой машине прогон
       # падал на первой из них, потому что playwright ещё не был установлен.

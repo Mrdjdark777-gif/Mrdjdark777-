@@ -4,8 +4,8 @@
 // предварительно убедившись, что файл на месте.
 //
 //   cd /opt/truethrills
-//   sudo node --env-file=.env scripts/backfill-covers.mjs          # показать
-//   sudo node --env-file=.env scripts/backfill-covers.mjs --apply  # применить
+//   sudo node --env-file=.env server/backfill-covers.mjs          # показать
+//   sudo node --env-file=.env server/backfill-covers.mjs --apply  # применить
 import Database from 'better-sqlite3';
 import {stat} from 'node:fs/promises';
 import path from 'node:path';

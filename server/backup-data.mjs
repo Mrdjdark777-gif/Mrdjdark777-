@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import {mkdir,cp,writeFile,realpath,copyFile,chmod} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-const destination=process.argv[2];if(!destination){console.error('Usage: node --env-file=.env scripts/backup-data.mjs /absolute/backup-directory');process.exit(1);}
+const destination=process.argv[2];if(!destination){console.error('Usage: node --env-file=.env server/backup-data.mjs /absolute/backup-directory');process.exit(1);}
 const target=path.resolve(destination),databasePath=path.resolve(process.env.DATABASE_PATH||'data/truethrills.db'),storagePath=path.resolve(process.env.STORAGE_DIR||'data/storage');
 const livePath=path.resolve(process.env.LIVE_DIR||'data/live');
 if(!path.isAbsolute(destination))throw new Error('Use an absolute destination path.');

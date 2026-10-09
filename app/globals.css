@@ -1347,7 +1347,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    её правилам; своё у неё только место под номер версии и размер файла.
 
    На телефоне её нет намеренно. Главная обязана помещаться до сгиба — это
-   требование владельца и отдельная проверка в tests/design-preview.mjs, — а
+   требование владельца и отдельная проверка в tests/sweeps/design-preview.mjs, — а
    лишняя строка выталкивала её за край на 390×844 и 360×640. Место для неё
    на телефоне нужно искать не на главной. */
 .app-strip{display:none}
@@ -1457,7 +1457,7 @@ body:has(.tt-beams) .bottom-nav{z-index:30}
    картинки, поэтому строки остаются одной высоты, а обложка видна целиком и в
    своих пропорциях. Картинка снова в потоке — иначе ширину рамки задать
    нечем; за тем, чтобы она не начала растягивать строку, следит проверка
-   «высоту задаёт обложка, а не текст» в tests/design-preview.mjs. */
+   «высоту задаёт обложка, а не текст» в tests/sweeps/design-preview.mjs. */
 .main-content:not(.listener-main) .post-cover{width:auto;aspect-ratio:auto;
  align-self:center;background:none}
 .main-content:not(.listener-main) .video-cover{width:auto}
@@ -2653,7 +2653,7 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 /* Студия с телефона: карточка выпуска. Шесть кнопок (слушать, поделиться,
    править, в черновики, закрепить, удалить) в один ряд не помещались, и
    «Закрепить» с «Удалить» уезжали за край экрана — их не было видно и нельзя
-   было нажать (нашла tests/surfaces.mjs). Ряд переносится, обложка — как у
+   было нажать (нашла tests/browser/surfaces.mjs). Ряд переносится, обложка — как у
    слушателя на телефоне, колонка текста не сжимается до нуля. */
 @media(max-width:600px){
  .main-content:not(.listener-main) .post-actions{flex-wrap:wrap;row-gap:10px}
@@ -2662,6 +2662,6 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
 }
 
 /* Третья колонка главной студии: обложка 16:9 для сайта на ПК. */
-.hero-wide-panel .hero-wide-preview,.hero-wide-panel .hero-wide-empty{display:block;width:100%;max-width:540px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;background:#141518;border:1px solid #3a3b40;margin:4px 0 12px}
+.hero-wide-panel .hero-wide-preview,.hero-wide-panel .hero-wide-empty{display:block;width:100%;max-width:240px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;background:#141518;border:1px solid #3a3b40;margin:4px 0 12px}
 .hero-wide-panel .hero-wide-empty{display:grid;place-items:center;color:#6f737c;font-size:13px;letter-spacing:.12em}
 .hero-wide-panel .hero-wide-target{color:#bfc3c8;font-size:13.5px;margin:0 0 12px}

@@ -105,6 +105,6 @@ try{
  if(expected!==null&&rows.length!==expected)throw new Error('Backup holds '+rows.length+' episodes with audio, the live database has '+expected+'. Do not rely on this backup.');
  console.log('Verified SQLite, audio and covers:',rows.length+' episodes with audio'+(expected===null?'':' of '+expected+' in the live database')+', '+covers.length+' covers; '+checked+' files matched their checksum'+(legacy?', '+legacy+' predate checksums and were checked by size only':''));
  // Копия верная, но в самой базе есть указатели в пустоту. Это чинится
- // отдельно (scripts/prune-orphans.mjs), и бэкап из-за этого не отменяется.
- if(dangling.length){console.log('\nСсылки без файлов — их нет и в живом хранилище, копия тут ни при чём: '+dangling.length);for(const line of dangling)console.log('  - '+line);console.log('Убрать их: node scripts/prune-orphans.mjs, затем с --delete.');}
+ // отдельно (server/prune-orphans.mjs), и бэкап из-за этого не отменяется.
+ if(dangling.length){console.log('\nСсылки без файлов — их нет и в живом хранилище, копия тут ни при чём: '+dangling.length);for(const line of dangling)console.log('  - '+line);console.log('Убрать их: node server/prune-orphans.mjs, затем с --delete.');}
 }finally{db.close();}

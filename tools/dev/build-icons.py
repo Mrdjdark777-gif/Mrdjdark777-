@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert the owner's transparent PNG into app icon sizes without flattening alpha.
 
-Usage: python3 scripts/build-icons.py /path/to/original.png
+Usage: python3 tools/dev/build-icons.py /path/to/original.png
 Requires Pillow. This script never removes backgrounds or redraws artwork.
 """
 import argparse

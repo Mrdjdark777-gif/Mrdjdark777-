@@ -18,7 +18,7 @@
  *    ы, э, ъ, ё: значит, где-то текст мимо словаря;
  *  - студия на ПК: у аудио и рассказов нет строки счётчика.
  *
- * Запуск: TT_BROWSER_EXECUTABLE=… node scripts/check-all-phones.mjs
+ * Запуск: TT_BROWSER_EXECUTABLE=… node tests/sweeps/check-all-phones.mjs
  *
  * Для проверки самой проверки: TT_PHONES_CSS и TT_PHONES_JS подкладывают в
  * каждую страницу поломку, TT_PHONES_QUICK=1 оставляет два телефона и

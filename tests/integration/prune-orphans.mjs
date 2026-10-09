@@ -62,7 +62,7 @@ try {
  // А этот загружен только что — его нельзя трогать ни при каких обстоятельствах.
  await file('audio/in-flight.m4a', 3072);
 
- const prune = (...args) => execFileSync(process.execPath, ['scripts/prune-orphans.mjs', ...args], {cwd: root, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
+ const prune = (...args) => execFileSync(process.execPath, ['server/prune-orphans.mjs', ...args], {cwd: root, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']});
  const report = prune();
  assert.match(report, /без выпуска и файлов 3/, 'находит все три мёртвых эфира, включая тот, у которого нет записи');
  assert.match(report, /ничьих 3/, 'обложка удаляемого эфира тоже считается ничьей');

@@ -22,7 +22,7 @@ try{
  const key='audio/analysis';await copyFile(sample,path.join(env.STORAGE_DIR,key));
  db=new Database(env.DATABASE_PATH);
  db.prepare("INSERT INTO posts(id,kind,title,audio_key,published,created_at) VALUES('peaks','podcast','Analysis',?,1,?)").run(key,Date.now());
- worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env:{...env,PATH:path.join(dir,'bin')+path.delimiter+env.PATH,TT_REAL_FFMPEG:realFfmpeg,TT_ANALYSIS_MARKER:marker}});
+ worker=spawn(process.execPath,['server/live-worker.mjs'],{env:{...env,PATH:path.join(dir,'bin')+path.delimiter+env.PATH,TT_REAL_FFMPEG:realFfmpeg,TT_ANALYSIS_MARKER:marker}});
  worker.stderr.on('data',b=>logs+=b);worker.stdout.on('data',b=>logs+=b);
  const exited=new Promise(resolve=>worker.once('exit',(code,signal)=>resolve({code,signal})));
  await until(async()=>{try{return (await readFile(marker,'utf8')).length>0;}catch{return false;}});

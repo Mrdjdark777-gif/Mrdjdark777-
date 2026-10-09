@@ -3,7 +3,7 @@
  * Проверяет, что постоянно работающие сервисы не запускаются от root.
  *
  * Проверяются юниты, которые скрипты установки реально пишут на сервер, — то
- * есть содержимое scripts/vps-setup.sh и scripts/install-operations.sh. Это
+ * есть содержимое server/vps-setup.sh и server/install-operations.sh. Это
  * не проверка живого VPS: сказать «сервис работает от truethrills» можно
  * только по `systemctl show`, и это отдельная работа руками.
  */
@@ -11,9 +11,9 @@ import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 const read = (file) => readFileSync(path.join(root, file), 'utf8');
-const setup = read('scripts/vps-setup.sh'), ops = read('scripts/install-operations.sh');
+const setup = read('server/vps-setup.sh'), ops = read('server/install-operations.sh');
 
 /** Достаёт тело юнита из heredoc в скрипте. */
 function unit(text, name) {
@@ -55,14 +55,14 @@ assert.match(ops, /Остаётся от root осознанно/, 'исключ
 // обновление. Иначе правка доезжает до новых серверов, а работающий остаётся
 // со старым юнитом и по-прежнему работает от root.
 assert.ok(!/cat > \/etc\/systemd\/system\//.test(setup), 'vps-setup.sh снова пишет юниты сам: до работающего сервера эта правка не доедет');
-assert.match(setup, /bash "\$\{APP_DIR\}\/scripts\/install-operations\.sh"/, 'vps-setup.sh должен ставить сервисы через install-operations.sh');
-assert.match(read('scripts/update-safe.sh'), /bash scripts\/install-operations\.sh/, 'обновление должно переписывать юниты, а не только код');
+assert.match(setup, /bash "\$\{APP_DIR\}\/server\/install-operations\.sh"/, 'vps-setup.sh должен ставить сервисы через install-operations.sh');
+assert.match(read('server/update-safe.sh'), /bash server\/install-operations\.sh/, 'обновление должно переписывать юниты, а не только код');
 
 // Пользователь создаётся без оболочки и владеет только своим.
 assert.match(ops, /useradd --system .*--shell \/usr\/sbin\/nologin/, 'пользователь сервиса должен создаваться системным и без оболочки');
 assert.match(ops, /chown -R truethrills:truethrills \/opt\/truethrills/, 'каталог приложения должен принадлежать пользователю сервиса');
 assert.match(ops, /chmod 700 \/opt\/truethrills\/data/, 'в каталоге данных лежит база с ключами push-подписок — он не должен быть открыт на чтение всем на машине');
-for (const where of ['scripts/install-operations.sh', 'scripts/vps-setup.sh', 'scripts/update-safe.sh'])
+for (const where of ['server/install-operations.sh', 'server/vps-setup.sh', 'server/update-safe.sh'])
  assert.match(read(where), /safe\.directory/, where + ': git от root в чужом каталоге откажется работать и обновление встанет');
 // Блокировка воркера переезжает из общедоступного /run/lock в свой каталог,
 // который systemd создаёт от имени сервиса.
@@ -75,7 +75,7 @@ assert.ok(!/\/run\/lock\/truethrills-live/.test(live), 'файл блокиро�
 // этот — только на чтение. Прежний `chown -R truethrills` отдавал копии
 // сервису целиком, и захваченный процесс приложения уносил вместе с данными
 // возможность их вернуть.
-const backupScript = read('scripts/backup-service.sh');
+const backupScript = read('server/backup-service.sh');
 assert.match(backupScript, /chown -R root:truethrills \/var\/backups\/truethrills/,
  'копии должны принадлежать root, а сервису доставаться только по группе');
 assert.match(backupScript, /chmod -R u=rwX,g=rX,o= \/var\/backups\/truethrills/,
@@ -85,9 +85,9 @@ assert.equal(/chown -R truethrills:truethrills \/var\/backups/.test(backupScript
 
 // Код и административные скрипты принадлежат root. Раньше установка отдавала
 // сервисному пользователю весь /opt/truethrills — вместе с
-// scripts/backup-service.sh, который root запускает по таймеру в 04:00.
+// server/backup-service.sh, который root запускает по таймеру в 04:00.
 // Это был путь от захваченного процесса приложения к root.
-const install = read('scripts/install-operations.sh');
+const install = read('server/install-operations.sh');
 assert.equal(/chown -R truethrills:truethrills \/opt\/truethrills\s*$/m.test(install), false,
  'весь каталог приложения снова отдан сервисному пользователю: это путь к root через обслуживание');
 assert.match(install, /chown -R root:truethrills \/opt\/truethrills/,
@@ -132,7 +132,7 @@ assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
 // каждый раз в новом месте одной и той же цепочки. Проверка на службы была, а
 // на выкладку — нет.
 {
- const deploy = readFileSync(path.join(root, 'scripts/TrueThrills-Server.ps1'), 'utf8');
+ const deploy = readFileSync(path.join(root, 'tools/windows/TrueThrills-Server.ps1'), 'utf8');
 
  // 1. scp не пишет в дерево сервиса. Каталогом владеет truethrills, входим мы
  //    другим пользователем, и попытка положить файл напрямую упирается в
@@ -171,7 +171,7 @@ assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
 
  // 5. Сборка идёт с нуля. Next отдавал прежние куски стилей после обновления:
  //    код новый, а на экране старое.
- const update = readFileSync(path.join(root, 'scripts/update-safe.sh'), 'utf8');
+ const update = readFileSync(path.join(root, 'server/update-safe.sh'), 'utf8');
  const clean = update.indexOf('rm -rf .next'), build = update.indexOf('npm run build');
  assert.ok(clean > 0 && build > clean,
   'сборка должна начинаться с удаления .next, иначе после обновления на экране остаются прежние стили');
@@ -214,7 +214,7 @@ assert.match(install, /chown root:truethrills \/opt\/truethrills\/\.env/,
  const notice = existsSync(path.join(root, 'vendor/page-curl-shader.LICENSE.txt'));
  assert.equal(borrowed, notice,
   borrowed
-   ? 'в читалке снова заимствованный шейдер — положи рядом его лицензию и впиши в docs/LICENSES-RU.md'
+   ? 'в читалке снова заимствованный шейдер — положи рядом его лицензию и впиши в docs/legal/LICENSES-RU.md'
    : 'чужого шейдера в читалке нет, а уведомление о его лицензии осталось — убери его');
 
  const health = readFileSync(path.join(root, 'app/api/health/route.ts'), 'utf8');

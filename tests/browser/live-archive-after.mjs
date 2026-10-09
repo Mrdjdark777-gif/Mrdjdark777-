@@ -43,7 +43,7 @@ try{
   await api('library',{kind:'podcast',audioCategory:'podcast',title,description:'Тест',audioKey:key,duration:seconds,published:true});
  }
  // Запуск эфира требует живого воркера записи — он же потом делает выпуск.
- worker=spawn(process.execPath,[path.join(root,'scripts/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});
+ worker=spawn(process.execPath,[path.join(root,'server/live-worker.mjs')],{env,stdio:['ignore','ignore','ignore']});
  await new Promise(r=>setTimeout(r,1500));
  browser=await chromium.launch({executablePath:process.env.TT_BROWSER_EXECUTABLE});
  const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});

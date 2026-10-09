@@ -13,12 +13,12 @@
 import assert from 'node:assert/strict';
 import {readdirSync,readFileSync,statSync} from 'node:fs';
 import path from 'node:path';
-import {ru} from '../lib/i18n/ru.ts';
-import {it} from '../lib/i18n/it.ts';
-import {uk} from '../lib/i18n/uk.ts';
-import {ro} from '../lib/i18n/ro.ts';
+import {ru} from '../../lib/i18n/ru.ts';
+import {it} from '../../lib/i18n/it.ts';
+import {uk} from '../../lib/i18n/uk.ts';
+import {ro} from '../../lib/i18n/ro.ts';
 
-const root=path.resolve(import.meta.dirname,'..');
+const root=path.resolve(import.meta.dirname,'..','..');
 const DICTS={ru,it,uk,ro};
 const LOCALES=Object.keys(DICTS);
 let passed=0;

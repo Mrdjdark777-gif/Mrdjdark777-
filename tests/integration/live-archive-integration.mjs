@@ -18,7 +18,7 @@ try{
  const sessionReq=new Request(origin,{headers:{cookie}});db.prepare('INSERT INTO settings VALUES(?,?)').run('owner',auth.sessionUserId(sessionReq));
  const call=async(route,method,body,query='',authorized=true)=>route[method](new Request(origin+'/api/'+(route===live?'live':route===peaks?'peaks':'live-stream')+query,{method,headers:{host:'true-thrills.test',origin,...(authorized?{cookie}:{}),'content-type':body instanceof Buffer?'audio/webm':'application/json'},...(body!==undefined?{body:body instanceof Buffer?body:JSON.stringify(body)}:{})}));
  assert.equal((await call(live,'POST',{action:'start',title:'No worker',transport:'hls'})).status,400);
- worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env:process.env});worker.stderr.on('data',b=>logs+=b);worker.stdout.on('data',b=>logs+=b);
+ worker=spawn(process.execPath,['server/live-worker.mjs'],{env:process.env});worker.stderr.on('data',b=>logs+=b);worker.stdout.on('data',b=>logs+=b);
  await until(async()=>{try{return JSON.parse(await readFile(path.join(process.env.LIVE_DIR,'worker.json'),'utf8')).at;}catch{return false;}});
  const start=async(title,coverKey)=>{const response=await call(live,'POST',{action:'start',title,transport:'hls',...(coverKey?{coverKey}:{})});const data=await response.json();assert.equal(response.status,200,JSON.stringify(data));return data.id;};
  // Обложка эфира кладётся в хранилище напрямую: маршрут загрузки в эту сборку
@@ -94,7 +94,7 @@ try{
  // Full backup includes live recovery fragments and the externally referenced Firebase file.
  await writeFile(path.join(dir,'.env'),'PUBLIC_SITE_URL=https://true-thrills.test\n');
  const firebase=path.join(dir,'firebase.json');await writeFile(firebase,'{"test":true}');
- const backupResult=execFileSync(process.execPath,[path.join(root,'scripts/backup-data.mjs'),path.join(dir,'snapshots')],{cwd:dir,env:{...process.env,FIREBASE_SERVICE_ACCOUNT_FILE:firebase},encoding:'utf8'});
+ const backupResult=execFileSync(process.execPath,[path.join(root,'server/backup-data.mjs'),path.join(dir,'snapshots')],{cwd:dir,env:{...process.env,FIREBASE_SERVICE_ACCOUNT_FILE:firebase},encoding:'utf8'});
  const backup=backupResult.split('Backup created: ')[1].trim();assert.equal(await readFile(path.join(backup,'firebase-service-account.json'),'utf8'),'{"test":true}');
  assert.ok((await readFile(path.join(backup,'live',abandoned,'chunks','000000.webm'))).length>0);
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM push_events WHERE id=?').get('post:'+id).n,1);

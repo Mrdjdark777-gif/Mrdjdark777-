@@ -6,14 +6,14 @@
 зависимостей. Lock — это то, что действительно приедет к другому человеку по
 `npm ci`.
 
-Машинный список со всеми 646 пакетами: `docs/third-party-licenses.csv`.
+Машинный список со всеми 646 пакетами: `docs/legal/third-party-licenses.csv`.
 Пересобрать:
 
 ```bash
-node scripts/license-inventory.mjs --write
+node tools/dev/license-inventory.mjs --write
 ```
 
-`tests/licenses.mjs` роняет прогон, если сохранённая опись разошлась с
+`tests/guards/licenses.mjs` роняет прогон, если сохранённая опись разошлась с
 lock-файлом, — список не может тихо устареть.
 
 Колонка «поставка» в CSV отделяет то, что уезжает на сервер и в приложение

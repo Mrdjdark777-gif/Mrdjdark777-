@@ -3,7 +3,7 @@ package com.truethrills.listener;
 /**
  * Решения об уведомлениях, вынесенные из моста: здесь нет ни одного импорта
  * Android, поэтому их можно проверить обычным javac без эмулятора и SDK
- * (tests/android-push-logic.mjs).
+ * (tests/integration/android-push-logic.mjs).
  */
 final class PushPolicy {
     private PushPolicy() {}

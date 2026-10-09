@@ -2,7 +2,7 @@ name: Build Windows EXE
 on:
   workflow_dispatch: {}
   push:
-    branches: [truethrills-app]
+    branches: [design/six-screens]
     paths: ["desktop/**", ".github/workflows/desktop-build.yml"]
 jobs:
   build:

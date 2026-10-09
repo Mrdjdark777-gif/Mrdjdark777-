@@ -4,8 +4,8 @@
 // выпуск уже готов (state='ready') и его аудио лежит в хранилище — то есть
 // удалять нечего, кроме кусков от студии и нарезки HLS.
 //
-//   node --env-file=.env scripts/prune-live.mjs          # показать, что будет удалено
-//   node --env-file=.env scripts/prune-live.mjs --delete # удалить
+//   node --env-file=.env server/prune-live.mjs          # показать, что будет удалено
+//   node --env-file=.env server/prune-live.mjs --delete # удалить
 import Database from 'better-sqlite3';
 import {readdir, stat, rm} from 'node:fs/promises';
 import path from 'node:path';

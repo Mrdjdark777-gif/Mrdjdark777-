@@ -4,14 +4,14 @@
 # and runs it as a systemd service behind an nginx reverse proxy on port 80.
 #
 # Usage (as root, e.g. via sudo):
-#   curl -fsSL https://raw.githubusercontent.com/Mrdjdark777-gif/Mrdjdark777-/truethrills-app/scripts/vps-setup.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/Mrdjdark777-gif/Mrdjdark777-/design/six-screens/server/vps-setup.sh | sudo bash
 #
 # Safe to re-run: it pulls the latest code and restarts the service without
 # touching an existing .env or database.
 set -euo pipefail
 
 REPO_URL="https://github.com/Mrdjdark777-gif/Mrdjdark777-.git"
-BRANCH="truethrills-app"
+BRANCH="design/six-screens"
 APP_DIR="/opt/truethrills"
 NODE_MAJOR=22
 
@@ -93,7 +93,7 @@ echo "== 6/7: systemd-сервисы =="
 # Сами юниты пишет install-operations.sh — он же выполняется при каждом
 # обновлении, поэтому правка юнита доезжает и до работающего сервера, а не
 # только до нового.
-bash "${APP_DIR}/scripts/install-operations.sh"
+bash "${APP_DIR}/server/install-operations.sh"
 systemctl restart truethrills
 
 echo "== 7/7: nginx + firewall =="

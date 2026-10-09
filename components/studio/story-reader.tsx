@@ -514,7 +514,7 @@ export function StoryReader({id,title,description,body,onClose}:{
  useEffect(()=>sheet==='none'?undefined:pushBackLayer(BACK_MENU,()=>{setSheet('none');return true;}),[sheet]);
  // Escape на клавиатуре (ПК) — как «Назад»: сначала закрывает открытую панель
  // закладок или настроек, потом саму читалку. Видео и плеер закрывались по
- // Escape, а читалка — нет (нашла проверка tests/surfaces.mjs).
+ // Escape, а читалка — нет (нашла проверка tests/browser/surfaces.mjs).
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key!=='Escape'||e.defaultPrevented)return;e.preventDefault();if(sheet!=='none')setSheet('none');else onClose();};
   document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key);},[sheet,onClose]);
 

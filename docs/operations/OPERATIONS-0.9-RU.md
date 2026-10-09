@@ -4,12 +4,12 @@
 
 ## Обновление с Windows
 
-Распакуй полный архив исходников. Открой PowerShell в каталоге TrueThrills, где лежат package.json и папка scripts. Команды ниже запускаются на твоём ПК; серверные команды скрипт отправляет через SSH.
+Распакуй полный архив исходников. Открой PowerShell в каталоге TrueThrills, где лежат package.json и папка tools. Команды ниже запускаются на твоём ПК; серверные команды скрипт отправляет через SSH.
 
 ```powershell
 $Key = Read-Host 'Путь к твоему SSH-ключу; Enter, если вход уже работает без указания ключа'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server.ps1 -Action Status -KeyPath $Key
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server.ps1 -Action Update -KeyPath $Key
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\windows\TrueThrills-Server.ps1 -Action Status -KeyPath $Key
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\windows\TrueThrills-Server.ps1 -Action Update -KeyPath $Key
 ```
 
 Если SSH-аккаунт другой, добавь `-Server 'имя@адрес'`. Для установки строго проверенного commit добавь `-ExpectedCommit 'полный SHA из финальной передачи'`. Рабочая ветка — truethrills-app. Скрипт не требует оставлять PowerShell или ПК включённым после завершения: службы работают на VPS через systemd.
@@ -23,7 +23,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server
 После успешного обновления, вне эфира:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\TrueThrills-Server.ps1 -Action Backup -KeyPath $Key
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\windows\TrueThrills-Server.ps1 -Action Backup -KeyPath $Key
 ```
 
 Результат — приватный `.tar.gz` в Documents\TrueThrills-Backups. Скрипт сравнивает SHA256 скачанного файла с серверным и лишь затем удаляет временный файл передачи. Основная серверная копия остаётся. Ключ Android не извлекается из GitHub Secrets: его отдельная приватная копия должна храниться у владельца.
@@ -147,7 +147,7 @@ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "echo OK"
 cat >> ~/.bashrc <<'EOF'
 tt-update(){ termux-wake-lock; ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && sudo bash .update-staging/update-safe.sh design/six-screens"; termux-wake-unlock; }
 tt-status(){ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && git log -1 --format=%H && systemctl is-active truethrills && curl -fsS http://127.0.0.1:3000/api/health"; }
-tt-clean(){ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && sudo node --env-file=.env scripts/prune-live-posts.mjs $1"; }
+tt-clean(){ ssh -i ~/.ssh/truethrills.key ubuntu@129.152.8.230 "cd /opt/truethrills && sudo node --env-file=.env server/prune-live-posts.mjs $1"; }
 EOF
 source ~/.bashrc
 ```
@@ -179,10 +179,10 @@ sudo journalctl -u truethrills -n 40 --no-pager
 прочитать собственный код. Так случилось 23 сентября 2026: обслуживание
 работает под `umask 077`, файлы создаются «только владельцу», и после смены
 владельца кода на root сервису не осталось даже чтения. Лечение —
-`scripts/install-operations.sh`, он выставляет права заново:
+`server/install-operations.sh`, он выставляет права заново:
 
 ```bash
-cd /opt/truethrills && sudo bash scripts/install-operations.sh && sudo systemctl restart truethrills truethrills-live
+cd /opt/truethrills && sudo bash server/install-operations.sh && sudo systemctl restart truethrills truethrills-live
 ```
 
 **`Cannot find module .../node_modules/next/dist/bin/next`** — то же самое,
@@ -199,7 +199,7 @@ sudo runuser -u truethrills -- test -x /opt/truethrills/node_modules/next/dist/b
 
 ```bash
 cd /opt/truethrills && sudo npm ci --include=dev && sudo npm run build \
-  && sudo bash scripts/install-operations.sh \
+  && sudo bash server/install-operations.sh \
   && sudo systemctl restart truethrills truethrills-live
 ```
 
@@ -221,9 +221,9 @@ cd /opt/truethrills && sudo npm ci --include=dev && sudo npm run build \
 
 Два ярлыка, запускать с ПК:
 
-- **`scripts\TrueThrills-Backup.cmd`** — снимает проверенную копию на сервере,
+- **`tools\windows\TrueThrills-Backup.cmd`** — снимает проверенную копию на сервере,
   шифрует её и скачивает в `Документы\TrueThrills-Backups`. Спросит пароль.
-- **`scripts\TrueThrills-Restore.cmd`** — открывает скачанную копию обратно.
+- **`tools\windows\TrueThrills-Restore.cmd`** — открывает скачанную копию обратно.
 
 Про пароль честно: **он нигде не хранится и восстановлению не подлежит.**
 Забыл — копия превращается в мусор. Запиши его отдельно от компьютера, на
@@ -235,7 +235,7 @@ push-подписок и адреса устройств подписчиков.
 
 Открывается копия **без доустановки программ**: расшифровка идёт средствами
 самой Windows, распаковка — встроенным `tar`. Openssl, Gpg4win и 7-Zip не
-нужны. Это проверяется автоматически (`tests/backup-export.mjs`): формат и
+нужны. Это проверяется автоматически (`tests/integration/backup-export.mjs`): формат и
 параметры обоих концов обязаны сходиться, иначе прогон падает.
 
 Рядом с копиями скрипт кладёт `LAST-BACKUP.json` с датой последней удавшейся

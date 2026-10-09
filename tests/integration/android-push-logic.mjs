@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 const source = path.join(root, 'android/app/src/main/java/com/truethrills/listener/PushPolicy.java');
 const work = await mkdtemp(path.join(tmpdir(), 'tt-android-'));
 const fail = (message) => { console.error('FAIL: ' + message); process.exit(1); };

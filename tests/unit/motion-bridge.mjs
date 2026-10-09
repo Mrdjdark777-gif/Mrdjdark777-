@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..','..');
 const read = (f) => readFileSync(path.join(root, f), 'utf8');
 
 const page = read('hooks/use-tilt.ts');

@@ -12,7 +12,7 @@ import {readFile, stat} from 'node:fs/promises';
 import path from 'node:path';
 import {build} from 'esbuild';
 
-const root=path.resolve(import.meta.dirname,'..');
+const root=path.resolve(import.meta.dirname,'..','..');
 const {outputFiles}=await build({entryPoints:[path.join(root,'lib/app-release.ts')],bundle:true,write:false,format:'esm',platform:'node'});
 const {APP_RELEASE}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
 

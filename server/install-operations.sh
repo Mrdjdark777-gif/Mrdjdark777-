@@ -19,7 +19,7 @@ install -d -m 750 -o root -g truethrills /var/backups/truethrills
 #
 # Раньше здесь стоял `chown -R truethrills /opt/truethrills` — «проще и
 # надёжнее». Это давало сервисному пользователю право переписать
-# scripts/backup-service.sh, который root запускает по таймеру в 04:00:
+# server/backup-service.sh, который root запускает по таймеру в 04:00:
 # захваченный процесс приложения получал root на следующем обслуживании.
 # Сервис пишет только туда, куда ему действительно нужно.
 #
@@ -108,7 +108,7 @@ User=truethrills
 Group=truethrills
 WorkingDirectory=/opt/truethrills
 RuntimeDirectory=truethrills-live
-ExecStart=/usr/bin/flock -n /run/truethrills-live/worker.lock /usr/bin/env node --env-file=.env scripts/live-worker.mjs
+ExecStart=/usr/bin/flock -n /run/truethrills-live/worker.lock /usr/bin/env node --env-file=.env server/live-worker.mjs
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=140
@@ -128,7 +128,7 @@ Description=True Thrills verified backup
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/truethrills
-ExecStart=/bin/bash /opt/truethrills/scripts/backup-service.sh
+ExecStart=/bin/bash /opt/truethrills/server/backup-service.sh
 UNIT
 cat > /etc/systemd/system/truethrills-backup.timer <<'UNIT'
 [Unit]
@@ -147,7 +147,7 @@ Type=oneshot
 User=truethrills
 Group=truethrills
 WorkingDirectory=/opt/truethrills
-ExecStart=/usr/bin/env node --env-file=.env scripts/monitor.mjs
+ExecStart=/usr/bin/env node --env-file=.env server/monitor.mjs
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true

@@ -15,7 +15,7 @@ for(let i=0;i<60;i++){try{await fetch(base+'/api/health');break;}catch{await new
 const login=await fetch(base+'/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:'ui-test-password'})});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
 async function post(data){const r=await fetch(base+'/api/library',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify(data)});assert.equal(r.status,200);return r.json();}
 await post({action:'setup'});
-worker=spawn(process.execPath,['scripts/live-worker.mjs'],{env,stdio:'inherit'});
+worker=spawn(process.execPath,['server/live-worker.mjs'],{env,stdio:'inherit'});
 const story=await post({kind:'story',title:'История у горного озера',body:'Дорога уходила к озеру. Ветер стихал, и становились слышны птицы.\n\n'.repeat(70),published:true});
 const wav=Buffer.alloc(44+44100*2*8);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(wav.length-44,40);
 const upload=await fetch(base+'/api/audio',{method:'POST',headers:{cookie,'content-type':'audio/wav','x-upload-size':String(wav.length)},body:wav});assert.equal(upload.status,200);const {key}=await upload.json();

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run as root on the VPS. Keeps the last five verified copies and deletes older
 # ones, but only after a new copy has been written and verified. This retention
-# assumes the owner also keeps a copy off the server (scripts/export-backup.sh);
+# assumes the owner also keeps a copy off the server (server/export-backup.sh);
 # without one, the five copies here are the only ones that exist.
 set -euo pipefail
 cd /opt/truethrills
@@ -19,10 +19,10 @@ trap 'if [ "$worker_active" = 1 ]; then systemctl start truethrills-live; fi; if
 systemctl stop truethrills
 if [ "$worker_active" = 1 ]; then systemctl stop truethrills-live; fi
 umask 077
-node --env-file=.env scripts/backup-data.mjs /var/backups/truethrills
+node --env-file=.env server/backup-data.mjs /var/backups/truethrills
 # Ротация идёт только после успешной свежей копии: если строка выше упала,
 # скрипт остановится здесь и ничего не удалит.
-node scripts/prune-backups.mjs --keep 5 --delete
+node server/prune-backups.mjs --keep 5 --delete
 # Копию снимает root, а проверяет её наличие мониторинг — он работает от
 # пользователя сервиса. Без этого каталог снимка (0700 от root) для него
 # закрыт, и он доложит о пропавших бэкапах, которых на самом деле нет.

@@ -26,8 +26,8 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..');
-const folder = path.join(root, 'scripts');
+const root = path.resolve(import.meta.dirname, '..','..');
+const folder = path.join(root, 'tools', 'windows');
 const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 
 // Байты, которые в cp1251 становятся типографскими кавычками. Именно они
@@ -35,7 +35,7 @@ const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 const QUOTES = new Map([[0x91, '‘'], [0x92, '’'], [0x93, '“'], [0x94, '”']]);
 
 const files = readdirSync(folder).filter((f) => f.endsWith('.ps1')).sort();
-assert.ok(files.length, 'в scripts/ не осталось ни одного .ps1 — проверять нечего');
+assert.ok(files.length, 'в tools/windows/ не осталось ни одного .ps1 — проверять нечего');
 
 let checked = 0;
 for (const name of files) {
@@ -45,13 +45,13 @@ for (const name of files) {
  checked += 1;
 
  assert.ok(bytes.subarray(0, 3).equals(BOM),
-  'scripts/' + name + ' без метки UTF-8: Windows PowerShell прочитает его в cp1251 и кириллица развалится');
+  'tools/windows/' + name + ' без метки UTF-8: Windows PowerShell прочитает его в cp1251 и кириллица развалится');
 
  // И называем опасность поимённо: без метки вот эти байты станут кавычками.
  const found = [...new Set([...bytes.subarray(3)].filter((b) => QUOTES.has(b)))];
  if (found.length) {
   assert.ok(bytes.subarray(0, 3).equals(BOM),
-   'scripts/' + name + ' содержит байты ' + found.map((b) => '0x' + b.toString(16)).join(', ') +
+   'tools/windows/' + name + ' содержит байты ' + found.map((b) => '0x' + b.toString(16)).join(', ') +
    ' — без метки они станут кавычками ' + found.map((b) => QUOTES.get(b)).join(' ') + ' и файл не разберётся');
  }
 }
@@ -80,7 +80,7 @@ for (const name of files) {
   if (!NATIVE.test(line)) return;
   if (line.trimStart().startsWith('#')) return;        // в комментарии вызова нет
   guarded += 1;
-  const where = 'scripts/' + name + ':' + (at + 1);
+  const where = 'tools/windows/' + name + ':' + (at + 1);
   assert.match(line, /try\s*\{.*\}\s*finally\s*\{\s*\$ErrorActionPreference\s*=\s*\$Was\s*\}/,
    where + ' — вызов родной программы не в try/finally: её поток ошибок оборвёт обновление');
   const before = lines[at - 1] ?? '';
@@ -114,7 +114,7 @@ assert.match(readFileSync(path.join(folder, 'TrueThrills-Obnovit.ps1'), 'utf8'),
  * установки не теряется.
  */
 {
- const update = readFileSync(path.join(root, 'scripts/update-safe.sh'), 'utf8');
+ const update = readFileSync(path.join(root, 'server/update-safe.sh'), 'utf8');
  const line = update.split('\n').find((l) => l.trim().startsWith('npm ci'));
  assert.ok(line, 'в обновлении больше нет установки зависимостей');
  const filters = line.match(/grep -v '([^']*)'/g) || [];

@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [truethrills-app]
+    branches: [design/six-screens]
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
@@ -67,7 +67,7 @@ jobs:
 
       # По просьбе (publish=true): новый APK — на сайт. Файл ложится в
       # public/app вместо прежнего, lib/app-release.ts получает его размер и
-      # сумму, tests/app-release.mjs проверяет, и всё это — одним коммитом в
+      # сумму, tests/unit/app-release.mjs проверяет, и всё это — одним коммитом в
       # ту же ветку. Сервер получит его обычным обновлением.
       - uses: actions/setup-node@v4
         if: github.event_name == 'workflow_dispatch' && inputs.publish
@@ -85,8 +85,8 @@ jobs:
           mkdir -p public/app
           cp "$RUNNER_TEMP/out/TrueThrills-Android-${version}.apk" "public/app/TrueThrills-${version}.apk"
           npm ci --ignore-scripts --no-audit --no-fund
-          node scripts/set-app-release.mjs "$version" "$code" "public/app/TrueThrills-${version}.apk"
-          node tests/app-release.mjs
+          node tools/dev/set-app-release.mjs "$version" "$code" "public/app/TrueThrills-${version}.apk"
+          node tests/unit/app-release.mjs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/app lib/app-release.ts

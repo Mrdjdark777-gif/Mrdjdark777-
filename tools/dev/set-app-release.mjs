@@ -2,10 +2,10 @@
 /**
  * Кладёт сведения о новом APK в lib/app-release.ts: версия, код версии,
  * адрес, размер, сумма и дата — все поля разом, как требует
- * tests/app-release.mjs. Запускается сборкой Android на GitHub, когда её
+ * tests/unit/app-release.mjs. Запускается сборкой Android на GitHub, когда её
  * попросили выложить APK на сайт (android-build.yml, publish=true).
  *
- *   node scripts/set-app-release.mjs 0.9.4 24 public/app/TrueThrills-0.9.4.apk
+ *   node tools/dev/set-app-release.mjs 0.9.4 24 public/app/TrueThrills-0.9.4.apk
  */
 import {createHash} from 'node:crypto';
 import {readFile,writeFile} from 'node:fs/promises';

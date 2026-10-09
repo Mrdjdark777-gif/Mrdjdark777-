@@ -21,7 +21,7 @@ try{
  await put('cover/c0de-0001','picture-one','image/png');
  await put('cover/c0de-0002','picture-two','image/png');
  await put('cover/c0de-0003','picture-three','image/png');
- execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
+ execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
 
  // Обложки теряются так же тихо, как звук, а замечают это уже на
  // восстановленном сервере с пустыми карточками. Каждая ссылка проверяется.
@@ -29,7 +29,7 @@ try{
  for(const [key,who] of [['cover/c0de-0001','выпуска']]){
   const kept=path.join(dir,'storage',key),aside=kept+'.aside';
   await rename(kept,aside);
-  assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Missing cover/,'пропавшая обложка '+who+' должна ронять проверку');
+  assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Missing cover/,'пропавшая обложка '+who+' должна ронять проверку');
   await rename(aside,kept);
  }
  // Обложка эфира и оформление канала без живого хранилища считаются висячими
@@ -38,7 +38,7 @@ try{
  for(const [key,who] of [['cover/c0de-0002','эфира'],['cover/c0de-0003','канала']]){
   const kept=path.join(dir,'storage',key),aside=kept+'.aside';
   await rename(kept,aside);
-  assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/,'обложка '+who+' должна попасть в отчёт, а не отменять копию');
+  assert.match(execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/,'обложка '+who+' должна попасть в отчёт, а не отменять копию');
   await rename(aside,kept);
  }
  // Ссылка на обложку, под которой файла нет ни в копии, ни в живом хранилище.
@@ -51,56 +51,56 @@ try{
  await mirror();
  const cover2=path.join(dir,'storage/cover/c0de-0002');
  await rm(cover2);await rm(cover2+'.meta.json');await rm(path.join(liveStorage,'cover/c0de-0002'));await rm(path.join(liveStorage,'cover/c0de-0002.meta.json'));
- const withLive=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir,'',liveStorage],{cwd:root,encoding:'utf8'});
+ const withLive=execFileSync(process.execPath,['server/verify-backup.mjs',dir,'',liveStorage],{cwd:root,encoding:'utf8'});
  assert.match(withLive,/Ссылки без файлов/,'висячая ссылка должна быть названа в отчёте');
  assert.match(withLive,/cover\/c0de-0002/);
  // Тот же файл, но он есть в живом хранилище — значит, потерян при копировании.
  await put('cover/c0de-0002','picture-two','image/png');await mirror();
  await rm(path.join(dir,'storage/cover/c0de-0002'));await rm(path.join(dir,'storage/cover/c0de-0002.meta.json'));
- assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir,'',liveStorage],{cwd:root,stdio:'pipe'}),/Missing cover/,'файл, который есть в живом хранилище и пропал в копии, должен ронять проверку');
+ assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',dir,'',liveStorage],{cwd:root,stdio:'pipe'}),/Missing cover/,'файл, который есть в живом хранилище и пропал в копии, должен ронять проверку');
  await put('cover/c0de-0002','picture-two','image/png');
  // Без живого хранилища различить нечем: звук выпуска по-прежнему обязателен,
  // а ссылка эфира считается висячей.
  await rm(cover2);await rm(cover2+'.meta.json');
- assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/);
+ assert.match(execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/Ссылки без файлов/);
  await put('cover/c0de-0002','picture-two','image/png');
  await rm(liveStorage,{recursive:true,force:true});
 
  // Файл того же размера, но с другим содержимым: размер сходится, сумма — нет.
  // Раньше такая копия проходила проверку молча.
  await writeFile(path.join(dir,'storage/audio/abc-123'),'tost');
- assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Checksum mismatch/,'подменённый файл того же размера должен ронять проверку');
+ assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}),/Checksum mismatch/,'подменённый файл того же размера должен ронять проверку');
  await writeFile(path.join(dir,'storage/audio/abc-123'),'test');
  // Файлы, загруженные до контрольных сумм, проверяются по размеру и
  // называются в отчёте отдельно — «нечего сверять» не должно читаться как
  // «сверено».
  await writeFile(path.join(dir,'storage/cover/c0de-0001.meta.json'),JSON.stringify({size:11,contentType:'image/png'}));
- const legacy=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
+ const legacy=execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
  assert.match(legacy,/1 predate checksums/,'файл без контрольной суммы должен быть назван в отчёте');
  // Досчёт сумм для файлов, загруженных до этой правки: сперва отчёт, запись
  // только с --apply.
- const backfill=(...args)=>execFileSync(process.execPath,['scripts/checksum-storage.mjs',...args],{cwd:root,encoding:'utf8',env:{...process.env,STORAGE_DIR:path.join(dir,'storage')}});
+ const backfill=(...args)=>execFileSync(process.execPath,['server/checksum-storage.mjs',...args],{cwd:root,encoding:'utf8',env:{...process.env,STORAGE_DIR:path.join(dir,'storage')}});
  assert.match(backfill(),/К дописыванию: 1/,'сухой прогон должен только сообщать');
- assert.match(execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/1 predate checksums/,'сухой прогон ничего не записывает');
+ assert.match(execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'}),/1 predate checksums/,'сухой прогон ничего не записывает');
  assert.match(backfill('--apply'),/Дописано: 1/);
- const after=execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
+ const after=execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,encoding:'utf8'});
  assert.ok(!/predate checksums/.test(after),'после досчёта файлов без суммы остаться не должно');
  assert.match(after,/4 files matched their checksum/);
  await put('cover/c0de-0001','picture-one','image/png');
- execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
+ execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'});
  // Restore into a separate directory, then verify that the copied DB and audio agree.
- const restored=dir+'-restored';try{await cp(dir,restored,{recursive:true});execFileSync(process.execPath,['scripts/verify-backup.mjs',restored],{cwd:root,stdio:'pipe'});}finally{await rm(restored,{recursive:true,force:true});}
+ const restored=dir+'-restored';try{await cp(dir,restored,{recursive:true});execFileSync(process.execPath,['server/verify-backup.mjs',restored],{cwd:root,stdio:'pipe'});}finally{await rm(restored,{recursive:true,force:true});}
  await writeFile(path.join(dir,'storage/audio/abc-123'),'truncated');
- assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}));
+ assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}));
  await rm(path.join(dir,'storage/audio/abc-123'));
- assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}));
+ assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',dir],{cwd:root,stdio:'pipe'}));
  // Бэкап пустой базы раньше проходил проверку молча: печатал «0» и выглядел
  // успешным. Теперь сверяется с тем, сколько выпусков было в живой базе.
  const empty=dir+'-empty';await mkdir(empty,{recursive:true});
  const emptyDb=new Database(path.join(empty,'truethrills.db'));emptyDb.exec('CREATE TABLE posts(id TEXT PRIMARY KEY,audio_key TEXT)');emptyDb.close();
  try{
-  execFileSync(process.execPath,['scripts/verify-backup.mjs',empty,'0'],{cwd:root,stdio:'pipe'});
-  assert.throws(()=>execFileSync(process.execPath,['scripts/verify-backup.mjs',empty,'1'],{cwd:root,stdio:'pipe'}),/live database/,'пустой бэкап при непустой базе должен падать');
+  execFileSync(process.execPath,['server/verify-backup.mjs',empty,'0'],{cwd:root,stdio:'pipe'});
+  assert.throws(()=>execFileSync(process.execPath,['server/verify-backup.mjs',empty,'1'],{cwd:root,stdio:'pipe'}),/live database/,'пустой бэкап при непустой базе должен падать');
  }finally{await rm(empty,{recursive:true,force:true});}
  // Ротация удаляет только проверенные копии и только сверх последних N.
  // Незавершённая копия без VERIFIED.json остаётся человеку, даже если она
@@ -110,7 +110,7 @@ try{
  try{
   for(const name of snapshots){await mkdir(path.join(vault,name),{recursive:true});await writeFile(path.join(vault,name,'VERIFIED.json'),'{}');await writeFile(path.join(vault,name,'truethrills.db'),'x'.repeat(1024));}
   const broken='TrueThrills-2026-08-01T00-00-00-000Z';await mkdir(path.join(vault,broken),{recursive:true});await writeFile(path.join(vault,broken,'truethrills.db'),'half');
-  const prune=(...args)=>execFileSync(process.execPath,['scripts/prune-backups.mjs','--root',vault,...args],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});
+  const prune=(...args)=>execFileSync(process.execPath,['server/prune-backups.mjs','--root',vault,...args],{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']});
   assert.match(prune('--keep','2'),/К удалению 2/,'сухой прогон должен только сообщать');
   assert.equal((await readdir(vault)).length,5,'сухой прогон ничего не удаляет');
   prune('--keep','2','--delete');

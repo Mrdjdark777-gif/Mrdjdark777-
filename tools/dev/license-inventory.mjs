@@ -9,19 +9,19 @@
  * опись, собранная из установленного каталога, зафиксировала 43 версии,
  * которых нет в lock, и пакет playwright, поставленный когда-то с --no-save.
  * Lock — это то, что действительно приедет к другому человеку по npm ci.
- * tests/licenses.mjs роняет прогон, если опись разошлась с lock.
+ * tests/guards/licenses.mjs роняет прогон, если опись разошлась с lock.
  *
  * Колонка «поставка» отделяет то, что уходит на сервер и в приложение, от
  * инструментов разработки: к ним требования лицензий другие, потому что их
  * никому не передают.
  *
- *   node scripts/license-inventory.mjs            # напечатать
- *   node scripts/license-inventory.mjs --write    # обновить docs/third-party-licenses.csv
+ *   node tools/dev/license-inventory.mjs            # напечатать
+ *   node tools/dev/license-inventory.mjs --write    # обновить docs/legal/third-party-licenses.csv
  */
 import {readFileSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
 
-const root=path.resolve(import.meta.dirname,'..');
+const root=path.resolve(import.meta.dirname,'..','..');
 
 /** Все пакеты из lock-файла: именно они приедут по npm ci. */
 export function packagesFromLock(){
@@ -66,8 +66,8 @@ export function csv(rows){
 
 if(process.argv[1]&&process.argv[1].endsWith('license-inventory.mjs')){
  const rows=inventory(),text=csv(rows);
- const target=path.join(root,'docs','third-party-licenses.csv');
- if(process.argv.includes('--write')){writeFileSync(target,text);console.log('Записано: docs/third-party-licenses.csv, пакетов '+rows.length);}
+ const target=path.join(root,'docs','legal','third-party-licenses.csv');
+ if(process.argv.includes('--write')){writeFileSync(target,text);console.log('Записано: docs/legal/third-party-licenses.csv, пакетов '+rows.length);}
  else{
   const byLicense={};for(const r of rows)byLicense[r.license]=(byLicense[r.license]||0)+1;
   console.log('Пакетов: '+rows.length+', из них в поставке '+rows.filter(r=>r.shipped).length);
