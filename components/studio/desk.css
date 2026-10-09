@@ -97,15 +97,17 @@
 .desk-banner .desk-cover-mark{position:relative;z-index:1;display:block;margin:0 auto;top:50%;transform:translateY(-50%);width:132px;height:132px;border-radius:50%}
 .desk-banner:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
 .desk-hero-bar{display:flex;align-items:center;gap:32px}
-/* Первый экран главной (9 октября): высота окна без верхней строки и плеера.
-   Обложка во всю ширину забирает всё, что остаётся после строки с названием
-   и полки «Новое», — полка видна целиком на любом окне. Поверх обложки
-   ничего нет: так выбрал владелец. */
+/* Первый экран главной (9 октября): не выше окна без верхней строки и плеера.
+   Обложка во всю ширину, рамка всегда 4:1 — у картинки один точный размер
+   (2400×600), и она видна целиком. Когда места мало (низкое окно, открыт
+   плеер), рамка становится ниже, а картинка не режется: стоит целиком,
+   по бокам её же размытое продолжение. Под обложкой название и «Новое» —
+   полка видна целиком. Поверх обложки ничего нет: так выбрал владелец. */
 .is-desk{--desk-head:78px}
-.desk-home>.desk-hero:not(.is-empty){height:calc(100dvh - var(--desk-head) - var(--desk-player) - 34px);min-height:600px;gap:18px}
-.desk-home>.desk-onair+.desk-hero:not(.is-empty){height:calc(100dvh - var(--desk-head) - var(--desk-player) - 124px)}
-.desk-hero>.desk-banner{flex:1 1 auto;height:auto;min-height:240px;width:auto;margin:-10px calc(-1 * var(--desk-pad)) 0;border-radius:0}
-.desk-banner-wide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.desk-home>.desk-hero:not(.is-empty){max-height:calc(100dvh - var(--desk-head) - var(--desk-player) - 24px);gap:16px}
+.desk-home>.desk-onair+.desk-hero:not(.is-empty){max-height:calc(100dvh - var(--desk-head) - var(--desk-player) - 114px)}
+.desk-hero>.desk-banner{flex:0 1 auto;aspect-ratio:4/1;height:auto;min-height:150px;width:auto;margin:-10px calc(-1 * var(--desk-pad)) 0;border-radius:0}
+.desk-banner .desk-banner-wide{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;display:block}
 .desk-hero>.desk-hero-bar,.desk-hero>.desk-shelf{flex:none}
 .desk-hero>.desk-shelf .desk-shelf-head{margin-bottom:12px}
 .desk-hero>.desk-shelf .desk-row{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));column-gap:18px}

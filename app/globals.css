@@ -2661,7 +2661,7 @@ body:has(.podcast-player.is-open) [data-slot=dialog-content]{z-index:70}
  .main-content:not(.listener-main) .post-content{min-width:0}
 }
 
-/* Третья колонка главной студии: обложка 16:9 для сайта на ПК. */
-.hero-wide-panel .hero-wide-preview,.hero-wide-panel .hero-wide-empty{display:block;width:100%;max-width:240px;aspect-ratio:16/9;border-radius:10px;object-fit:cover;background:#141518;border:1px solid #3a3b40;margin:4px 0 12px}
+/* Третья колонка главной студии: обложка 4:1 для сайта на ПК. */
+.hero-wide-panel .hero-wide-preview,.hero-wide-panel .hero-wide-empty{display:block;width:100%;max-width:100%;aspect-ratio:4/1;border-radius:10px;object-fit:cover;background:#141518;border:1px solid #3a3b40;margin:4px 0 12px}
 .hero-wide-panel .hero-wide-empty{display:grid;place-items:center;color:#6f737c;font-size:13px;letter-spacing:.12em}
 .hero-wide-panel .hero-wide-target{color:#bfc3c8;font-size:13.5px;margin:0 0 12px}

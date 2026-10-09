@@ -415,7 +415,7 @@ export const it: Record<keyof typeof ru, string> = {
   'settings.posterText': "La grande locandina in cima alla home. Scegli cosa si apre toccandola e carica il poster. La copertina della puntata resta nel carosello, nel catalogo e nel player.",
   'settings.posterSize': "Dimensioni del poster: 1800×840 pixel (15:7), JPEG o PNG, fino a 12 MB.",
   "settings.posterWide": "Copertina per il sito su PC",
-  "settings.posterWideSize": "16:9, 1920×1080, fino a 12 MB. Il soggetto vicino al centro.",
+  "settings.posterWideSize": "4:1 — esattamente 2400×600, JPEG o PNG, fino a 12 MB. Si vede intera, senza tagli.",
   "settings.posterWideText": "A tutta la prima schermata del sito su computer, per la puntata del «Poster della home».",
   "settings.posterWideFor": "Per la puntata: {title}",
   "settings.posterWidePick": "Prima scegli la puntata nel «Poster della home» e salva.",

@@ -11,7 +11,7 @@
  * - каркас .is-desk, меню слева (первая — «Главная»), нижней панели нет;
  * - нигде нет прокрутки вбок и ничего не уходит за край;
  * - первый экран (9 октября): обложка во всю ширину без ничего поверх,
- *   под ней название и полка «Новое» — целиком в окне; обложка 16:9 из
+ *   под ней название и полка «Новое» — целиком в окне; обложка 4:1 из
  *   студии ложится на весь баннер, без неё постер целиком;
  * - меню: без карточки поддержки, «Скачать приложение» — заметной карточкой
  *   без номера сборки, YouTube — отдельной кнопкой; в подвале ни номера,
@@ -170,23 +170,46 @@ try{
   check(errors.length===0,at+'ошибки страницы: '+errors.join('; '));
   await ctx.close();
  }
- // Обложка 16:9 из студии: ложится на весь баннер; снимается; сервер отдаёт её всем.
+ // Обложка 4:1 из студии (2400×600): рамка 4:1, картинка ровно в неё и
+ // никогда не режется; в низком окне рамка ниже, картинка целиком, «Новое»
+ // видно. Снимается; сервер отдаёт её всем.
  {
   const raft=lib.items.find(p=>p.title==='Плот').id;
-  await post({action:'hero',id:raft,wide:await cover('hero-lake.jpg')});
+  const {default:sharp}=await import('sharp');
+  const art=await sharp({create:{width:2400,height:600,channels:3,background:{r:20,g:60,b:70}}}).jpeg({quality:85}).toBuffer();
+  const wideKey=(await (await fetch(base+'/api/cover',{method:'POST',headers:{cookie,'content-type':'image/jpeg','x-upload-size':String(art.length)},body:art})).json()).key;
+  await post({action:'hero',id:raft,wide:wideKey});
   const data=await (await fetch(base+'/api/library')).json();
-  check(data.posterWide?.post===raft,'сервер не отдаёт обложку 16:9 гостю: '+JSON.stringify(data.posterWide));
-  check((await fetch(base+'/api/cover?id=hero-wide&v=1')).status===200,'адрес обложки 16:9 не отвечает');
-  const ctx=await browser.newContext({viewport:{width:1440,height:900},locale:'ru-RU'});const page=await ctx.newPage();
-  await page.goto(base+'/?mode=listen&view=home');await ready(page);
-  await page.waitForFunction(()=>document.querySelector('.desk-banner-wide')?.complete,null,{timeout:15000}).catch(()=>{});
-  const wide=await page.evaluate(()=>{const b=document.querySelector('.desk-banner')?.getBoundingClientRect(),img=document.querySelector('.desk-banner img.desk-banner-wide');
-   const r=img?.getBoundingClientRect();return img&&b?{fit:getComputedStyle(img).objectFit,fills:Math.abs(r.width-b.width)<=1&&Math.abs(r.height-b.height)<=1,blur:!!document.querySelector('.desk-banner .desk-banner-blur')}:null;});
-  check(wide,'обложка 16:9 загружена, а на главной ПК её нет');
-  if(wide){check(wide.fit==='cover'&&wide.fills,'обложка 16:9 не на весь баннер: '+JSON.stringify(wide));check(!wide.blur,'под обложкой 16:9 лишний размытый фон');}
+  check(data.posterWide?.post===raft,'сервер не отдаёт обложку для ПК гостю: '+JSON.stringify(data.posterWide));
+  check((await fetch(base+'/api/cover?id=hero-wide&v=1')).status===200,'адрес обложки для ПК не отвечает');
+  for(const [w,h,short] of [[1440,900,false],[1920,1080,false],[1920,945,false],[1366,657,true]]){
+   const at='обложка 2400×600 на '+w+'×'+h+': ';
+   const ctx=await browser.newContext({viewport:{width:w,height:h},locale:'ru-RU'});const page=await ctx.newPage();
+   await page.goto(base+'/?mode=listen&view=home');await ready(page);
+   await page.waitForFunction(()=>document.querySelector('.desk-banner-wide')?.complete,null,{timeout:15000}).catch(()=>{});
+   const m=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),img=document.querySelector('.desk-banner img.desk-banner-wide');
+    if(!b||!img||!img.naturalWidth)return null;
+    // Где картинка нарисована на самом деле: object-fit решает, режется она или нет.
+    const fit=getComputedStyle(img).objectFit,nw=img.naturalWidth,nh=img.naturalHeight;
+    const k=fit==='cover'?Math.max(b.width/nw,b.height/nh):Math.min(b.width/nw,b.height/nh);
+    const shelf=document.querySelector('.desk-hero>.desk-shelf')?.getBoundingClientRect();
+    return {fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
+   check(m,at+'обложка загружена, а на главной ПК её нет');
+   if(m){
+    check(m.drawnW<=m.bw+1&&m.drawnH<=m.bh+1,at+'картинка обрезана: нарисована '+Math.round(m.drawnW)+'×'+Math.round(m.drawnH)+' в рамке '+Math.round(m.bw)+'×'+Math.round(m.bh));
+    if(!short){
+     check(Math.abs(m.frame-4)<0.02,at+'рамка не 4:1, а '+m.frame.toFixed(2)+':1 — у картинки не будет одного точного размера');
+     check(Math.abs(m.drawnW-m.bw)<=2&&Math.abs(m.drawnH-m.bh)<=2,at+'картинка 2400×600 не заполняет рамку: '+Math.round(m.drawnW)+'×'+Math.round(m.drawnH)+' в '+Math.round(m.bw)+'×'+Math.round(m.bh));
+    }else{
+     check(m.frame>4.02,at+'в низком окне рамка не стала ниже — «Новое» уйдёт за край');
+     check(m.blur,at+'в низком окне по бокам картинки пусто — нет размытого продолжения');
+    }
+    check(m.shelfBottom<=h,at+'полка «Новое» обрезана низом окна: низ '+m.shelfBottom+' при окне '+h);
+   }
+   await ctx.close();
+  }
   await post({action:'hero',id:raft,wide:''});
-  check(!(await (await fetch(base+'/api/library')).json()).posterWide,'обложка 16:9 не снимается');
-  await ctx.close();
+  check(!(await (await fetch(base+'/api/library')).json()).posterWide,'обложка для ПК не снимается');
  }
  // Телефон и сенсорный планшет — без каркаса ПК.
  for(const [w,h,label] of [[390,844,'телефон'],[1280,800,'планшет']]){
@@ -197,5 +220,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой, YouTube кнопкой, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 16:9 из студии, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой, YouTube кнопкой, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

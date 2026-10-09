@@ -26,7 +26,7 @@ const read = (f) => readFileSync(path.join(root, f), 'utf8');
 assert.ok(MEDIA_SETTING_KEYS.includes('channelArt'), 'channelArt пропал из списка настроек с медиа');
 assert.ok(MEDIA_SETTING_KEYS.includes('calmArt'), 'calmArt пропал из списка настроек с медиа');
 assert.ok(MEDIA_SETTING_KEYS.includes('heroArt'), 'heroArt (постер главной) пропал из списка настроек с медиа — уборка удалит постер как ничей');
-assert.ok(MEDIA_SETTING_KEYS.includes('heroWide'), 'heroWide (обложка 16:9 для сайта на ПК) пропала из списка настроек с медиа — уборка удалит её как ничью');
+assert.ok(MEDIA_SETTING_KEYS.includes('heroWide'), 'heroWide (обложка 4:1 для сайта на ПК) пропала из списка настроек с медиа — уборка удалит её как ничью');
 
 // Каждая настройка, которую маршрут библиотеки принимает как ключ обложки,
 // обязана быть в списке: иначе уборка снова начнёт считать её файл ничьим.

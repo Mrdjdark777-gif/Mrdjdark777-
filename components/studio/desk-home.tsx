@@ -18,7 +18,7 @@ import {Artwork} from './artwork';
  * ни на каком окне.
  *
  * Поверх обложки ничего не кладём: на ней своя надпись (выбор владельца —
- * «под обложкой, поверх ничего»). Обложка — отдельная картинка 16:9 из
+ * «под обложкой, поверх ничего»). Обложка — отдельная картинка 4:1 (2400×600) из
  * студии; нет её — постер или обложка выпуска целиком на размытом фоне.
  *
  * Ниже первого экрана — полки разделов по одному ряду.
@@ -83,7 +83,10 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
   </button>}
   {hero?<section className="desk-hero">
    <button type="button" className={'desk-banner'+(heroWide?' is-wide':'')} aria-label={heroAction+' · '+hero.title} onClick={()=>{haptic();onOpen(hero,!!heroResume);}}>
-    {heroWide?<img className="desk-banner-wide" src={heroWide} alt="" referrerPolicy="no-referrer"/>:<>
+    {/* Обложка 4:1 из студии — целиком, без обрезки; если рамка из-за
+        низкого окна стала шире 4:1, бока закрывает её же размытая копия. */}
+    {heroWide?<><img className="desk-banner-blur" src={heroWide} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>
+     <img className="desk-banner-wide" src={heroWide} alt="" referrerPolicy="no-referrer"/></>:<>
      {heroCover&&<img className="desk-banner-blur" src={heroCover} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>}
      <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/></>}
    </button>

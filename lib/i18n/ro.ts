@@ -374,7 +374,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "settings.posterText": "Afișul mare din partea de sus a paginii principale. Alege ce se deschide la atingerea lui și încarcă posterul. Coperta episodului rămâne în carusel, în catalog și în player.",
   "settings.posterSize": "Dimensiunea posterului: 1800×840 pixeli (15:7), JPEG sau PNG, până la 12 MB.",
   "settings.posterWide": "Coperta pentru site-ul pe PC",
-  "settings.posterWideSize": "16:9, 1920×1080, până la 12 MB. Subiectul aproape de centru.",
+  "settings.posterWideSize": "4:1 — exact 2400×600, JPEG sau PNG, până la 12 MB. Se vede întreagă, fără tăieri.",
   "settings.posterWideText": "Pe tot primul ecran al site-ului pe calculator, pentru episodul din „Posterul paginii principale”.",
   "settings.posterWideFor": "Pentru episodul: {title}",
   "settings.posterWidePick": "Mai întâi alege episodul în „Posterul paginii principale” și salvează.",

@@ -494,7 +494,7 @@ export default function Studio(){
    </div>
    <small>{t('settings.posterNote')}</small></section>;})()}
  {view==='home'&&<section className="settings-panel"><div className="section-icon"><Wind size={22}/></div><h2>{t('settings.calmTitle')}</h2><p>{t('settings.calmText')}</p>{!calmMissing&&(calmPreview||calmSrc)&&<img className="channel-art-preview calm-art-preview" src={calmPreview||calmSrc} alt="" onError={()=>setCalmMissing(true)}/>}<button type="button" className="secondary-button" onClick={()=>calmInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" ref={calmInput} hidden onChange={e=>{const f=e.target.files?.[0];if(f){setCalmFile(f);setCalmPreview(URL.createObjectURL(f));setCalmMissing(false);}e.target.value='';}}/>{!calmMissing&&(calmPreview||calmSrc)&&<button type="button" className="quiet-button" onClick={()=>void run(async()=>{await api('library',{action:'calmArt',key:''});setCalmFile(null);setCalmPreview('');setCalmMissing(true);},t('settings.artRemoved'))}><Trash2 size={16}/>{t('settings.artRemove')}</button>}{calmFile&&<button className="primary-button" onClick={()=>void run(async()=>{const key=await uploadCover(calmFile);await api('library',{action:'calmArt',key});setCalmFile(null);},t('settings.artSaved'))}><Check size={17}/>{t('settings.saveArt')}</button>}<small>{t('settings.calmNote')}</small></section>}
- {/* Третья колонка главной студии — обложка 16:9 для первого экрана сайта на
+ {/* Третья колонка главной студии — обложка 4:1 для первого экрана сайта на
      ПК (владелец, 9 октября). Привязана к выпуску из «Постера на главной»:
      сменил выпуск — на ПК его обычная картинка, пока не загрузишь новую. */}
  {view==='home'&&(()=>{
@@ -504,7 +504,7 @@ export default function Studio(){
   const bound=!!data.posterWide&&data.posterWide.post===target;
   const shown=widePreview||(bound?wideSrc:'');
   return <section className="settings-panel hero-wide-panel"><div className="section-icon"><Monitor size={22}/></div><h2>{t('settings.posterWide')}</h2><p>{t('settings.posterWideText')}</p><p className="hero-poster-size">{t('settings.posterWideSize')}</p>
-   {shown?<img className="channel-art-preview hero-wide-preview" src={shown} alt=""/>:<span className="hero-wide-empty">16:9</span>}
+   {shown?<img className="channel-art-preview hero-wide-preview" src={shown} alt=""/>:<span className="hero-wide-empty">4:1</span>}
    <p className="hero-wide-target">{post?t('settings.posterWideFor',{title:post.title}):t('settings.posterWidePick')}</p>
    <div className="hero-poster-actions">
     <button type="button" className="secondary-button" disabled={!post} onClick={()=>wideInput.current?.click()}><Upload size={16}/>{t('settings.artUpload')}</button>

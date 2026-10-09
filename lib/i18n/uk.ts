@@ -374,7 +374,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "settings.posterText": "Велика афіша вгорі головної. Обери, що відкривається натисканням на неї, і завантаж постер. Обкладинка самого випуску лишається в каруселі, каталозі й плеєрі.",
   "settings.posterSize": "Розмір постера: 1800×840 пікселів (15:7), JPEG або PNG, до 12 МБ.",
   "settings.posterWide": "Обкладинка для сайту на ПК",
-  "settings.posterWideSize": "16:9, 1920×1080, до 12 МБ. Головне — ближче до центру.",
+  "settings.posterWideSize": "4:1 — рівно 2400×600, JPEG або PNG, до 12 МБ. Видно цілком, без обрізання.",
   "settings.posterWideText": "На весь перший екран сайту на комп’ютері, до випуску з «Постера на головній».",
   "settings.posterWideFor": "Для випуску: {title}",
   "settings.posterWidePick": "Спершу вибери випуск у «Постері на головній» і збережи.",

@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     else if (id === 'calm') { key = (await setting('calmArt')) || null; isPublic = true; }
     // Постер главной: его видит каждый, кто открыл приложение.
     else if (id === 'hero') { key = (await setting('heroArt')) || null; isPublic = true; }
-    // Обложка 16:9 для первого экрана сайта на ПК.
+    // Обложка 4:1 для первого экрана сайта на ПК.
     else if (id === 'hero-wide') { key = (await setting('heroWide')) || null; isPublic = true; }
     // Картинка для уведомления о воспроизведении (шторка, экран блокировки).
     // Правило владельца: загрузил «Фон уведомлений» — он стоит у всего, что

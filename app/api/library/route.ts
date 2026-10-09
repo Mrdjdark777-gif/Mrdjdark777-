@@ -112,7 +112,7 @@ export async function POST(req: Request){try{
     const p=await db.select().from(posts).where(eq(posts.id,id)).get();
     if(!p)throw new Error('#err.notFound');
     if(!p.published)throw new Error('#err.pinDraft');
-    // key — постер 15:7 для телефона, wide — обложка 16:9 для сайта на ПК.
+    // key — постер 15:7 для телефона, wide — обложка 4:1 для сайта на ПК.
     // Устроены одинаково: привязаны к выпуску, пустая строка снимает.
     for(const [field,art] of [['key','heroArt'],['wide','heroWide']] as const){
       if(typeof d[field]!=='string')continue;
