@@ -61,6 +61,6 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
    <button type="button" className="desk-chip" aria-pressed={order==='new'} onClick={()=>setOrder('new')}>{t('catalog.sortNew')}</button>
    <button type="button" className="desk-chip" aria-pressed={order==='old'} onClick={()=>setOrder('old')}>{t('catalog.sortOld')}</button>
   </div>}
-  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} wide={kind==='video'} onOpen={onOpen}/>)}</div>}
+  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} wide={kind==='video'} onOpen={onOpen} onShare={onShare}/>)}</div>}
  </div>;
 }

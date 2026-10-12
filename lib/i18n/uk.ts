@@ -152,6 +152,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "desk.search": "Знайти історію, відео або музику",
   "desk.found": "Знайдено: {n}",
   "desk.seeAll": "Усі",
+  "desk.freshTitle": "Нове в True Thrills",
   "desk.appTitle": "Застосунок для Android",
   "desk.appNote": "Історії, музика й ефіри — у телефоні, без браузера.",
   "desk.appAction": "Завантажити",

@@ -61,7 +61,7 @@ docs/releases/    описания выпусков
 docs/operations/  выкладка, обслуживание, TURN, процесс обновления
 docs/audits/      ревизии и разборы
 docs/legal/       права, лицензии сторонних компонентов, персональные данные
-docs/design/      обложки, договор поверхностей (SURFACES-RU.md)
+docs/design/      обложки, договор поверхностей (SURFACES-RU.md), редизайн ПК (DESKTOP-REDESIGN-RU.md)
 ```
 
 ### Почему есть `scripts/`

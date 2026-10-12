@@ -181,6 +181,7 @@ export const ru = {
   'desk.search': 'Найти историю, видео или музыку',
   'desk.found': 'Найдено: {n}',
   'desk.seeAll': 'Все',
+  'desk.freshTitle': 'Новое в True Thrills',
   "desk.appTitle": "Приложение для Android",
   "desk.appNote": "Истории, музыка и эфиры — в телефоне, без браузера.",
   "desk.appAction": "Скачать",

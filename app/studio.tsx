@@ -338,7 +338,7 @@ export default function Studio(){
   </div>
  </header>
  <main className={'main-content '+(!author?'listener-main':'')+(desk&&deskNeedle?' is-searching':'')} data-view={view}>
- {desk&&deskNeedle&&data&&<section className="desk-results">{deskFound.length?<DeskShelf title={t('desk.found',{n:deskFound.length})} posts={deskFound} onOpen={p=>openPost(p)}/>:<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}</section>}
+ {desk&&deskNeedle&&data&&<section className="desk-results">{deskFound.length?<DeskShelf title={t('desk.found',{n:deskFound.length})} posts={deskFound} onOpen={p=>openPost(p)} onShare={p=>void share(postPath(p.id),p.title)}/>:<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}</section>}
  {error&&<div className="error-box" role="alert">{error}<button onClick={()=>void load()}>{t('common.retry')}</button></div>}
  {!data&&!error&&<div className="loading-state"><Loader2 className="spin"/>{t('common.loading')}</div>}
  {data?.needsSetup&&<section className="setup-card"><span className="eyebrow">{t('setup.eyebrow')}</span><h1 className="wrap-lines">{t('setup.title')}</h1><p>{t('setup.text')}</p>{data.signedIn?<button className="primary-button" onClick={()=>void setup()} disabled={saving}>{t('setup.cta')}<ArrowUpRight size={18}/></button>:<a className="primary-button" href="/login">{t('common.login')}</a>}<small>{t('setup.note')}</small></section>}
@@ -359,7 +359,7 @@ export default function Studio(){
      а быстрый доступ к тому, что уже опубликовано, нужен. */}
  {view==='home'&&author&&<><div className="library-heading"><h2>{t('studio.libraryTitle')}</h2><span>{t('studio.librarySubtitle')}</span></div><div className="library-tiles"><button onClick={()=>setView('podcasts')}><span className="tile-icon"><Headphones/></span><div><strong>{count('podcast')}</strong><span>{t('nav.podcasts')}</span></div><ChevronRight/></button><button onClick={()=>setView('videos')}><span className="tile-icon"><Video/></span><div><strong>{count('video')}</strong><span>{t('nav.videos')}</span></div><ChevronRight/></button><button onClick={()=>setView('stories')}><span className="tile-icon"><BookOpen/></span><div><strong>{count('story')}</strong><span>{t('nav.stories')}</span></div><ChevronRight/></button></div></>}
  {view==='home'&&!author&&desk&&<DeskHome posts={homePosts} live={liveStatus} onOpen={openPost} onOpenLive={openLive} noHero={liveArchiveIds}
-  onShare={p=>void share(postPath(p.id),p.title)} onGoto={goto}
+  onShare={p=>void share(postPath(p.id),p.title)}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null} wide={data.posterWide&&wideSrc?{post:data.posterWide.post,src:wideSrc}:null}/>}
  {view==='home'&&!author&&!desk&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
@@ -535,7 +535,9 @@ export default function Studio(){
      (размытой, потом затемнённой), и владелец решил: «верни тот фон, что был
      до этого, без этой анимации, просто обычный статичный фон». В студии фон
      не нужен вовсе: там работают. */}
- {!author&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
+ {/* Фон-сетка — только на телефоне и планшете: на ПК она спорила с обложками
+     (пакет редизайна ПК, 12 октября). */}
+ {!author&&!desk&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  {/* Без номера сборки и без «Поддержать» с подсветкой: владелец убрал их

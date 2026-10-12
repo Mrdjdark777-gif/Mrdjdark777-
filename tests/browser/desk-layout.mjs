@@ -11,14 +11,18 @@
  * - каркас .is-desk, меню слева (первая — «Главная»), нижней панели нет;
  * - нигде нет прокрутки вбок и ничего не уходит за край;
  * - первый экран (9 октября): обложка во всю ширину без ничего поверх,
- *   под ней название и полка «Новое» — целиком в окне; обложка 4:1 из
- *   студии ложится на весь баннер, без неё постер целиком;
+ *   под ней название и первый ряд блока «Новое в True Thrills» — целиком в
+ *   окне; обложка 4:1 из студии ложится на весь баннер, без неё постер целиком;
+ * - каталог на главной (12 октября) — один блок «Новое в True Thrills» с
+ *   переключателями Все / Аудио / Видео / Истории / Архив эфиров вместо полок
+ *   по разделам; каждый выпуск один раз; запись эфира подписана как запись;
+ *   у плитки «Поделиться» — отдельной кнопкой, не внутри кнопки плитки;
+ * - на ПК нет фона-сетки (она спорила с обложками);
  * - меню: без карточки поддержки, «Скачать приложение» — заметной карточкой
  *   без номера сборки, YouTube — отдельной кнопкой; в подвале ни номера,
  *   ни «Поддержать»;
  * - разделы — витрина: крупно последний выпуск, переключатели типа и
  *   порядка, сетка плиток; карточек телефонного списка нет;
- * - полка — один ряд плиток;
  * - поиск сверху ищет по всем разделам и возвращает главную, когда стёрт;
  * - плеер: полоса внизу во всю ширину, меню над ней не заходит под неё;
  *   развёрнутый — обложка слева от названия; Escape сворачивает;
@@ -28,7 +32,8 @@
  */
 import {chromium} from 'playwright';
 import {spawn,execFileSync} from 'node:child_process';
-import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {mkdtemp,rm,readFile,copyFile} from 'node:fs/promises';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -57,6 +62,12 @@ try{
  for(let n=0;n<titles.length;n++)await post({kind:'podcast',audioCategory:['audio_story','podcast','music'][n%3],title:titles[n],description:'Описание выпуска '+n+'.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover(covers[n%4])});
  await post({kind:'story',title:'Записки из ледяной пустыни',description:'Рассказ.',body:'Текст истории.\n\nВторой абзац.',published:true,coverKey:await cover('tile-mountains.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')});
+ // Запись эфира — как её публикует воркер: ключ audio/live-…, тип звука не выбран.
+ {const k=await audio(),ak='audio/live-'+crypto.randomUUID();
+  await copyFile(path.join(env.STORAGE_DIR,k),path.join(env.STORAGE_DIR,ak));
+  await copyFile(path.join(env.STORAGE_DIR,k+'.meta.json'),path.join(env.STORAGE_DIR,ak+'.meta.json')).catch(()=>{});
+  const made=await post({kind:'podcast',audioCategory:'podcast',title:'Эфир у костра',description:'Запись эфира.',audioKey:ak,duration:seconds,published:true});
+  execFileSync(process.execPath,['-e',"require('better-sqlite3')(process.argv[1]).prepare('update posts set audio_category=null where id=?').run(process.argv[2])",env.DATABASE_PATH,(made.item||made.post||made).id]);}
  const lib=await (await fetch(base+'/api/library',{headers:{cookie}})).json();
  await post({action:'hero',id:lib.items.find(p=>p.title==='Плот').id,key:await cover('hero-lake.jpg')});
 
@@ -84,7 +95,7 @@ try{
   if(!/\bis-desk\b/.test(shell.cls)||!shell.rail){await ctx.close();continue;}
   check(shell.scroll<=1,at+'страница шире окна на '+shell.scroll+'px');
   // Ничего не уходит за правый край окна (кроме ушедших в скрытые ряды плиток).
-  const over=await page.evaluate(()=>[...document.querySelectorAll('.app-shell *')].filter(el=>{const b=el.getBoundingClientRect();return b.width>0&&b.height>0&&b.right>innerWidth+1&&!el.closest('.desk-row,.desk-banner');}).slice(0,3).map(el=>el.className||el.tagName));
+  const over=await page.evaluate(()=>[...document.querySelectorAll('.app-shell *')].filter(el=>{const b=el.getBoundingClientRect();return b.width>0&&b.height>0&&b.right>innerWidth+1&&!el.closest('.desk-banner');}).slice(0,3).map(el=>el.className||el.tagName));
   check(over.length===0,at+'за правым краем: '+over.join(', '));
   // Постер целиком: своя пропорция и в границах баннера.
   const banner=await page.evaluate(()=>{const b=document.querySelector('.desk-banner'),img=b?.querySelector('img.desk-banner-art');if(!b||!img)return null;
@@ -93,23 +104,34 @@ try{
   check(banner,at+'на главной нет баннера с постером');
   if(banner){check(Math.abs(banner.shown-banner.natural)/banner.natural<0.02&&banner.fit!=='cover',at+'постер в баннере искажён или обрезан: пропорция '+banner.shown.toFixed(3)+' вместо '+banner.natural.toFixed(3)+', object-fit '+banner.fit);
    check(banner.inside,at+'постер вылез за баннер');check(banner.h>=240,at+'баннер высотой '+banner.h+' при экране '+h);}
-  // Первый экран: обложка во всю ширину содержимого, «Новое» целиком в окне,
-  // поверх обложки — ничего (строка названия ниже её нижнего края).
+  // Первый экран: обложка во всю ширину содержимого, первый ряд «Новое в
+  // True Thrills» целиком в окне, поверх обложки — ничего (строка названия
+  // ниже её нижнего края).
   const first=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),rail=document.querySelector('.desk-rail').getBoundingClientRect(),
-   shelf=document.querySelector('.desk-hero>.desk-shelf')?.getBoundingClientRect(),bar=document.querySelector('.desk-hero>.desk-hero-bar')?.getBoundingClientRect();
-   return b&&shelf&&bar?{left:Math.round(b.left),right:Math.round(b.right),rail:Math.round(rail.right),shelfBottom:Math.round(shelf.bottom),barTop:Math.round(bar.top),bannerBottom:Math.round(b.bottom),
-    title:document.querySelector('.desk-hero>.desk-shelf h2')?.textContent}:null;});
-  check(first,at+'на первом экране нет обложки, строки названия или полки «Новое»');
+   bar=document.querySelector('.desk-hero>.desk-hero-bar')?.getBoundingClientRect(),fresh=document.querySelector('.desk-hero+.desk-fresh');
+   const tiles=[...(fresh?.querySelectorAll('.desk-grid>.desk-tile')??[])].map(t=>t.getBoundingClientRect()),top=tiles[0]?.top;
+   return b&&bar&&tiles.length?{left:Math.round(b.left),right:Math.round(b.right),rail:Math.round(rail.right),rowBottom:Math.round(Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))),barTop:Math.round(bar.top),bannerBottom:Math.round(b.bottom),
+    title:fresh.querySelector('h2')?.textContent,tile:Math.round(tiles[0].width)}:null;});
+  check(first,at+'на первом экране нет обложки, строки названия или блока «Новое в True Thrills» сразу под ними');
   if(first){
-   check(first.title==='Новое',at+'под обложкой не «Новое», а '+first.title);
-   check(first.shelfBottom<=h,at+'полка «Новое» обрезана низом окна: низ полки '+first.shelfBottom+' при окне '+h);
+   check(first.title==='Новое в True Thrills',at+'под обложкой не «Новое в True Thrills», а '+first.title);
+   check(first.rowBottom<=h,at+'первый ряд «Новое в True Thrills» обрезан низом окна: низ ряда '+first.rowBottom+' при окне '+h);
+   if(h>=1080)check(first.tile>=200,at+'на высоком окне плитки остались мелкими: '+first.tile+'px');
    check(first.barTop>=first.bannerBottom,at+'название легло на обложку');
    if(w<1944)check(first.left===first.rail&&first.right===w,at+'обложка не во всю ширину: '+first.left+'–'+first.right+' при меню до '+first.rail);
   }
-  // Полки — по одному ряду.
-  const rows=await page.evaluate(()=>[...document.querySelectorAll('.desk-row')].map(r=>{const tops=[...r.children].map(c=>c.getBoundingClientRect()).filter(b=>b.height>0).map(b=>Math.round(b.top));return {n:tops.length,total:r.children.length,rows:new Set(tops).size};}));
-  check(rows.length>=2,at+'на главной меньше двух полок: '+rows.length);
-  for(const r of rows)check(r.rows===1&&r.n>=Math.min(4,r.total),at+'полка не в один ряд или в ней меньше четырёх плиток: '+JSON.stringify(r));
+  // Каталог — один блок, без полок по разделам; каждый выпуск один раз.
+  const cat=await page.evaluate(()=>({blocks:[...document.querySelectorAll('.desk-home .desk-shelf')].map(s=>s.querySelector('h2')?.textContent),
+   titles:[...document.querySelectorAll('.desk-fresh .desk-tile strong')].map(e=>e.textContent),hero:document.querySelector('.desk-hero-title')?.textContent,
+   chips:[...document.querySelectorAll('.desk-fresh .desk-chip')].map(c=>c.textContent),
+   nested:document.querySelectorAll('.desk-tile button button,.desk-tile-open .desk-tile-share').length,shares:document.querySelectorAll('.desk-fresh .desk-tile>.desk-tile-share').length,
+   archiveTag:[...document.querySelectorAll('.desk-fresh .desk-tile')].find(t=>t.querySelector('strong')?.textContent==='Эфир у костра')?.querySelector('.desk-tag')?.textContent}));
+  check(cat.blocks.length===1&&cat.blocks[0]==='Новое в True Thrills',at+'на главной не один блок каталога, а: '+cat.blocks.join(' | '));
+  check(new Set(cat.titles).size===cat.titles.length,at+'в «Новое в True Thrills» выпуск повторяется: '+cat.titles.join(' | '));
+  check(cat.titles.length===titles.length+2&&!cat.titles.includes(cat.hero),at+'в «Все» не все выпуски кроме того, что на обложке: '+cat.titles.length+' плиток, обложка «'+cat.hero+'»');
+  check(['Все','Аудио','Видео','Истории','Архив эфиров'].every(c=>cat.chips.includes(c))&&cat.chips.length===5,at+'переключатели каталога не те: '+cat.chips.join(' | '));
+  check(cat.nested===0&&cat.shares===cat.titles.length,at+'«Поделиться» у плиток не отдельной кнопкой: вложенных '+cat.nested+', кнопок '+cat.shares+' на '+cat.titles.length+' плиток');
+  check(/запись эфира/i.test(cat.archiveTag??''),at+'запись эфира подписана не как запись: '+cat.archiveTag);
   // Строка поиска на одной линии с содержимым.
   const align=await page.evaluate(()=>({search:Math.round(document.querySelector('.desk-search')?.getBoundingClientRect().left??-1),main:Math.round(document.querySelector('.desk-home')?.getBoundingClientRect().left??-999)}));
   check(Math.abs(align.search-align.main)<=2,at+'поиск и содержимое начинаются с разных мест: '+align.search+' и '+align.main);
@@ -140,8 +162,27 @@ try{
    check(found.titles.length===1&&found.titles[0]==='Записки из ледяной пустыни'&&!found.home,at+'поиск сверху нашёл не то или главная не ушла: '+JSON.stringify(found));
    await page.fill('.desk-search input','');await page.waitForTimeout(300);
    check(await page.locator('.desk-home').isVisible(),at+'после очистки поиска главная не вернулась');
+   // Переключатели каталога: в группе — только её выпуски, и выпуск с
+   // обложки в своей группе есть; в архиве — только запись эфира.
+   // Нет переключателя — так и сказать, а не ждать его до конца отведённого времени.
+   const pick=async label=>{const chip=page.locator('.desk-fresh .desk-chip',{hasText:label});if(!await chip.count())return [{title:'(нет переключателя «'+label+'»)',tag:''}];
+    await chip.click();await page.waitForTimeout(200);
+    return page.evaluate(()=>[...document.querySelectorAll('.desk-fresh .desk-tile')].map(t=>({title:t.querySelector('strong').textContent,tag:t.querySelector('.desk-tag').textContent})));};
+   const vids=await pick('Видео');
+   check(vids.length===1&&vids[0].title==='Наедине с горами',at+'«Видео» показывает не только видео: '+JSON.stringify(vids));
+   const arch=await pick('Архив эфиров');
+   check(arch.length===1&&arch[0].title==='Эфир у костра',at+'«Архив эфиров» показывает не только записи эфира: '+JSON.stringify(arch));
+   const pods=await pick('Аудио');
+   const heroTitle=await page.evaluate(()=>document.querySelector('.desk-hero-title')?.textContent);
+   check(pods.length===titles.length&&pods.some(p=>p.title===heroTitle)&&!pods.some(p=>p.title==='Эфир у костра'),at+'«Аудио» — не все выпуски с выпуском с обложки и без записей эфира: '+pods.map(p=>p.title).join(' | '));
+   // «Поделиться» у плитки делится, а не открывает выпуск.
+   await page.evaluate(()=>{window.__shared=[];navigator.share=d=>{window.__shared.push(d.url||d.text||'');return Promise.resolve();};navigator.canShare=()=>true;});
+   await page.locator('.desk-fresh .desk-tile-share').first().click();await page.waitForTimeout(500);
+   const shared=await page.evaluate(()=>({n:document.querySelectorAll('.desk-player-open,.share-sheet,[role=dialog]').length,open:!!document.querySelector('.desk-player-open')}));
+   check(!shared.open,at+'«Поделиться» у плитки открыло плеер вместо того, чтобы поделиться');
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
    // Плеер: полоса внизу, меню над ней.
-   await page.locator('.desk-shelf',{has:page.locator('h2',{hasText:'Аудио'})}).locator('.desk-tile').first().click();
+   await page.locator('.desk-fresh .desk-tile-open').first().click();
    await page.waitForTimeout(1200);
    const open=await page.evaluate(()=>{const p=document.querySelector('.desk-player-open'),c=p?.querySelector('.player-cover-frame')?.getBoundingClientRect(),t=p?.querySelector('.player-title')?.getBoundingClientRect();return {open:!!p,coverLeft:c?c.right<=t.left:false};});
    check(open.open,at+'развёрнутый плеер ПК не открылся');check(open.coverLeft,at+'в развёрнутом плеере обложка не слева от названия');
@@ -162,6 +203,7 @@ try{
     cols:new Set([...document.querySelectorAll('.desk-grid>.desk-tile')].map(t=>Math.round(t.getBoundingClientRect().top))).size,tiles:document.querySelectorAll('.desk-grid>.desk-tile').length}));
    check(shop.feature==='Ледник',at+'в «Аудио» крупно не последний выпуск: '+shop.feature);
    check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
+   check(!(await page.locator('.kinetic-grid').count()),at+'на ПК в разделе снова фон-сетка');
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
    check(shop.tiles===titles.length-1,at+'в сетке '+shop.tiles+' плиток, ждали '+(titles.length-1)+' (все, кроме крупного)');
    check(shop.cols<shop.tiles,at+'сетка витрины идёт одной колонкой');
@@ -201,7 +243,8 @@ try{
     // Где картинка нарисована на самом деле: object-fit решает, режется она или нет.
     const fit=getComputedStyle(img).objectFit,nw=img.naturalWidth,nh=img.naturalHeight;
     const k=fit==='cover'?Math.max(b.width/nw,b.height/nh):Math.min(b.width/nw,b.height/nh);
-    const shelf=document.querySelector('.desk-hero>.desk-shelf')?.getBoundingClientRect();
+    const tiles=[...document.querySelectorAll('.desk-hero+.desk-fresh .desk-grid>.desk-tile')].map(t=>t.getBoundingClientRect()),top=tiles[0]?.top;
+    const shelf=tiles.length?{bottom:Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))}:null;
     const rail=document.querySelector('.desk-rail'),last=[...rail.querySelectorAll('a,button')].pop().getBoundingClientRect();
     return {railFits:rail.scrollHeight<=rail.clientHeight+1&&last.bottom<=rail.getBoundingClientRect().bottom+1,fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
    check(m,at+'обложка загружена, а на главной ПК её нет');
@@ -215,7 +258,7 @@ try{
      if(m.frame>4.02)check(m.blur,at+'рамка шире картинки, а по бокам пусто — нет размытого продолжения');
     }
     check(m.railFits,at+'боковое меню не помещается в окно — низ меню уходит за край');
-    check(m.shelfBottom<=h,at+'полка «Новое» обрезана низом окна: низ '+m.shelfBottom+' при окне '+h);
+    check(m.shelfBottom<=h,at+'первый ряд «Новое в True Thrills» обрезан низом окна: низ '+m.shelfBottom+' при окне '+h);
    }
    await ctx.close();
   }
@@ -244,5 +287,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и «Новое» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы — витрина, без прокрутки вбок, постер целиком, полки в один ряд, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и первый ряд «Новое в True Thrills» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, каталог на главной — один блок с переключателями (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой), разделы — витрина без фона-сетки, без прокрутки вбок, постер целиком, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

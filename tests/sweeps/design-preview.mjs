@@ -2250,7 +2250,7 @@ try{
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
    if(frame.searchLeft===null||frame.homeLeft===null||Math.abs(frame.searchLeft-frame.homeLeft)>2)problems.push('слушатель '+w+': поиск не по колонке содержимого ('+frame.searchLeft+' против '+frame.homeLeft+')');
-   if(!frame.banner||frame.shelves<1)problems.push('слушатель '+w+': на главной нет баннера или полок ('+JSON.stringify(frame)+')');
+   if(!frame.banner||frame.shelves<1)problems.push('слушатель '+w+': на главной нет баннера или каталога ('+JSON.stringify(frame)+')');
   }
   // 1023 — последний пиксель телефонной раскладки. Проверяем, что за границей
   // ничего настольного не включилось: панель разделов снова плавающая внизу,
