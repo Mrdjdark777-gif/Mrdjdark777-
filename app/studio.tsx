@@ -15,8 +15,8 @@ import {useLive} from '@/hooks/use-live';
 import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress,unhideResume} from '@/lib/listening-progress';
 import {HomeSceneView} from '@/components/studio/home-scene-view';
-import {DeskHome,DeskShelf} from '@/components/studio/desk-home';
-import {DeskRail,DeskTabs} from '@/components/studio/desk-rail';
+import {DeskHome} from '@/components/studio/desk-home';
+import {DeskAppBand,DeskAppButton,DeskBrand,DeskTabs} from '@/components/studio/desk-nav';
 import '@/components/studio/desk.css';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
@@ -143,7 +143,6 @@ export default function Studio(){
  // сверху, широкий баннер, полки, плеер внизу). Телефон и сенсорный планшет
  // сюда не попадают: их разметка и замок раскладки остаются как были.
  const desk=wideScreen&&!author;
- const [deskQuery,setDeskQuery]=useState('');
  useEffect(()=>{const native=window as Window & {chrome?:{webview?:{postMessage:(message:string)=>void}}};native.chrome?.webview?.postMessage(capture.recording||!!live.hosting?'true-thrills:active':'true-thrills:idle');},[capture.recording,live.hosting]);
  const [liveNow,setLiveNow]=useState<Data['live']>(null),[liveError,setLiveError]=useState(false);
  const liveStatus=liveNow;
@@ -268,7 +267,7 @@ export default function Studio(){
  // «Всё начинается с голоса.» — последние два слова во всех четырёх языках
  // и есть смысловой акцент, их и подсвечиваем.
  const accent=(text:string)=>{const words=text.split(' ');if(words.length<3)return text;return <>{words.slice(0,-2).join(' ')+' '}<span className="accent">{words.slice(-2).join(' ')}</span></>;};
- const goto=(v:string)=>{setView(RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setDeskQuery('');setPlayerExpanded(false);};
+ const goto=(v:string)=>{setView(RETIRED_VIEWS[v]??v);setFilter('published');setQuery('');setPlayerExpanded(false);};
  const listKind=view==='podcasts'?'podcast':view==='videos'?'video':'story';
  const searchKey=view==='podcasts'?'catalog.searchAudio':view==='videos'?'catalog.searchVideo':'catalog.searchStory';
  const sectionOrder=visible.filter(p=>p.kind==='podcast'&&!isLiveArchive(p.audioKey)).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
@@ -285,10 +284,9 @@ export default function Studio(){
  const archiveNeedle=archiveQuery.trim().toLowerCase();
  const archiveShown=archiveNeedle?liveArchives.filter(p=>p.title.toLowerCase().includes(archiveNeedle)):liveArchives;
  const needle=query.trim().toLowerCase();
- // Поиск в верхней строке на ПК — по всем разделам сразу (по названию и
- // описанию, как поиск в разделе).
- const deskNeedle=deskQuery.trim().toLowerCase();
- const deskFound=deskNeedle?visible.filter(p=>(p.title+' '+p.description).toLowerCase().includes(deskNeedle)).sort((a,b)=>b.createdAt-a.createdAt):[];
+ // Сайт на ПК: приложение предлагаем только в браузере (не в программе для ПК
+ // и не в самом приложении), соцсети — плашками и значками.
+ const deskApp=!shell&&!hasNativeClient()?{href:APP_RELEASE.href}:null;
  // Эфир и подкаст — разные вещи: записи эфиров живут в архиве эфиров и в
  // каталог подкастов не попадают ни у слушателя, ни у автора.
  const listed=visible.filter(p=>p.kind===listKind&&!(p.kind==='podcast'&&isLiveArchive(p.audioKey))&&(!needle||(p.title+' '+p.description).toLowerCase().includes(needle))).sort((a,b)=>sort==='new'?b.createdAt-a.createdAt:a.createdAt-b.createdAt);
@@ -304,19 +302,17 @@ export default function Studio(){
  {/* На ПК у слушателя класс is-desk вместо is-listener: прежние настольные
      правила (.is-listener в медиазапросах) к новому каркасу не относятся. */}
  <div className={'app-shell '+(author?'is-author':desk?'is-desk':'is-listener')+(!author&&!desk&&view==='home'?' is-immersive':'')}>
- {desk&&data&&!data.needsSetup&&<DeskRail onGoto={goto}
-  app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href}:null}
-  youtube={data.links?.find(l=>l.kind==='youtube')?.url??null}
-  tiktok={data.links?.find(l=>l.kind==='tiktok')?.url??null}
-  socials={data.links?.some(l=>l.kind!=='youtube'&&l.kind!=='tiktok')?data.links.filter(l=>l.kind!=='youtube'&&l.kind!=='tiktok').map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
  {splash!=='off'&&<div className={'splash'+(splash==='out'?' splash-out':'')} aria-hidden="true"><img src="/brand/logo.png?v=0.4.1" width="96" height="96" alt=""/><span className="splash-bar"><span/></span></div>}
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={96} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="82" height="82" alt=""/>}/>:<img src="/brand/logo.png?v=0.4.1" width="34" height="34" alt=""/>}<span className="wordmark">True Thrills</span></button>
+  {desk&&data&&!data.needsSetup&&<DeskBrand onGoto={goto}/>}
   {desk&&data&&!data.needsSetup&&<DeskTabs view={view} onGoto={goto} onAir={!!liveStatus}/>}
   <div className="top-header-actions">
-   {/* Поиск на ПК — справа, в одной группе с кнопками: в центре строки разделы. */}
-   {desk&&data&&!data.needsSetup&&<label className="desk-search"><Search size={18}/><input type="search" value={deskQuery} placeholder={t('desk.search')} aria-label={t('desk.search')} onChange={e=>setDeskQuery(e.target.value)}/></label>}
+   {/* Поиска в верхней строке нет (13 октября владелец: «зачем на главной
+       строка поиска, если люди даже не знают, что искать») — он в каждом
+       разделе. Справа — приложение, поддержка, поделиться, настройки. */}
+   {desk&&data&&!data.needsSetup&&deskApp&&<DeskAppButton href={deskApp.href}/>}
    {shell&&<div className="shell-menu">
     <button className="quiet-button tt-pressable" aria-label={t('shell.menu')} title={t('shell.menu')} aria-expanded={shellOpen} onClick={()=>setShellOpen(v=>!v)}><MoreHorizontal size={20}/></button>
     {shellOpen&&<><button className="shell-menu-veil" aria-label={t('common.cancel')} onClick={()=>setShellOpen(false)}/>
@@ -339,8 +335,7 @@ export default function Studio(){
    {author&&<button className="quiet-button" aria-label={t('header.logout')} title={t('header.logout')} onClick={()=>void run(async()=>{await api('auth',{action:'logout'});location.href='/login';})}><LogOut size={18}/></button>}
   </div>
  </header>
- <main className={'main-content '+(!author?'listener-main':'')+(desk&&deskNeedle?' is-searching':'')} data-view={view}>
- {desk&&deskNeedle&&data&&<section className="desk-results">{deskFound.length?<DeskShelf title={t('desk.found',{n:deskFound.length})} posts={deskFound} onOpen={p=>openPost(p)} onShare={p=>void share(postPath(p.id),p.title)}/>:<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}</section>}
+ <main className={'main-content '+(!author?'listener-main':'')} data-view={view}>
  {error&&<div className="error-box" role="alert">{error}<button onClick={()=>void load()}>{t('common.retry')}</button></div>}
  {!data&&!error&&<div className="loading-state"><Loader2 className="spin"/>{t('common.loading')}</div>}
  {data?.needsSetup&&<section className="setup-card"><span className="eyebrow">{t('setup.eyebrow')}</span><h1 className="wrap-lines">{t('setup.title')}</h1><p>{t('setup.text')}</p>{data.signedIn?<button className="primary-button" onClick={()=>void setup()} disabled={saving}>{t('setup.cta')}<ArrowUpRight size={18}/></button>:<a className="primary-button" href="/login">{t('common.login')}</a>}<small>{t('setup.note')}</small></section>}
@@ -364,6 +359,10 @@ export default function Studio(){
   onShare={p=>void share(postPath(p.id),p.title)}
   liveAction={live.joined&&live.activeId===liveStatus?.id?(live.phase==='paused'?t('live.continueListening'):live.phase==='blocked'?t('live.enableSound'):live.connecting||live.phase==='reconnecting'?t('live.connecting'):t('live.backToLive')):t('live.listen')}
   pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null} wide={data.posterWide&&wideSrc?{post:data.posterWide.post,src:wideSrc}:null}/>}
+ {view==='home'&&!author&&desk&&<DeskAppBand app={deskApp}
+  youtube={data.links?.find(l=>l.kind==='youtube')?.url??null}
+  tiktok={data.links?.find(l=>l.kind==='tiktok')?.url??null}
+  socials={data.links?.some(l=>l.kind!=='youtube'&&l.kind!=='tiktok')?data.links.filter(l=>l.kind!=='youtube'&&l.kind!=='tiktok').map(l=>{const Icon=SOCIAL_ICON[l.kind]??Globe;const label=t(SOCIALS.find(s=>s.kind===l.kind)?.labelKey??'common.link');return <a key={l.kind+l.url} className="desk-social" href={l.url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label}><Icon size={17}/></a>;}):null}/>}
  {view==='home'&&!author&&!desk&&<HomeSceneView posts={homePosts} links={socialRow} live={liveStatus} onOpen={openPost} onOpenLive={openLive} appLink={appLink} noHero={liveArchiveIds}
   archive={<button type="button" className="support-strip archive-strip tt-pressable" onClick={()=>{haptic();setArchiveOpen(true);goto('live');
     // С главной человек идёт именно за записями: подводим к списку сразу,

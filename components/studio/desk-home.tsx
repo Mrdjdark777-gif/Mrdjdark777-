@@ -22,9 +22,12 @@ import {Artwork} from './artwork';
  * значительно меньше… смотрится плохо») — с плеером страница просто
  * докручивается.
  *
- * Поверх обложки ничего не кладём: на ней своя надпись (выбор владельца —
- * «под обложкой, поверх ничего»). Обложка — отдельная картинка 4:1 (2400×600) из
- * студии; нет её — постер или обложка выпуска целиком на размытом фоне.
+ * На обложке — только кнопка действия («Слушать», «Смотреть», «Читать»,
+ * «Продолжить») и «Поделиться» в углу; под обложкой — одна строка описания
+ * (13 октября владелец так решил вместо прежнего «под обложкой название,
+ * поверх ничего»: большое название песни под картинкой путало). Обложка —
+ * отдельная картинка 4:1 (2400×600) из студии; нет её — постер или обложка
+ * выпуска целиком на размытом фоне.
  *
  * «Новое в True Thrills» — один ряд по центру, не больше восьми плиток, без
  * карусели и стрелок (13 октября владелец так решил). Переключателей по
@@ -119,25 +122,29 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
    <span className="desk-onair-action">{liveAction}<ChevronRight size={18}/></span>
   </button>}
   {hero?<section className="desk-hero">
-   <button type="button" className={'desk-banner'+(heroWide?' is-wide':'')} aria-label={heroAction+' · '+hero.title} onClick={()=>{haptic();onOpen(hero,!!heroResume);}}>
-    {/* Обложка 4:1 из студии — целиком, без обрезки; если рамка из-за
-        низкого окна стала шире 4:1, бока закрывает её же размытая копия. */}
-    {heroWide?<><img className="desk-banner-blur" src={heroWide} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>
-     <img className="desk-banner-wide" src={heroWide} alt="" referrerPolicy="no-referrer"/></>:<>
-     {heroCover&&<img className="desk-banner-blur" src={heroCover} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>}
-     <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/></>}
-   </button>
-   <div className="desk-hero-bar">
-    <div className="desk-hero-copy">
-     <span className="desk-eyebrow">{t(kindTagKey(hero))}{hero.duration>0?' · '+clock(hero.duration):''}</span>
-     <h1 className="desk-hero-title">{hero.title}</h1>
-     {hero.description&&<p className="desk-hero-note">{hero.description}</p>}
-    </div>
-    <div className="desk-hero-actions">
-     <button type="button" className="desk-cta" onClick={()=>{haptic();onOpen(hero,!!heroResume);}}><Play size={18} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="desk-cta-time">· {clock(heroResume.position)}</span>}</button>
-     <button type="button" className="desk-ghost" onClick={()=>{haptic();onShare(hero);}}><Share2 size={17}/>{t('share.action')}</button>
+   {/* Обложка — сама кнопка «открыть», а на ней в углу — понятная кнопка
+       действия и «Поделиться» (13 октября владелец: «поставить на обложку
+       нативную кнопку play, чтоб пользователь сразу понимал, что делать»).
+       Кнопки — рядом с кнопкой-обложкой, а не внутри неё: кнопка в кнопке
+       ломает и клавиатуру, и щелчок. Тип, длительность и название под
+       обложкой больше не пишем — они путали («что за большая надпись под
+       обложкой?»); название — у кнопки-обложки для чтения с экрана. */}
+   <div className={'desk-banner'+(heroWide?' is-wide':'')}>
+    <button type="button" className="desk-banner-hit" aria-label={heroAction+' · '+hero.title} onClick={()=>{haptic();onOpen(hero,!!heroResume);}}>
+     {/* Обложка 4:1 из студии — целиком, без обрезки; если рамка из-за
+         низкого окна стала шире 4:1, бока закрывает её же размытая копия. */}
+     {heroWide?<><img className="desk-banner-blur" src={heroWide} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>
+      <img className="desk-banner-wide" src={heroWide} alt="" referrerPolicy="no-referrer"/></>:<>
+      {heroCover&&<img className="desk-banner-blur" src={heroCover} alt="" aria-hidden="true" referrerPolicy="no-referrer"/>}
+      <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/></>}
+    </button>
+    <div className="desk-banner-actions">
+     <button type="button" className="desk-cta" onClick={()=>{haptic();onOpen(hero,!!heroResume);}}><Play size={20} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="desk-cta-time">· {clock(heroResume.position)}</span>}</button>
+     <button type="button" className="desk-banner-share" aria-label={t('share.action')+' · '+hero.title} title={t('share.action')} onClick={()=>{haptic();onShare(hero);}}><Share2 size={19}/></button>
     </div>
    </div>
+   <h1 className="desk-sr">{hero.title}</h1>
+   {hero.description?<p className="desk-hero-note">{hero.description}</p>:null}
   </section>:<section className="desk-hero is-empty"><h1 className="desk-hero-title">{t('home.emptyTitle')}</h1><p className="desk-hero-note">{t('home.emptyNote')}</p></section>}
   {freshBlock}
   {resume&&!heroResume&&<button type="button" className="desk-resume" onClick={()=>{haptic();onOpen(resume.post,true);}}>

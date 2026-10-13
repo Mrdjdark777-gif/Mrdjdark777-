@@ -74,7 +74,7 @@ Set-ExecutionPolicy -Scope Process Bypass -Force; $f=$null; foreach($r in 'D:\',
 ## Что сделано за последние заходы (8–9 октября)
 
 1. **Сайт для ПК, концепция «Студия звука»** — выбор владельца: боковое меню слева, поиск сверху, полки, плеер полосой внизу. Код:
-   - `components/studio/desk-rail.tsx`;
+   - `components/studio/desk-nav.tsx` (до 13 октября — `desk-rail`);
    - `components/studio/desk-home.tsx`;
    - `components/studio/desk-section.tsx`;
    - `components/studio/desk.css`.

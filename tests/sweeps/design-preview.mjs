@@ -2227,27 +2227,28 @@ try{
    if(m.beams)problems.push('слушатель '+w+': фон студии с лучами показан гостю');
    if(m.w>m.iw+1)problems.push('слушатель '+w+': переполнение по ширине');
    // Ссылка на приложение — то, за чем человек и приходит на сайт с
-   // компьютера. На ПК она в боковом меню; должна вести на существующий файл.
-   const app=await g.evaluate(async()=>{const a=document.querySelector('.desk-app');
+   // компьютера. На ПК (13 октября) — в полосе приложения под «Новое» и в
+   // окошке «Приложение» верхней строки; должна вести на существующий файл.
+   const app=await g.evaluate(async()=>{const a=document.querySelector('.desk-app-band .desk-app-action');
     if(!a)return null;const r=await fetch(a.getAttribute('href'),{method:'HEAD'});
     return {href:a.getAttribute('href'),status:r.status};});
-   if(!app)problems.push('слушатель '+w+': в боковом меню нет ссылки на приложение');
+   if(!app)problems.push('слушатель '+w+': в полосе приложения нет ссылки на приложение');
    else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
    // Каркас ПК «Студия звука» (выбран владельцем 8 октября): боковое меню
    // слева, телефонной панели разделов нет, подвал после содержимого,
-   // кнопки и поиск справа в верхней строке кончаются там же, где содержимое
-   // (13 октября разделы встали в центр строки, поиск — вправо). Подробно —
+   // кнопки справа в верхней строке кончаются там же, где содержимое
+   // (13 октября разделы встали в центр строки, поиск ушёл в разделы). Подробно —
    // tests/browser/desk-layout.mjs.
-   const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-rail'),
-    main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),search=document.querySelector('.desk-search'),
+   const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.top-header .desk-tabs'),
+    main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),
     home=document.querySelector('.desk-home');
     const top=el=>el?Math.round(el.getBoundingClientRect().top+scrollY):null;
     return {desk:document.querySelector('.app-shell')?.classList.contains('is-desk')??false,
      rail:!!rail&&getComputedStyle(rail).display!=='none',navShown:!!nav&&getComputedStyle(nav).display!=='none',
      main:top(main),foot:top(foot),footShown:!!foot&&getComputedStyle(foot).display!=='none',
-     searchLeft:search?Math.round(document.querySelector('.top-header-actions').getBoundingClientRect().right):null,homeLeft:home?Math.round(home.getBoundingClientRect().right):null,
+     searchLeft:document.querySelector('.top-header-actions')?Math.round(document.querySelector('.top-header-actions').getBoundingClientRect().right):null,homeLeft:home?Math.round(home.getBoundingClientRect().right):null,
      banner:!!document.querySelector('.desk-home .desk-banner'),shelves:document.querySelectorAll('.desk-home .desk-shelf').length};});
-   if(!frame.desk||!frame.rail)problems.push('слушатель '+w+': нет каркаса ПК с боковым меню '+JSON.stringify(frame));
+   if(!frame.desk||!frame.rail)problems.push('слушатель '+w+': нет каркаса ПК с разделами в верхней строке '+JSON.stringify(frame));
    if(frame.navShown)problems.push('слушатель '+w+': телефонная панель разделов видна на ПК');
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');

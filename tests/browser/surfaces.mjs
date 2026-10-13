@@ -12,7 +12,7 @@
  * Обход: каждая поверхность × каждый раздел (главная, аудио, видео, истории,
  * эфир, настройки). На каждом экране — ожидаемый каркас, нет прокрутки
  * вбок, нет ошибок страницы. На ПК-слушателе — окна поверх каркаса
- * (читалка, видео, поддержка) лежат над боковым меню и закрываются.
+ * (читалка, видео, поддержка) лежат над верхней строкой с разделами и закрываются.
  *
  * Всё — во временной базе; рабочие данные не трогаются.
  */
@@ -50,14 +50,14 @@ try{
  const ready=async page=>{await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForFunction(()=>!document.querySelector('.splash'),null,{timeout:15000}).catch(()=>{});await page.waitForTimeout(400);};
  // Поверхности и их договор.
  const surfaces=[
-  {name:'телефон, слушатель',viewport:{width:390,height:844},touch:true,owner:false,shell:'is-listener',nav:'bottom',rail:false},
-  {name:'планшет, слушатель',viewport:{width:1280,height:800},touch:true,owner:false,shell:'is-listener',nav:'bottom',rail:false},
-  {name:'ПК, слушатель',viewport:{width:1440,height:900},touch:false,owner:false,shell:'is-desk',nav:'none',rail:true,app:true},
-  {name:'ноутбук 1024, слушатель',viewport:{width:1024,height:768},touch:false,owner:false,shell:'is-desk',nav:'none',rail:true,app:true},
-  {name:'программа для ПК, слушатель',viewport:{width:1440,height:900},touch:false,owner:false,exe:true,shell:'is-desk',nav:'none',rail:true,app:false},
-  {name:'ПК, автор',viewport:{width:1440,height:900},touch:false,owner:true,shell:'is-author',nav:'studio',rail:false},
-  {name:'программа для ПК, автор',viewport:{width:1440,height:900},touch:false,owner:true,exe:true,shell:'is-author',nav:'studio',rail:false},
-  {name:'телефон, автор',viewport:{width:390,height:844},touch:true,owner:true,shell:'is-author',nav:'bottom',rail:false},
+  {name:'телефон, слушатель',viewport:{width:390,height:844},touch:true,owner:false,shell:'is-listener',nav:'bottom',deskNav:false},
+  {name:'планшет, слушатель',viewport:{width:1280,height:800},touch:true,owner:false,shell:'is-listener',nav:'bottom',deskNav:false},
+  {name:'ПК, слушатель',viewport:{width:1440,height:900},touch:false,owner:false,shell:'is-desk',nav:'none',deskNav:true,app:true},
+  {name:'ноутбук 1024, слушатель',viewport:{width:1024,height:768},touch:false,owner:false,shell:'is-desk',nav:'none',deskNav:true,app:true},
+  {name:'программа для ПК, слушатель',viewport:{width:1440,height:900},touch:false,owner:false,exe:true,shell:'is-desk',nav:'none',deskNav:true,app:false},
+  {name:'ПК, автор',viewport:{width:1440,height:900},touch:false,owner:true,shell:'is-author',nav:'studio',deskNav:false},
+  {name:'программа для ПК, автор',viewport:{width:1440,height:900},touch:false,owner:true,exe:true,shell:'is-author',nav:'studio',deskNav:false},
+  {name:'телефон, автор',viewport:{width:390,height:844},touch:true,owner:true,shell:'is-author',nav:'bottom',deskNav:false},
  ];
  const views=['home','podcasts','videos','stories','live','settings'];
  for(const s of surfaces){
@@ -70,42 +70,45 @@ try{
    const at=s.name+' / '+v+': ';
    await page.goto(base+'/?'+(s.owner?'':'mode=listen&')+'view='+v);await ready(page);
    const st=await page.evaluate(()=>{
-    const shell=document.querySelector('.app-shell'),nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-rail');
-    const shown=el=>!!el&&getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>0;
+    const shell=document.querySelector('.app-shell'),nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-tabs');
+    const oldRail=!!document.querySelector('.desk-rail');const shown=el=>!!el&&getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>0;
     const navBox=nav?.getBoundingClientRect();
-    return {cls:shell?.className??'',nav:shown(nav),navSide:navBox?(navBox.width<160&&navBox.height>navBox.width):false,rail:shown(rail),railDom:!!rail,
-     app:!!document.querySelector('.desk-app'),footApp:!!document.querySelector('.site-footer-app'),shellMenu:!!document.querySelector('.shell-menu'),
+    return {oldRail,cls:shell?.className??'',nav:shown(nav),navSide:navBox?(navBox.width<160&&navBox.height>navBox.width):false,rail:shown(rail),railDom:!!rail,
+     app:!!document.querySelector('.desk-app-button'),footApp:!!document.querySelector('.site-footer-app'),shellMenu:!!document.querySelector('.shell-menu'),
      scroll:document.documentElement.scrollWidth-innerWidth,
      // Кнопки карточки выпуска не выходят за её край (поделиться, слушать).
      spill:[...document.querySelectorAll('.post-card')].flatMap(c=>{const r=c.getBoundingClientRect();return [...c.querySelectorAll('button,a')].filter(b=>{const q=b.getBoundingClientRect();return q.width>0&&(q.right>r.right+1||q.left<r.left-1);}).map(b=>(b.getAttribute('aria-label')||b.textContent.trim()).slice(0,30));}).slice(0,3)};});
    check(new RegExp('\\b'+s.shell+'\\b').test(st.cls),at+'каркас «'+st.cls+'» вместо '+s.shell);
-   // Не «скрыто», а «нет совсем»: спрятанное стилем меню слушателя в студии —
-   // это уже смешение каркасов, и следующее же правило CSS его покажет.
-   check(s.rail?st.rail:!st.railDom,at+(s.rail?'нет бокового меню сайта для ПК':'в странице есть боковое меню сайта для ПК'));
+   // Не «скрыто», а «нет совсем»: спрятанная стилем навигация слушателя в
+   // студии — это уже смешение каркасов, и следующее же правило CSS её покажет.
+   // С 13 октября навигация сайта для ПК — разделы в верхней строке (.desk-tabs),
+   // бокового меню нет вовсе.
+   check(s.deskNav?st.rail:!st.railDom,at+(s.deskNav?'нет разделов сайта для ПК в верхней строке':'в странице есть навигация сайта для ПК'));
+   check(!st.oldRail,at+'в странице снова боковое меню сайта для ПК');
    if(s.nav==='bottom')check(st.nav&&!st.navSide,at+'нет нижней панели разделов');
    if(s.nav==='none')check(!st.nav,at+'на ПК видна телефонная панель разделов');
    if(s.nav==='studio')check(st.nav&&st.navSide,at+'у студии на ПК нет боковой панели студии');
-   if(s.rail)check(st.app===s.app,at+(s.app?'в меню нет «Скачать приложение»':'внутри программы для ПК предлагается скачать приложение'));
+   if(s.deskNav)check(st.app===s.app,at+(s.app?'в верхней строке нет «Приложение»':'внутри программы для ПК предлагается скачать приложение'));
    if(s.exe)check(!st.footApp,at+'в подвале программы для ПК предлагается скачать приложение');
    if(s.exe&&s.owner)check(st.shellMenu,at+'в программе для ПК нет меню программы');
    check(st.scroll<=1,at+'страница шире экрана на '+st.scroll+'px');
    check(st.spill.length===0,at+'кнопки карточки за её краем: '+st.spill.join(', '));
   }
   check(errors.length===0,s.name+': ошибки страницы: '+errors.join('; '));
-  // Окна поверх каркаса ПК: над боковым меню и закрываются.
-  if(s.rail&&!s.exe&&s.viewport.width===1440){
-   const covered=async()=>page.evaluate(()=>{const r=document.querySelector('.desk-rail').getBoundingClientRect();const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !el?.closest('.desk-rail');});
+  // Окна поверх каркаса ПК: над верхней строкой с разделами и закрываются.
+  if(s.deskNav&&!s.exe&&s.viewport.width===1440){
+   const covered=async()=>page.evaluate(()=>{const r=document.querySelector('.desk-tabs').getBoundingClientRect();const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !el?.closest('.desk-tabs');});
    await page.goto(base+'/?mode=listen&view=stories');await ready(page);
    await page.getByRole('button',{name:'Читать'}).first().click();await page.locator('.tt-reader').waitFor({timeout:15000}).catch(()=>{});await page.waitForTimeout(800);
    check(await page.locator('.tt-reader').count()===1,s.name+': читалка не открылась');
-   check(await covered(),s.name+': боковое меню торчит поверх читалки');
+   check(await covered(),s.name+': разделы в верхней строке торчат поверх читалки');
    await page.keyboard.press('Escape');await page.waitForTimeout(600);
    check(await page.locator('.tt-reader').count()===0,s.name+': читалка не закрывается по Escape');
    await page.goto(base+'/?mode=listen&view=videos');await ready(page);
    await page.getByRole('button',{name:'Смотреть'}).first().click();await page.waitForTimeout(1200);
    const video=await page.evaluate(()=>!!document.querySelector('.video-frame'));
    check(video,s.name+': видео не открылось');
-   if(video)check(await covered(),s.name+': боковое меню торчит поверх видео');
+   if(video)check(await covered(),s.name+': разделы в верхней строке торчат поверх видео');
    await page.keyboard.press('Escape');await page.waitForTimeout(600);
    const stuck=await page.evaluate(()=>!!document.querySelector('.video-frame,.video-dialog'));
    check(!stuck,s.name+': видео не закрывается по Escape (фокус ушёл в плеер?)');
@@ -113,7 +116,7 @@ try{
    await page.locator('.top-header .support-button').click();await page.waitForTimeout(600);
    const dialog=await page.evaluate(()=>{const d=document.querySelector('[role=dialog]');return !!d&&getComputedStyle(d).display!=='none';});
    check(dialog,s.name+': сердечко «Поддержать» вверху не открыло окно площадок');
-   if(dialog)check(await covered(),s.name+': боковое меню торчит поверх окна поддержки');
+   if(dialog)check(await covered(),s.name+': разделы в верхней строке торчат поверх окна поддержки');
    await page.keyboard.press('Escape');await page.waitForTimeout(400);
   }
   await ctx.close();

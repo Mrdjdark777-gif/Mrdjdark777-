@@ -13,8 +13,14 @@
  * - первый экран (9 октября): обложка во всю ширину без ничего поверх,
  *   под ней название и первый ряд блока «Новое в True Thrills» — целиком в
  *   окне; обложка 4:1 из студии ложится на весь баннер, без неё постер целиком;
- * - разделы (13 октября) — в верхней строке, по центру (от 1700 точек ровно
- *   по центру строки), не наезжают на поиск; в боковом меню их нет;
+ * - каркас (13 октября, вечер): бокового меню нет; в верхней строке знак
+ *   канала слева, разделы ровно по центру, справа «Приложение», поддержка,
+ *   поделиться, настройки — без поиска; ничто ни на что не наезжает;
+ * - на обложке — кнопка действия и «Поделиться», под ней — только описание:
+ *   ни типа, ни длительности, ни названия;
+ * - QR-код приложения (фирменный, с логотипом) в окошке «Приложение» и в
+ *   полосе под «Новое» читается: его снимают с экрана и распознают;
+ * - поиск — в разделе, а не в верхней строке;
  * - «Новое в True Thrills» — один ряд по центру, не больше восьми плиток,
  *   без полок по разделам и без переключателей; каждый выпуск один раз;
  *   запись эфира подписана как запись; «Поделиться» — отдельной кнопкой;
@@ -38,6 +44,8 @@ import {chromium} from 'playwright';
 import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,rm,readFile,copyFile} from 'node:fs/promises';
 import crypto from 'node:crypto';
+import jsQR from 'jsqr';
+import sharp from 'sharp';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -84,20 +92,20 @@ try{
   await page.goto(base+'/?mode=listen&view=home');await ready(page);
   await page.waitForFunction(()=>document.querySelector('.desk-banner-art')?.complete,null,{timeout:15000}).catch(()=>{});
   const shell=await page.evaluate(()=>{
-   const s=document.querySelector('.app-shell'),rail=document.querySelector('.desk-rail'),nav=document.querySelector('.bottom-nav');
-   const r=rail?.getBoundingClientRect();
-   return {cls:s?.className??'',rail:r?{left:Math.round(r.left),width:Math.round(r.width),display:getComputedStyle(rail).display}:null,
-    items:[...document.querySelectorAll('.top-header .desk-tab')].map(b=>b.textContent.trim()),railNav:document.querySelectorAll('.desk-rail .desk-tab,.desk-rail nav').length,
+   const s=document.querySelector('.app-shell'),nav=document.querySelector('.bottom-nav');
+   return {cls:s?.className??'',oldRail:!!document.querySelector('.desk-rail'),brand:!!document.querySelector('.top-header .desk-brand img'),
+    items:[...document.querySelectorAll('.top-header .desk-tab')].map(b=>b.textContent.trim()),search:!!document.querySelector('.top-header input[type=search]'),
     navShown:!!nav&&getComputedStyle(nav).display!=='none',scroll:document.documentElement.scrollWidth-innerWidth};
   });
   check(/\bis-desk\b/.test(shell.cls)&&!/\bis-listener\b/.test(shell.cls),at+'слушатель на ПК не получил каркас .is-desk: '+shell.cls);
-  check(shell.rail&&shell.rail.left===0&&shell.rail.width>=240&&shell.rail.display!=='none',at+'бокового меню слева нет: '+JSON.stringify(shell.rail));
+  check(!shell.oldRail,at+'снова боковое меню — владелец убрал его 13 октября');
+  check(shell.brand,at+'нет знака канала слева в верхней строке');
   check(shell.items.length===5&&shell.items[0].startsWith('Главная'),at+'разделы в верхней строке не те или «Главная» не первая: '+shell.items.join(' | '));
-  check(shell.railNav===0,at+'разделы снова в боковом меню');
+  check(!shell.search,at+'в верхней строке снова поиск — он должен быть в разделах');
   check(!shell.navShown,at+'нижняя телефонная панель разделов видна на ПК');
   // Без каркаса дальше мерить нечего: остальные проверки только упали бы на
   // отсутствующих элементах, а не назвали бы поломку.
-  if(!/\bis-desk\b/.test(shell.cls)||!shell.rail){await ctx.close();continue;}
+  if(!/\bis-desk\b/.test(shell.cls)){await ctx.close();continue;}
   check(shell.scroll<=1,at+'страница шире окна на '+shell.scroll+'px');
   // Ничего не уходит за правый край окна (кроме ушедших в скрытые ряды плиток).
   const over=await page.evaluate(()=>[...document.querySelectorAll('.app-shell *')].filter(el=>{const b=el.getBoundingClientRect();return b.width>0&&b.height>0&&b.right>innerWidth+1&&!el.closest('.desk-banner');}).slice(0,3).map(el=>el.className||el.tagName));
@@ -109,27 +117,32 @@ try{
   check(banner,at+'на главной нет баннера с постером');
   if(banner){check(Math.abs(banner.shown-banner.natural)/banner.natural<0.02&&banner.fit!=='cover',at+'постер в баннере искажён или обрезан: пропорция '+banner.shown.toFixed(3)+' вместо '+banner.natural.toFixed(3)+', object-fit '+banner.fit);
    check(banner.inside,at+'постер вылез за баннер');check(banner.h>=240,at+'баннер высотой '+banner.h+' при экране '+h);}
-  // Первый экран: обложка во всю ширину содержимого, первый ряд «Новое в
-  // True Thrills» целиком в окне, поверх обложки — ничего (строка названия
-  // ниже её нижнего края).
-  const first=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),rail=document.querySelector('.desk-rail').getBoundingClientRect(),
-   bar=document.querySelector('.desk-hero>.desk-hero-bar')?.getBoundingClientRect(),fresh=document.querySelector('.desk-hero+.desk-fresh');
+  // Первый экран: обложка во всю ширину содержимого, на ней — только кнопка
+  // действия и «Поделиться», под ней — строка описания, ниже ряд «Новое в
+  // True Thrills» целиком в окне.
+  const first=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),home=document.querySelector('.desk-home').getBoundingClientRect(),
+   note=document.querySelector('.desk-hero>.desk-hero-note')?.getBoundingClientRect(),fresh=document.querySelector('.desk-hero+.desk-fresh'),
+   onCover=[...document.querySelectorAll('.desk-banner-actions>*')].filter(e=>e.getBoundingClientRect().width>0).map(e=>e.getAttribute('aria-label')?'share':e.textContent.trim()),
+   words=[...document.querySelectorAll('.desk-hero h1,.desk-hero .desk-eyebrow,.desk-hero h2')].filter(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;}).map(e=>e.textContent);
    const tiles=[...(fresh?.querySelectorAll('.desk-grid>.desk-tile')??[])].map(t=>t.getBoundingClientRect()),top=tiles[0]?.top;
-   return b&&bar&&tiles.length?{left:Math.round(b.left),right:Math.round(b.right),rail:Math.round(rail.right),rowBottom:Math.round(Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))),barTop:Math.round(bar.top),bannerBottom:Math.round(b.bottom),
+   return b&&tiles.length?{left:Math.round(b.left),right:Math.round(b.right),homeL:Math.round(home.left),homeR:Math.round(home.right),rowBottom:Math.round(Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))),
+    noteTop:note?Math.round(note.top):null,bannerBottom:Math.round(b.bottom),onCover,words,
     title:fresh.querySelector('h2')?.textContent,tile:Math.round(tiles[0].width)}:null;});
-  check(first,at+'на первом экране нет обложки, строки названия или блока «Новое в True Thrills» сразу под ними');
+  check(first,at+'на первом экране нет обложки или блока «Новое в True Thrills» сразу под ней');
   if(first){
    check(first.title==='Новое в True Thrills',at+'под обложкой не «Новое в True Thrills», а '+first.title);
    check(first.rowBottom<=h,at+'первый ряд «Новое в True Thrills» обрезан низом окна: низ ряда '+first.rowBottom+' при окне '+h);
    if(h>=1080)check(first.tile>=200,at+'на высоком окне плитки остались мелкими: '+first.tile+'px');
-   check(first.barTop>=first.bannerBottom,at+'название легло на обложку');
-   if(w<1944)check(first.left===first.rail&&first.right===w,at+'обложка не во всю ширину: '+first.left+'–'+first.right+' при меню до '+first.rail);
+   check(first.onCover.length===2&&/^Слушать|^Продолжить/.test(first.onCover[0])&&first.onCover[1]==='share',at+'на обложке не «Слушать» и «Поделиться»: '+JSON.stringify(first.onCover));
+   check(first.words.length===0,at+'под обложкой снова тип, длительность или название: '+first.words.join(' | '));
+   check(first.noteTop===null||first.noteTop>=first.bannerBottom,at+'описание легло на обложку');
+   check(Math.abs(first.left-first.homeL)<=1&&Math.abs(first.right-first.homeR)<=1,at+'обложка не во всю ширину содержимого: '+first.left+'–'+first.right+' при содержимом '+first.homeL+'–'+first.homeR);
   }
   // «Новое в True Thrills» — один ряд по центру, не больше восьми плиток;
   // без полок по разделам и без переключателей; каждый выпуск один раз.
   const cat=await page.evaluate(()=>{const grid=document.querySelector('.desk-fresh .desk-grid'),g=grid?.getBoundingClientRect(),tiles=[...document.querySelectorAll('.desk-fresh .desk-tile')].map(t=>t.getBoundingClientRect());
    return {blocks:[...document.querySelectorAll('.desk-home .desk-shelf')].map(s=>s.querySelector('h2')?.textContent),
-   titles:[...document.querySelectorAll('.desk-fresh .desk-tile strong')].map(e=>e.textContent),hero:document.querySelector('.desk-hero-title')?.textContent,
+   titles:[...document.querySelectorAll('.desk-fresh .desk-tile strong')].map(e=>e.textContent),hero:document.querySelector('.desk-hero h1')?.textContent,
    chips:document.querySelectorAll('.desk-home .desk-chip').length,rows:new Set(tiles.map(t=>Math.round(t.top))).size,
    sides:g&&tiles.length?[Math.round(Math.min(...tiles.map(t=>t.left))-g.left),Math.round(g.right-Math.max(...tiles.map(t=>t.right)))]:null,
    room:g&&tiles.length?Math.floor((g.width+18)/(tiles[0].width+18)):0,
@@ -143,40 +156,47 @@ try{
   check(cat.sides&&Math.abs(cat.sides[0]-cat.sides[1])<=2,at+'ряд «Новое» не по центру: слева '+cat.sides?.[0]+', справа '+cat.sides?.[1]);
   check(cat.nested===0&&cat.shares===cat.titles.length,at+'«Поделиться» у плиток не отдельной кнопкой: вложенных '+cat.nested+', кнопок '+cat.shares+' на '+cat.titles.length+' плиток');
   check(/запись эфира/i.test(cat.archiveTag??''),at+'запись эфира подписана не как запись: '+cat.archiveTag);
-  // Разделы по центру строки (от 1700 точек) и не наезжают на поиск.
-  const head=await page.evaluate(()=>{const tabs=document.querySelector('.top-header .desk-tabs')?.getBoundingClientRect(),acts=document.querySelector('.top-header .top-header-actions')?.getBoundingClientRect(),
-   main=document.querySelector('.desk-home')?.getBoundingClientRect(),search=document.querySelector('.desk-search')?.getBoundingClientRect();
-   return tabs&&acts&&main&&search?{gap:Math.round(search.left-tabs.right),mid:Math.round(tabs.left+tabs.width/2),contentMid:Math.round(main.left+main.width/2),search:Math.round(search.width)}:null;});
-  check(head,at+'в верхней строке нет разделов, поиска или кнопок');
-  if(head){check(head.gap>=8,at+'разделы наезжают на поиск: зазор '+head.gap);check(head.search>=140,at+'поиск сжат до '+head.search+'px — в нём не видно слов');
-   if(w>=1700)check(Math.abs(head.mid-head.contentMid)<=2,at+'разделы не по центру строки: середина '+head.mid+', середина содержимого '+head.contentMid);}
+  // Разделы ровно по центру строки и не наезжают ни на знак канала, ни на кнопки.
+  const head=await page.evaluate(()=>{const q=s=>document.querySelector(s)?.getBoundingClientRect();const tabs=q('.top-header .desk-tabs'),acts=q('.top-header .top-header-actions'),brand=q('.top-header .desk-brand'),main=q('.desk-home');
+   return tabs&&acts&&brand&&main?{left:Math.round(tabs.left-brand.right),right:Math.round(acts.left-tabs.right),mid:Math.round(tabs.left+tabs.width/2),contentMid:Math.round(main.left+main.width/2)}:null;});
+  check(head,at+'в верхней строке нет знака канала, разделов или кнопок');
+  if(head){check(head.left>=12&&head.right>=12,at+'разделы наезжают на соседей: слева '+head.left+', справа '+head.right);
+   check(Math.abs(head.mid-head.contentMid)<=2,at+'разделы не по центру строки: середина '+head.mid+', середина содержимого '+head.contentMid);}
   if(w===1440){
-   // Меню и подвал — по замечаниям владельца 9 октября.
-   const rail=await page.evaluate(()=>{const app=document.querySelector('.desk-rail .desk-app'),yt=document.querySelector('.desk-rail .desk-youtube'),foot=document.querySelector('.site-footer');
-    return {support:!!document.querySelector('.desk-rail .desk-support,.desk-rail .desk-support-button'),appText:app?.textContent??'',appH:Math.round(app?.getBoundingClientRect().height??0),
-     yt:yt?.getAttribute('href')??'',ytIcon:!![...document.querySelectorAll('.desk-rail .desk-social')].find(a=>/youtube/.test(a.getAttribute('href')??'')),
-     tt:document.querySelector('.desk-rail .desk-tiktok')?.getAttribute('href')??'',ttIcon:!![...document.querySelectorAll('.desk-rail .desk-social')].find(a=>/tiktok/.test(a.getAttribute('href')??'')),
-     qrUrl:document.querySelector('.desk-rail .desk-app .desk-qr')?.getAttribute('data-qr-url')??'',qrModules:(document.querySelector('.desk-rail .desk-qr path')?.getAttribute('d')??'').split('M').length-1,
-     qrSize:Math.round(document.querySelector('.desk-rail .desk-qr')?.getBoundingClientRect().width??0),
+   // Приложение и соцсети — по замечаниям владельца 9 и 13 октября: QR-код
+   // фирменный и читается, без номера сборки, YouTube и TikTok плашками;
+   // поддержки нигде, кроме сердечка, нет.
+   const band=await page.evaluate(()=>{const b=document.querySelector('.desk-app-band'),foot=document.querySelector('.site-footer');
+    return {support:!!document.querySelector('.desk-support,.desk-support-button'),text:b?.textContent??'',points:b?.querySelectorAll('.desk-band-points li').length??0,
+     dl:b?.querySelector('.desk-app-action')?.getAttribute('href')??'',
+     yt:b?.querySelector('.desk-youtube')?.getAttribute('href')??'',ytIcon:!![...(b?.querySelectorAll('.desk-social')??[])].find(a=>/youtube/.test(a.getAttribute('href')??'')),
+     tt:b?.querySelector('.desk-tiktok')?.getAttribute('href')??'',ttIcon:!![...(b?.querySelectorAll('.desk-social')??[])].find(a=>/tiktok/.test(a.getAttribute('href')??'')),
+     qrUrl:b?.querySelector('.desk-qr')?.getAttribute('data-qr-url')??'',
      foot:foot?.textContent??'',footGlow:!!foot?.querySelector('.donation-glow,[class*=glow]')};});
-   check(!rail.support,at+'в боковом меню снова карточка поддержки');
-   check(rail.appH>=120,at+'«Скачать приложение» в меню — не заметная карточка, высота '+rail.appH);
-   check(!/\d+\.\d+\.\d+/.test(rail.appText),at+'у «Скачать приложение» в меню номер сборки: '+rail.appText);
-   check(/youtube\.com/.test(rail.yt),at+'в меню нет кнопки YouTube');
-   check(!rail.ytIcon,at+'YouTube продублирован значком рядом с кнопкой');
-   check(/tiktok\.com/.test(rail.tt)&&!rail.ttIcon,at+'TikTok не плашкой с логотипом, а значком (или его нет)');
-   // QR-код ведёт на APK этого сайта, и сервер этот файл отдаёт.
-   check(rail.qrUrl.startsWith(base+'/app/')&&rail.qrUrl.endsWith('.apk'),at+'QR-код ведёт не на APK этого сайта: '+rail.qrUrl);
-   check(rail.qrModules>200&&rail.qrSize>=60,at+'QR-код пустой или слишком мелкий для камеры: модулей '+rail.qrModules+', размер '+rail.qrSize);
-   if(rail.qrUrl)check((await fetch(rail.qrUrl,{method:'HEAD'})).status===200,at+'по адресу из QR-кода APK не отдаётся: '+rail.qrUrl);
-   check(!/\d+\.\d+\.\d+/.test(rail.foot),at+'в подвале номер сборки: '+rail.foot);
-   check(!/Поддержать/.test(rail.foot)&&!rail.footGlow,at+'в подвале снова «Поддержать» с подсветкой');
-   // Поиск по всем разделам.
-   await page.fill('.desk-search input','ледян');await page.waitForTimeout(300);
-   const found=await page.evaluate(()=>({titles:[...document.querySelectorAll('.desk-results .desk-tile strong')].map(e=>e.textContent),home:!!document.querySelector('.desk-home')&&getComputedStyle(document.querySelector('.desk-home')).display!=='none'}));
-   check(found.titles.length===1&&found.titles[0]==='Записки из ледяной пустыни'&&!found.home,at+'поиск сверху нашёл не то или главная не ушла: '+JSON.stringify(found));
-   await page.fill('.desk-search input','');await page.waitForTimeout(300);
-   check(await page.locator('.desk-home').isVisible(),at+'после очистки поиска главная не вернулась');
+   check(!band.support,at+'снова карточка поддержки');
+   check(band.points===3&&band.dl.endsWith('.apk'),at+'в полосе приложения нет трёх пунктов «что даёт» или кнопки скачивания: '+band.points+', '+band.dl);
+   check(!/\d+\.\d+\.\d+/.test(band.text.replace(band.dl,'')),at+'у приложения номер сборки: '+band.text);
+   check(/youtube\.com/.test(band.yt)&&!band.ytIcon,at+'YouTube не плашкой с логотипом (или продублирован значком)');
+   check(/tiktok\.com/.test(band.tt)&&!band.ttIcon,at+'TikTok не плашкой с логотипом (или продублирован значком)');
+   check(band.qrUrl.startsWith(base+'/app/')&&band.qrUrl.endsWith('.apk'),at+'QR-код ведёт не на APK этого сайта: '+band.qrUrl);
+   if(band.qrUrl)check((await fetch(band.qrUrl,{method:'HEAD'})).status===200,at+'по адресу из QR-кода APK не отдаётся: '+band.qrUrl);
+   check(!/\d+\.\d+\.\d+/.test(band.foot),at+'в подвале номер сборки: '+band.foot);
+   check(!/Поддержать/.test(band.foot)&&!band.footGlow,at+'в подвале снова «Поддержать» с подсветкой');
+   // QR-код читается: снимаем его с экрана и распознаём — в полосе и в окошке
+   // «Приложение» из верхней строки.
+   const readQr=async loc=>{const png=await loc.screenshot();const {data,info}=await sharp(png).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    return jsQR(new Uint8ClampedArray(data.buffer,data.byteOffset,data.length),info.width,info.height)?.data??null;};
+   // По центру окна: у верха её закрыла бы липкая верхняя строка, и на
+   // снимок попала бы шапка поверх кода.
+   await page.evaluate(()=>document.querySelector('.desk-app-band .desk-qr-card')?.scrollIntoView({block:'center'}));await page.waitForTimeout(200);
+   const bandRead=await readQr(page.locator('.desk-app-band .desk-qr-card'));
+   check(bandRead===band.qrUrl,at+'QR-код в полосе приложения не читается с экрана: '+bandRead);
+   await page.evaluate(()=>scrollTo(0,0));
+   await page.locator('.top-header .desk-app-button').click();await page.waitForTimeout(400);
+   const popRead=await page.locator('.desk-app-panel .desk-qr-card').count()?await readQr(page.locator('.desk-app-panel .desk-qr-card')):null;
+   check(popRead===band.qrUrl,at+'«Приложение» в верхней строке не открыло читаемый QR-код: '+popRead);
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+   check(!(await page.locator('.desk-app-panel').count()),at+'окошко «Приложение» не закрывается по Escape');
    // Плеер внизу не меняет размер плиток «Новое».
    const tileW=()=>page.evaluate(()=>Math.round(document.querySelector('.desk-fresh .desk-tile')?.getBoundingClientRect().width??0));
    const before=await tileW();
@@ -197,12 +217,11 @@ try{
    const open=await page.evaluate(()=>{const p=document.querySelector('.desk-player-open'),c=p?.querySelector('.player-cover-frame')?.getBoundingClientRect(),t=p?.querySelector('.player-title')?.getBoundingClientRect();return {open:!!p,coverLeft:c?c.right<=t.left:false};});
    check(open.open,at+'развёрнутый плеер ПК не открылся');check(open.coverLeft,at+'в развёрнутом плеере обложка не слева от названия');
    await page.keyboard.press('Escape');await page.waitForTimeout(600);
-   const bar=await page.evaluate(()=>{const b=document.querySelector('.desk-player-bar')?.getBoundingClientRect(),r=document.querySelector('.desk-rail').getBoundingClientRect();
-    return b?{left:Math.round(b.left),right:Math.round(b.right),bottom:Math.round(b.bottom),h:Math.round(b.height),railBottom:Math.round(r.bottom),
+   const bar=await page.evaluate(()=>{const b=document.querySelector('.desk-player-bar')?.getBoundingClientRect();
+    return b?{left:Math.round(b.left),right:Math.round(b.right),bottom:Math.round(b.bottom),h:Math.round(b.height),
      toggle:!!document.querySelector('.desk-player-bar .podcast-toggle'),slider:!!document.querySelector('.desk-player-bar [role=slider]')}:null;});
    check(bar,at+'после Escape плеер не свернулся в полосу');
    if(bar){check(bar.left===0&&bar.right===w&&bar.bottom===h,at+'полоса плеера не во всю ширину внизу: '+JSON.stringify(bar));
-    check(bar.railBottom<=h-bar.h+1,at+'боковое меню заходит под полосу плеера: низ меню '+bar.railBottom+', верх полосы '+(h-bar.h));
     check(bar.toggle&&bar.slider,at+'в полосе плеера нет кнопки воспроизведения или полосы времени');}
   }
   if(w===1440){
@@ -214,6 +233,12 @@ try{
    check(shop.feature==='Ледник',at+'в «Аудио» крупно не последний выпуск: '+shop.feature);
    check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
    check(!(await page.locator('.kinetic-grid').count()),at+'на ПК в разделе снова фон-сетка');
+   // Поиск — в разделе: находит в этом разделе, прячет крупный выпуск, очищается.
+   await page.fill('.desk-section-search input','обры');await page.waitForTimeout(250);
+   const found=await page.evaluate(()=>({titles:[...document.querySelectorAll('.desk-grid .desk-tile strong')].map(e=>e.textContent),feature:!!document.querySelector('.desk-feature')}));
+   check(found.titles.length===1&&found.titles[0]==='Обрыв'&&!found.feature,at+'поиск в разделе нашёл не то или крупный выпуск не ушёл: '+JSON.stringify(found));
+   await page.fill('.desk-section-search input','');await page.waitForTimeout(250);
+   check(await page.locator('.desk-feature').count()===1,at+'после очистки поиска в разделе крупный выпуск не вернулся');
    const feat=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect(),f=document.querySelector('.desk-feature')?.getBoundingClientRect();return c&&f?{cover:Math.round(c.width),h:Math.round(f.height)}:null;});
    check(feat&&feat.cover<=240&&feat.h<=h*0.45,at+'крупный выпуск раздела на пол-экрана: '+JSON.stringify(feat));
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
@@ -260,8 +285,9 @@ try{
     const k=fit==='cover'?Math.max(b.width/nw,b.height/nh):Math.min(b.width/nw,b.height/nh);
     const tiles=[...document.querySelectorAll('.desk-hero+.desk-fresh .desk-grid>.desk-tile')].map(t=>t.getBoundingClientRect()),top=tiles[0]?.top;
     const shelf=tiles.length?{bottom:Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))}:null;
-    const rail=document.querySelector('.desk-rail'),last=[...rail.querySelectorAll('a,button')].pop().getBoundingClientRect();
-    return {railFits:rail.scrollHeight<=rail.clientHeight+1&&last.bottom<=rail.getBoundingClientRect().bottom+1,fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
+    // Кнопки верхней строки целиком в окне (раньше здесь мерилось боковое меню).
+    const acts=document.querySelector('.top-header-actions')?.getBoundingClientRect();
+    return {railFits:!!acts&&acts.right<=innerWidth+1&&acts.bottom<=innerHeight,fit,frame:b.width/b.height,drawnW:nw*k,drawnH:nh*k,bw:b.width,bh:b.height,blur:!!document.querySelector('.desk-banner .desk-banner-blur'),shelfBottom:shelf?Math.round(shelf.bottom):9999};});
    check(m,at+'обложка загружена, а на главной ПК её нет');
    if(m){
     check(m.drawnW<=m.bw+1&&m.drawnH<=m.bh+1,at+'картинка обрезана: нарисована '+Math.round(m.drawnW)+'×'+Math.round(m.drawnH)+' в рамке '+Math.round(m.bw)+'×'+Math.round(m.bh));
@@ -272,7 +298,7 @@ try{
      check(m.frame<=5.02,at+'в низком окне рамка ужалась до '+m.frame.toFixed(2)+':1 — обложка стала полоской');
      if(m.frame>4.02)check(m.blur,at+'рамка шире картинки, а по бокам пусто — нет размытого продолжения');
     }
-    check(m.railFits,at+'боковое меню не помещается в окно — низ меню уходит за край');
+    check(m.railFits,at+'кнопки верхней строки не помещаются в окно');
     check(m.shelfBottom<=h,at+'первый ряд «Новое в True Thrills» обрезан низом окна: низ '+m.shelfBottom+' при окне '+h);
    }
    await ctx.close();
@@ -306,10 +332,10 @@ try{
  for(const [w,h,label] of [[390,844,'телефон'],[1280,800,'планшет']]){
   const ctx=await browser.newContext({viewport:{width:w,height:h},isMobile:true,hasTouch:true,locale:'ru-RU'});const page=await ctx.newPage();
   await page.goto(base+'/?mode=listen&view=home');await ready(page);
-  const s=await page.evaluate(()=>({cls:document.querySelector('.app-shell')?.className??'',rail:!!document.querySelector('.desk-rail'),home:!!document.querySelector('.desk-home')}));
+  const s=await page.evaluate(()=>({cls:document.querySelector('.app-shell')?.className??'',rail:!!document.querySelector('.desk-tabs'),home:!!document.querySelector('.desk-home')}));
   check(/\bis-listener\b/.test(s.cls)&&!s.rail&&!s.home,label+' получил каркас ПК: '+JSON.stringify(s));
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и первый ряд «Новое в True Thrills» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы по центру верхней строки, «Новое в True Thrills» — один ряд по центру до восьми плиток того же размера и с плеером (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой), вход для автора только в программе, разделы — витрина без фона-сетки и не на пол-экрана, без прокрутки вбок, постер целиком, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; разделы — витрина с поиском, без фона-сетки и не на пол-экрана; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

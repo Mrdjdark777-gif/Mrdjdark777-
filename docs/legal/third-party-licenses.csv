@@ -481,6 +481,7 @@ json-schema-traverse,0.4.1,MIT,нет
 json-stable-stringify-without-jsonify,1.0.1,MIT,нет
 json5,1.0.2,MIT,нет
 json5,2.2.3,MIT,нет
+jsqr,1.4.0,Apache-2.0,нет
 jsx-ast-utils,3.3.5,MIT,нет
 keyv,4.5.4,MIT,нет
 language-subtag-registry,0.3.23,CC0-1.0,нет
