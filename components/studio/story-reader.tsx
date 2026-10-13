@@ -6,6 +6,7 @@ import {ArrowLeft,Bookmark,BookmarkCheck,List,Minus,Plus,Settings2,Trash2,X} fro
 import {pushBackLayer,BACK_MENU} from '@/lib/back-stack';
 import {useT} from '@/components/i18n-provider';
 import {useUsage} from '@/hooks/use-usage';
+import {useWideScreen} from '@/hooks/use-wide-screen';
 import {haptic} from '@/lib/client';
 import {blocksOf,paginate,type Kind,type Page} from '@/lib/page-text';
 import {createCurl,GONE,type Curl} from '@/lib/page-curl';
@@ -54,7 +55,8 @@ type Flip={from:number;to:number;dir:1|-1;auto:boolean};
  */
 // width — ширина одной страницы; cols — сколько страниц рядом (боком — две),
 // gap — промежуток между ними, pad — отступ строк от верха полосы в развороте.
-type Frame={width:number;height:number;left:number;top:number;lead:number;scale:number;cols:number;gap:number;pad:number};
+// indent — красная строка абзаца на экране; book — книжная раскладка ПК.
+type Frame={width:number;height:number;left:number;top:number;lead:number;scale:number;cols:number;gap:number;pad:number;indent:number;book:boolean};
 
 const THEMES:Theme[]=['day','sepia','night','black'];
 const SIZES=[16,18,20,22,25,28];
@@ -68,6 +70,9 @@ const SIZES=[16,18,20,22,25,28];
 /** Предельная длина строки в точках — книжная мера, около 70 знаков. */
 const MEASURE=680;
 const LEAD=1.45;
+/** Межстрочный интервал книжной раскладки на ПК: как в бумажной книге и в
+ *  читалке ЛитРес — плотнее телефонного, абзацы без пустых строк. */
+const LEAD_BOOK=1.38;
 /**
  * Наименьшее поле слева и справа от текста, в пикселях.
  *
@@ -148,7 +153,12 @@ export function StoryReader({id,title,description,body,onClose}:{
  const [prefs,setPrefs]=useState<Prefs>(DEFAULTS);
  const [pages,setPages]=useState<Page[]>([[]]);
  const [page,setPage]=useState(0);
- const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0,scale:1,cols:1,gap:0,pad:0});
+ const [frame,setFrame]=useState<Frame>({width:0,height:0,left:0,top:0,lead:0,scale:1,cols:1,gap:0,pad:0,indent:0,book:false});
+ // ПК с мышью — книжная раскладка (13 октября владелец, по образцу ЛитРес):
+ // две полосы во всю ширину экрана с полями, выключка по ширине, красная
+ // строка, абзацы без пустых строк. Настройки «Боком» на ПК нет: разворот там
+ // всегда. Телефон и планшет этого не получают.
+ const book=useWideScreen();
  const [chrome,setChrome]=useState(true);
  const [sheet,setSheet]=useState<'none'|'settings'|'marks'>('none');
  const [marks,setMarks]=useState<Mark[]>([]);
@@ -228,7 +238,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    // Боком поля уже: высоты мало, и каждая точка по краям — это меньше слов
    // на странице. Play Книги боком держат поля узкими — так и здесь.
    const lying=box.clientWidth>=600&&box.clientWidth>box.clientHeight*1.2;
-   const pad=lying?18:Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
+   const pad=book?Math.round(Math.min(120,Math.max(48,box.clientWidth*0.06))):lying?18:Math.round(Math.min(34,Math.max(16,box.clientWidth*0.07)));
    // Строка не длиннее книжной: около 70 знаков. На планшете боком —
    // 15 дюймов, 1480 точек — строка во всю ширину выходила под 200 знаков, и
    // глаз терял начало следующей. На телефоне до этого предела не доходит:
@@ -242,9 +252,14 @@ export function StoryReader({id,title,description,body,onClose}:{
    // Разворот — по выбору в настройках («Боком: две страницы / одна»). Одна
    // страница боком — как в Play Книгах: во всю ширину, строка длиннее
    // книжной, зато больше текста на странице.
-   const cols=lying&&prefs.spread?2:1;
-   const gapCol=cols>1?36:0;
-   const width=Math.max(120,Math.min((box.clientWidth-pad*2-gapCol*(cols-1))/cols,lying&&cols===1?960:MEASURE));
+   const cols=book?2:lying&&prefs.spread?2:1;
+   const gapCol=cols>1?(book?72:36):0;
+   // На ПК полосы занимают всю ширину между полями, как в читалке ЛитРес:
+   // строка длиннее книжной, зато текст лежит по экрану, а не узкой колонкой
+   // посередине.
+   const width=book?Math.max(120,(box.clientWidth-pad*2-gapCol)/2)
+    :Math.max(120,Math.min((box.clientWidth-pad*2-gapCol*(cols-1))/cols,lying&&cols===1?960:MEASURE));
+   const indent=book?Math.round(prefs.size*1.6):0;
    {
     // Отступы полосы чтения спрашиваем у настоящих стилей, а не считаем сами:
     // с панелями и без панелей они разные, и правило живёт в одном месте — в
@@ -256,7 +271,7 @@ export function StoryReader({id,title,description,body,onClose}:{
     insets.current={
      top:css?parseFloat(css.top)||headerHeight+12:headerHeight+12,
      bottom:css?parseFloat(css.bottom)||72:insets.current?.bottom??72};}
-   const lead=prefs.size*LEAD;
+   const lead=prefs.size*(book?LEAD_BOOK:LEAD);
    const free=box.clientHeight-insets.current.top-insets.current.bottom;
    // Страница набирается под ПОЛНЫЙ ЭКРАН — читают именно на нём, и там она
    // обязана быть набрана до краёв, без пустых полей сверху и снизу. Когда
@@ -277,7 +292,7 @@ export function StoryReader({id,title,description,body,onClose}:{
      gauge.font=fonts.css(kind);
      return gauge.measureText(text).width;},
     height:kind=>kind==='title'?TITLE_ROWS:1,
-    after:()=>1});
+    after:kind=>book&&kind==='para'?0:1,indent});
    // Страницы разворота — пары столбцов: левая и правая. Оборот листает
    // разворот целиком, как в книге.
    const laid=cols===1?columns:Array.from({length:Math.ceil(columns.length/2)},(_,i)=>[
@@ -304,7 +319,7 @@ export function StoryReader({id,title,description,body,onClose}:{
    // и холст обязан совпасть с ней до пикселя.
    const slack=Math.max(0,free-rows*shownLead);
    setFrame({width:shownWidth,height:rows*shownLead,left:(box.clientWidth-spread)/2,
-    top:insets.current.top+slack/2,lead:shownLead,scale:grow,cols,gap:shownGap,pad:slack/2});
+    top:insets.current.top+slack/2,lead:shownLead,scale:grow,cols,gap:shownGap,pad:slack/2,indent:indent*grow,book});
    const next=Math.round(Math.min(1,Math.max(0,wanted.current))*(laid.length-1));
    setPage(Number.isFinite(next)?Math.min(laid.length-1,Math.max(0,next)):0);
   };
@@ -315,7 +330,7 @@ export function StoryReader({id,title,description,body,onClose}:{
   return()=>{observer.disconnect();document.fonts?.removeEventListener('loadingdone',measure);};
  // loaded в зависимостях не случайно: разбивку надо пересчитать и вернуться на
  // сохранённое место ровно тогда, когда это место прочитано из хранилища.
- },[blocks,prefs.size,prefs.serif,prefs.spread,fonts,loaded,headerHeight,chrome]);
+ },[blocks,prefs.size,prefs.serif,prefs.spread,fonts,loaded,headerHeight,chrome,book]);
 
  const total=pages.length;
  const ratio=total>1?page/(total-1):0;
@@ -347,6 +362,10 @@ export function StoryReader({id,title,description,body,onClose}:{
   curl.current?.paper(toRgb(getComputedStyle(node).getPropertyValue('--tt-paper')));
  },[prefs.theme]);
 
+ /** Строку растягиваем по ширине только в книжной раскладке, только в абзаце
+  *  и не последнюю строку абзаца — как в наборе книги. */
+ const justified=useCallback((line:Page[number])=>frame.book&&line.kind==='para'&&!line.last,[frame.book]);
+
  /** Рисует страницу на холсте — ровно теми же строками и в тех же местах, где
   *  они стоят в разметке. */
  const paint=useCallback((index:number,target:HTMLCanvasElement)=>{
@@ -373,10 +392,20 @@ export function StoryReader({id,title,description,body,onClose}:{
    ctx.font=shown.css(line.kind);
    ctx.letterSpacing=line.kind==='title'?(-shown.size(line.kind)*0.02)+'px':'0px';
    ctx.fillStyle=line.kind==='intro'?soft:ink;
-   ctx.fillText(line.text,frame.left+c*(frame.width+frame.gap),ys[c]!+line.rows*frame.lead/2);
+   const x=frame.left+c*(frame.width+frame.gap)+(frame.book&&line.kind==='para'&&line.first?frame.indent:0),y=ys[c]!+line.rows*frame.lead/2;
+   const words=line.text.split(' ');
+   if(justified(line)&&words.length>1){
+    // Выключка по ширине — как в разметке (text-align: justify): лишнее место
+    // строки делится поровну между пробелами.
+    const sizes=words.map(word=>ctx.measureText(word).width);
+    const room=frame.width-(x-frame.left-c*(frame.width+frame.gap));
+    const space=(room-sizes.reduce((a,b)=>a+b,0))/(words.length-1);
+    let at=x;
+    words.forEach((word,i)=>{ctx.fillText(word,at,y);at+=sizes[i]!+space;});
+   }else ctx.fillText(line.text,x,y);
    ys[c]=ys[c]!+line.rows*frame.lead;
   }
- },[shown,frame,pages]);
+ },[shown,frame,pages,justified]);
 
  /**
   * Запасной кадр — без WebGL. Страница съезжает в сторону оборота и тает.
@@ -604,11 +633,13 @@ export function StoryReader({id,title,description,body,onClose}:{
   <div key={c} className={'tt-reader-page'+(copy?' is-copy':'')+(frame.cols>1?' is-spread':'')} ref={copy||c>0?undefined:sheetRef}
    style={{left:frame.left+c*(frame.width+frame.gap),width:frame.width,...(frame.cols>1?{paddingTop:frame.pad}:{})}} aria-hidden={copy?true:undefined}>
    {(pages[index]??[]).filter(line=>(line.col??0)===c).map((line,at)=>
-    <div key={at} className={'tt-reader-line is-'+line.kind}
-     style={{height:line.rows*frame.lead,font:shown.css(line.kind)}}>{line.text}</div>)}
+    <div key={at} className={'tt-reader-line is-'+line.kind+(justified(line)?' is-justify':'')}
+     style={{height:line.rows*frame.lead,font:shown.css(line.kind),
+      ...(frame.book?{lineHeight:line.rows*frame.lead+'px'}:{}),
+      ...(frame.book&&line.kind==='para'&&line.first?{paddingLeft:frame.indent}:{})}}>{line.text}</div>)}
   </div>)}</>;
 
- return <div className={'tt-reader tt-reader-'+prefs.theme} data-chrome={chrome?'on':'off'}
+ return <div className={'tt-reader tt-reader-'+prefs.theme+(book?' is-book':'')} data-chrome={chrome?'on':'off'}
   style={{'--tt-reader-top':headerHeight+'px'} as CSSProperties}>
   <div className="tt-reader-stage" ref={stage} onPointerDown={down} onPointerMove={move} onPointerUp={up}
    onPointerCancel={e=>{
@@ -662,6 +693,9 @@ export function StoryReader({id,title,description,body,onClose}:{
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={here?t('reader.removeBookmark'):t('reader.addBookmark')} aria-pressed={!!here} onClick={toggleMark}>{here?<BookmarkCheck size={20}/>:<Bookmark size={20}/>}</button>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('reader.bookmarks')} onClick={()=>{haptic();setSheet('marks');}}><List size={20}/>{marks.length>0&&<span className="tt-reader-count">{marks.length}</span>}</button>
    <button type="button" className="tt-reader-icon tt-pressable" aria-label={t('reader.settings')} onClick={()=>{haptic();setSheet('settings');}}><Settings2 size={20}/></button>
+   {/* На ПК — крестик закрыть справа, как у окна (владелец, 13 октября);
+       стрелка «назад» там прячется. На телефоне — прежняя стрелка. */}
+   {book&&<button type="button" className="tt-reader-icon tt-reader-close tt-pressable" aria-label={t('confirm.close')} onClick={onClose}><X size={22}/></button>}
   </header>
 
   <footer className="tt-reader-bottom">
@@ -715,13 +749,13 @@ export function StoryReader({id,title,description,body,onClose}:{
     {/* Боком: разворот из двух страниц или одна страница во всю ширину.
         Владелец: «идею двух колонок при повороте оставь и выведи отдельной
         опцией в настройках». */}
-    <div className="tt-reader-row">
+    {!book&&<div className="tt-reader-row">
      <span>{t('reader.landscape')}</span>
      <div className="tt-reader-chips">
       <button type="button" className={prefs.spread?'is-active':''} aria-pressed={prefs.spread} onClick={()=>{haptic();savePrefs({...prefs,spread:true});}}>{t('reader.spreadTwo')}</button>
       <button type="button" className={prefs.spread?'':'is-active'} aria-pressed={!prefs.spread} onClick={()=>{haptic();savePrefs({...prefs,spread:false});}}>{t('reader.spreadOne')}</button>
      </div>
-    </div>
+    </div>}
     {/* Переключатель нарисован разметкой, а не свойством appearance: оно
         доходит не до каждого движка, и на телефоне владельца вместо тумблера
         оставалась системная галочка. Сам флажок спрятан, но остаётся

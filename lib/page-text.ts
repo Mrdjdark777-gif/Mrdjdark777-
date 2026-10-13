@@ -31,6 +31,8 @@ export type Line = {
  kind: Kind;
  /** Первая строка своего куска: по ней рисуется отступ первой строки абзаца. */
  first: boolean;
+ /** Последняя строка своего куска: её не растягивают по ширине при выключке. */
+ last?: boolean;
  /** Сколько строк сетки занимает эта строка. Заголовок — выше остальных. */
  rows: number;
  /** Столбец разворота: 0 — левая страница, 1 — правая. Боком читалка
@@ -90,6 +92,7 @@ export function wrap(block: Block, metrics: Metrics): Line[] {
   current = rest;
  }
  if (current) push(current);
+ if (lines.length) lines[lines.length - 1].last = true;
  return lines;
 }
 
@@ -144,14 +147,42 @@ export function paginate(blocks: Block[], metrics: Metrics): Page[] {
  return pages.length ? pages : [[]];
 }
 
-/** Из чего состоит рассказ. Пустые строки делят текст на абзацы. */
+/**
+ * Склеивает строки, разорванные жёстким переносом.
+ *
+ * Текст, скопированный из PDF, приходит с переносом в конце каждой строки
+ * листа, и каждая такая строка становилась отдельным абзацем: «её можно» /
+ * «видеть.» с пустой строкой между ними (снимок владельца, 13 октября).
+ * Строку присоединяем к предыдущей, только если предложение явно не
+ * закончилось: предыдущая не кончается знаком конца фразы, а эта начинается
+ * со строчной буквы. Новый абзац со строчной буквы не начинают, так что
+ * настоящие абзацы не сливаются; через пустую строку не склеивается никогда.
+ * Сам текст в базе не меняется — только показ.
+ */
+export function reflow(lines: string[]): string[] {
+ const out: string[] = [];
+ for (const raw of lines) {
+  const text = raw.trim();
+  if (!text) continue;
+  const prev = out[out.length - 1];
+  if (prev !== undefined && !/[.!?…:;»"”)\]]$/.test(prev) && /^\p{Ll}/u.test(text)) {
+   out[out.length - 1] = prev + ' ' + text;
+   continue;
+  }
+  out.push(text);
+ }
+ return out;
+}
+
+/** Из чего состоит рассказ. Пустые строки делят текст на абзацы; строки,
+ *  разорванные жёстким переносом посреди фразы, склеиваются (см. reflow). */
 export function blocksOf(title: string, description: string | undefined, body: string): Block[] {
  const blocks: Block[] = [];
  if (title.trim()) blocks.push({kind: 'title', text: title.trim()});
  if (description && description.trim()) blocks.push({kind: 'intro', text: description.trim()});
- for (const para of body.split(/\n+/)) {
-  const text = para.trim();
-  if (text) blocks.push({kind: 'para', text});
- }
+ // Пустая строка — абзац всегда. Склеиваются только строки внутри абзаца,
+ // разорванные одиночным переносом.
+ for (const chunk of body.split(/\n\s*\n/))
+  for (const text of reflow(chunk.split('\n'))) blocks.push({kind: 'para', text});
  return blocks;
 }

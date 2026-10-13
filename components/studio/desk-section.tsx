@@ -68,16 +68,21 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
     </div>
    </div>
   </section>}
-  {(posts.length>1||types.length>1)&&<div className="desk-chips" role="toolbar">
+  {/* Поиск — в каждом разделе всегда, даже при одном выпуске (владелец,
+      13 октября: «почему в разделе видео нет строки поиска?»). Порядок —
+      только когда есть что упорядочивать. */}
+  <div className="desk-chips" role="toolbar">
    <label className="desk-section-search"><Search size={16}/><input type="search" value={query} placeholder={t('desk.sectionSearch')} aria-label={t('desk.sectionSearch')} onChange={e=>setQuery(e.target.value)}/></label>
    {types.length>1&&<>
     <button type="button" className="desk-chip" aria-pressed={type==='all'} onClick={()=>setType('all')}>{t('desk.seeAll')}</button>
     {types.map(c=><button key={c} type="button" className="desk-chip" aria-pressed={type===c} onClick={()=>setType(c)}>{t('audio.type.'+c)}</button>)}
    </>}
    <span className="desk-chips-grow"/>
-   <button type="button" className="desk-chip" aria-pressed={order==='new'} onClick={()=>setOrder('new')}>{t('catalog.sortNew')}</button>
-   <button type="button" className="desk-chip" aria-pressed={order==='old'} onClick={()=>setOrder('old')}>{t('catalog.sortOld')}</button>
-  </div>}
+   {posts.length>1&&<>
+    <button type="button" className="desk-chip" aria-pressed={order==='new'} onClick={()=>setOrder('new')}>{t('catalog.sortNew')}</button>
+    <button type="button" className="desk-chip" aria-pressed={order==='old'} onClick={()=>setOrder('old')}>{t('catalog.sortOld')}</button>
+   </>}
+  </div>
   {needle&&!grid.length&&<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}
   {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen}/>)}</div>}
  </div>;

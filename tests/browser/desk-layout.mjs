@@ -72,7 +72,7 @@ try{
  const covers=['tile-forest.jpg','tile-mountains.jpg','tile-waterfall.jpg','tall-lake.jpg'];
  const titles=['Плот','Северный ветер','Тишина','Не конец','Перевал','Ночь под скалой','Последний костёр','Река без имени','Обрыв','Ледник'];
  for(let n=0;n<titles.length;n++)await post({kind:'podcast',audioCategory:['audio_story','podcast','music'][n%3],title:titles[n],description:'Описание выпуска '+n+'.',audioKey:await audio(),duration:seconds,published:true,coverKey:await cover(covers[n%4])});
- await post({kind:'story',title:'Записки из ледяной пустыни',description:'Рассказ.',body:'Текст истории.\n\nВторой абзац.',published:true,coverKey:await cover('tile-mountains.jpg')});
+ await post({kind:'story',title:'Записки из ледяной пустыни',description:'Рассказ.',body:'Текст истории.\n\n'+Array.from({length:24},()=>'Плот нужно подкачивать. Снаряжение изнашивается. Ружьё ломается, его\nприходится чинить. При этом расходовать всё на один ремонт нельзя: неизвестно, что откажет следующим.').join('\n\n'),published:true,coverKey:await cover('tile-mountains.jpg')});
  await post({kind:'video',title:'Наедине с горами',description:'Видео.',videoUrl:'https://www.youtube.com/watch?v=dQw4w9WgXcQ',published:true,coverKey:await cover('tile-waterfall.jpg')});
  // Запись эфира — как её публикует воркер: ключ audio/live-…, тип звука не выбран.
  {const k=await audio(),ak='audio/live-'+crypto.randomUUID();
@@ -240,12 +240,17 @@ try{
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
    check(shop.tiles===titles.length,at+'в сетке '+shop.tiles+' плиток, ждали '+titles.length+' (все выпуски)');
    check(shop.cols<shop.tiles,at+'сетка витрины идёт одной колонкой');
-   // Поиск — в разделе: находит в этом разделе и очищается.
+   // Поиск — в разделе: находит в этом разделе и очищается. Нет поиска — так
+   // и сказать, а не ждать его до конца отведённого времени.
+   const hasSearch=await page.locator('.desk-section-search input').count();
+   check(hasSearch===1,at+'в «Аудио» нет поиска');
+   if(hasSearch){
    await page.fill('.desk-section-search input','обры');await page.waitForTimeout(250);
    const found=await page.evaluate(()=>[...document.querySelectorAll('.desk-grid .desk-tile strong')].map(e=>e.textContent));
    check(found.length===1&&found[0]==='Обрыв',at+'поиск в разделе нашёл не то: '+JSON.stringify(found));
    await page.fill('.desk-section-search input','');await page.waitForTimeout(250);
    check(await page.locator('.desk-grid>.desk-tile').count()===titles.length,at+'после очистки поиска в разделе вернулись не все выпуски');
+   }
    await page.locator('.desk-chip',{hasText:'Музыка'}).click();await page.waitForTimeout(200);
    const music=await page.evaluate(()=>[...document.querySelectorAll('.desk-grid .desk-tag')].map(e=>e.textContent));
    check(music.length===titles.filter((_,n)=>n%3===2).length&&music.every(x=>/музыка/i.test(x)),at+'«Музыка» показывает не только музыку: '+music.join(', '));
@@ -259,9 +264,40 @@ try{
     m=document.querySelector('.desk-section')?.getBoundingClientRect();
     return c&&f&&m?{ratio:c.width/c.height,cover:Math.round(c.width),h:Math.round(f.height),w:Math.round(f.width),full:Math.round(m.width)}:null;});
    check(video&&Math.abs(video.ratio-0.8)<0.02,at+'у видео крупная обложка не 4:5: '+JSON.stringify(video));
-   check(video&&video.cover<=240&&video.h<=h*0.45&&video.w<=1040&&video.w<video.full,at+'крупная карточка видео огромная: '+JSON.stringify(video));
+   check(video&&video.cover<=240&&video.h<=h*0.45&&video.w<=860&&video.w<video.full,at+'крупная карточка видео огромная: '+JSON.stringify(video));
    // Подвал на ПК — без «Скачать приложение»: оно вверху и в полосе с QR-кодом.
    check(!(await page.locator('.site-footer-app').count()),at+'в подвале на ПК снова «Скачать приложение»');
+   // Поиск есть в каждом разделе, даже с одним выпуском; в «Аудио» он широкий.
+   check(await page.locator('.desk-section-search').count()===1,at+'в «Видео» нет поиска');
+   await page.goto(base+'/?mode=listen&view=stories');await ready(page);
+   check(await page.locator('.desk-section-search').count()===1,at+'в «Историях» нет поиска');
+   const storyCard=await page.evaluate(()=>Math.round(document.querySelector('.desk-feature')?.getBoundingClientRect().width??0));
+   check(storyCard>0&&storyCard<=860,at+'карточка «Последнее» в «Историях» растянута: '+storyCard);
+   // Читалка на ПК (13 октября, по образцу ЛитРес): две полосы во всю ширину
+   // с полями, выключка по ширине, красная строка, абзацы без пустых строк,
+   // поля сверху, крупные кнопки, крестик закрыть, без настройки «Боком».
+   await page.getByRole('button',{name:'Читать'}).first().click();await page.locator('.tt-reader').waitFor({timeout:15000});await page.waitForTimeout(1200);
+   const book=await page.evaluate(()=>{const r=document.querySelector('.tt-reader'),pages=[...r.querySelectorAll('.tt-reader-page:not(.is-copy)')].map(p=>p.getBoundingClientRect());
+    const lines=[...r.querySelectorAll('.tt-reader-page:not(.is-copy) .tt-reader-line')];
+    const paraGaps=lines.filter((l,i)=>l.classList.contains('is-para')&&!l.textContent.trim()&&lines[i+1]?.classList.contains('is-para')).length;
+    const icons=[...r.querySelectorAll('.tt-reader-top .tt-reader-icon')].filter(b=>b.getBoundingClientRect().width>0).map(b=>Math.round(b.getBoundingClientRect().width));
+    const text=lines.find(l=>l.classList.contains('is-para')&&l.textContent.trim());
+    return {book:r.classList.contains('is-book'),cols:pages.length,span:pages.length===2?Math.round(pages[1].right-pages[0].left):0,
+     justify:r.querySelectorAll('.tt-reader-line.is-justify').length,indent:lines.some(l=>parseFloat(l.style.paddingLeft)>0),paraGaps,icons,
+     close:!!r.querySelector('.tt-reader-close'),glued:!lines.some(l=>l.textContent.trim()==='приходится чинить. При этом расходовать всё на один ремонт нельзя: неизвестно, что откажет следующим.'),
+     top:text?Math.round(text.getBoundingClientRect().top):0};});
+   check(book.book&&book.cols===2&&book.span>=w*0.75,at+'читалка на ПК не разворотом во всю ширину: '+JSON.stringify(book));
+   check(book.justify>0&&book.indent&&book.paraGaps===0,at+'текст в читалке ПК без выключки, красной строки или с пустыми строками между абзацами: '+JSON.stringify(book));
+   check(book.glued,at+'строки, разорванные переносом посреди фразы, не склеились');
+   check(book.close&&book.icons.length===4&&book.icons.every(x=>x>=44),at+'в шапке читалки нет крестика или кнопки мелкие: '+JSON.stringify(book.icons));
+   await page.locator('.tt-reader-top [aria-label="Настройки чтения"]').click({timeout:5000}).catch(()=>check(false,at+'в шапке читалки нет кнопки настроек'));await page.waitForTimeout(300);
+   check(!(await page.locator('.tt-reader-sheet',{hasText:'Боком'}).count()),at+'в настройках читалки на ПК снова «Боком»');
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+   if(await page.locator('.tt-reader-sheet').count())await page.locator('.tt-reader-sheet [aria-label="Отмена"]').click();
+   if(await page.locator('.tt-reader-close').count()){
+    await page.locator('.tt-reader-close').click();await page.waitForTimeout(500);
+    check(!(await page.locator('.tt-reader').count()),at+'крестик не закрыл читалку');
+   }else{await page.keyboard.press('Escape');await page.waitForTimeout(500);}
    // Вход для автора — только в программе для ПК, в браузере его нет.
    await page.goto(base+'/?mode=listen&view=settings');await ready(page);
    check(!(await page.locator('.listener-main a[href="/login"]').count()),at+'в настройках браузера снова вход для автора');

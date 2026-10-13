@@ -272,3 +272,25 @@ html[data-tt-fs-zoom] .tt-reader{zoom:var(--tt-fs-zoom,1)}
  .tt-reader[data-chrome=on] .tt-reader-page{
   top:calc(10px + env(safe-area-inset-top));bottom:calc(28px + env(safe-area-inset-bottom))}
 }
+
+/* Книжная раскладка на ПК (13 октября, по образцу читалки ЛитРес): две полосы
+   во всю ширину экрана с полями, выключка по ширине, красная строка, абзацы
+   без пустых строк (это считает скрипт). Здесь — поля сверху и снизу, чтобы
+   текст не упирался в край экрана, и крупные кнопки под мышь. Класс .is-book
+   ставит только ПК с мышью (useWideScreen) — телефон и планшет не задеты. */
+.tt-reader-line.is-justify{display:block;white-space:normal;text-align:justify;text-align-last:justify}
+.tt-reader.is-book .tt-reader-page{top:calc(var(--tt-reader-top,112px) + 28px);bottom:88px}
+.tt-reader.is-book[data-chrome=off] .tt-reader-page,.tt-reader.is-book .tt-reader-gauge{top:56px;bottom:64px}
+/* Шапка — в одну строку: название слева, справа закладка, список закладок,
+   настройки и крестик. Стрелки «назад» нет: её заменяет крестик. */
+.tt-reader.is-book .tt-reader-top{grid-template-columns:minmax(0,1fr) 48px 48px 48px 48px;column-gap:6px;padding:10px 28px}
+.tt-reader.is-book .tt-reader-top>.tt-reader-icon:first-child{display:none}
+.tt-reader.is-book .tt-reader-top>.tt-reader-heading{grid-row:1;grid-column:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ max-height:none;padding:0 4px;font-size:17px}
+.tt-reader.is-book .tt-reader-top>.tt-reader-icon:nth-of-type(2){grid-column:auto;justify-self:auto}
+.tt-reader.is-book .tt-reader-icon{width:48px;height:48px;min-width:48px}
+.tt-reader.is-book .tt-reader-icon svg{width:24px;height:24px}
+.tt-reader.is-book .tt-reader-icon:hover{background:color-mix(in srgb,var(--tt-ink) 10%,transparent)}
+.tt-reader.is-book .tt-reader-close{background:color-mix(in srgb,var(--tt-ink) 8%,transparent)}
+.tt-reader.is-book .tt-reader-count{top:6px;right:5px}
+.tt-reader.is-book .tt-reader-bottom{padding:10px 28px 12px}
