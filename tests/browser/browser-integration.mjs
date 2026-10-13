@@ -92,10 +92,18 @@ try{
  // как это делает само приложение.
  await page.goto(base+'/?mode=listen&view=settings');await page.locator('.settings-panel').first().waitFor();
  assert.equal(await page.locator('.settings-panel a[href="/login"]').count(),0,'в браузере телефона входа в студию быть не должно — владелец просил его только на ПК');
+ // 13 октября владелец убрал вход и из браузера на ПК: «если у меня есть
+ // приложение студия на ПК, убери». Вход остаётся только в программе для ПК
+ // (WebView2: window.chrome.webview подставляем до загрузки, как она сама).
  {const wide=await browser.newPage({viewport:{width:1280,height:900}});
   await wide.goto(base+'/?mode=listen&view=settings');await wide.locator('.settings-panel').first().waitFor();
-  assert.equal(await wide.locator('.settings-panel a[href="/login"]').count(),1,'на широком экране вход для автора должен быть');
+  assert.equal(await wide.locator('.settings-panel a[href="/login"]').count(),0,'в браузере на ПК входа для автора быть не должно — владелец оставил его только в программе для ПК');
   await wide.close();}
+ {const exe=await browser.newContext({viewport:{width:1280,height:900}});
+  await exe.addInitScript(()=>{window.chrome=window.chrome||{};window.chrome.webview={postMessage(){},addEventListener(){},removeEventListener(){}};});
+  const p=await exe.newPage();await p.goto(base+'/?mode=listen&view=settings');await p.locator('.settings-panel').first().waitFor();
+  assert.equal(await p.locator('.settings-panel a[href="/login"]').count(),1,'в программе для ПК вход для автора должен быть');
+  await exe.close();}
  {const phone=await browser.newContext({viewport:{width:390,height:844}});
   await phone.addInitScript(()=>{window.TrueThrillsNative={postMessage(){}};});
   const app=await phone.newPage();await app.goto(base+'/?mode=listen&view=settings');await app.locator('.settings-panel').first().waitFor();
