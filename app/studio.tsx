@@ -16,7 +16,7 @@ import {hasNativeClient,nativeCall,stopNativePlayer} from '@/lib/native-client';
 import {saveProgress,unhideResume} from '@/lib/listening-progress';
 import {HomeSceneView} from '@/components/studio/home-scene-view';
 import {DeskHome,DeskShelf} from '@/components/studio/desk-home';
-import {DeskRail} from '@/components/studio/desk-rail';
+import {DeskRail,DeskTabs} from '@/components/studio/desk-rail';
 import '@/components/studio/desk.css';
 import {StoryReader} from '@/components/studio/story-reader';
 import {PodcastPlayer} from '@/components/studio/podcast-player';
@@ -304,7 +304,7 @@ export default function Studio(){
  {/* На ПК у слушателя класс is-desk вместо is-listener: прежние настольные
      правила (.is-listener в медиазапросах) к новому каркасу не относятся. */}
  <div className={'app-shell '+(author?'is-author':desk?'is-desk':'is-listener')+(!author&&!desk&&view==='home'?' is-immersive':'')}>
- {desk&&data&&!data.needsSetup&&<DeskRail view={view} onGoto={goto} onAir={!!liveStatus}
+ {desk&&data&&!data.needsSetup&&<DeskRail onGoto={goto}
   app={!shell&&!hasNativeClient()?{href:APP_RELEASE.href}:null}
   youtube={data.links?.find(l=>l.kind==='youtube')?.url??null}
   tiktok={data.links?.find(l=>l.kind==='tiktok')?.url??null}
@@ -313,8 +313,10 @@ export default function Studio(){
  <div className="status-bar-veil" aria-hidden="true"/>
  <header className="top-header">
   <button type="button" className="top-header-brand" aria-label={t('nav.home')} onClick={()=>{haptic();goto('home');}}>{wide?<LiquidMetalButton viewMode="icon" size={96} interactive={false} icon={<img className="brand-inside-metal" src="/brand/logo.png?v=0.4.1" width="82" height="82" alt=""/>}/>:<img src="/brand/logo.png?v=0.4.1" width="34" height="34" alt=""/>}<span className="wordmark">True Thrills</span></button>
-  {desk&&data&&!data.needsSetup&&<label className="desk-search"><Search size={18}/><input type="search" value={deskQuery} placeholder={t('desk.search')} aria-label={t('desk.search')} onChange={e=>setDeskQuery(e.target.value)}/></label>}
+  {desk&&data&&!data.needsSetup&&<DeskTabs view={view} onGoto={goto} onAir={!!liveStatus}/>}
   <div className="top-header-actions">
+   {/* Поиск на ПК — справа, в одной группе с кнопками: в центре строки разделы. */}
+   {desk&&data&&!data.needsSetup&&<label className="desk-search"><Search size={18}/><input type="search" value={deskQuery} placeholder={t('desk.search')} aria-label={t('desk.search')} onChange={e=>setDeskQuery(e.target.value)}/></label>}
    {shell&&<div className="shell-menu">
     <button className="quiet-button tt-pressable" aria-label={t('shell.menu')} title={t('shell.menu')} aria-expanded={shellOpen} onClick={()=>setShellOpen(v=>!v)}><MoreHorizontal size={20}/></button>
     {shellOpen&&<><button className="shell-menu-veil" aria-label={t('common.cancel')} onClick={()=>setShellOpen(false)}/>
@@ -440,7 +442,11 @@ export default function Studio(){
  {view==='settings'&&!author&&<section className="settings-panel"><div className="section-icon"><ShieldCheck size={22}/></div>
   <h2>{t('legal.panelTitle')}</h2><p>{t('settings.legalListener')}</p>
   <div className="legal-links"><a href="/privacy">{t('legal.privacy')}</a><a href="/rules">{t('legal.rules')}</a></div></section>}
- {/* Вход в студию — только на широком экране.
+ {/* Вход в студию — только в программе для ПК (13 октября владелец убрал его
+     и из браузера на ПК: «зачем? Если у меня есть приложение студия на ПК,
+     убери, чтоб не искушать пользователей… подбирать пароли»). Подбор пароля
+     и так ограничен сервером (lib/rate-limit), но кнопку чужим не показываем.
+     Раньше (9 октября) вход убрали с телефона:
      Владелец сказал прямо: «если я открываю сайт на телефоне и захожу в
      настройки, там всё ещё есть возможность войти в студию, убери это, вход
      в студию должен быть только в программе на ПК». В приложении Android
@@ -449,7 +455,7 @@ export default function Studio(){
      файлов и редактор — всё рассчитано на окно от тысячи точек.
      Сам адрес /login никуда не делся: если понадобится, он открывается
      вручную. Убрана кнопка, а не возможность. */}
- {view==='settings'&&!author&&!data?.signedIn&&!hasNativeClient()&&wideScreen&&
+ {view==='settings'&&!author&&!data?.signedIn&&!hasNativeClient()&&shell&&
   <section className="settings-panel"><div className="section-icon"><LogIn size={22}/></div>
    <h2>{t('settings.ownerTitle')}</h2><p>{t('settings.ownerText')}</p>
    <a className="secondary-button" href="/login">{t('common.login')}</a></section>}

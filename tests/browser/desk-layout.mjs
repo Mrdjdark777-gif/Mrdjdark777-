@@ -13,10 +13,14 @@
  * - первый экран (9 октября): обложка во всю ширину без ничего поверх,
  *   под ней название и первый ряд блока «Новое в True Thrills» — целиком в
  *   окне; обложка 4:1 из студии ложится на весь баннер, без неё постер целиком;
- * - каталог на главной (12 октября) — один блок «Новое в True Thrills» с
- *   переключателями Все / Аудио / Видео / Истории / Архив эфиров вместо полок
- *   по разделам; каждый выпуск один раз; запись эфира подписана как запись;
- *   у плитки «Поделиться» — отдельной кнопкой, не внутри кнопки плитки;
+ * - разделы (13 октября) — в верхней строке, по центру (от 1700 точек ровно
+ *   по центру строки), не наезжают на поиск; в боковом меню их нет;
+ * - «Новое в True Thrills» — один ряд по центру, не больше восьми плиток,
+ *   без полок по разделам и без переключателей; каждый выпуск один раз;
+ *   запись эфира подписана как запись; «Поделиться» — отдельной кнопкой;
+ *   с плеером внизу плитки того же размера, что без него;
+ * - вход для автора в настройках — только в программе для ПК;
+ * - крупный выпуск раздела — не на пол-экрана;
  * - на ПК нет фона-сетки (она спорила с обложками);
  * - меню: без карточки поддержки, «Скачать приложение» — заметной карточкой
  *   без номера сборки, YouTube — отдельной кнопкой; в подвале ни номера,
@@ -83,12 +87,13 @@ try{
    const s=document.querySelector('.app-shell'),rail=document.querySelector('.desk-rail'),nav=document.querySelector('.bottom-nav');
    const r=rail?.getBoundingClientRect();
    return {cls:s?.className??'',rail:r?{left:Math.round(r.left),width:Math.round(r.width),display:getComputedStyle(rail).display}:null,
-    items:[...document.querySelectorAll('.desk-nav-item')].map(b=>b.textContent.trim()),
+    items:[...document.querySelectorAll('.top-header .desk-tab')].map(b=>b.textContent.trim()),railNav:document.querySelectorAll('.desk-rail .desk-tab,.desk-rail nav').length,
     navShown:!!nav&&getComputedStyle(nav).display!=='none',scroll:document.documentElement.scrollWidth-innerWidth};
   });
   check(/\bis-desk\b/.test(shell.cls)&&!/\bis-listener\b/.test(shell.cls),at+'слушатель на ПК не получил каркас .is-desk: '+shell.cls);
   check(shell.rail&&shell.rail.left===0&&shell.rail.width>=240&&shell.rail.display!=='none',at+'бокового меню слева нет: '+JSON.stringify(shell.rail));
-  check(shell.items.length===5&&shell.items[0].startsWith('Главная'),at+'разделы в меню не те или «Главная» не первая: '+shell.items.join(' | '));
+  check(shell.items.length===5&&shell.items[0].startsWith('Главная'),at+'разделы в верхней строке не те или «Главная» не первая: '+shell.items.join(' | '));
+  check(shell.railNav===0,at+'разделы снова в боковом меню');
   check(!shell.navShown,at+'нижняя телефонная панель разделов видна на ПК');
   // Без каркаса дальше мерить нечего: остальные проверки только упали бы на
   // отсутствующих элементах, а не назвали бы поломку.
@@ -120,21 +125,31 @@ try{
    check(first.barTop>=first.bannerBottom,at+'название легло на обложку');
    if(w<1944)check(first.left===first.rail&&first.right===w,at+'обложка не во всю ширину: '+first.left+'–'+first.right+' при меню до '+first.rail);
   }
-  // Каталог — один блок, без полок по разделам; каждый выпуск один раз.
-  const cat=await page.evaluate(()=>({blocks:[...document.querySelectorAll('.desk-home .desk-shelf')].map(s=>s.querySelector('h2')?.textContent),
+  // «Новое в True Thrills» — один ряд по центру, не больше восьми плиток;
+  // без полок по разделам и без переключателей; каждый выпуск один раз.
+  const cat=await page.evaluate(()=>{const grid=document.querySelector('.desk-fresh .desk-grid'),g=grid?.getBoundingClientRect(),tiles=[...document.querySelectorAll('.desk-fresh .desk-tile')].map(t=>t.getBoundingClientRect());
+   return {blocks:[...document.querySelectorAll('.desk-home .desk-shelf')].map(s=>s.querySelector('h2')?.textContent),
    titles:[...document.querySelectorAll('.desk-fresh .desk-tile strong')].map(e=>e.textContent),hero:document.querySelector('.desk-hero-title')?.textContent,
-   chips:[...document.querySelectorAll('.desk-fresh .desk-chip')].map(c=>c.textContent),
+   chips:document.querySelectorAll('.desk-home .desk-chip').length,rows:new Set(tiles.map(t=>Math.round(t.top))).size,
+   sides:g&&tiles.length?[Math.round(Math.min(...tiles.map(t=>t.left))-g.left),Math.round(g.right-Math.max(...tiles.map(t=>t.right)))]:null,
+   room:g&&tiles.length?Math.floor((g.width+18)/(tiles[0].width+18)):0,
    nested:document.querySelectorAll('.desk-tile button button,.desk-tile-open .desk-tile-share').length,shares:document.querySelectorAll('.desk-fresh .desk-tile>.desk-tile-share').length,
-   archiveTag:[...document.querySelectorAll('.desk-fresh .desk-tile')].find(t=>t.querySelector('strong')?.textContent==='Эфир у костра')?.querySelector('.desk-tag')?.textContent}));
+   archiveTag:[...document.querySelectorAll('.desk-fresh .desk-tile')].find(t=>t.querySelector('strong')?.textContent==='Эфир у костра')?.querySelector('.desk-tag')?.textContent};});
   check(cat.blocks.length===1&&cat.blocks[0]==='Новое в True Thrills',at+'на главной не один блок каталога, а: '+cat.blocks.join(' | '));
-  check(new Set(cat.titles).size===cat.titles.length,at+'в «Новое в True Thrills» выпуск повторяется: '+cat.titles.join(' | '));
-  check(cat.titles.length===titles.length+2&&!cat.titles.includes(cat.hero),at+'в «Все» не все выпуски кроме того, что на обложке: '+cat.titles.length+' плиток, обложка «'+cat.hero+'»');
-  check(['Все','Аудио','Видео','Истории','Архив эфиров'].every(c=>cat.chips.includes(c))&&cat.chips.length===5,at+'переключатели каталога не те: '+cat.chips.join(' | '));
+  check(cat.chips===0,at+'у «Новое в True Thrills» снова переключатели разделов');
+  check(new Set(cat.titles).size===cat.titles.length&&!cat.titles.includes(cat.hero),at+'в «Новое в True Thrills» выпуск повторяется или повторяет обложку: '+cat.titles.join(' | '));
+  check(cat.rows===1,at+'«Новое в True Thrills» не в один ряд: рядов '+cat.rows);
+  check(cat.titles.length===Math.min(8,cat.room),at+'в ряду '+cat.titles.length+' плиток, а влезает '+cat.room+' (и не больше восьми)');
+  check(cat.sides&&Math.abs(cat.sides[0]-cat.sides[1])<=2,at+'ряд «Новое» не по центру: слева '+cat.sides?.[0]+', справа '+cat.sides?.[1]);
   check(cat.nested===0&&cat.shares===cat.titles.length,at+'«Поделиться» у плиток не отдельной кнопкой: вложенных '+cat.nested+', кнопок '+cat.shares+' на '+cat.titles.length+' плиток');
   check(/запись эфира/i.test(cat.archiveTag??''),at+'запись эфира подписана не как запись: '+cat.archiveTag);
-  // Строка поиска на одной линии с содержимым.
-  const align=await page.evaluate(()=>({search:Math.round(document.querySelector('.desk-search')?.getBoundingClientRect().left??-1),main:Math.round(document.querySelector('.desk-home')?.getBoundingClientRect().left??-999)}));
-  check(Math.abs(align.search-align.main)<=2,at+'поиск и содержимое начинаются с разных мест: '+align.search+' и '+align.main);
+  // Разделы по центру строки (от 1700 точек) и не наезжают на поиск.
+  const head=await page.evaluate(()=>{const tabs=document.querySelector('.top-header .desk-tabs')?.getBoundingClientRect(),acts=document.querySelector('.top-header .top-header-actions')?.getBoundingClientRect(),
+   main=document.querySelector('.desk-home')?.getBoundingClientRect(),search=document.querySelector('.desk-search')?.getBoundingClientRect();
+   return tabs&&acts&&main&&search?{gap:Math.round(search.left-tabs.right),mid:Math.round(tabs.left+tabs.width/2),contentMid:Math.round(main.left+main.width/2),search:Math.round(search.width)}:null;});
+  check(head,at+'в верхней строке нет разделов, поиска или кнопок');
+  if(head){check(head.gap>=8,at+'разделы наезжают на поиск: зазор '+head.gap);check(head.search>=140,at+'поиск сжат до '+head.search+'px — в нём не видно слов');
+   if(w>=1700)check(Math.abs(head.mid-head.contentMid)<=2,at+'разделы не по центру строки: середина '+head.mid+', середина содержимого '+head.contentMid);}
   if(w===1440){
    // Меню и подвал — по замечаниям владельца 9 октября.
    const rail=await page.evaluate(()=>{const app=document.querySelector('.desk-rail .desk-app'),yt=document.querySelector('.desk-rail .desk-youtube'),foot=document.querySelector('.site-footer');
@@ -162,19 +177,12 @@ try{
    check(found.titles.length===1&&found.titles[0]==='Записки из ледяной пустыни'&&!found.home,at+'поиск сверху нашёл не то или главная не ушла: '+JSON.stringify(found));
    await page.fill('.desk-search input','');await page.waitForTimeout(300);
    check(await page.locator('.desk-home').isVisible(),at+'после очистки поиска главная не вернулась');
-   // Переключатели каталога: в группе — только её выпуски, и выпуск с
-   // обложки в своей группе есть; в архиве — только запись эфира.
-   // Нет переключателя — так и сказать, а не ждать его до конца отведённого времени.
-   const pick=async label=>{const chip=page.locator('.desk-fresh .desk-chip',{hasText:label});if(!await chip.count())return [{title:'(нет переключателя «'+label+'»)',tag:''}];
-    await chip.click();await page.waitForTimeout(200);
-    return page.evaluate(()=>[...document.querySelectorAll('.desk-fresh .desk-tile')].map(t=>({title:t.querySelector('strong').textContent,tag:t.querySelector('.desk-tag').textContent})));};
-   const vids=await pick('Видео');
-   check(vids.length===1&&vids[0].title==='Наедине с горами',at+'«Видео» показывает не только видео: '+JSON.stringify(vids));
-   const arch=await pick('Архив эфиров');
-   check(arch.length===1&&arch[0].title==='Эфир у костра',at+'«Архив эфиров» показывает не только записи эфира: '+JSON.stringify(arch));
-   const pods=await pick('Аудио');
-   const heroTitle=await page.evaluate(()=>document.querySelector('.desk-hero-title')?.textContent);
-   check(pods.length===titles.length&&pods.some(p=>p.title===heroTitle)&&!pods.some(p=>p.title==='Эфир у костра'),at+'«Аудио» — не все выпуски с выпуском с обложки и без записей эфира: '+pods.map(p=>p.title).join(' | '));
+   // Плеер внизу не меняет размер плиток «Новое».
+   const tileW=()=>page.evaluate(()=>Math.round(document.querySelector('.desk-fresh .desk-tile')?.getBoundingClientRect().width??0));
+   const before=await tileW();
+   await page.locator('.desk-hero .desk-cta').click();await page.waitForTimeout(1200);await page.keyboard.press('Escape');await page.waitForTimeout(800);
+   const withBar=await tileW(),barShown=await page.locator('.desk-player-bar').count();
+   check(barShown===1&&before===withBar,at+'с плеером внизу плитки другого размера: '+before+' → '+withBar+(barShown?'':' (плеер не открылся)'));
    // «Поделиться» у плитки делится, а не открывает выпуск.
    await page.evaluate(()=>{window.__shared=[];navigator.share=d=>{window.__shared.push(d.url||d.text||'');return Promise.resolve();};navigator.canShare=()=>true;});
    await page.locator('.desk-fresh .desk-tile-share').first().click();await page.waitForTimeout(500);
@@ -182,7 +190,9 @@ try{
    check(!shared.open,at+'«Поделиться» у плитки открыло плеер вместо того, чтобы поделиться');
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
    // Плеер: полоса внизу, меню над ней.
-   await page.locator('.desk-fresh .desk-tile-open').first().click();
+   // Выпуск с обложкой: у записи эфира без обложки плеер рисует не картинку.
+   const glacier=page.locator('.desk-fresh .desk-tile',{hasText:'Ледник'}).locator('.desk-tile-open');
+   if(await glacier.count())await glacier.click();else{check(false,at+'в ряду «Новое» нет свежего выпуска «Ледник»');await page.locator('.desk-hero .desk-cta').click();}
    await page.waitForTimeout(1200);
    const open=await page.evaluate(()=>{const p=document.querySelector('.desk-player-open'),c=p?.querySelector('.player-cover-frame')?.getBoundingClientRect(),t=p?.querySelector('.player-title')?.getBoundingClientRect();return {open:!!p,coverLeft:c?c.right<=t.left:false};});
    check(open.open,at+'развёрнутый плеер ПК не открылся');check(open.coverLeft,at+'в развёрнутом плеере обложка не слева от названия');
@@ -204,6 +214,8 @@ try{
    check(shop.feature==='Ледник',at+'в «Аудио» крупно не последний выпуск: '+shop.feature);
    check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
    check(!(await page.locator('.kinetic-grid').count()),at+'на ПК в разделе снова фон-сетка');
+   const feat=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect(),f=document.querySelector('.desk-feature')?.getBoundingClientRect();return c&&f?{cover:Math.round(c.width),h:Math.round(f.height)}:null;});
+   check(feat&&feat.cover<=240&&feat.h<=h*0.45,at+'крупный выпуск раздела на пол-экрана: '+JSON.stringify(feat));
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
    check(shop.tiles===titles.length-1,at+'в сетке '+shop.tiles+' плиток, ждали '+(titles.length-1)+' (все, кроме крупного)');
    check(shop.cols<shop.tiles,at+'сетка витрины идёт одной колонкой');
@@ -216,6 +228,9 @@ try{
    await page.goto(base+'/?mode=listen&view=videos');await ready(page);
    const video=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect();return c?c.width/c.height:0;});
    check(Math.abs(video-16/9)<0.02,at+'у видео крупная обложка не 16:9: '+video.toFixed(3));
+   // Вход для автора — только в программе для ПК, в браузере его нет.
+   await page.goto(base+'/?mode=listen&view=settings');await ready(page);
+   check(!(await page.locator('.listener-main a[href="/login"]').count()),at+'в настройках браузера снова вход для автора');
   }
   check(errors.length===0,at+'ошибки страницы: '+errors.join('; '));
   await ctx.close();
@@ -278,6 +293,15 @@ try{
   await post({action:'hero',id:raft,wide:''});
   check(!(await (await fetch(base+'/api/library')).json()).posterWide,'обложка для ПК не снимается');
  }
+ // В программе для ПК (WebView2) вход для автора в настройках остаётся:
+ // через неё владелец и входит в студию.
+ {
+  const ctx=await browser.newContext({viewport:{width:1440,height:900},locale:'ru-RU'});
+  await ctx.addInitScript(()=>{window.chrome=window.chrome||{};window.chrome.webview={postMessage(){},addEventListener(){},removeEventListener(){}};});
+  const page=await ctx.newPage();await page.goto(base+'/?mode=listen&view=settings');await ready(page);
+  check(await page.locator('.listener-main a[href="/login"]').count()===1,'программа для ПК: в настройках нет входа для автора');
+  await ctx.close();
+ }
  // Телефон и сенсорный планшет — без каркаса ПК.
  for(const [w,h,label] of [[390,844,'телефон'],[1280,800,'планшет']]){
   const ctx=await browser.newContext({viewport:{width:w,height:h},isMobile:true,hasTouch:true,locale:'ru-RU'});const page=await ctx.newPage();
@@ -287,5 +311,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и первый ряд «Новое в True Thrills» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, каталог на главной — один блок с переключателями (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой), разделы — витрина без фона-сетки, без прокрутки вбок, постер целиком, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука»: меню слева (приложение карточкой с QR-кодом на APK, YouTube и TikTok плашками, без поддержки и номера сборки), первый экран — обложка во всю ширину и первый ряд «Новое в True Thrills» целиком, обложка 4:1 (2400×600) ровно в рамке и никогда не режется, разделы по центру верхней строки, «Новое в True Thrills» — один ряд по центру до восьми плиток того же размера и с плеером (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой), вход для автора только в программе, разделы — витрина без фона-сетки и не на пол-экрана, без прокрутки вбок, постер целиком, поиск по всем разделам, плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

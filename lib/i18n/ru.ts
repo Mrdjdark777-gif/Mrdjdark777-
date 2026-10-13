@@ -182,6 +182,7 @@ export const ru = {
   'desk.found': 'Найдено: {n}',
   'desk.seeAll': 'Все',
   'desk.freshTitle': 'Новое в True Thrills',
+  'desk.railAria': 'Приложение и соцсети',
   "desk.appTitle": "Приложение для Android",
   "desk.appNote": "Истории, музыка и эфиры — в телефоне, без браузера.",
   "desk.appAction": "Скачать",

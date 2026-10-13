@@ -183,6 +183,7 @@ export const it: Record<keyof typeof ru, string> = {
   'desk.found': 'Trovati: {n}',
   'desk.seeAll': 'Tutti',
   'desk.freshTitle': 'Novità su True Thrills',
+  'desk.railAria': 'App e social',
   "desk.appTitle": "App per Android",
   "desk.appNote": "Storie, musica e dirette sul telefono, senza browser.",
   "desk.appAction": "Scarica",

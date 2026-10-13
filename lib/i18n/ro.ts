@@ -153,6 +153,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "desk.found": "Găsite: {n}",
   "desk.seeAll": "Toate",
   "desk.freshTitle": "Noutăți pe True Thrills",
+  "desk.railAria": "Aplicația și rețelele sociale",
   "desk.appTitle": "Aplicația pentru Android",
   "desk.appNote": "Povești, muzică și transmisiuni — în telefon, fără browser.",
   "desk.appAction": "Descarcă",

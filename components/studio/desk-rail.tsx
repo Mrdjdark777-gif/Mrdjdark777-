@@ -8,8 +8,10 @@ import {AppQr} from './app-qr';
  * Боковое меню слушателя на ПК (концепция «Студия звука»). На телефоне и
  * планшете его нет: там разделы внизу экрана под пальцем.
  *
- * Сверху — знак канала и разделы, «Главная» первой; у «Эфира» — состояние
- * станции. Внизу — то, ради чего человек приходит на сайт с компьютера:
+ * Разделы в меню больше не стоят: 13 октября владелец перенёс их в верхнюю
+ * строку, по центру («какой-то тупой дизайн… переместить по центру экрана
+ * так, чтоб они были прям видны») — это DeskTabs ниже. В меню остались знак
+ * канала и то, ради чего человек приходит на сайт с компьютера:
  * карточка приложения (главный шаг, поэтому крупно, с QR-кодом: навёл камеру
  * телефона — APK скачался на телефон) и соцсети. YouTube и TikTok —
  * плашками с логотипом: там ролики канала; остальные площадки — значками.
@@ -25,8 +27,20 @@ const ITEMS=[
  {id:'live',key:'nav.live',Icon:Radio},
 ] as const;
 
-export function DeskRail({view,onGoto,onAir,app,youtube,tiktok,socials}:{
- view:string;onGoto:(view:string)=>void;onAir:boolean;
+/** Разделы сайта — кнопками в одну линию по центру верхней строки. «Главная»
+ *  первой; у «Эфира» — состояние станции. */
+export function DeskTabs({view,onGoto,onAir}:{view:string;onGoto:(view:string)=>void;onAir:boolean}){
+ const {t}=useT();
+ return <nav className="desk-tabs" aria-label={t('nav.aria')}>
+  {ITEMS.map(({id,key,Icon})=><button key={id} type="button" className="desk-tab" data-active={view===id?'true':undefined} aria-current={view===id?'page':undefined} onClick={()=>{haptic();onGoto(id);}}>
+   <Icon size={18}/><span>{t(key)}</span>
+   {id==='live'&&<span className={'desk-live-pill'+(onAir?' is-on':'')}>{onAir?t('live.weAreOnAir'):t('live.noBroadcast')}</span>}
+  </button>)}
+ </nav>;
+}
+
+export function DeskRail({onGoto,app,youtube,tiktok,socials}:{
+ onGoto:(view:string)=>void;
  /** Ссылка на приложение — только в браузере (не внутри самого приложения). */
  app?:{href:string}|null;
  /** YouTube и TikTok — плашками с логотипом; остальные площадки — значками. */
@@ -35,16 +49,10 @@ export function DeskRail({view,onGoto,onAir,app,youtube,tiktok,socials}:{
  socials?:React.ReactNode;
 }){
  const {t}=useT();
- return <aside className="desk-rail" aria-label={t('nav.aria')}>
+ return <aside className="desk-rail" aria-label={t('desk.railAria')}>
   <button type="button" className="desk-brand" onClick={()=>{haptic();onGoto('home');}} aria-label={t('nav.home')}>
    <img src="/brand/logo.png?v=0.4.1" width="40" height="40" alt=""/><span>True Thrills</span>
   </button>
-  <nav className="desk-nav">
-   {ITEMS.map(({id,key,Icon})=><button key={id} type="button" className="desk-nav-item" data-active={view===id?'true':undefined} aria-current={view===id?'page':undefined} onClick={()=>{haptic();onGoto(id);}}>
-    <Icon size={20}/><span>{t(key)}</span>
-    {id==='live'&&<span className={'desk-live-pill'+(onAir?' is-on':'')}>{onAir?t('live.weAreOnAir'):t('live.noBroadcast')}</span>}
-   </button>)}
-  </nav>
   <div className="desk-rail-grow"/>
   {app&&<a className="desk-app" href={app.href} download>
    <strong className="desk-app-title">{t('desk.appTitle')}</strong>

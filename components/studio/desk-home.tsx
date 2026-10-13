@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {ChevronRight,Clock,Play,Radio,Share2} from 'lucide-react';
 import {homeScene,heroPicture,type ScenePost} from '@/lib/home-scene';
 import {audioCategoryOf,kindTagKey} from '@/lib/audio-category';
@@ -14,19 +14,23 @@ import {Artwork} from './artwork';
  * 8 октября; первый экран переделан 9 октября, каталог — 12 октября).
  *
  * Первый экран — ровно высота окна: сверху обложка во всю ширину, под ней
- * строка с типом, названием и кнопками, под строкой — первый ряд блока
- * «Новое в True Thrills» целиком. Плитки считают свой размер из высоты окна,
- * поэтому ряд не уходит за край экрана ни на каком окне (выбор владельца
- * 12 октября: ряд целиком на экране, а не крупные плитки с прокруткой).
+ * строка с типом, названием и кнопками, под строкой — ряд «Новое в True
+ * Thrills» целиком. Плитки считают свой размер из высоты окна, поэтому ряд
+ * не уходит за край экрана ни на каком окне (выбор владельца 12 октября: ряд
+ * целиком на экране, а не крупные плитки с прокруткой). Плеер внизу размер
+ * плиток не меняет (13 октября: «когда включаю плеер, иконки становятся
+ * значительно меньше… смотрится плохо») — с плеером страница просто
+ * докручивается.
  *
  * Поверх обложки ничего не кладём: на ней своя надпись (выбор владельца —
  * «под обложкой, поверх ничего»). Обложка — отдельная картинка 4:1 (2400×600) из
  * студии; нет её — постер или обложка выпуска целиком на размытом фоне.
  *
- * «Новое в True Thrills» — один блок на весь каталог с переключателями
- * Все / Аудио / Видео / Истории / Архив эфиров (выбор владельца 12 октября
- * вместо полок по разделам: при малом каталоге полки стояли почти пустыми).
- * Переключатель есть, только если в его группе что-то опубликовано.
+ * «Новое в True Thrills» — один ряд по центру, не больше восьми плиток, без
+ * карусели и стрелок (13 октября владелец так решил). Переключателей по
+ * разделам здесь нет: разделы и так в верхней строке («оно там вообще зачем,
+ * если эти иконки есть сбоку»). Полок по разделам тоже нет (12 октября: при
+ * малом каталоге они стояли почти пустыми).
  * Блока поддержки внизу нет: владелец убрал его 9 октября и оставил это
  * решение 12 октября.
  *
@@ -58,16 +62,16 @@ export function DeskTile<T extends DeskPost>({post,onOpen,onShare,wide}:{post:T;
 
 /** Блок плиток: заголовок (справа — переключатели, если есть) и сетка.
  *  Плитки переносятся на следующие ряды — блок показывает всё, что в нём есть. */
-export function DeskShelf<T extends DeskPost>({title,posts,onOpen,onShare,tools,className}:{title:string;posts:T[];onOpen:(p:T)=>void;onShare?:(p:T)=>void;tools?:React.ReactNode;className?:string}){
+export function DeskShelf<T extends DeskPost>({title,posts,onOpen,onShare,className,gridRef}:{title:string;posts:T[];onOpen:(p:T)=>void;onShare?:(p:T)=>void;className?:string;gridRef?:React.Ref<HTMLDivElement>}){
  if(!posts.length)return null;
  return <section className={'desk-shelf'+(className?' '+className:'')} aria-label={title}>
-  <div className="desk-shelf-head"><h2>{title}</h2>{tools}</div>
-  <div className="desk-grid">{posts.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} onShare={onShare}/>)}</div>
+  <div className="desk-shelf-head"><h2>{title}</h2></div>
+  <div className="desk-grid" ref={gridRef}>{posts.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} onShare={onShare}/>)}</div>
  </section>;
 }
 
-type Group='podcast'|'video'|'story'|'archive';
-const GROUPS:{id:Group;key:string}[]=[{id:'podcast',key:'nav.podcasts'},{id:'video',key:'nav.videos'},{id:'story',key:'nav.stories'},{id:'archive',key:'live.archiveTitle'}];
+/** Сколько плиток в ряду «Новое» самое большее (решение владельца 13 октября). */
+export const FRESH_MAX=8;
 
 export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpenLive,onShare,pinned,poster,wide,noHero}:{
  posts:T[];live:Live|null;liveAction:string;onOpen:(post:T,resume?:boolean)=>void;onOpenLive:()=>void;
@@ -88,21 +92,26 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
  const heroCover=hero?heroPicture(hero.id,poster,coverSrc(hero)):'';
  const heroWide=hero&&wide&&wide.post===hero.id?wide.src:'';
  const heroAction=heroResume?t('home.continue'):hero?.kind==='podcast'?t('post.listen'):hero?.kind==='video'?t('post.watch'):t('post.read');
- const [group,setGroup]=useState<Group|'all'>('all');
- const archives=new Set(noHero??[]);
- const groupOf=(p:T):Group=>archives.has(p.id)?'archive':p.kind as Group;
  // Каждый выпуск — один раз, даже если сервер прислал его дважды.
  const published=[...new Map(posts.filter(p=>p.published===1).map(p=>[p.id,p])).values()].sort((a,b)=>b.createdAt-a.createdAt);
- const groups=GROUPS.filter(g=>published.some(p=>groupOf(p)===g.id));
- const active=groups.some(g=>g.id===group)?group:'all';
- // Выпуск с обложки не повторяется в блоке, пока смотрят всё подряд: он прямо
- // над блоком. В выбранной группе он есть — иначе его там не найти.
- const fresh=published.filter(p=>active==='all'?p.id!==hero?.id:groupOf(p)===active);
- const chips=groups.length>1&&<div className="desk-chips" role="toolbar" aria-label={t('desk.freshTitle')}>
-  <button type="button" className="desk-chip" aria-pressed={active==='all'} onClick={()=>setGroup('all')}>{t('desk.seeAll')}</button>
-  {groups.map(g=><button key={g.id} type="button" className="desk-chip" aria-pressed={active===g.id} onClick={()=>setGroup(g.id)}>{t(g.key)}</button>)}
- </div>;
- const freshBlock=<DeskShelf className="desk-fresh" title={t('desk.freshTitle')} posts={fresh} onOpen={p=>onOpen(p)} onShare={onShare} tools={chips||undefined}/>;
+ // Выпуск с обложки не повторяется в ряду: он прямо над ним.
+ const candidates=published.filter(p=>p.id!==hero?.id).slice(0,FRESH_MAX);
+ // Сколько плиток влезает в один ряд — считаем по ширине, до отрисовки
+ // кадра: лишние не рисуем вовсе, иначе до них дошёл бы Tab, а глазу их не
+ // видно.
+ const grid=useRef<HTMLDivElement>(null);
+ const [fit,setFit]=useState(FRESH_MAX);
+ useLayoutEffect(()=>{
+  const el=grid.current;if(!el)return;
+  const measure=()=>{
+   const tile=(el.firstElementChild as HTMLElement|null)?.getBoundingClientRect().width??0;if(!tile)return;
+   const gap=parseFloat(getComputedStyle(el).columnGap)||0;
+   setFit(Math.max(1,Math.min(FRESH_MAX,Math.floor((el.clientWidth+gap)/(tile+gap)))));
+  };
+  measure();const ro=new ResizeObserver(measure);ro.observe(el);return()=>ro.disconnect();
+ },[candidates.length]);
+ const fresh=candidates.slice(0,fit);
+ const freshBlock=<DeskShelf className="desk-fresh" title={t('desk.freshTitle')} posts={fresh} onOpen={p=>onOpen(p)} onShare={onShare} gridRef={grid}/>;
  return <div className="desk-home">
   {live&&<button type="button" className="desk-onair" onClick={()=>{haptic();onOpenLive();}}>
    <span className="desk-onair-dot" aria-hidden="true"/><Radio size={20}/>

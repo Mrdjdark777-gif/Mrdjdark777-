@@ -6,8 +6,10 @@
    сенсорный планшет этот класс не получают никогда — их раскладка и замок
    tests/fixtures/layout-lock.json отсюда не задеваются.
 
-   Каркас: боковое меню слева (264px), верхняя строка с поиском, содержимое,
-   плеер полосой внизу экрана.
+   Каркас: боковое меню слева (264px) — знак канала, приложение, соцсети;
+   верхняя строка — разделы по центру, справа поиск и кнопки (13 октября
+   владелец перенёс разделы из меню в верхнюю строку); содержимое; плеер
+   полосой внизу экрана.
    ========================================================================== */
 .desk-rail,.desk-search{display:none}
 .is-desk{--desk-rail:264px;--desk-player:0px;--desk-pad:44px;padding-left:var(--desk-rail);background:#101316}
@@ -20,12 +22,7 @@
 .desk-brand{display:flex;align-items:center;gap:12px;padding:0 8px;margin-bottom:26px;color:#f4f3f1;
  font-family:var(--font-display),var(--font-display-fallback);font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:14.5px;text-align:left}
 .desk-brand img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none}
-.desk-nav{display:flex;flex-direction:column;gap:4px}
-.desk-nav-item{display:flex;align-items:center;gap:14px;height:46px;padding:0 14px;border-radius:12px;color:#a4a8ae;font-weight:600;font-size:15px;text-align:left;width:100%}
-.desk-nav-item:hover{background:rgba(255,255,255,.05);color:#e6e8e9}
-.desk-nav-item[data-active=true]{background:rgba(111,231,222,.1);color:var(--teal)}
-.desk-nav-item:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-.desk-live-pill{margin-left:auto;font-size:10px;letter-spacing:.12em;font-weight:700;color:#6f757c;border:1px solid #2a2f35;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.desk-live-pill{margin-left:2px;font-size:10px;letter-spacing:.12em;font-weight:700;color:#6f757c;border:1px solid #2a2f35;padding:3px 7px;border-radius:999px;white-space:nowrap}
 .desk-live-pill.is-on{color:#fff;background:#d9483b;border-color:#d9483b}
 .desk-rail-grow{flex:1;min-height:20px}
 /* Карточка приложения — главный шаг для человека с компьютера, поэтому
@@ -59,7 +56,6 @@
 @media(max-height:860px){
  .is-desk .desk-rail{padding:16px 16px 14px}
  .desk-brand{margin-bottom:14px}
- .desk-nav-item{height:40px}
  .desk-app{gap:8px;padding:12px}
  .desk-qr{width:76px;height:76px}
  .desk-app-scan{font-size:12px}
@@ -77,7 +73,6 @@
 @media(max-height:680px){
  .is-desk .desk-rail{padding-top:12px}
  .desk-brand{margin-bottom:8px}
- .desk-nav-item{height:36px}
  .desk-qr{width:68px;height:68px}
  .desk-social-title{display:none}
  .desk-social-block{margin-top:8px}
@@ -87,8 +82,41 @@
 .is-desk .top-header{position:sticky;top:0;z-index:30;width:100%;max-width:none;margin:0;gap:16px;justify-content:flex-start;
  padding:18px max(var(--desk-pad),calc((100% - 1680px) / 2 + var(--desk-pad))) 14px;background:rgba(16,19,22,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .is-desk .top-header-brand{display:none}
-.is-desk .top-header-actions{margin-left:auto}
-.is-desk .desk-search{display:flex;align-items:center;gap:12px;flex:1;max-width:560px;height:46px;padding:0 18px;border-radius:999px;
+.is-desk .top-header-actions{margin-left:0;flex:none}
+/* Разделы — по центру строки: по бокам две равные колонки, справа в своей —
+   поиск и кнопки. На узком окне колонкам не хватает места, тогда разделы
+   просто стоят первыми, а поиск сжимается до значка. */
+.is-desk .top-header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center}
+.is-desk .top-header>.desk-tabs{grid-column:2}
+.desk-tabs{display:none}
+.is-desk .desk-tabs{display:flex;align-items:center;gap:4px;padding:4px;border-radius:999px;background:#13171b;border:1px solid #23292e}
+.desk-tab{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;color:#a4a8ae;font-weight:600;font-size:15px;white-space:nowrap;transition:background .2s,color .2s}
+.desk-tab:hover{color:#e6e8e9;background:rgba(255,255,255,.05)}
+.desk-tab[data-active=true]{color:var(--teal);background:rgba(111,231,222,.12)}
+.desk-tab:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.is-desk .top-header>.top-header-actions{grid-column:3;justify-self:end;display:flex;align-items:center;gap:8px;min-width:0;width:100%;justify-content:flex-end}
+.is-desk .top-header-actions>.desk-search{flex:0 1 300px}
+/* Ровно по центру строки разделы встают, когда справа хватает места на поиск
+   и кнопки — от 1700 точек. Уже — по центру места слева от поиска. */
+@media(max-width:1699px){
+ .is-desk .top-header{grid-template-columns:minmax(0,1fr) auto}
+ .is-desk .top-header>.desk-tabs{grid-column:1;justify-self:center}
+ .is-desk .top-header>.top-header-actions{grid-column:2;width:auto}
+ .is-desk .top-header-actions>.desk-search{flex:0 1 220px}
+}
+@media(max-width:1439px){.desk-tab{padding:0 12px;font-size:14px}}
+/* Узкое окно: до 1279 меню и поля уже; до 1365 у разделов нет значков и
+   «OFF AIR» не пишется (в эфире метка остаётся) — чтобы поиску справа
+   хватало места на слова, а кнопкам — на себя. */
+@media(max-width:1279px){.is-desk{--desk-rail:240px;--desk-pad:28px}}
+@media(max-width:1365px){
+ .desk-tab svg{display:none}.desk-tab{padding:0 11px}
+ .desk-tab .desk-live-pill:not(.is-on){display:none}
+}
+.is-desk .top-header-actions>:not(.desk-search){flex:none}
+.is-desk .top-header-actions>.desk-search{min-width:150px}
+@media(prefers-reduced-motion:reduce){.desk-tab{transition:none}}
+.is-desk .desk-search{display:flex;align-items:center;gap:12px;width:100%;max-width:300px;min-width:46px;height:46px;padding:0 15px;border-radius:999px;
  background:#15191d;border:1px solid #2a2f35;color:#6f757c}
 .is-desk .desk-search:focus-within{border-color:#3c6965;color:var(--teal)}
 .is-desk .desk-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;color:#f4f3f1;font:inherit;font-size:14.5px}
@@ -148,13 +176,19 @@
      но не ниже 5:1. */
 .is-desk{--desk-head:78px;
  --desk-bw:calc(100vw - var(--desk-rail));            /* ширина обложки */
- --desk-avail:calc(100dvh - var(--desk-head) - var(--desk-player) - 24px);
+ /* Плеер внизу не считается: размер плиток с ним и без него один и тот же
+    (13 октября владелец: с плеером «иконки становятся значительно меньше…
+    смотрится плохо»). С плеером страница докручивается на его высоту. */
+ --desk-avail:calc(100dvh - var(--desk-head) - 24px);
  --desk-bar:92px;                                    /* строка с названием */
  --desk-head-gap:16px;                               /* от заголовка блока до плиток */
  --desk-copy:68px;                                   /* подпись внутри карточки */
  --desk-shelf-fixed:calc(16px + 16px + 36px + var(--desk-head-gap) + var(--desk-copy)); /* промежутки до строки и до блока, заголовок блока, подпись */
  --desk-tile-h:calc(var(--desk-avail) - var(--desk-bw) / 4 - var(--desk-bar) - var(--desk-shelf-fixed));
- --desk-tile:clamp(96px, calc(var(--desk-tile-h) * 0.8), 260px)}
+ /* Ширина содержимого: в ряд «Новое» всегда влезают хотя бы четыре плитки —
+    иначе на невысоком узком окне (1024×768) стояли бы две огромные. */
+ --desk-cw:calc(min(100vw - var(--desk-rail), 1680px) - 2 * var(--desk-pad));
+ --desk-tile:clamp(96px, min(var(--desk-tile-h) * 0.8, (var(--desk-cw) - 54px) / 4), 260px)}
 /* Низкое окно: строка с названием и подпись в карточке плотнее. */
 @media(max-height:859px){.is-desk{--desk-bar:56px;--desk-head-gap:10px;--desk-copy:56px}}
 /* Шире 1680 + меню содержимое стоит по центру с полями — там обложка
@@ -178,13 +212,13 @@
  .desk-hero>.desk-hero-bar .desk-cta,.desk-hero>.desk-hero-bar .desk-ghost{height:42px}
 }
 .desk-hero>.desk-hero-bar .desk-hero-note{-webkit-line-clamp:1}
-.desk-fresh .desk-shelf-head{height:36px;margin:0 0 var(--desk-head-gap);align-items:center}
+.desk-fresh .desk-shelf-head{height:36px;margin:0 0 var(--desk-head-gap);align-items:center;justify-content:center}
 .desk-fresh .desk-shelf-head h2{font-size:22px;line-height:1.2;white-space:nowrap}
-.desk-fresh .desk-chips{flex-wrap:nowrap;overflow:hidden}
-.desk-fresh .desk-chip{height:34px;padding:0 14px;font-size:13.5px}
-/* Плитки ровно той ширины, что посчитана выше: одинаковые и с ровным
-   промежутком, а не растянутые — иначе росла бы и высота. */
-.desk-fresh .desk-grid{grid-template-columns:repeat(auto-fill,var(--desk-tile));justify-content:start;gap:22px 18px}
+/* Один ряд по центру (13 октября): плитки ровно той ширины, что посчитана
+   выше, с ровным промежутком. Сколько влезает в ширину — столько и видно,
+   но не больше восьми (FRESH_MAX в desk-home.tsx); лишние компонент не
+   рисует вовсе, а не прячет. */
+.desk-fresh .desk-grid{grid-template-columns:repeat(auto-fit,var(--desk-tile));justify-content:center;gap:0 18px}
 .desk-fresh .desk-tile strong{-webkit-line-clamp:1}
 @media(min-width:1944px){.desk-hero>.desk-banner{margin:0;border-radius:24px}}
 
@@ -293,9 +327,12 @@
 /* Раздел на ПК — витрина (9 октября): крупно последний выпуск, переключатели,
    сетка плиток. Плитки те же, что на главной; видео — 16:9. */
 .desk-section{display:flex;flex-direction:column;gap:28px;padding-top:6px}
-.desk-feature{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:44px;align-items:center;padding:28px;border-radius:28px;
+/* Крупный выпуск раздела — заметный, но не на пол-экрана (13 октября
+   владелец: «одна вкладка на пол экрана, сделай их адекватного размера»):
+   обложка своей пропорции, ширина ограничена, справа название и кнопки. */
+.desk-feature{display:grid;grid-template-columns:minmax(0,clamp(300px,24vw,420px)) minmax(0,1fr);gap:36px;align-items:center;padding:22px;border-radius:24px;
  background:linear-gradient(120deg,#162024 0%,#121619 60%,#101316 100%);border:1px solid #22292e}
-.desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,clamp(220px,21vw,360px)) minmax(0,1fr)}
+.desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,clamp(160px,12vw,220px)) minmax(0,1fr)}
 .desk-feature-cover{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#15191d;
  box-shadow:0 30px 60px -28px rgba(0,0,0,.8)}
 .desk-section.is-podcast .desk-feature-cover,.desk-section.is-story .desk-feature-cover{aspect-ratio:4/5}
@@ -306,7 +343,7 @@
 .desk-feature-cover:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
 .desk-feature-mark{position:absolute;inset:0;display:grid;place-items:center;color:#3c6965}
 .desk-feature-copy{display:flex;flex-direction:column;gap:12px;min-width:0}
-.desk-feature-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(30px,2.6vw,52px);line-height:1.08;font-weight:600;margin:4px 0 0;
+.desk-feature-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(26px,2vw,40px);line-height:1.08;font-weight:600;margin:4px 0 0;
  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .desk-feature-note{font-size:15.5px;line-height:1.6;color:#bfc3c8;margin:0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;max-width:640px}
 .desk-feature .desk-hero-actions{margin-top:10px;flex-wrap:wrap}
@@ -318,7 +355,7 @@
 .desk-chip:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .desk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:24px 20px;align-items:start}
 .desk-results .desk-grid{grid-template-columns:repeat(auto-fill,minmax(176px,220px))}
-.desk-section.is-video .desk-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.desk-section.is-video .desk-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .desk-tile.is-wide .desk-cover{aspect-ratio:16/9}
-@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,1fr);gap:24px}
- .desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,220px) minmax(0,1fr)}}
+@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px}
+ .desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,160px) minmax(0,1fr)}}
