@@ -779,14 +779,14 @@ try{
  {await page.goto(base+'/?mode=listen&view=settings');await settle(page);await page.waitForTimeout(200);
   const onPhone=await page.locator('a[href="/login"]').count();
   if(onPhone)problems.push('на телефоне в настройках остался вход в студию');
-  // ПК — это мышь, а не ширина: телефон, растянутый до 1280, остаётся
-  // сенсорным экраном, то есть планшетом, и студии там не место. Поэтому
-  // ПК — отдельное окно без касаний.
+  // 13 октября владелец убрал вход и из браузера на ПК: «если у меня есть
+  // приложение студия на ПК, убери». Вход остаётся только в программе для
+  // ПК (WebView2) — это проверяет tests/browser/desk-layout.mjs.
   const pc=await browser.newContext({viewport:{width:1280,height:900}});
   const pcPage=await pc.newPage();
   await pcPage.goto(base+'/?mode=listen&view=settings');await settle(pcPage);await pcPage.waitForTimeout(300);
   const onDesk=await pcPage.locator('a[href="/login"]').count();
-  if(!onDesk)problems.push('на ПК вход в студию пропал вместе с телефонным');
+  if(onDesk)problems.push('в браузере на ПК в настройках снова вход в студию');
   await pc.close();
   // А на сенсорном планшете той же ширины входа нет: студия — только ПК.
   const tab=await browser.newContext({viewport:{width:1280,height:800},isMobile:true,hasTouch:true});
@@ -2235,7 +2235,9 @@ try{
    else if(app.status!==200)problems.push('слушатель '+w+': ссылка на приложение отвечает '+app.status+' ('+app.href+')');
    // Каркас ПК «Студия звука» (выбран владельцем 8 октября): боковое меню
    // слева, телефонной панели разделов нет, подвал после содержимого,
-   // строка поиска на одной линии с содержимым. Подробно — tests/browser/desk-layout.mjs.
+   // кнопки и поиск справа в верхней строке кончаются там же, где содержимое
+   // (13 октября разделы встали в центр строки, поиск — вправо). Подробно —
+   // tests/browser/desk-layout.mjs.
    const frame=await g.evaluate(()=>{const nav=document.querySelector('.bottom-nav'),rail=document.querySelector('.desk-rail'),
     main=document.querySelector('.listener-main'),foot=document.querySelector('.site-footer'),search=document.querySelector('.desk-search'),
     home=document.querySelector('.desk-home');
@@ -2243,13 +2245,13 @@ try{
     return {desk:document.querySelector('.app-shell')?.classList.contains('is-desk')??false,
      rail:!!rail&&getComputedStyle(rail).display!=='none',navShown:!!nav&&getComputedStyle(nav).display!=='none',
      main:top(main),foot:top(foot),footShown:!!foot&&getComputedStyle(foot).display!=='none',
-     searchLeft:search?Math.round(search.getBoundingClientRect().left):null,homeLeft:home?Math.round(home.getBoundingClientRect().left):null,
+     searchLeft:search?Math.round(document.querySelector('.top-header-actions').getBoundingClientRect().right):null,homeLeft:home?Math.round(home.getBoundingClientRect().right):null,
      banner:!!document.querySelector('.desk-home .desk-banner'),shelves:document.querySelectorAll('.desk-home .desk-shelf').length};});
    if(!frame.desk||!frame.rail)problems.push('слушатель '+w+': нет каркаса ПК с боковым меню '+JSON.stringify(frame));
    if(frame.navShown)problems.push('слушатель '+w+': телефонная панель разделов видна на ПК');
    if(!frame.footShown)problems.push('слушатель '+w+': подвала нет');
    else if(frame.foot<frame.main)problems.push('слушатель '+w+': подвал выше содержимого');
-   if(frame.searchLeft===null||frame.homeLeft===null||Math.abs(frame.searchLeft-frame.homeLeft)>2)problems.push('слушатель '+w+': поиск не по колонке содержимого ('+frame.searchLeft+' против '+frame.homeLeft+')');
+   if(frame.searchLeft===null||frame.homeLeft===null||Math.abs(frame.searchLeft-frame.homeLeft)>2)problems.push('слушатель '+w+': кнопки верхней строки кончаются не там, где содержимое ('+frame.searchLeft+' против '+frame.homeLeft+')');
    if(!frame.banner||frame.shelves<1)problems.push('слушатель '+w+': на главной нет баннера или каталога ('+JSON.stringify(frame)+')');
   }
   // 1023 — последний пиксель телефонной раскладки. Проверяем, что за границей
