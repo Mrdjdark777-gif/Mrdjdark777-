@@ -19,6 +19,15 @@ import {DeskTile,type DeskPost} from './desk-home';
  * убрал общую строку поиска из верхней строки: на главной людям нечего
  * искать, а в разделе — есть). Пока ищут, крупного выпуска нет: в сетке всё
  * найденное, и он тоже, если подходит.
+ *
+ * 13 октября (по снимкам владельца):
+ * - в «Аудио» крупного выпуска нет («огромная плашка „Последнее“… пока её
+ *   убери вообще») — сразу поиск, переключатели и сетка, плитки крупнее;
+ * - видео — в пропорции 4:5, как в приложении и везде на сайте («мне нужно,
+ *   чтоб и в приложении и на сайте было одинаковое соотношение обложек»), и
+ *   крупная карточка по размеру обложки, а не во всю ширину;
+ * - у плиток нет «Поделиться»: при большом каталоге значок на каждой плитке
+ *   выглядит грязно, поделиться можно из плеера и с крупной карточки.
  * Телефон и планшет этот компонент не видят: им — прежний список карточек.
  */
 type Kind='podcast'|'video'|'story';
@@ -36,13 +45,15 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
  const types=kind==='podcast'?AUDIO_CATEGORIES.filter(c=>posts.some(p=>audioCategoryOf(p.audioCategory)===c)):[];
  const shown=newest.filter(p=>(type==='all'||audioCategoryOf(p.audioCategory)===type)&&(!needle||(p.title+' '+(p.description??'')).toLowerCase().includes(needle)));
  if(order==='old')shown.reverse();
+ // Крупная карточка последнего выпуска — в «Видео» и «Историях», в «Аудио» её нет.
+ const withFeature=kind!=='podcast';
  // Крупный выпуск не повторяется в сетке, пока смотрят всё подряд от новых.
- const grid=type==='all'&&order==='new'&&!needle?shown.slice(1):shown;
+ const grid=withFeature&&type==='all'&&order==='new'&&!needle?shown.slice(1):shown;
  const action=kind==='podcast'?t('post.listen'):kind==='video'?t('post.watch'):t('post.read');
  const Icon=kind==='podcast'?Headphones:kind==='video'?Video:BookOpen;
  if(!featured)return null;
  return <div className={'desk-section is-'+kind}>
-  {!needle&&<section className="desk-feature" aria-label={t('desk.latest')}>
+  {withFeature&&!needle&&<section className="desk-feature" aria-label={t('desk.latest')}>
    <button type="button" className="desk-feature-cover" aria-label={action+' · '+featured.title} onClick={()=>{haptic();onOpen(featured);}}>
     <Artwork src={coverSrc(featured,1280)} referrerPolicy="no-referrer" fallback={<span className="desk-feature-mark"><Icon size={48}/></span>}/>
     <span className="desk-tile-play" aria-hidden="true"><Play size={20} fill="currentColor"/></span>
@@ -68,6 +79,6 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
    <button type="button" className="desk-chip" aria-pressed={order==='old'} onClick={()=>setOrder('old')}>{t('catalog.sortOld')}</button>
   </div>}
   {needle&&!grid.length&&<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}
-  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} wide={kind==='video'} onOpen={onOpen} onShare={onShare}/>)}</div>}
+  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen}/>)}</div>}
  </div>;
 }

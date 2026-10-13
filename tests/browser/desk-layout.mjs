@@ -146,7 +146,7 @@ try{
    chips:document.querySelectorAll('.desk-home .desk-chip').length,rows:new Set(tiles.map(t=>Math.round(t.top))).size,
    sides:g&&tiles.length?[Math.round(Math.min(...tiles.map(t=>t.left))-g.left),Math.round(g.right-Math.max(...tiles.map(t=>t.right)))]:null,
    room:g&&tiles.length?Math.floor((g.width+18)/(tiles[0].width+18)):0,
-   nested:document.querySelectorAll('.desk-tile button button,.desk-tile-open .desk-tile-share').length,shares:document.querySelectorAll('.desk-fresh .desk-tile>.desk-tile-share').length,
+   nested:document.querySelectorAll('.desk-tile button button').length,shares:document.querySelectorAll('.desk-fresh .desk-tile .desk-tile-share').length,
    archiveTag:[...document.querySelectorAll('.desk-fresh .desk-tile')].find(t=>t.querySelector('strong')?.textContent==='Эфир у костра')?.querySelector('.desk-tag')?.textContent};});
   check(cat.blocks.length===1&&cat.blocks[0]==='Новое в True Thrills',at+'на главной не один блок каталога, а: '+cat.blocks.join(' | '));
   check(cat.chips===0,at+'у «Новое в True Thrills» снова переключатели разделов');
@@ -154,7 +154,7 @@ try{
   check(cat.rows===1,at+'«Новое в True Thrills» не в один ряд: рядов '+cat.rows);
   check(cat.titles.length===Math.min(8,cat.room),at+'в ряду '+cat.titles.length+' плиток, а влезает '+cat.room+' (и не больше восьми)');
   check(cat.sides&&Math.abs(cat.sides[0]-cat.sides[1])<=2,at+'ряд «Новое» не по центру: слева '+cat.sides?.[0]+', справа '+cat.sides?.[1]);
-  check(cat.nested===0&&cat.shares===cat.titles.length,at+'«Поделиться» у плиток не отдельной кнопкой: вложенных '+cat.nested+', кнопок '+cat.shares+' на '+cat.titles.length+' плиток');
+  check(cat.nested===0&&cat.shares===0,at+'у плиток «Новое» снова «Поделиться» или кнопка в кнопке: вложенных '+cat.nested+', «Поделиться» '+cat.shares);
   check(/запись эфира/i.test(cat.archiveTag??''),at+'запись эфира подписана не как запись: '+cat.archiveTag);
   // Разделы ровно по центру строки и не наезжают ни на знак канала, ни на кнопки.
   const head=await page.evaluate(()=>{const q=s=>document.querySelector(s)?.getBoundingClientRect();const tabs=q('.top-header .desk-tabs'),acts=q('.top-header .top-header-actions'),brand=q('.top-header .desk-brand'),main=q('.desk-home');
@@ -203,11 +203,11 @@ try{
    await page.locator('.desk-hero .desk-cta').click();await page.waitForTimeout(1200);await page.keyboard.press('Escape');await page.waitForTimeout(800);
    const withBar=await tileW(),barShown=await page.locator('.desk-player-bar').count();
    check(barShown===1&&before===withBar,at+'с плеером внизу плитки другого размера: '+before+' → '+withBar+(barShown?'':' (плеер не открылся)'));
-   // «Поделиться» у плитки делится, а не открывает выпуск.
+   // «Поделиться» на обложке делится, а не открывает выпуск (у плиток его нет).
    await page.evaluate(()=>{window.__shared=[];navigator.share=d=>{window.__shared.push(d.url||d.text||'');return Promise.resolve();};navigator.canShare=()=>true;});
-   await page.locator('.desk-fresh .desk-tile-share').first().click();await page.waitForTimeout(500);
+   await page.locator('.desk-banner-share').click();await page.waitForTimeout(500);
    const shared=await page.evaluate(()=>({n:document.querySelectorAll('.desk-player-open,.share-sheet,[role=dialog]').length,open:!!document.querySelector('.desk-player-open')}));
-   check(!shared.open,at+'«Поделиться» у плитки открыло плеер вместо того, чтобы поделиться');
+   check(!shared.open,at+'«Поделиться» на обложке открыло плеер вместо того, чтобы поделиться');
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
    // Плеер: полоса внизу, меню над ней.
    // Выпуск с обложкой: у записи эфира без обложки плеер рисует не картинку.
@@ -225,34 +225,43 @@ try{
     check(bar.toggle&&bar.slider,at+'в полосе плеера нет кнопки воспроизведения или полосы времени');}
   }
   if(w===1440){
-   // Раздел — витрина: крупно последний, переключатели, сетка.
+   // «Аудио» (13 октября): крупной карточки «Последнее» нет — поиск,
+   // переключатели и сетка всех выпусков; у плиток нет «Поделиться».
    await page.goto(base+'/?mode=listen&view=podcasts');await ready(page);
-   const shop=await page.evaluate(()=>({feature:document.querySelector('.desk-feature-title')?.textContent??'',cards:document.querySelectorAll('.post-card').length,
-    chips:[...document.querySelectorAll('.desk-chip')].map(c=>c.textContent),
+   const shop=await page.evaluate(()=>({feature:!!document.querySelector('.desk-feature'),cards:document.querySelectorAll('.post-card').length,
+    chips:[...document.querySelectorAll('.desk-chip')].map(c=>c.textContent),shares:document.querySelectorAll('.desk-tile .desk-tile-share,.desk-tile [aria-label^="Поделиться"]').length,
+    tile:Math.round(document.querySelector('.desk-grid>.desk-tile')?.getBoundingClientRect().width??0),search:Math.round(document.querySelector('.desk-section-search')?.getBoundingClientRect().width??0),
     cols:new Set([...document.querySelectorAll('.desk-grid>.desk-tile')].map(t=>Math.round(t.getBoundingClientRect().top))).size,tiles:document.querySelectorAll('.desk-grid>.desk-tile').length}));
-   check(shop.feature==='Ледник',at+'в «Аудио» крупно не последний выпуск: '+shop.feature);
+   check(!shop.feature,at+'в «Аудио» снова крупная карточка «Последнее»');
    check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
+   check(shop.shares===0,at+'у плиток снова «Поделиться»: '+shop.shares);
+   check(shop.tile>=210&&shop.search>=320,at+'плитки или поиск в разделе мелкие: плитка '+shop.tile+', поиск '+shop.search);
    check(!(await page.locator('.kinetic-grid').count()),at+'на ПК в разделе снова фон-сетка');
-   // Поиск — в разделе: находит в этом разделе, прячет крупный выпуск, очищается.
-   await page.fill('.desk-section-search input','обры');await page.waitForTimeout(250);
-   const found=await page.evaluate(()=>({titles:[...document.querySelectorAll('.desk-grid .desk-tile strong')].map(e=>e.textContent),feature:!!document.querySelector('.desk-feature')}));
-   check(found.titles.length===1&&found.titles[0]==='Обрыв'&&!found.feature,at+'поиск в разделе нашёл не то или крупный выпуск не ушёл: '+JSON.stringify(found));
-   await page.fill('.desk-section-search input','');await page.waitForTimeout(250);
-   check(await page.locator('.desk-feature').count()===1,at+'после очистки поиска в разделе крупный выпуск не вернулся');
-   const feat=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect(),f=document.querySelector('.desk-feature')?.getBoundingClientRect();return c&&f?{cover:Math.round(c.width),h:Math.round(f.height)}:null;});
-   check(feat&&feat.cover<=240&&feat.h<=h*0.45,at+'крупный выпуск раздела на пол-экрана: '+JSON.stringify(feat));
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
-   check(shop.tiles===titles.length-1,at+'в сетке '+shop.tiles+' плиток, ждали '+(titles.length-1)+' (все, кроме крупного)');
+   check(shop.tiles===titles.length,at+'в сетке '+shop.tiles+' плиток, ждали '+titles.length+' (все выпуски)');
    check(shop.cols<shop.tiles,at+'сетка витрины идёт одной колонкой');
+   // Поиск — в разделе: находит в этом разделе и очищается.
+   await page.fill('.desk-section-search input','обры');await page.waitForTimeout(250);
+   const found=await page.evaluate(()=>[...document.querySelectorAll('.desk-grid .desk-tile strong')].map(e=>e.textContent));
+   check(found.length===1&&found[0]==='Обрыв',at+'поиск в разделе нашёл не то: '+JSON.stringify(found));
+   await page.fill('.desk-section-search input','');await page.waitForTimeout(250);
+   check(await page.locator('.desk-grid>.desk-tile').count()===titles.length,at+'после очистки поиска в разделе вернулись не все выпуски');
    await page.locator('.desk-chip',{hasText:'Музыка'}).click();await page.waitForTimeout(200);
    const music=await page.evaluate(()=>[...document.querySelectorAll('.desk-grid .desk-tag')].map(e=>e.textContent));
    check(music.length===titles.filter((_,n)=>n%3===2).length&&music.every(x=>/музыка/i.test(x)),at+'«Музыка» показывает не только музыку: '+music.join(', '));
    await page.locator('.desk-chip',{hasText:'Все'}).click();await page.locator('.desk-chip',{hasText:'Сначала старые'}).click();await page.waitForTimeout(200);
    const oldest=await page.evaluate(()=>document.querySelector('.desk-grid .desk-tile strong')?.textContent);
    check(oldest==='Плот',at+'«Сначала старые» начинает не с первого выпуска: '+oldest);
+   // «Видео»: обложки 4:5, как в приложении и везде на сайте; крупная карточка
+   // по размеру обложки, не на пол-экрана и не во всю ширину.
    await page.goto(base+'/?mode=listen&view=videos');await ready(page);
-   const video=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect();return c?c.width/c.height:0;});
-   check(Math.abs(video-16/9)<0.02,at+'у видео крупная обложка не 16:9: '+video.toFixed(3));
+   const video=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect(),f=document.querySelector('.desk-feature')?.getBoundingClientRect(),
+    m=document.querySelector('.desk-section')?.getBoundingClientRect();
+    return c&&f&&m?{ratio:c.width/c.height,cover:Math.round(c.width),h:Math.round(f.height),w:Math.round(f.width),full:Math.round(m.width)}:null;});
+   check(video&&Math.abs(video.ratio-0.8)<0.02,at+'у видео крупная обложка не 4:5: '+JSON.stringify(video));
+   check(video&&video.cover<=240&&video.h<=h*0.45&&video.w<=1040&&video.w<video.full,at+'крупная карточка видео огромная: '+JSON.stringify(video));
+   // Подвал на ПК — без «Скачать приложение»: оно вверху и в полосе с QR-кодом.
+   check(!(await page.locator('.site-footer-app').count()),at+'в подвале на ПК снова «Скачать приложение»');
    // Вход для автора — только в программе для ПК, в браузере его нет.
    await page.goto(base+'/?mode=listen&view=settings');await ready(page);
    check(!(await page.locator('.listener-main a[href="/login"]').count()),at+'в настройках браузера снова вход для автора');
@@ -337,5 +346,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, «Поделиться» отдельной кнопкой); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; разделы — витрина с поиском, без фона-сетки и не на пол-экрана; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» — обложки 4:5 и карточка по размеру обложки; подвал ПК без «Скачать приложение»; разделы без фона-сетки; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

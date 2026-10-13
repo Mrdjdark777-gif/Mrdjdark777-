@@ -173,7 +173,7 @@
  --desk-avail:calc(100dvh - var(--desk-head) - 24px);
  --desk-bar:38px;                                    /* строка описания с промежутком */
  --desk-head-gap:16px;                               /* от заголовка блока до плиток */
- --desk-copy:68px;                                   /* подпись внутри карточки */
+ --desk-copy:64px;                                   /* подпись внутри карточки */
  --desk-shelf-fixed:calc(16px + 36px + var(--desk-head-gap) + var(--desk-copy)); /* промежуток до блока, заголовок блока, подпись */
  --desk-tile-h:calc(var(--desk-avail) - var(--desk-bw) / 4 - var(--desk-bar) - var(--desk-shelf-fixed));
  /* В ряд «Новое» всегда влезают хотя бы четыре плитки — иначе на невысоком
@@ -234,19 +234,14 @@
 .desk-tile-open:focus-visible{outline:none}
 /* Название — во всю ширину карточки; «Поделиться» стоит во второй строке,
    рядом с длительностью, и названию места не убавляет. */
-.desk-tile-copy{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px 8px}
+.desk-tile-copy{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px 12px}
 .desk-tile strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14.5px;font-weight:700;line-height:18px}
-.desk-tile-meta{display:block;font-size:12.5px;line-height:28px;padding-right:36px;color:#a4a8ae;font-variant-numeric:tabular-nums}
-.desk-tile-share{position:absolute;right:8px;bottom:8px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#a4a8ae;
- background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
-.desk-tile-share:hover{color:#f4f3f1;background:rgba(255,255,255,.1)}
-.desk-tile-share:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.desk-tile-meta{display:block;font-size:12.5px;line-height:20px;color:#a4a8ae;font-variant-numeric:tabular-nums}
 @media(hover:hover) and (pointer:fine){.desk-tile:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.16);box-shadow:0 20px 36px -8px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.1)}}
 @media(prefers-reduced-motion:reduce){.desk-tile,.desk-tile-play{transition:none}.desk-tile:hover{transform:none}}
 @media(max-height:859px){
  .desk-fresh .desk-tile-copy{padding:8px 10px 6px}
- .desk-fresh .desk-tile-meta{line-height:20px;padding-right:30px}
- .desk-fresh .desk-tile-share{width:24px;height:24px;right:6px;bottom:6px}
+ .desk-fresh .desk-tile-meta{line-height:20px}
 }
 
 /* Плеер полосой внизу экрана (свёрнутый). Перебивает телефонную мини-панель:
@@ -305,13 +300,12 @@
 .desk-section{display:flex;flex-direction:column;gap:28px;padding-top:6px}
 /* Крупный выпуск раздела — заметный, но не на пол-экрана (13 октября
    владелец: «одна вкладка на пол экрана, сделай их адекватного размера»):
-   обложка своей пропорции, ширина ограничена, справа название и кнопки. */
-.desk-feature{display:grid;grid-template-columns:minmax(0,clamp(300px,24vw,420px)) minmax(0,1fr);gap:36px;align-items:center;padding:22px;border-radius:24px;
+   обложка 4:5, как в приложении и во всех плитках (13 октября), карточка
+   по размеру обложки — не шире 1040 точек, справа название и кнопки. */
+.desk-feature{display:grid;grid-template-columns:minmax(0,clamp(170px,13vw,230px)) minmax(0,1fr);gap:36px;align-items:center;padding:22px 44px 22px 22px;border-radius:24px;width:fit-content;min-width:min(100%,620px);max-width:min(100%,1040px);
  background:linear-gradient(120deg,#162024 0%,#121619 60%,#101316 100%);border:1px solid #22292e}
-.desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,clamp(160px,12vw,220px)) minmax(0,1fr)}
-.desk-feature-cover{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#15191d;
+.desk-feature-cover{position:relative;display:block;width:100%;aspect-ratio:4/5;border-radius:20px;overflow:hidden;background:#15191d;
  box-shadow:0 30px 60px -28px rgba(0,0,0,.8)}
-.desk-section.is-podcast .desk-feature-cover,.desk-section.is-story .desk-feature-cover{aspect-ratio:4/5}
 .desk-feature-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
 .desk-feature-cover:hover img{transform:scale(1.03)}
 .desk-feature-cover:hover .desk-tile-play,.desk-feature-cover:focus-visible .desk-tile-play{opacity:1;transform:none}
@@ -326,17 +320,17 @@
 .desk-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .desk-chips-grow{flex:1}
 /* Поиск в разделе — первым в строке переключателей. */
-.desk-section-search{display:flex;align-items:center;gap:8px;width:250px;height:38px;padding:0 14px;border-radius:999px;background:#15191d;border:1px solid #2a2f35;color:#6f757c}
+.desk-section-search{display:flex;align-items:center;gap:10px;width:340px;height:44px;padding:0 16px;border-radius:999px;background:#15191d;border:1px solid #2a2f35;color:#6f757c}
 .desk-section-search:focus-within{border-color:#3c6965;color:var(--teal)}
-.desk-section-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;padding:0;color:#f4f3f1;font:inherit;font-size:14px}
+.desk-section-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;padding:0;color:#f4f3f1;font:inherit;font-size:15px}
 .desk-section-search input::placeholder{color:#6f757c}
 .desk-chip{height:38px;padding:0 16px;border-radius:999px;border:1px solid #2a2f35;background:#15191d;color:#a4a8ae;font-size:14px;font-weight:600;white-space:nowrap}
 .desk-chip:hover{color:#e6e8e9;border-color:#3a4147}
 .desk-chip[aria-pressed=true]{background:rgba(111,231,222,.12);border-color:#2f6a64;color:var(--teal)}
 .desk-chip:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .desk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:24px 20px;align-items:start}
-.desk-results .desk-grid{grid-template-columns:repeat(auto-fill,minmax(176px,220px))}
-.desk-section.is-video .desk-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.desk-tile.is-wide .desk-cover{aspect-ratio:16/9}
-@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px}
- .desk-section.is-podcast .desk-feature,.desk-section.is-story .desk-feature{grid-template-columns:minmax(0,160px) minmax(0,1fr)}}
+/* Плитки разделов крупнее, чем на главной (13 октября): каталог — главное на
+   этой странице. Видео — в той же пропорции 4:5, что и всё остальное. */
+.desk-section .desk-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:28px 22px}
+.desk-section .desk-tile strong{font-size:15.5px;line-height:20px}
+@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:24px}}

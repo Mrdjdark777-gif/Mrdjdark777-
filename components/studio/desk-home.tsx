@@ -42,34 +42,34 @@ import {Artwork} from './artwork';
 type Live={id:string;title:string;cover:boolean};
 export type DeskPost=ScenePost&{audioKey?:string|null;audioCategory?:string|null};
 
-/** Плитка выпуска: карточка с обложкой и подписью. Открывает выпуск вся
- *  карточка; «Поделиться» — отдельная кнопка рядом, не внутри первой, и
- *  видна всегда, а не только под мышью: с клавиатуры и пальцем тоже. */
-export function DeskTile<T extends DeskPost>({post,onOpen,onShare,wide}:{post:T;onOpen:(p:T)=>void;onShare?:(p:T)=>void;wide?:boolean}){
+/** Плитка выпуска: карточка с обложкой 4:5 и подписью, открывает выпуск вся
+ *  карточка. «Поделиться» на плитке нет (13 октября владелец: на каждой
+ *  плитке это «смотрится грязно») — оно в плеере, на обложке главной и на
+ *  крупной карточке раздела. */
+export function DeskTile<T extends DeskPost>({post,onOpen}:{post:T;onOpen:(p:T)=>void}){
  const {t,tag}=useT();
  const meta=post.duration>0?clock(post.duration):new Date(post.createdAt).toLocaleDateString(tag);
  // Запись эфира без выбранного автором типа — так и подписана, а не «Подкаст».
  const kind=post.kind==='podcast'&&isLiveArchive(post.audioKey)&&!audioCategoryOf(post.audioCategory)?'post.liveArchive':kindTagKey(post);
- return <article className={'desk-tile'+(wide?' is-wide':'')}>
+ return <article className="desk-tile">
   <button type="button" className="desk-tile-open" title={post.title} onClick={()=>{haptic();onOpen(post);}}>
    <span className="desk-cover">
-    <Artwork src={coverSrc(post,wide?640:480)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
+    <Artwork src={coverSrc(post,480)} loading="lazy" decoding="async" referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="72" height="72"/>}/>
     <span className="desk-tag">{t(kind)}</span>
     <span className="desk-tile-play" aria-hidden="true"><Play size={16} fill="currentColor"/></span>
    </span>
    <span className="desk-tile-copy"><strong>{post.title}</strong><span className="desk-tile-meta">{meta}</span></span>
   </button>
-  {onShare&&<button type="button" className="desk-tile-share" aria-label={t('share.action')+' · '+post.title} title={t('share.action')} onClick={()=>{haptic();onShare(post);}}><Share2 size={14}/></button>}
  </article>;
 }
 
 /** Блок плиток: заголовок (справа — переключатели, если есть) и сетка.
  *  Плитки переносятся на следующие ряды — блок показывает всё, что в нём есть. */
-export function DeskShelf<T extends DeskPost>({title,posts,onOpen,onShare,className,gridRef}:{title:string;posts:T[];onOpen:(p:T)=>void;onShare?:(p:T)=>void;className?:string;gridRef?:React.Ref<HTMLDivElement>}){
+export function DeskShelf<T extends DeskPost>({title,posts,onOpen,className,gridRef}:{title:string;posts:T[];onOpen:(p:T)=>void;className?:string;gridRef?:React.Ref<HTMLDivElement>}){
  if(!posts.length)return null;
  return <section className={'desk-shelf'+(className?' '+className:'')} aria-label={title}>
   <div className="desk-shelf-head"><h2>{title}</h2></div>
-  <div className="desk-grid" ref={gridRef}>{posts.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} onShare={onShare}/>)}</div>
+  <div className="desk-grid" ref={gridRef}>{posts.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen}/>)}</div>
  </section>;
 }
 
@@ -114,7 +114,7 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
   measure();const ro=new ResizeObserver(measure);ro.observe(el);return()=>ro.disconnect();
  },[candidates.length]);
  const fresh=candidates.slice(0,fit);
- const freshBlock=<DeskShelf className="desk-fresh" title={t('desk.freshTitle')} posts={fresh} onOpen={p=>onOpen(p)} onShare={onShare} gridRef={grid}/>;
+ const freshBlock=<DeskShelf className="desk-fresh" title={t('desk.freshTitle')} posts={fresh} onOpen={p=>onOpen(p)} gridRef={grid}/>;
  return <div className="desk-home">
   {live&&<button type="button" className="desk-onair" onClick={()=>{haptic();onOpenLive();}}>
    <span className="desk-onair-dot" aria-hidden="true"/><Radio size={20}/>

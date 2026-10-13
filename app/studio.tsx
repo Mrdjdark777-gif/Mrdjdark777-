@@ -548,7 +548,9 @@ export default function Studio(){
  {/* Без номера сборки и без «Поддержать» с подсветкой: владелец убрал их
      9 октября — номер слушателю ни о чём не говорит, а подсветка была лишней
      и срабатывала криво. Поддержка — сердечком вверху. */}
- {!shell&&<a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}</a>}
+ {/* На ПК ссылки в подвале нет: там «Приложение» вверху и полоса с QR-кодом
+     (владелец, 13 октября). */}
+ {!shell&&!desk&&<a className="site-footer-app" href={APP_RELEASE.href} download><AndroidMark size={16}/>{t('app.download')}</a>}
  <a className="site-footer-link" href="/privacy">{t('legal.privacy')}</a>
  <a className="site-footer-link" href="/rules">{t('legal.rules')}</a>
  <span className="site-footer-note">{t('app.footerNote')}</span>
