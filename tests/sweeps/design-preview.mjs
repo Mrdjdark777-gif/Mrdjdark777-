@@ -1553,8 +1553,10 @@ try{
     if(!playing.player)problems.push('запись эфира не включилась: плеера нет');
    }
    await page.goto(base+'/?mode=listen&view=live');await settle(page);}
-  // Большой экран: у слушателя нет колонки с подсказками автору, и без правки
-  // столбец эфира уезжал на 149 пикселей левее середины страницы.
+  // Большой экран (ПК с мышью): эфир — две колонки (14 октября владелец:
+  // телефонная раскладка посередине — «куча места везде без полезного»).
+  // Слева карточка эфира, справа архив эфиров, открытый сразу; обе колонки
+  // по ширине содержимого, круг заметный, но не на пол-экрана.
   // Монитор — окно ПК с мышью: растянутый телефон теперь планшет, и у него
   // своя раскладка приложения.
   const monitor=await browser.newContext({viewport:{width:1280,height:900}});
@@ -1562,17 +1564,17 @@ try{
   await screen.goto(base+'/?mode=listen&view=live');await settle(screen);
   for(const width of [1280,1920]){
    await screen.setViewportSize({width,height:900});await screen.waitForTimeout(200);
-   const wide=await screen.evaluate(()=>{const mid=e=>{const r=e.getBoundingClientRect();return r.left+r.width/2;};
-    const main=document.querySelector('.main-content'),stage=document.querySelector('.live-stage'),
-     card=document.querySelector('.live-archive-card'),rings=document.querySelector('.live-rings');
-    if(!main||!stage||!card||!rings)return null;
-    return {off:Math.round(Math.abs(mid(main)-mid(stage))),card:Math.round(card.getBoundingClientRect().width),
-     ring:Math.round(rings.getBoundingClientRect().width)};});
-   if(!wide)problems.push('эфир '+width+': экран не найден');
+   const wide=await screen.evaluate(()=>{const box=s=>document.querySelector(s)?.getBoundingClientRect();
+    const main=box('.listener-main'),desk=box('.live-desk'),stage=box('.live-desk-stage'),side=box('.live-desk-archive'),rings=box('.live-desk .live-rings');
+    if(!main||!desk||!stage||!side||!rings)return null;
+    return {mid:Math.round(Math.abs((desk.left+desk.right)/2-(main.left+main.right)/2)),side:Math.round(side.left-stage.right),
+     ring:Math.round(rings.width),list:!!document.querySelector('.live-desk-archive .live-archive-list')};});
+   if(!wide)problems.push('эфир '+width+': экран эфира для ПК не найден (две колонки .live-desk)');
    else{
-    if(wide.off>2)problems.push('эфир '+width+': столбец смещён от середины страницы на '+wide.off+'px');
-    if(wide.card>620)problems.push('эфир '+width+': карточка архива растянута на '+wide.card+'px');
-    if(wide.ring<320)problems.push('эфир '+width+': круг всего '+wide.ring+'px на мониторе');
+    if(wide.mid>2)problems.push('эфир '+width+': колонки смещены от середины страницы на '+wide.mid+'px');
+    if(wide.side<16)problems.push('эфир '+width+': архив не справа от карточки эфира (зазор '+wide.side+'px)');
+    if(wide.ring<200||wide.ring>300)problems.push('эфир '+width+': круг '+wide.ring+'px — нужен заметный, но не на пол-экрана');
+    if(!wide.list)problems.push('эфир '+width+': архив эфиров не открыт сразу');
    }}
   await monitor.close();
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
