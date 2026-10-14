@@ -187,6 +187,7 @@ export const ru = {
   'desk.appPoint2': 'Уведомления об эфирах и новых выпусках',
   'desk.appPoint3': 'Без рекламы и регистрации',
   'desk.sectionSearch': 'Поиск в разделе',
+  'live.deskIdleTitle': 'Сейчас эфира нет',
   'desk.freshTitle': 'Новое в True Thrills',
   'desk.railAria': 'Приложение и соцсети',
   "desk.appTitle": "Приложение для Android",

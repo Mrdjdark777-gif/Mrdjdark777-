@@ -188,6 +188,7 @@ export const it: Record<keyof typeof ru, string> = {
   'desk.appPoint2': 'Notifiche su dirette e nuovi episodi',
   'desk.appPoint3': 'Senza pubblicità né registrazione',
   'desk.sectionSearch': 'Cerca nella sezione',
+  "live.deskIdleTitle": "Ora non c'è nessuna diretta",
   'desk.freshTitle': 'Novità su True Thrills',
   'desk.railAria': 'App e social',
   "desk.appTitle": "App per Android",

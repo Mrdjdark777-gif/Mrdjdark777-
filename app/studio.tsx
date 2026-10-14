@@ -395,7 +395,7 @@ export default function Studio(){
  {live.hosting?<><div className="broadcast-summary"><Headphones size={20}/><strong>{live.listeners}</strong><span>{live.listeners?t('live.listenersConnected'):t('live.waitingFirst')}</span></div><div className="listener-link-actions"><a className="secondary-button" href="/?mode=listen&view=live" target="_blank" rel="noopener noreferrer"><Eye size={17}/>{t('live.openListener')}</a><button className="quiet-button" onClick={()=>void share(viewPath('live'),t('share.live'))}>{t('share.action')}</button></div><button className="primary-button stop-live-button" disabled={live.connecting} onClick={()=>void stopLive()}><Square size={17}/>{live.connecting?t('liveArchive.saving'):t('live.stop')}</button></>:<div className="preflight-actions"><button className="secondary-button" disabled={capture.busy||live.connecting||capture.recording} onClick={()=>capture.ready?capture.release():void capture.connect()}><Volume2 size={17}/>{capture.busy?t('live.connectingShort'):capture.ready?t('live.stopCheck'):t('live.checkMic')}</button><button className="primary-button" disabled={live.connecting||capture.recording||capture.busy||capture.discovering} onClick={()=>void startLive()}>{live.connecting?<Loader2 className="spin" size={18}/>:<Radio size={18}/>}{t('live.start')}</button></div>}
  {liveStatus&&!live.hosting&&<button className="quiet-button" onClick={()=>void run(async()=>{await api('live',{action:'stop',id:liveStatus!.id});await refreshLive();},t('live.stopped'))}>{t('live.stopFromOtherWindow')}</button>}
  </>:<>
- <LiveStageView levels={live.levels} calmSrc={calmSrc} about={liveStatus?.description??''} title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
+ <LiveStageView desk={desk} comments={desk&&liveStatus?<LiveComments liveId={liveStatus.id}/>:undefined} levels={live.levels} calmSrc={calmSrc} about={liveStatus?.description??''} title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
   cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
   elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>{if(v)setArchiveQuery('');return !v;})} archiveOpen={archiveOpen}
   archive={<div className="live-archive-list">
@@ -419,7 +419,7 @@ export default function Studio(){
   shareAction={<button type="button" className="live-share tt-pressable" onClick={()=>{haptic();void share(viewPath('live'),t('share.live'));}}><Share2 size={17}/>{t('share.action')}</button>}
   volume={live.joined?<div className="listener-volume"><label htmlFor="live-volume"><Volume2 size={18}/><span>{live.volume}%</span></label><Slider id="live-volume" aria-label={t('live.volumeAria')} value={[live.volume]} min={0} max={100} step={1} onValueChange={v=>live.setVolume(v[0])}/></div>:null}
   support={heartLink?<DonationGlow plate><a className="support-strip tt-pressable" href={heartLink.url} target="_blank" rel="noopener noreferrer"><HeartBeam size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.supportLiveNote')}</span></span><ChevronRight size={18}/></a></DonationGlow>:<span className="support-strip is-empty"><HeartBeam size={19}/><span className="support-strip-copy"><strong className="support-strip-label">{t('donate.supportLive')}</strong><span>{t('donate.unavailable')}</span></span></span>}/>
- {!author&&liveStatus&&<LiveComments liveId={liveStatus.id}/>}
+ {!author&&!desk&&liveStatus&&<LiveComments liveId={liveStatus.id}/>}
  {live.listening&&live.volume===0&&<div className="receiving-status">{t('live.volumeOff')}</div>}
  {live.joined&&<button className="quiet-button live-leave" onClick={live.leave}><LogOut size={18}/>{t('live.leave')}</button>}
 
@@ -540,9 +540,11 @@ export default function Studio(){
      (размытой, потом затемнённой), и владелец решил: «верни тот фон, что был
      до этого, без этой анимации, просто обычный статичный фон». В студии фон
      не нужен вовсе: там работают. */}
- {/* Фон-сетка — только на телефоне и планшете: на ПК она спорила с обложками
-     (пакет редизайна ПК, 12 октября). */}
- {!author&&!desk&&view!=='home'&&data&&!data.needsSetup&&<KineticGrid/>}
+ {/* Фон-сетка — как на телефоне. На ПК — на всех страницах, и на главной
+     тоже (владелец, 14 октября: «поставь фон на сайте такой же, как на
+     телефоне, и даже на главной»); 12 октября её убирали по пакету
+     редизайна. На телефоне главная остаётся без сетки — там свой кадр. */}
+ {!author&&(desk||view!=='home')&&data&&!data.needsSetup&&<KineticGrid/>}
  {!author&&data&&!data.needsSetup&&<footer className="site-footer">
  <span className="site-footer-brand"><img src="/brand/logo.png?v=0.4.1" width="28" height="28" alt=""/>True Thrills</span>
  {/* Без номера сборки и без «Поддержать» с подсветкой: владелец убрал их

@@ -158,6 +158,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "desk.appPoint2": "Notificări despre transmisiuni live și episoade noi",
   "desk.appPoint3": "Fără reclame și fără înregistrare",
   "desk.sectionSearch": "Caută în secțiune",
+  "live.deskIdleTitle": "Acum nu e nicio transmisiune",
   "desk.freshTitle": "Noutăți pe True Thrills",
   "desk.railAria": "Aplicația și rețelele sociale",
   "desk.appTitle": "Aplicația pentru Android",

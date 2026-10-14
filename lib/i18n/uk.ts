@@ -158,6 +158,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "desk.appPoint2": "Сповіщення про ефіри й нові випуски",
   "desk.appPoint3": "Без реклами й реєстрації",
   "desk.sectionSearch": "Пошук у розділі",
+  "live.deskIdleTitle": "Зараз ефіру немає",
   "desk.freshTitle": "Нове в True Thrills",
   "desk.railAria": "Застосунок і соцмережі",
   "desk.appTitle": "Застосунок для Android",

@@ -11,7 +11,10 @@
    настройки; содержимое по центру шириной до 1680; плеер полосой внизу.
    ========================================================================== */
 .desk-tabs,.desk-brand,.desk-app-pop{display:none}
-.is-desk{--desk-player:0px;--desk-pad:44px;background:#101316}
+.is-desk{--desk-player:0px;--desk-pad:44px;background:var(--background)}
+/* Фон-сетка (KineticGrid) лежит под содержимым, как на телефоне: содержимое
+   и подвал поднимаем над ней. */
+.is-desk>.main-content,.is-desk>.site-footer{position:relative;z-index:1}
 :root:has(.desk-player-bar) .is-desk{--desk-player:88px}
 .is-desk .bottom-nav{display:none!important}
 .desk-live-pill{margin-left:2px;font-size:10px;letter-spacing:.12em;font-weight:700;color:#6f757c;border:1px solid #2a2f35;padding:3px 7px;border-radius:999px;white-space:nowrap}
@@ -335,3 +338,51 @@
 .desk-section .desk-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:28px 22px}
 .desk-section .desk-tile strong{font-size:15.5px;line-height:20px}
 @media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:24px}}
+
+/* Эфир на ПК (14 октября): две колонки вместо телефонной стопки посередине.
+   Слева — карточка эфира (круг-лампа, состояние, кнопка, громкость,
+   поддержка; без эфира — дыхание компактно), справа — архив эфиров открытым
+   и комментарии во время эфира. Разметка — LiveStageView с desk. */
+.is-desk .listener-main .live-main-panel{max-width:none;width:100%;padding:0;border:0;background:none;box-shadow:none}
+.is-desk .listener-main .live-layout{display:block}
+.live-desk{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:start;width:100%;padding-top:8px}
+.live-desk-stage,.live-desk-archive{border-radius:26px;border:1px solid #22302f;
+ background:radial-gradient(120% 90% at 0% 0%,rgba(111,231,222,.08),transparent 60%),linear-gradient(160deg,rgba(22,30,34,.92),rgba(15,20,23,.92));
+ box-shadow:0 30px 60px -36px rgba(0,0,0,.8),inset 0 1px rgba(255,255,255,.05)}
+.live-desk-stage{display:grid;grid-template-columns:auto minmax(0,1fr);gap:36px;align-items:center;padding:34px}
+.is-desk .live-desk .live-rings{width:clamp(200px,17vw,280px);height:clamp(200px,17vw,280px);margin:0}
+.live-desk-copy{display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-width:0;text-align:left}
+.live-desk-copy .live-stage-name{margin:0;font-family:var(--font-editorial),Georgia,serif;font-size:clamp(26px,2vw,36px);line-height:1.15;text-align:left}
+.live-desk-copy .live-stage-sub,.live-desk-copy .live-stage-about,.live-desk-copy .live-stage-hint{margin:0;text-align:left;color:#b4bcc1;font-size:15px;line-height:1.55}
+.live-desk-copy .live-stage-clock{margin:0;justify-content:flex-start}
+.live-desk-copy .live-cta{width:auto;min-width:220px;height:50px;padding:0 28px;margin-top:4px}
+.live-desk-copy .listener-volume{width:100%;max-width:360px;margin:0}
+.live-desk-copy .live-share{margin:0}
+.live-desk-copy .support-strip,.live-desk-copy .live-stage-support-missing{width:100%;max-width:440px;margin-top:6px}
+/* Дыхание без эфира — тихая подсказка под текстом, а не центр страницы. */
+.live-desk-breath{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);max-width:440px}
+.live-desk-breath .breath-guide{margin:0;justify-content:flex-start}
+.live-desk-breath .breath-note{margin:0;text-align:left;font-size:13.5px;line-height:1.55;color:#9aa5ab}
+/* Правая колонка: комментарии во время эфира и архив. */
+.live-desk-side{display:flex;flex-direction:column;gap:20px;min-width:0}
+.live-desk-archive{display:flex;flex-direction:column;gap:14px;padding:24px}
+.live-desk-archive-head{display:flex;align-items:center;gap:14px}
+.live-desk-archive-head .live-archive-copy{display:flex;flex-direction:column;gap:3px}
+.live-desk-archive-head strong{font-size:19px;color:#f4f3f1}
+.live-desk-archive-head .live-archive-copy span{font-size:13.5px;color:#a4a8ae}
+.live-desk-archive .live-archive-list{max-height:min(62vh,640px);overflow:auto}
+/* «Поделиться» у каждой записи на ПК не показываем — как и у плиток
+   (владелец, 13 октября: на каждой строке это «смотрится грязно»); записью
+   делятся из плеера. */
+.is-desk .live-desk .live-archive-share{display:none}
+@media(max-width:1279px){
+ .live-desk{grid-template-columns:minmax(0,1fr)}
+ .live-desk-stage{grid-template-columns:auto minmax(0,1fr);padding:26px}
+}
+/* Строка поддержки в карточке эфира — как на телефоне: значок, название и
+   подпись под ним, стрелка (правила телефона привязаны к .live-stage). */
+.live-desk .support-strip{min-height:64px;padding:10px 14px}
+.live-desk .support-strip>svg:first-child{width:38px;height:38px;padding:9px;border-radius:12px;background:rgba(111,231,222,.12);flex:none}
+.live-desk .support-strip .support-strip-copy{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;text-align:left}
+.live-desk .support-strip .support-strip-label{font-size:15px;font-weight:600;flex:none}
+.live-desk .support-strip .support-strip-copy>span{font-size:12.5px;line-height:1.35;color:#9aa5ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
