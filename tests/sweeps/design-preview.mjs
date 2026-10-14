@@ -1573,7 +1573,8 @@ try{
    else{
     if(wide.mid>2)problems.push('эфир '+width+': эфир смещён от середины страницы на '+wide.mid+'px');
     if(wide.below<24)problems.push('эфир '+width+': архив не под карточкой эфира (зазор '+wide.below+'px)');
-    if(wide.ring<200||wide.ring>300)problems.push('эфир '+width+': круг '+wide.ring+'px — нужен заметный, но не на пол-экрана');
+    // Круг растёт с высотой окна (14 октября: «на любом размере дисплея одинаково»).
+    if(wide.ring<900*0.18||wide.ring>900*0.27)problems.push('эфир '+width+': круг '+wide.ring+'px при высоте окна 900 — нужен около пятой части высоты');
     if(!wide.tiles)problems.push('эфир '+width+': архив эфиров не плитками');
    }}
   await monitor.close();
