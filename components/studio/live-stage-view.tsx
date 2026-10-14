@@ -53,14 +53,16 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  // дня: «самая бедная… сделать архив эфиров как список во вкладке музыка,
  // чтоб были видны обложки, описание… снизу отдельной колонкой… в одной
  // стилистике с другими страницами». Поэтому:
- // - сверху одна карточка эфира во всю ширину, в три части: круг-лампа,
- //   состояние словами с кнопкой «Слушать», громкостью и «Поделиться», справа
- //   колонка — комментарии во время эфира, без эфира дыхание, и поддержка;
+ // - сверху одна карточка эфира во всю ширину: круг-лампа, состояние словами
+ //   с кнопкой «Слушать», громкостью и «Поделиться»; во время эфира справа
+ //   колонка — комментарии и поддержка; без эфира под заголовком рядом с
+ //   кругом подсказка дыхания и поддержка в ряд;
  // - ниже архив эфиров — раздел, как «Аудио»: заголовок, поиск, порядок и
  //   плитки с обложкой, описанием, датой и длительностью (archive собирает
  //   app/studio.tsx из DeskSection).
  // Состояния (эфира нет, подключение, играет, пауза, ошибка) — те же, что на
  // телефоне: их решает lib/live-stage, а не разметка.
+ const supportNode=support??<span className="live-stage-support-missing"><HeartBeam size={17}/>{t('donate.unavailable')}</span>;
  if(desk)return <div className={'live-desk'+(calm?' is-calm':' is-live')}>
   <section className="live-desk-stage" aria-label={t('nav.live')}>
    <div className={'live-rings'+(pulsing?' is-pulsing':'')+(calm?' is-calm':'')}>
@@ -95,17 +97,23 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
     </div>}
     {volume}
     {hint&&<p className="live-stage-hint">{hint}</p>}
-   </div>
-   <aside className="live-desk-side">
-    {!calm&&comments}
-    {calm&&<div className="live-desk-breath">
-     <p className="breath-guide" aria-hidden="true">
-      <span>{t('breath.in')}</span><span>{t('breath.hold')}</span><span>{t('breath.out')}</span><span>{t('breath.hold')}</span>
-     </p>
-     <p className="breath-note">{t('breath.note')}</p>
+    {/* Без эфира подсказка дыхания стоит рядом с кругом, под заголовком:
+        круг дышит, и связь видна сразу (14 октября владелец: в правой
+        колонке «уже непонятно, причём здесь»). Поддержка — с ней в ряд. */}
+    {calm&&<div className="live-desk-calm">
+     <div className="live-desk-breath">
+      <p className="breath-guide" aria-hidden="true">
+       <span>{t('breath.in')}</span><span>{t('breath.hold')}</span><span>{t('breath.out')}</span><span>{t('breath.hold')}</span>
+      </p>
+      <p className="breath-note">{t('breath.note')}</p>
+     </div>
+     {supportNode}
     </div>}
-    {support??<span className="live-stage-support-missing"><HeartBeam size={17}/>{t('donate.unavailable')}</span>}
-   </aside>
+   </div>
+   {!calm&&<aside className="live-desk-side">
+    {comments}
+    {supportNode}
+   </aside>}
   </section>
   <section className="live-desk-archive" aria-label={t('live.archiveTitle')}>
    <div className="live-desk-archive-head">

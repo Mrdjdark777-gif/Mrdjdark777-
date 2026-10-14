@@ -235,11 +235,12 @@ try{
    // как «Аудио»: поиск и плитки с обложкой, описанием, датой и длительностью.
    await page.goto(base+'/?mode=listen&view=live');await ready(page);
    const air=await page.evaluate(()=>{const box=q=>document.querySelector(q)?.getBoundingClientRect();
-    const st=box('.live-desk-stage'),ar=box('.live-desk-archive'),copy=box('.live-desk-copy'),side=box('.live-desk-side');
+    const st=box('.live-desk-stage'),ar=box('.live-desk-archive'),side=box('.live-desk-side');
     const label=box('.live-desk .support-strip-label'),note=box('.live-desk .support-strip-copy>span');
     const tile=document.querySelector('.live-desk-archive .desk-grid>.desk-tile');
     return {stage:!!st,archive:!!ar,below:st&&ar?Math.round(ar.top-st.bottom):null,widths:st&&ar?[Math.round(st.width),Math.round(ar.width)]:null,
-     sideRight:copy&&side?side.left>=copy.right:null,breathInSide:!!document.querySelector('.live-desk-side .live-desk-breath'),
+     breathNear:(()=>{const r=box('.live-desk .live-rings'),b=box('.live-desk-copy .live-desk-breath'),sp=box('.live-desk-calm .support-strip');return !!(r&&b&&sp&&b.left-r.right<=120&&b.left>r.right&&Math.abs((sp.top+sp.bottom)/2-(b.top+b.bottom)/2)<40);})(),
+     noSide:!side,
      phoneList:document.querySelectorAll('.live-desk .live-archive-list,.live-desk .live-archive-card').length,
      tiles:document.querySelectorAll('.live-desk-archive .desk-grid>.desk-tile').length,tag:tile?.querySelector('.desk-tag')?.textContent??'',
      about:tile?.querySelector('.desk-tile-note')?.textContent??'',meta:tile?.querySelector('.desk-tile-meta')?.textContent??'',
@@ -249,7 +250,18 @@ try{
      phone:!!document.querySelector('.live-stage:not(.live-desk)')};});
    check(air.stage&&air.archive&&air.below!==null&&air.below>=24&&!air.phone,at+'эфир на ПК: архив не под карточкой эфира: '+JSON.stringify(air));
    check(air.widths&&Math.abs(air.widths[0]-air.widths[1])<=2,at+'карточка эфира не во всю ширину архива: '+JSON.stringify(air.widths));
-   check(air.sideRight&&air.breathInSide,at+'в карточке эфира без эфира дыхание и поддержка не справа от текста: '+JSON.stringify(air));
+   check(air.breathNear&&air.noSide,at+'без эфира подсказка дыхания не рядом с кругом или поддержка не с ней в ряд: '+JSON.stringify(air));
+   // Карточка эфира и первый ряд записей — на первом экране при любом окне,
+   // от ноутбука с панелями браузера до 2560 (14 октября владелец: «чтоб
+   // помещались на экран… на любом размере дисплея выглядело одинаково»).
+   for(const [fw,fh] of [[1366,657],[1536,730],[1920,945],[2560,1305]]){
+    await page.setViewportSize({width:fw,height:fh});await page.waitForTimeout(400);
+    const fit=await page.evaluate(()=>{const t=document.querySelector('.live-desk-archive .desk-grid>.desk-tile')?.getBoundingClientRect(),r=document.querySelector('.live-desk .live-rings')?.getBoundingClientRect();
+     return t&&r?{bottom:Math.round(t.bottom),width:Math.round(t.width),ring:Math.round(r.width),h:innerHeight,scroll:Math.round(scrollY)}:null;});
+    check(fit&&fit.scroll===0&&fit.bottom<=fit.h&&fit.width>=140,at+'эфир '+fw+'×'+fh+': первый ряд записей не на первом экране или плитка мельче 140: '+JSON.stringify(fit));
+    check(fit&&fit.ring>=fh*0.18&&fit.ring<=fh*0.27,at+'эфир '+fw+'×'+fh+': круг не в пропорции к окну: '+JSON.stringify(fit));
+   }
+   await page.setViewportSize({width:w,height:h});await page.waitForTimeout(300);
    check(air.phoneList===0&&air.tiles===1&&air.tag==='Запись эфира',at+'архив эфиров на ПК не плитками, как «Аудио»: '+JSON.stringify(air));
    check(air.about==='Запись эфира.'&&/\d{2}\.\d{2}\.\d{4} · /.test(air.meta),at+'на плитке записи нет описания или даты с длительностью: '+JSON.stringify(air));
    check(air.search==='Поиск по записям',at+'в архиве эфиров нет своего поиска: «'+air.search+'»');
@@ -415,5 +427,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка во всю ширину, архив ниже плитками с описанием; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка во всю ширину, дыхание рядом с кругом, архив ниже плитками с описанием, первый ряд на первом экране от 1366×657 до 2560×1305; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

@@ -1,5 +1,5 @@
 'use client';
-import {useState} from 'react';
+import {useLayoutEffect,useRef,useState} from 'react';
 import {Search} from 'lucide-react';
 import {AUDIO_CATEGORIES,audioCategoryOf,type AudioCategory} from '@/lib/audio-category';
 import {useT} from '@/components/i18n-provider';
@@ -40,6 +40,34 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
   .filter(p=>(type==='all'||audioCategoryOf(p.audioCategory)===type)&&(!needle||(p.title+' '+(p.description??'')).toLowerCase().includes(needle)));
  if(order==='old')grid.reverse();
  const search=kind==='live'?t('live.archiveSearch'):t('desk.sectionSearch');
+ // Архив эфиров (14 октября владелец: «плашки… немного меньше, чтоб они
+ // помещались на экран… адаптивным, чтоб на любом размере дисплея это
+ // выглядело одинаково»): ширина плитки считается от высоты окна так, чтобы
+ // карточка эфира и первый ряд записей целиком стояли на первом экране.
+ // Плеер внизу в расчёт не входит — как и на главной: с ним страница
+ // докручивается на его высоту, а плитки не прыгают.
+ const gridRef=useRef<HTMLDivElement>(null);
+ useLayoutEffect(()=>{
+  const g=gridRef.current;if(kind!=='live'||!g)return;
+  const count=g.children.length;
+  const fit=()=>{
+   const top=g.getBoundingClientRect().top+window.scrollY;
+   const copy=(g.querySelector('.desk-tile-copy') as HTMLElement|null)?.offsetHeight??110;
+   const cover=window.innerHeight-top-copy-20;
+   const want=Math.min(240,Math.max(140,cover*0.8));
+   // Ряд заполняет ширину ровно: колонок столько, чтобы плитка была не
+   // больше рассчитанной, — без рваного зазора справа.
+   const gap=20,width=g.clientWidth;
+   let n=Math.max(1,Math.ceil((width+gap)/(want+gap)));
+   if(n>1&&(width-(n-1)*gap)/n<140)n--;
+   // Записей меньше, чем влезает в ряд, — растягивать нечего: плитки своего размера.
+   g.style.setProperty('--live-tile',(count<n?Math.floor(want):Math.floor((width-(n-1)*gap)/n))+'px');
+  };
+  fit();
+  const ro=new ResizeObserver(fit);ro.observe(document.documentElement);
+  window.addEventListener('resize',fit);
+  return ()=>{ro.disconnect();window.removeEventListener('resize',fit);};
+ },[kind,grid.length]);
  if(!posts.length)return null;
  return <div className={'desk-section is-'+kind}>
  {/* Поиск — в каждом разделе всегда, даже при одном выпуске (владелец,
@@ -58,6 +86,6 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
    </>}
   </div>
   {needle&&!grid.length&&<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}
-  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} note={kind==='live'}/>)}</div>}
+  {grid.length>0&&<div className="desk-grid" ref={gridRef}>{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} note={kind==='live'}/>)}</div>}
  </div>;
 }
