@@ -113,9 +113,6 @@
  font-weight:700;font-size:15px;box-shadow:0 10px 30px -10px rgba(111,231,222,.6);white-space:nowrap}
 .desk-cta:hover{background:#8ff0e8}
 .desk-cta-time{font-variant-numeric:tabular-nums;opacity:.85}
-.desk-ghost{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:999px;background:rgba(255,255,255,.07);
- border:1px solid rgba(255,255,255,.14);color:#f4f3f1;font-weight:600;font-size:15px;white-space:nowrap}
-.desk-ghost:hover{background:rgba(255,255,255,.12)}
 
 /* Главная: обложка с кнопкой действия, строка описания, ряд «Новое» */
 .desk-home{display:flex;flex-direction:column;gap:34px;padding-top:4px}
@@ -201,12 +198,9 @@
 .desk-fresh .desk-grid{grid-template-columns:repeat(auto-fit,var(--desk-tile));justify-content:center;gap:0 18px}
 .desk-fresh .desk-tile strong{-webkit-line-clamp:1}
 
-.desk-hero-copy{min-width:0;flex:1}
-.desk-eyebrow{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#a4a8ae;font-weight:700}
 .desk-hero-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(30px,2.4vw,44px);line-height:1.1;font-weight:600;margin:8px 0 6px;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .desk-hero-note{font-size:15px;line-height:1.55;color:#bfc3c8;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:820px}
-.desk-hero-actions{display:flex;gap:12px;flex:none}
 .desk-hero.is-empty{padding:80px 0;text-align:center}
 .desk-resume{display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:16px;border:1px solid #2a2f35;background:#15191d;color:#a4a8ae;text-align:left;font-size:14px}
 .desk-resume strong{color:#f4f3f1;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -298,33 +292,15 @@
 .podcast-player.desk-player-open .player-next{padding:20px;border-radius:22px;background:rgba(12,15,18,.55);border:1px solid rgba(255,255,255,.08)}
 
 
-/* Раздел на ПК — витрина (9 октября): крупно последний выпуск, переключатели,
-   сетка плиток. Плитки те же, что на главной; видео — 16:9. */
+/* Раздел на ПК — витрина: поиск и переключатели, ниже сетка плиток всех
+   выпусков. Крупной карточки «Последнее» нет ни в одном разделе (14 октября). */
 .desk-section{display:flex;flex-direction:column;gap:28px;padding-top:6px}
-/* Крупный выпуск раздела — заметный, но не на пол-экрана (13 октября
-   владелец: «одна вкладка на пол экрана, сделай их адекватного размера»):
-   обложка 4:5, как в приложении и во всех плитках (13 октября), карточка
-   по размеру обложки и текста — не шире 860 точек («плашка слишком
-   растянута»), справа название и кнопки. */
-.desk-feature{display:grid;grid-template-columns:minmax(0,clamp(150px,10vw,190px)) minmax(0,1fr);gap:30px;align-items:center;padding:18px 40px 18px 18px;border-radius:22px;width:fit-content;max-width:min(100%,860px);
- background:linear-gradient(120deg,#162024 0%,#121619 60%,#101316 100%);border:1px solid #22292e}
-.desk-feature-cover{position:relative;display:block;width:100%;aspect-ratio:4/5;border-radius:20px;overflow:hidden;background:#15191d;
- box-shadow:0 30px 60px -28px rgba(0,0,0,.8)}
-.desk-feature-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
-.desk-feature-cover:hover img{transform:scale(1.03)}
-.desk-feature-cover:hover .desk-tile-play,.desk-feature-cover:focus-visible .desk-tile-play{opacity:1;transform:none}
-.desk-feature-cover .desk-tile-play{width:56px;height:56px;right:16px;bottom:16px}
-.desk-feature-cover:focus-visible{outline:2px solid var(--teal);outline-offset:4px}
-.desk-feature-mark{position:absolute;inset:0;display:grid;place-items:center;color:#3c6965}
-.desk-feature-copy{display:flex;flex-direction:column;gap:12px;min-width:0}
-.desk-feature-title{font-family:var(--font-editorial),Georgia,serif;font-size:clamp(24px,1.7vw,34px);line-height:1.08;font-weight:600;margin:4px 0 0;
- display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.desk-feature-note{font-size:15.5px;line-height:1.6;color:#bfc3c8;margin:0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;max-width:640px}
-.desk-feature .desk-hero-actions{margin-top:10px;flex-wrap:wrap}
 .desk-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .desk-chips-grow{flex:1}
-/* Поиск в разделе — первым в строке переключателей. */
-.desk-section-search{display:flex;align-items:center;gap:10px;width:min(460px,100%);height:44px;padding:0 16px;border-radius:999px;background:#15191d;border:1px solid #2a2f35;color:#6f757c}
+/* Поиск в разделе — первым в строке переключателей, над плитками; одинаковый
+   во всех разделах (14 октября владелец: «длиннее… так же, как во вкладке
+   аудио»). */
+.desk-section-search{display:flex;align-items:center;gap:10px;width:min(560px,100%);height:48px;padding:0 16px;border-radius:999px;background:#15191d;border:1px solid #2a2f35;color:#6f757c}
 .desk-section-search:focus-within{border-color:#3c6965;color:var(--teal)}
 .desk-section-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;padding:0;color:#f4f3f1;font:inherit;font-size:15px}
 .desk-section-search input::placeholder{color:#6f757c}
@@ -337,7 +313,6 @@
    этой странице. Видео — в той же пропорции 4:5, что и всё остальное. */
 .desk-section .desk-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:28px 22px}
 .desk-section .desk-tile strong{font-size:15.5px;line-height:20px}
-@media(max-width:1279px){.desk-feature{grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:24px}}
 
 /* Эфир на ПК (14 октября): две колонки вместо телефонной стопки посередине.
    Слева — карточка эфира (круг-лампа, состояние, кнопка, громкость,

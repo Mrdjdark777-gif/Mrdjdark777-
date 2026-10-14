@@ -599,7 +599,7 @@ try{
   const ctx=await browser.newContext({viewport:{width:w,height:h}});
   const eq=cookie.indexOf('=');await ctx.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),url:base}]);
   const page=await ctx.newPage();
-  for(const [name,view,id,n] of [['аудио','podcasts',ids.pod1,17],['истории','stories',ids.story,42]]){
+  for(const [name,view,,n] of [['аудио','podcasts',ids.pod1,17],['истории','stories',ids.story,42]]){
    await page.goto(base+'/?view='+view);
    if(process.env.TT_PHONES_CSS)await page.addStyleTag({content:process.env.TT_PHONES_CSS});
    await settle(page);

@@ -191,14 +191,12 @@ export const ru = {
   'desk.freshTitle': 'Новое в True Thrills',
   'desk.railAria': 'Приложение и соцсети',
   "desk.appTitle": "Приложение для Android",
-  "desk.appNote": "Истории, музыка и эфиры — в телефоне, без браузера.",
   "desk.appAction": "Скачать",
   "desk.socialTitle": "Мы в соцсетях",
   "desk.youtube": "Смотреть на YouTube",
   "desk.appScan": "Наведи камеру телефона — приложение скачается",
   "desk.appQr": "QR-код: скачать приложение для Android",
   "desk.tiktok": "Смотреть в TikTok",
-  "desk.latest": "Последнее",
   'player.expand': 'Развернуть плеер',
   'player.collapse': 'Свернуть плеер',
 
@@ -628,9 +626,6 @@ export const ru = {
   'err.fcmToken': 'Не удалось получить токен доступа Firebase',
 
   // Сообщество: профиль слушателя, комментарии эфира и модерация.
-  "donate.supportAuthor": "Поддержать автора",
-  "donate.voluntaryNote": "Добровольно · весь контент остаётся бесплатным",
-  "donate.voluntaryTitle": "Добровольная поддержка, без подарков и привилегий",
   "community.profile": "Профиль",
   "community.pageTitle": "Профиль и удаление данных — True Thrills",
   "community.loading": "Загрузка профиля…",

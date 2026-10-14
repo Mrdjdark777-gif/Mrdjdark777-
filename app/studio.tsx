@@ -374,7 +374,7 @@ export default function Studio(){
   pinned={data.pinned} poster={data.poster&&posterSrc?{post:data.poster.post,src:posterSrc}:null}/>}
  {/* Раздел на ПК — витрина (DeskSection), а не длинный список карточек.
      Пустой раздел — прежняя пустая заглушка ниже. */}
- {(view==='podcasts'||view==='stories'||view==='videos')&&desk&&listed.length>0&&<DeskSection key={view} kind={listKind} posts={listed} onOpen={p=>openPost(p)} onShare={p=>void share(postPath(p.id),p.title)}/>}
+ {(view==='podcasts'||view==='stories'||view==='videos')&&desk&&listed.length>0&&<DeskSection key={view} kind={listKind} posts={listed} onOpen={p=>openPost(p)}/>}
  {(view==='podcasts'||view==='stories'||view==='videos')&&!(desk&&listed.length>0)&&<>
  {!author&&<VoiceHeader view={view}/>}
  {!author&&<div className="catalog-tools"><label className="catalog-search"><Search size={18}/><input type="search" value={query} placeholder={t(searchKey)} aria-label={t(searchKey)} onChange={e=>setQuery(e.target.value)}/></label><select className="catalog-sort" aria-label={t('catalog.sortAria')} value={sort} onChange={e=>setSort(e.target.value as 'new'|'old')}><option value="new">{t('catalog.sortNew')}</option><option value="old">{t('catalog.sortOld')}</option></select></div>}

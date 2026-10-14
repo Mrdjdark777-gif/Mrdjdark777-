@@ -261,7 +261,7 @@
    владельца и отдельная проверка. */
 .tt-soft-home .soft-socials{margin-top:9px;padding-top:9px;border-top:1px solid var(--soft-line)}
 .tt-soft-home .soft-socials-label{display:block;text-align:center;font-size:12px;color:#9fb0b1;margin-bottom:6px}
-.tt-soft-home .soft-socials .home-social{margin:0!important;padding:0!important;border:0!important;background:none!important}
+
 .tt-soft-home .soft-socials .social-row{display:flex;flex-wrap:nowrap;gap:8px;margin:0;min-width:0}
 .tt-soft-home .soft-socials .social-row>a{flex:1 1 0;min-width:0;min-height:40px;padding:7px 10px;justify-content:center;border-radius:999px}
 .tt-soft-home .soft-app-link{font-size:12px}

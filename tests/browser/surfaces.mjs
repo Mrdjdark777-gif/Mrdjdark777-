@@ -99,13 +99,18 @@ try{
   if(s.deskNav&&!s.exe&&s.viewport.width===1440){
    const covered=async()=>page.evaluate(()=>{const r=document.querySelector('.desk-tabs').getBoundingClientRect();const el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return !el?.closest('.desk-tabs');});
    await page.goto(base+'/?mode=listen&view=stories');await ready(page);
-   await page.getByRole('button',{name:'Читать'}).first().click();await page.locator('.tt-reader').waitFor({timeout:15000}).catch(()=>{});await page.waitForTimeout(800);
+   // Разделы на ПК — сетка плиток без карточки «Последнее» (14 октября): открываем первую плитку.
+   const tile=page.locator('.desk-grid .desk-tile-open').first();
+   check(await tile.count()===1,s.name+': в «Историях» на ПК нет плиток');
+   if(await tile.count())await tile.click();await page.locator('.tt-reader').waitFor({timeout:15000}).catch(()=>{});await page.waitForTimeout(800);
    check(await page.locator('.tt-reader').count()===1,s.name+': читалка не открылась');
    check(await covered(),s.name+': разделы в верхней строке торчат поверх читалки');
    await page.keyboard.press('Escape');await page.waitForTimeout(600);
    check(await page.locator('.tt-reader').count()===0,s.name+': читалка не закрывается по Escape');
    await page.goto(base+'/?mode=listen&view=videos');await ready(page);
-   await page.getByRole('button',{name:'Смотреть'}).first().click();await page.waitForTimeout(1200);
+   const clip=page.locator('.desk-grid .desk-tile-open').first();
+   check(await clip.count()===1,s.name+': в «Видео» на ПК нет плиток');
+   if(await clip.count())await clip.click();await page.waitForTimeout(1200);
    const video=await page.evaluate(()=>!!document.querySelector('.video-frame'));
    check(video,s.name+': видео не открылось');
    if(video)check(await covered(),s.name+': разделы в верхней строке торчат поверх видео');

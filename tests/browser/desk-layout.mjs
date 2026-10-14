@@ -126,7 +126,7 @@ try{
   const first=await page.evaluate(()=>{const b=document.querySelector('.desk-hero>.desk-banner')?.getBoundingClientRect(),home=document.querySelector('.desk-home').getBoundingClientRect(),
    note=document.querySelector('.desk-hero>.desk-hero-note')?.getBoundingClientRect(),fresh=document.querySelector('.desk-hero+.desk-fresh'),
    onCover=[...document.querySelectorAll('.desk-banner-actions>*')].filter(e=>e.getBoundingClientRect().width>0).map(e=>e.getAttribute('aria-label')?'share':e.textContent.trim()),
-   words=[...document.querySelectorAll('.desk-hero h1,.desk-hero .desk-eyebrow,.desk-hero h2')].filter(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;}).map(e=>e.textContent);
+   words=[...document.querySelectorAll('.desk-hero h1,.desk-hero h2')].filter(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;}).map(e=>e.textContent);
    const tiles=[...(fresh?.querySelectorAll('.desk-grid>.desk-tile')??[])].map(t=>t.getBoundingClientRect()),top=tiles[0]?.top;
    return b&&tiles.length?{left:Math.round(b.left),right:Math.round(b.right),homeL:Math.round(home.left),homeR:Math.round(home.right),rowBottom:Math.round(Math.max(...tiles.filter(t=>Math.abs(t.top-top)<2).map(t=>t.bottom))),
     noteTop:note?Math.round(note.top):null,bannerBottom:Math.round(b.bottom),onCover,words,
@@ -252,7 +252,7 @@ try{
    check(!shop.feature,at+'в «Аудио» снова крупная карточка «Последнее»');
    check(shop.cards===0,at+'в «Аудио» на ПК телефонный список карточек');
    check(shop.shares===0,at+'у плиток снова «Поделиться»: '+shop.shares);
-   check(shop.tile>=210&&shop.search>=320,at+'плитки или поиск в разделе мелкие: плитка '+shop.tile+', поиск '+shop.search);
+   check(shop.tile>=210&&shop.search>=540,at+'плитки или поиск в разделе мелкие: плитка '+shop.tile+', поиск '+shop.search);
    check(await page.locator('.kinetic-grid').count()===1,at+'на ПК в разделе нет фона-сетки, как на телефоне');
    check(['Все','Аудиоистория','Подкаст','Музыка','Сначала новые','Сначала старые'].every(c=>shop.chips.includes(c)),at+'переключатели витрины не те: '+shop.chips.join(' | '));
    check(shop.tiles===titles.length,at+'в сетке '+shop.tiles+' плиток, ждали '+titles.length+' (все выпуски)');
@@ -274,26 +274,29 @@ try{
    await page.locator('.desk-chip',{hasText:'Все'}).click();await page.locator('.desk-chip',{hasText:'Сначала старые'}).click();await page.waitForTimeout(200);
    const oldest=await page.evaluate(()=>document.querySelector('.desk-grid .desk-tile strong')?.textContent);
    check(oldest==='Плот',at+'«Сначала старые» начинает не с первого выпуска: '+oldest);
-   // «Видео»: обложки 4:5, как в приложении и везде на сайте; крупная карточка
-   // по размеру обложки, не на пол-экрана и не во всю ширину.
+   // «Видео» и «Истории» (14 октября): «Последнее» убрано отовсюду — только
+   // поиск над сеткой плиток, как в «Аудио». Обложки видео 4:5, как в
+   // приложении. Поиск одинаково длинный во всех разделах.
+   const sectionShape=()=>{const s=document.querySelector('.desk-section-search')?.getBoundingClientRect(),
+    t=[...document.querySelectorAll('.desk-grid>.desk-tile')].map(e=>e.getBoundingClientRect()),c=document.querySelector('.desk-grid .desk-cover')?.getBoundingClientRect();
+    return {feature:document.querySelectorAll('.desk-feature,[aria-label="Последнее"]').length+[...document.querySelectorAll('.desk-section *')].filter(e=>!e.children.length&&/последнее/i.test(e.textContent)).length,
+     search:s?Math.round(s.width):0,above:!!(s&&t.length&&t.every(r=>r.top>=s.bottom)),tiles:t.length,ratio:c?Math.round(c.width/c.height*100)/100:0};};
    await page.goto(base+'/?mode=listen&view=videos');await ready(page);
-   const video=await page.evaluate(()=>{const c=document.querySelector('.desk-feature-cover')?.getBoundingClientRect(),f=document.querySelector('.desk-feature')?.getBoundingClientRect(),
-    m=document.querySelector('.desk-section')?.getBoundingClientRect();
-    return c&&f&&m?{ratio:c.width/c.height,cover:Math.round(c.width),h:Math.round(f.height),w:Math.round(f.width),full:Math.round(m.width)}:null;});
-   check(video&&Math.abs(video.ratio-0.8)<0.02,at+'у видео крупная обложка не 4:5: '+JSON.stringify(video));
-   check(video&&video.cover<=240&&video.h<=h*0.45&&video.w<=860&&video.w<video.full,at+'крупная карточка видео огромная: '+JSON.stringify(video));
+   const vid=await page.evaluate(sectionShape);
+   check(vid.feature===0,at+'в «Видео» снова «Последнее»: '+JSON.stringify(vid));
+   check(vid.tiles>=1&&vid.above,at+'в «Видео» поиск не над плитками или плиток нет: '+JSON.stringify(vid));
+   check(Math.abs(vid.ratio-0.8)<0.03,at+'у видео обложка плитки не 4:5: '+JSON.stringify(vid));
+   check(vid.search>=540&&vid.search===shop.search,at+'поиск в «Видео» короче, чем в «Аудио», или короткий: '+vid.search+' против '+shop.search);
    // Подвал на ПК — без «Скачать приложение»: оно вверху и в полосе с QR-кодом.
    check(!(await page.locator('.site-footer-app').count()),at+'в подвале на ПК снова «Скачать приложение»');
-   // Поиск есть в каждом разделе, даже с одним выпуском; в «Аудио» он широкий.
-   check(await page.locator('.desk-section-search').count()===1,at+'в «Видео» нет поиска');
    await page.goto(base+'/?mode=listen&view=stories');await ready(page);
-   check(await page.locator('.desk-section-search').count()===1,at+'в «Историях» нет поиска');
-   const storyCard=await page.evaluate(()=>Math.round(document.querySelector('.desk-feature')?.getBoundingClientRect().width??0));
-   check(storyCard>0&&storyCard<=860,at+'карточка «Последнее» в «Историях» растянута: '+storyCard);
+   const sto=await page.evaluate(sectionShape);
+   check(sto.feature===0,at+'в «Историях» снова «Последнее»: '+JSON.stringify(sto));
+   check(sto.tiles>=1&&sto.above&&sto.search===shop.search,at+'в «Историях» поиск не над плитками или другой длины: '+JSON.stringify(sto)+' аудио '+shop.search);
    // Читалка на ПК (13 октября, по образцу ЛитРес): две полосы во всю ширину
    // с полями, выключка по ширине, красная строка, абзацы без пустых строк,
    // поля сверху, крупные кнопки, крестик закрыть, без настройки «Боком».
-   await page.getByRole('button',{name:'Читать'}).first().click();await page.locator('.tt-reader').waitFor({timeout:15000});await page.waitForTimeout(1200);
+   await page.locator('.desk-grid .desk-tile-open').first().click();await page.locator('.tt-reader').waitFor({timeout:15000});await page.waitForTimeout(1200);
    const book=await page.evaluate(()=>{const r=document.querySelector('.tt-reader'),pages=[...r.querySelectorAll('.tt-reader-page:not(.is-copy)')].map(p=>p.getBoundingClientRect());
     const lines=[...r.querySelectorAll('.tt-reader-page:not(.is-copy) .tt-reader-line')];
     const paraGaps=lines.filter((l,i)=>l.classList.contains('is-para')&&!l.textContent.trim()&&lines[i+1]?.classList.contains('is-para')).length;
@@ -399,5 +402,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» — обложки 4:5 и карточка по размеру обложки; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка слева и открытый архив справа; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка слева и открытый архив справа; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

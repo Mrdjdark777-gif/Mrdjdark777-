@@ -192,14 +192,12 @@ export const it: Record<keyof typeof ru, string> = {
   'desk.freshTitle': 'Novità su True Thrills',
   'desk.railAria': 'App e social',
   "desk.appTitle": "App per Android",
-  "desk.appNote": "Storie, musica e dirette sul telefono, senza browser.",
   "desk.appAction": "Scarica",
   "desk.socialTitle": "Siamo sui social",
   "desk.youtube": "Guarda su YouTube",
   "desk.appScan": "Inquadra con la fotocamera del telefono per scaricare l'app",
   "desk.appQr": "Codice QR: scarica l'app per Android",
   "desk.tiktok": "Guarda su TikTok",
-  "desk.latest": "Più recente",
   'player.expand': 'Espandi il lettore',
   'player.collapse': 'Riduci il lettore',
 
@@ -629,9 +627,6 @@ export const it: Record<keyof typeof ru, string> = {
   'err.fcmToken': 'Impossibile ottenere il token di accesso Firebase',
 
   // Community: profilo, commenti della diretta e moderazione.
-  "donate.supportAuthor": "Sostieni l’autore",
-  "donate.voluntaryNote": "Volontario · tutti i contenuti restano gratuiti",
-  "donate.voluntaryTitle": "Sostegno volontario, senza regali né privilegi",
   "community.profile": "Profilo",
   "community.pageTitle": "Profilo e cancellazione dei dati — True Thrills",
   "community.loading": "Caricamento del profilo…",
