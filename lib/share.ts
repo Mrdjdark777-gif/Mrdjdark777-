@@ -34,8 +34,13 @@ export function shareTargets({url,title}:SharePayload):ShareTarget[]{
  * из компонента, чтобы его можно было проверить без браузера.
  */
 export type ShareRoute='native'|'web'|'sheet';
-export function shareRoute(env:{native:boolean;webShare:boolean}):ShareRoute{
+export function shareRoute(env:{native:boolean;webShare:boolean;desk?:boolean}):ShareRoute{
  if(env.native)return 'native';
+ // ПК с мышью — всегда своё окно, даже если браузер умеет navigator.share.
+ // Chrome и Edge на Windows отдают ссылку системному окну Windows, а оно
+ // показывает «Обмен с устройствами поблизости» или пустой список — со
+ // стороны это выглядит как «кнопка не работает» (владелец, 14 октября).
+ if(env.desk)return 'sheet';
  if(env.webShare)return 'web';
  return 'sheet';
 }

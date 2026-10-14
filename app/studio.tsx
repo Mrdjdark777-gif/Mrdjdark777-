@@ -230,11 +230,11 @@ export default function Studio(){
  async function stopLive(){await run(()=>live.stop(),t('live.stopped'));capture.release();await refreshLive();}
  /**
   * Один путь для всех кнопок «Поделиться»: сначала системный лист телефона,
-  * затем navigator.share браузера и только на ПК — своё окно.
+  * на ПК с мышью — всегда своё окно, на телефоне в браузере — navigator.share.
   */
  async function share(path:string,title:string){
   const payload:SharePayload={url:shareUrl(path,location.origin),title};
-  const route=shareRoute({native:hasNativeClient(),webShare:typeof navigator!=='undefined'&&!!navigator.share});
+  const route=shareRoute({native:hasNativeClient(),webShare:typeof navigator!=='undefined'&&!!navigator.share,desk:wideScreen});
   if(route==='native'){try{await nativeCall('ui.share',{...payload});return;}catch{/* системного листа нет — покажем своё окно */}}
   if(route==='web'){try{await navigator.share(payload);return;}catch(e){if((e as Error)?.name==='AbortError')return;}}
   setSharing(payload);

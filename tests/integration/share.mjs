@@ -24,6 +24,10 @@ try{
  assert.equal(shareRoute({native:true,webShare:false}),'native');
  assert.equal(shareRoute({native:false,webShare:true}),'web');
  assert.equal(shareRoute({native:false,webShare:false}),'sheet');
+ // ПК с мышью: своё окно, даже если браузер умеет navigator.share (Chrome и
+ // Edge на Windows отдавали ссылку пустому окну Windows — «не работает»).
+ assert.equal(shareRoute({native:false,webShare:true,desk:true}),'sheet');
+ assert.equal(shareRoute({native:true,webShare:true,desk:true}),'native');
 
  // Кнопка делится тем, над чем стоит.
  //
