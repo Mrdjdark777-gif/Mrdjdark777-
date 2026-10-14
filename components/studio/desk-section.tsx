@@ -23,7 +23,9 @@ import {DeskTile,type DeskPost} from './desk-home';
  * выглядит грязно, поделиться можно из плеера и с обложки главной.
  * Телефон и планшет этот компонент не видят: им — прежний список карточек.
  */
-type Kind='podcast'|'video'|'story';
+/** live — архив эфиров на вкладке «Эфир» (14 октября): та же витрина, что
+ *  в «Аудио», но без типов звука; на плитках описание и дата записи. */
+type Kind='podcast'|'video'|'story'|'live';
 type Props<T>={kind:Kind;posts:T[];onOpen:(post:T)=>void};
 
 export function DeskSection<T extends DeskPost&{description?:string}>({kind,posts,onOpen}:Props<T>){
@@ -37,13 +39,14 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
  const grid=[...posts].sort((a,b)=>b.createdAt-a.createdAt)
   .filter(p=>(type==='all'||audioCategoryOf(p.audioCategory)===type)&&(!needle||(p.title+' '+(p.description??'')).toLowerCase().includes(needle)));
  if(order==='old')grid.reverse();
+ const search=kind==='live'?t('live.archiveSearch'):t('desk.sectionSearch');
  if(!posts.length)return null;
  return <div className={'desk-section is-'+kind}>
  {/* Поиск — в каждом разделе всегда, даже при одном выпуске (владелец,
       13 октября: «почему в разделе видео нет строки поиска?»). Порядок —
       только когда есть что упорядочивать. */}
   <div className="desk-chips" role="toolbar">
-   <label className="desk-section-search"><Search size={16}/><input type="search" value={query} placeholder={t('desk.sectionSearch')} aria-label={t('desk.sectionSearch')} onChange={e=>setQuery(e.target.value)}/></label>
+   <label className="desk-section-search"><Search size={16}/><input type="search" value={query} placeholder={search} aria-label={search} onChange={e=>setQuery(e.target.value)}/></label>
    {types.length>1&&<>
     <button type="button" className="desk-chip" aria-pressed={type==='all'} onClick={()=>setType('all')}>{t('desk.seeAll')}</button>
     {types.map(c=><button key={c} type="button" className="desk-chip" aria-pressed={type===c} onClick={()=>setType(c)}>{t('audio.type.'+c)}</button>)}
@@ -55,6 +58,6 @@ export function DeskSection<T extends DeskPost&{description?:string}>({kind,post
    </>}
   </div>
   {needle&&!grid.length&&<p className="desk-results-empty">{t('catalog.nothingFound')}</p>}
-  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen}/>)}</div>}
+  {grid.length>0&&<div className="desk-grid">{grid.map(p=><DeskTile key={p.id} post={p} onOpen={onOpen} note={kind==='live'}/>)}</div>}
  </div>;
 }

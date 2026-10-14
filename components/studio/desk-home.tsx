@@ -44,11 +44,16 @@ export type DeskPost=ScenePost&{audioKey?:string|null;audioCategory?:string|null
 
 /** Плитка выпуска: карточка с обложкой 4:5 и подписью, открывает выпуск вся
  *  карточка. «Поделиться» на плитке нет (13 октября владелец: на каждой
- *  плитке это «смотрится грязно») — оно в плеере, на обложке главной и на
- *  крупной карточке раздела. */
-export function DeskTile<T extends DeskPost>({post,onOpen}:{post:T;onOpen:(p:T)=>void}){
+ *  плитке это «смотрится грязно») — оно в плеере и на обложке главной.
+ *
+ *  note — архив эфиров (14 октября владелец: «чтоб были видны обложки,
+ *  описание»): под названием две строки описания, в подписи — дата записи
+ *  и длительность. Без описания строки нет. */
+export function DeskTile<T extends DeskPost>({post,onOpen,note=false}:{post:T;onOpen:(p:T)=>void;note?:boolean}){
  const {t,tag}=useT();
- const meta=post.duration>0?clock(post.duration):new Date(post.createdAt).toLocaleDateString(tag);
+ const day=new Date(post.createdAt).toLocaleDateString(tag);
+ const meta=note?day+(post.duration>0?' · '+clock(post.duration):''):post.duration>0?clock(post.duration):day;
+ const about=note?(post.description??'').trim():'';
  // Запись эфира без выбранного автором типа — так и подписана, а не «Подкаст».
  const kind=post.kind==='podcast'&&isLiveArchive(post.audioKey)&&!audioCategoryOf(post.audioCategory)?'post.liveArchive':kindTagKey(post);
  return <article className="desk-tile">
@@ -58,7 +63,7 @@ export function DeskTile<T extends DeskPost>({post,onOpen}:{post:T;onOpen:(p:T)=
     <span className="desk-tag">{t(kind)}</span>
     <span className="desk-tile-play" aria-hidden="true"><Play size={16} fill="currentColor"/></span>
    </span>
-   <span className="desk-tile-copy"><strong>{post.title}</strong><span className="desk-tile-meta">{meta}</span></span>
+   <span className="desk-tile-copy"><strong>{post.title}</strong>{about&&<span className="desk-tile-note">{about}</span>}<span className="desk-tile-meta">{meta}</span></span>
   </button>
  </article>;
 }

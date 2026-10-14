@@ -398,7 +398,13 @@ export default function Studio(){
  <LiveStageView desk={desk} comments={desk&&liveStatus?<LiveComments liveId={liveStatus.id}/>:undefined} levels={live.levels} calmSrc={calmSrc} about={liveStatus?.description??''} title={liveStatus?.title??'True Thrills Live'} note={liveStatus?t('live.tapToConnect'):t('live.willAppearHere')}
   cover={liveStatus?.cover?'/api/cover?id=live:'+liveStatus.id:undefined} phase={live.phase} onAir={!!liveStatus} joined={live.joined}
   elapsed={elapsed} status={live.status} hint={live.phase==='error'?t('live.otherNetwork'):''} onListen={openLive} onPause={live.pause} onArchive={()=>setArchiveOpen(v=>{if(v)setArchiveQuery('');return !v;})} archiveOpen={archiveOpen}
-  archive={<div className="live-archive-list">
+  archive={desk?<>
+   {/* На ПК архив — витрина, как «Аудио» (14 октября): поиск, порядок и
+       плитки с обложкой и описанием. Ожидание записи и пустой архив — теми
+       же словами, что на телефоне. */}
+   {data.archivePending&&<p className="live-archive-empty">{t('live.archivePending')}</p>}
+   {liveArchives.length?<DeskSection kind="live" posts={liveArchives} onOpen={p=>openPost(p)}/>:!data.archivePending&&<p className="live-archive-empty">{t('live.archiveEmpty')}</p>}
+  </>:<div className="live-archive-list">
    {/* Поиск живёт внутри раскрытого архива: в закрытом виде искать негде. */}
    {liveArchives.length>0&&<label className="live-archive-search"><Search size={16}/><input type="search" value={archiveQuery} placeholder={t('live.archiveSearch')} aria-label={t('live.archiveSearch')} onChange={e=>setArchiveQuery(e.target.value)}/></label>}
    {/* Пока воркер сшивает последнюю запись, архив честно говорит об этом:

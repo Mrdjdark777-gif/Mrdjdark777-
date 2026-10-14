@@ -21,9 +21,9 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  title:string;note:string;cover?:string;phase:ListenPhase;onAir:boolean;joined:boolean;levels?:number[];calmSrc?:string;
  elapsed:string;status:string;hint?:string;onListen:()=>void;onPause:()=>void;onArchive:()=>void;support:React.ReactNode;
  archiveOpen?:boolean;archive?:React.ReactNode;volume?:React.ReactNode;shareAction?:React.ReactNode;about?:string;
- /** Сайт на ПК: эфир слева, архив эфиров справа, открытым (см. ниже). */
+ /** Сайт на ПК: карточка эфира во всю ширину, архив эфиров ниже (см. ниже). */
  desk?:boolean;
- /** Комментарии к эфиру — на ПК в правой колонке над архивом. */
+ /** Комментарии к эфиру — на ПК в правой части карточки эфира. */
  comments?:React.ReactNode;
 }){
  const {t}=useT();
@@ -48,18 +48,21 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
  // и подставлять туда название канала незачем: оно уже стоит в шапке.
  const name=stage==='ended'?t('live.endedTitle'):stage==='offline'?'':title;
 
- // Сайт на ПК (14 октября владелец: «страница лайва имеет такую же раскладку,
- // как на телефоне, куча места везде без полезного»). Две колонки:
- // - слева карточка эфира: круг-лампа поменьше, состояние словами, кнопка
- //   «Слушать», громкость, «Поделиться», поддержка; без эфира — дыхание
- //   компактно под текстом, а не центром всей страницы;
- // - справа — архив эфиров, открытый сразу, с поиском: ради него человек
- //   и приходит во вкладку, когда эфира нет. Во время эфира над архивом —
- //   комментарии (если они включены у автора).
+ // Сайт на ПК. 14 октября ночью владелец: «страница лайва имеет такую же
+ // раскладку, как на телефоне, куча места везде без полезного»; утром того же
+ // дня: «самая бедная… сделать архив эфиров как список во вкладке музыка,
+ // чтоб были видны обложки, описание… снизу отдельной колонкой… в одной
+ // стилистике с другими страницами». Поэтому:
+ // - сверху одна карточка эфира во всю ширину, в три части: круг-лампа,
+ //   состояние словами с кнопкой «Слушать», громкостью и «Поделиться», справа
+ //   колонка — комментарии во время эфира, без эфира дыхание, и поддержка;
+ // - ниже архив эфиров — раздел, как «Аудио»: заголовок, поиск, порядок и
+ //   плитки с обложкой, описанием, датой и длительностью (archive собирает
+ //   app/studio.tsx из DeskSection).
  // Состояния (эфира нет, подключение, играет, пауза, ошибка) — те же, что на
  // телефоне: их решает lib/live-stage, а не разметка.
- if(desk)return <section className={'live-desk'+(calm?' is-calm':' is-live')}>
-  <div className="live-desk-stage">
+ if(desk)return <div className={'live-desk'+(calm?' is-calm':' is-live')}>
+  <section className="live-desk-stage" aria-label={t('nav.live')}>
    <div className={'live-rings'+(pulsing?' is-pulsing':'')+(calm?' is-calm':'')}>
     {Array.from({length:RINGS},(_,i)=>{
      const from=Math.floor(i/RINGS*levels.length),to=Math.max(from+1,Math.floor((i+1)/RINGS*levels.length));
@@ -82,14 +85,19 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
     <p className="live-stage-sub">{status||note}</p>
     {about&&stage!=='offline'&&<p className="live-stage-about">{about}</p>}
     {elapsed&&stage==='playing'&&<p className="live-stage-clock"><strong>{elapsed}</strong><span>{t('live.onAirFor')}</span></p>}
-    {action!=='none'&&<button type="button" className="live-cta tt-pressable" disabled={action==='busy'}
-     onClick={()=>{haptic();if(action==='pause')onPause();else onListen();}}>
-     {action==='busy'?<Loader2 className="spin" size={20}/>:action==='pause'?<Pause size={20} fill="currentColor"/>:<Play size={20} fill="currentColor"/>}
-     {action==='busy'?t('live.connecting'):action==='pause'?t('live.stopListening'):t('live.listen')}
-    </button>}
+    {(action!=='none'||!calm)&&<div className="live-desk-actions">
+     {action!=='none'&&<button type="button" className="live-cta tt-pressable" disabled={action==='busy'}
+      onClick={()=>{haptic();if(action==='pause')onPause();else onListen();}}>
+      {action==='busy'?<Loader2 className="spin" size={20}/>:action==='pause'?<Pause size={20} fill="currentColor"/>:<Play size={20} fill="currentColor"/>}
+      {action==='busy'?t('live.connecting'):action==='pause'?t('live.stopListening'):t('live.listen')}
+     </button>}
+     {!calm&&shareAction}
+    </div>}
     {volume}
-    {!calm&&shareAction}
     {hint&&<p className="live-stage-hint">{hint}</p>}
+   </div>
+   <aside className="live-desk-side">
+    {!calm&&comments}
     {calm&&<div className="live-desk-breath">
      <p className="breath-guide" aria-hidden="true">
       <span>{t('breath.in')}</span><span>{t('breath.hold')}</span><span>{t('breath.out')}</span><span>{t('breath.hold')}</span>
@@ -97,19 +105,16 @@ export function LiveStageView({title,note,cover,phase,onAir,joined,elapsed,statu
      <p className="breath-note">{t('breath.note')}</p>
     </div>}
     {support??<span className="live-stage-support-missing"><HeartBeam size={17}/>{t('donate.unavailable')}</span>}
+   </aside>
+  </section>
+  <section className="live-desk-archive" aria-label={t('live.archiveTitle')}>
+   <div className="live-desk-archive-head">
+    <span className="live-archive-icon"><AudioLines size={22}/></span>
+    <div className="live-desk-archive-copy"><h2>{t('live.archiveTitle')}</h2><p>{t('live.archiveNote')}</p></div>
    </div>
-  </div>
-  <aside className="live-desk-side">
-   {comments}
-   <section className="live-desk-archive" aria-label={t('live.archiveTitle')}>
-    <div className="live-desk-archive-head">
-     <span className="live-archive-icon"><AudioLines size={22}/></span>
-     <span className="live-archive-copy"><strong>{t('live.archiveTitle')}</strong><span>{t('live.archiveNote')}</span></span>
-    </div>
-    {archive}
-   </section>
-  </aside>
- </section>;
+   {archive}
+  </section>
+ </div>;
 
  // В эфире на экране появляется ещё четыре блока — название, статус, часы и
  // кнопка с громкостью. Значит круг и промежутки должны стать меньше, иначе

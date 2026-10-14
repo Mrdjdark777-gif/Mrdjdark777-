@@ -230,16 +230,29 @@ try{
   if(w===1440){
    // Фон-сетка — и на главной (14 октября).
    check(await page.locator('.kinetic-grid').count()===1,at+'на главной ПК нет фона-сетки, как на телефоне');
-   // Эфир на ПК: две колонки, архив открыт сразу, подписи поддержки — в две строки.
+   // Эфир на ПК (14 октября, утро): сверху карточка эфира во всю ширину —
+   // круг, текст, справа дыхание и поддержка; ниже архив эфиров витриной,
+   // как «Аудио»: поиск и плитки с обложкой, описанием, датой и длительностью.
    await page.goto(base+'/?mode=listen&view=live');await ready(page);
-   const air=await page.evaluate(()=>{const st=document.querySelector('.live-desk-stage')?.getBoundingClientRect(),ar=document.querySelector('.live-desk-archive')?.getBoundingClientRect();
-    const label=document.querySelector('.live-desk .support-strip-label')?.getBoundingClientRect(),note=document.querySelector('.live-desk .support-strip-copy>span')?.getBoundingClientRect();
-    return {stage:!!st,archive:!!ar,side:st&&ar?Math.round(ar.left-st.right):null,list:!!document.querySelector('.live-desk-archive .live-archive-list'),
-     toggle:document.querySelectorAll('.live-desk .live-archive-card').length,title:document.querySelector('.live-desk .live-stage-name')?.textContent??'',
-     stacked:label&&note?note.top>=label.bottom-1:null,shares:[...document.querySelectorAll('.live-desk .live-archive-share')].filter(b=>b.getBoundingClientRect().width>0).length,
+   const air=await page.evaluate(()=>{const box=q=>document.querySelector(q)?.getBoundingClientRect();
+    const st=box('.live-desk-stage'),ar=box('.live-desk-archive'),copy=box('.live-desk-copy'),side=box('.live-desk-side');
+    const label=box('.live-desk .support-strip-label'),note=box('.live-desk .support-strip-copy>span');
+    const tile=document.querySelector('.live-desk-archive .desk-grid>.desk-tile');
+    return {stage:!!st,archive:!!ar,below:st&&ar?Math.round(ar.top-st.bottom):null,widths:st&&ar?[Math.round(st.width),Math.round(ar.width)]:null,
+     sideRight:copy&&side?side.left>=copy.right:null,breathInSide:!!document.querySelector('.live-desk-side .live-desk-breath'),
+     phoneList:document.querySelectorAll('.live-desk .live-archive-list,.live-desk .live-archive-card').length,
+     tiles:document.querySelectorAll('.live-desk-archive .desk-grid>.desk-tile').length,tag:tile?.querySelector('.desk-tag')?.textContent??'',
+     about:tile?.querySelector('.desk-tile-note')?.textContent??'',meta:tile?.querySelector('.desk-tile-meta')?.textContent??'',
+     search:document.querySelector('.live-desk-archive .desk-section-search input')?.placeholder??'',
+     title:document.querySelector('.live-desk .live-stage-name')?.textContent??'',
+     stacked:label&&note?note.top>=label.bottom-1:null,shares:[...document.querySelectorAll('.live-desk .live-archive-share,.live-desk .desk-tile [aria-label^="Поделиться"]')].filter(b=>b.getBoundingClientRect().width>0).length,
      phone:!!document.querySelector('.live-stage:not(.live-desk)')};});
-   check(air.stage&&air.archive&&air.side!==null&&air.side>=16&&!air.phone,at+'эфир на ПК не двумя колонками (карточка слева, архив справа): '+JSON.stringify(air));
-   check(air.list&&air.toggle===0,at+'архив эфиров на ПК не открыт сразу: '+JSON.stringify(air));
+   check(air.stage&&air.archive&&air.below!==null&&air.below>=24&&!air.phone,at+'эфир на ПК: архив не под карточкой эфира: '+JSON.stringify(air));
+   check(air.widths&&Math.abs(air.widths[0]-air.widths[1])<=2,at+'карточка эфира не во всю ширину архива: '+JSON.stringify(air.widths));
+   check(air.sideRight&&air.breathInSide,at+'в карточке эфира без эфира дыхание и поддержка не справа от текста: '+JSON.stringify(air));
+   check(air.phoneList===0&&air.tiles===1&&air.tag==='Запись эфира',at+'архив эфиров на ПК не плитками, как «Аудио»: '+JSON.stringify(air));
+   check(air.about==='Запись эфира.'&&/\d{2}\.\d{2}\.\d{4} · /.test(air.meta),at+'на плитке записи нет описания или даты с длительностью: '+JSON.stringify(air));
+   check(air.search==='Поиск по записям',at+'в архиве эфиров нет своего поиска: «'+air.search+'»');
    check(air.title==='Сейчас эфира нет',at+'без эфира в карточке не «Сейчас эфира нет», а «'+air.title+'»');
    check(air.stacked!==false&&air.shares===0,at+'в карточке эфира подпись поддержки слиплась с названием или у записей «Поделиться»: '+JSON.stringify(air));
    // «Аудио» (13 октября): крупной карточки «Последнее» нет — поиск,
@@ -402,5 +415,5 @@ try{
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка слева и открытый архив справа; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка во всю ширину, архив ниже плитками с описанием; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

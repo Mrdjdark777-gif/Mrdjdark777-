@@ -1565,16 +1565,16 @@ try{
   for(const width of [1280,1920]){
    await screen.setViewportSize({width,height:900});await screen.waitForTimeout(200);
    const wide=await screen.evaluate(()=>{const box=s=>document.querySelector(s)?.getBoundingClientRect();
-    const main=box('.listener-main'),desk=box('.live-desk'),stage=box('.live-desk-stage'),side=box('.live-desk-archive'),rings=box('.live-desk .live-rings');
-    if(!main||!desk||!stage||!side||!rings)return null;
-    return {mid:Math.round(Math.abs((desk.left+desk.right)/2-(main.left+main.right)/2)),side:Math.round(side.left-stage.right),
-     ring:Math.round(rings.width),list:!!document.querySelector('.live-desk-archive .live-archive-list')};});
-   if(!wide)problems.push('эфир '+width+': экран эфира для ПК не найден (две колонки .live-desk)');
+    const main=box('.listener-main'),desk=box('.live-desk'),stage=box('.live-desk-stage'),archive=box('.live-desk-archive'),rings=box('.live-desk .live-rings');
+    if(!main||!desk||!stage||!archive||!rings)return null;
+    return {mid:Math.round(Math.abs((desk.left+desk.right)/2-(main.left+main.right)/2)),below:Math.round(archive.top-stage.bottom),
+     ring:Math.round(rings.width),tiles:document.querySelectorAll('.live-desk-archive .desk-grid>.desk-tile').length};});
+   if(!wide)problems.push('эфир '+width+': экран эфира для ПК не найден (.live-desk: карточка эфира и архив под ней)');
    else{
-    if(wide.mid>2)problems.push('эфир '+width+': колонки смещены от середины страницы на '+wide.mid+'px');
-    if(wide.side<16)problems.push('эфир '+width+': архив не справа от карточки эфира (зазор '+wide.side+'px)');
+    if(wide.mid>2)problems.push('эфир '+width+': эфир смещён от середины страницы на '+wide.mid+'px');
+    if(wide.below<24)problems.push('эфир '+width+': архив не под карточкой эфира (зазор '+wide.below+'px)');
     if(wide.ring<200||wide.ring>300)problems.push('эфир '+width+': круг '+wide.ring+'px — нужен заметный, но не на пол-экрана');
-    if(!wide.list)problems.push('эфир '+width+': архив эфиров не открыт сразу');
+    if(!wide.tiles)problems.push('эфир '+width+': архив эфиров не плитками');
    }}
   await monitor.close();
  await page.goto(base+'/?mode=listen&view=settings');await settle(page);await shot(page,'settings');
