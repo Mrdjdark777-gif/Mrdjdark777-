@@ -59,4 +59,14 @@ for(const locale of LOCALES){
  assert.match(text,/30|тридцат|трид|treizeci|trenta/i,`${locale}: в политике не назван срок хранения комментариев`);
  assert.match(text,/{contact}/,`${locale}: в политике нет адреса для запросов`);
 }
+// Политика — по ст. 13 GDPR (14 октября): на всех языках названы основания
+// обработки, все получатели данных, передача за границу и право на жалобу.
+// Если перевод потерял получателя или основание, человек на этом языке
+// получает неполную политику, — это ловится здесь, а не глазами.
+for(const locale of LOCALES){
+ const text=JSON.stringify(legalPack(locale).privacy);
+ for(const must of ['GDPR','6(1)(a)','6(1)(f)','Firebase','Oracle','youtube-nocookie','Data Privacy Framework','{controller}','{site}'])
+  assert.ok(text.includes(must)||text.includes(must.replace('6(1)(','6 alin. (1) lit. (')),`${locale}: в политике нет обязательного «${must}»`);
+ assert.ok(legalPack(locale).privacy.sections.length>=15,`${locale}: в политике меньше пятнадцати разделов ст. 13 GDPR`);
+}
 console.log('PASS: политика и правила совпадают по устройству на всех четырёх языках; незаполненные подстановки остаются видимыми, а документ без ответственного и адреса не считается действующим');

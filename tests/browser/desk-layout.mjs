@@ -200,6 +200,31 @@ try{
    check(popRead===band.qrUrl,at+'«Приложение» в верхней строке не открыло читаемый QR-код: '+popRead);
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
    check(!(await page.locator('.desk-app-panel').count()),at+'окошко «Приложение» не закрывается по Escape');
+   // Подсказка установки (14 октября) — только в окошке «Приложение»: три
+   // шага, окошко целиком в окне браузера; в полосе приложения её нет.
+   check(await page.locator('.desk-app-steps').count()===0,at+'подсказка установки видна вне окошка «Приложение»');
+   await page.locator('.desk-app-button').click();await page.waitForTimeout(300);
+   const steps=await page.evaluate(()=>{const p=document.querySelector('.desk-app-panel')?.getBoundingClientRect();
+    return {n:document.querySelectorAll('.desk-app-panel .desk-app-steps li').length,first:document.querySelector('.desk-app-panel .desk-app-steps li')?.textContent??'',
+     inside:!!p&&p.bottom<=innerHeight+1&&p.top>=0};});
+   check(steps.n===3&&/скачанный файл/.test(steps.first)&&steps.inside,at+'в окошке «Приложение» нет трёх шагов установки или оно не помещается: '+JSON.stringify(steps));
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+   // Название вкладки (14 октября).
+   check(await page.title()==='True Thrills — Выжить любой ценой',at+'название вкладки не «True Thrills — Выжить любой ценой», а «'+(await page.title())+'»');
+   // «Продолжить · время» на обложке убирается крестиком внутри плашки —
+   // кнопка снова «Слушать» (14 октября).
+   {const heroId=lib.items.find(p=>p.title==='Плот').id;
+    await page.evaluate(id=>{localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:89,duration:300,updatedAt:Date.now()}]));localStorage.removeItem('tt-resume-hidden-v1');},heroId);
+    await page.reload();await ready(page);
+    const cta=()=>page.evaluate(()=>{const c=document.querySelector('.desk-hero .desk-cta')?.getBoundingClientRect(),x=document.querySelector('.desk-hero .desk-cta-reset')?.getBoundingClientRect();
+     return {text:document.querySelector('.desk-hero .desk-cta')?.textContent??'',x:!!x,inside:!!(c&&x&&x.left>=c.left&&x.right<=c.right+1&&x.top>=c.top&&x.bottom<=c.bottom)};});
+    const was=await cta();
+    check(/Продолжить/.test(was.text)&&/1:29/.test(was.text)&&was.x&&was.inside,at+'у «Продолжить» на обложке нет крестика внутри плашки: '+JSON.stringify(was));
+    if(was.x){await page.locator('.desk-hero .desk-cta-reset').click();await page.waitForTimeout(300);}
+    const now=await cta();
+    check(/^Слушать$/.test(now.text.trim())&&!now.x,at+'после крестика кнопка не стала обычной «Слушать»: '+JSON.stringify(now));
+    await page.evaluate(()=>{localStorage.removeItem('tt-listening-v1');localStorage.removeItem('tt-resume-hidden-v1');});
+    await page.reload();await ready(page);}
    // Плеер внизу не меняет размер плиток «Новое».
    const tileW=()=>page.evaluate(()=>Math.round(document.querySelector('.desk-fresh .desk-tile')?.getBoundingClientRect().width??0));
    const before=await tileW();
@@ -424,8 +449,21 @@ try{
   await page.goto(base+'/?mode=listen&view=home');await ready(page);
   const s=await page.evaluate(()=>({cls:document.querySelector('.app-shell')?.className??'',rail:!!document.querySelector('.desk-tabs'),home:!!document.querySelector('.desk-home')}));
   check(/\bis-listener\b/.test(s.cls)&&!s.rail&&!s.home,label+' получил каркас ПК: '+JSON.stringify(s));
+  if(label==='телефон'){
+   // И на телефоне «Продолжить · время» под постером убирается крестиком.
+   const heroId=lib.items.find(p=>p.title==='Плот').id;
+   await page.evaluate(id=>localStorage.setItem('tt-listening-v1',JSON.stringify([{id,position:89,duration:300,updatedAt:Date.now()}])),heroId);
+   await page.reload();await ready(page);
+   const ph=()=>page.evaluate(()=>{const c=document.querySelector('.soft-hero-foot .scene-action')?.getBoundingClientRect(),x=document.querySelector('.soft-hero-foot .scene-action-reset')?.getBoundingClientRect();
+    return {text:document.querySelector('.soft-hero-foot .scene-action')?.textContent??'',x:!!x,inside:!!(c&&x&&x.left>=c.left&&x.right<=c.right+1&&x.top>=c.top&&x.bottom<=c.bottom+1)};});
+   const was=await ph();
+   check(/Продолжить/.test(was.text)&&was.x&&was.inside,label+': у «Продолжить» под постером нет крестика внутри плашки: '+JSON.stringify(was));
+   if(was.x){await page.locator('.soft-hero-foot .scene-action-reset').tap();await page.waitForTimeout(300);}
+   const now=await ph();
+   check(!/Продолжить/.test(now.text)&&!now.x,label+': после крестика кнопка не стала обычной: '+JSON.stringify(now));
+  }
   await ctx.close();
  }
  assert.deepEqual(problems,[],'\n'+problems.join('\n'));
- console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка во всю ширину, дыхание рядом с кругом, архив ниже плитками с описанием, первый ряд на первом экране от 1366×657 до 2560×1305; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
+ console.log('PASS: ПК 1280–2560 — каркас «Студия звука» без бокового меню: знак канала слева, разделы ровно по центру верхней строки, справа «Приложение» с читаемым фирменным QR-кодом, поддержка, поделиться и настройки, без поиска; на обложке — «Слушать» и «Поделиться», под ней только описание; обложка 4:1 (2400×600) во всю ширину содержимого, ровно в рамке и никогда не режется; «Новое в True Thrills» — один ряд по центру до восьми плиток, целиком на первом экране и того же размера с плеером (каждый выпуск один раз, запись эфира подписана как запись, без «Поделиться» на плитках); полоса приложения с QR-кодом, тремя пунктами и YouTube и TikTok плашками, без поддержки и номера сборки; вход для автора только в программе; название вкладки «Выжить любой ценой»; подсказка установки только в окошке «Приложение»; «Продолжить» на обложке убирается крестиком (и на телефоне); «Аудио» — без крупной карточки, плитки и поиск крупнее; «Видео» и «Истории» — без «Последнее», поиск над плитками той же длины, что в «Аудио», обложки 4:5; подвал ПК без «Скачать приложение»; фон-сетка как на телефоне на всех страницах; эфир — карточка во всю ширину, дыхание рядом с кругом, архив ниже плитками с описанием, первый ряд на первом экране от 1366×657 до 2560×1305; без прокрутки вбок; плеер полосой внизу и развёрнутый с обложкой слева; телефон и планшет — без каркаса ПК');
 }finally{await browser?.close();server.kill();await rm(dir,{recursive:true,force:true});}

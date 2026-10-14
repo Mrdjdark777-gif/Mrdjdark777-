@@ -56,10 +56,15 @@
  border:1px solid #2f6a64;color:var(--teal);font-weight:700;font-size:14px;white-space:nowrap}
 .desk-app-button:hover,.desk-app-button[aria-expanded=true]{background:rgba(111,231,222,.18)}
 .desk-app-button:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
-.desk-app-panel{position:absolute;right:0;top:calc(100% + 12px);z-index:60;width:286px;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;
+.desk-app-panel{position:absolute;right:0;top:calc(100% + 12px);z-index:60;width:300px;max-height:calc(100dvh - 100px);overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;
  border-radius:24px;background:#12181c;border:1px solid #29363a;box-shadow:0 30px 60px -20px rgba(0,0,0,.75);text-align:center;color:#f4f3f1}
 .desk-app-panel strong{font-size:16px;margin-top:4px}
 .desk-app-panel .desk-app-action{width:100%}
+/* Подсказка установки: три шага мелко, слева, под кнопкой «Скачать». */
+.desk-app-steps{width:100%;margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);text-align:left}
+.desk-app-steps>span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;color:#cfd4d8;margin-bottom:6px}
+.desk-app-steps ol{margin:0;padding-left:18px;list-style:decimal;display:grid;gap:5px;font-size:12.5px;line-height:1.45;color:#a4a8ae}
+.desk-app-steps li::marker{color:var(--teal);font-weight:700}
 @media(prefers-reduced-motion:no-preference){.desk-app-panel{animation:desk-pop .18s ease-out}}
 @keyframes desk-pop{from{opacity:0;transform:translateY(-6px)}}
 
@@ -113,6 +118,13 @@
  font-weight:700;font-size:15px;box-shadow:0 10px 30px -10px rgba(111,231,222,.6);white-space:nowrap}
 .desk-cta:hover{background:#8ff0e8}
 .desk-cta-time{font-variant-numeric:tabular-nums;opacity:.85}
+/* Крестик внутри плашки «Продолжить»: круг в тон кнопки у её правого края. */
+.desk-cta-group{position:relative;display:inline-flex}
+.desk-cta-group.has-reset .desk-cta{padding-right:52px}
+.desk-cta-reset{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:grid;place-items:center;
+ border-radius:50%;background:rgba(6,33,31,.14);color:#06211f;border:0;transition:background .15s}
+.desk-cta-reset:hover{background:rgba(6,33,31,.26)}
+.desk-cta-reset:focus-visible{outline:2px solid #06211f;outline-offset:1px}
 
 /* Главная: обложка с кнопкой действия, строка описания, ряд «Новое» */
 .desk-home{display:flex;flex-direction:column;gap:34px;padding-top:4px}

@@ -130,7 +130,11 @@ export function HomeSceneView<T extends ScenePost>({posts,live,onOpen,onOpenLive
       кадра, кнопка перестала открывать меню выпуска, потому что обработчик
       висел только на кадре. */}
   {hero&&<div className="soft-hero-foot" {...press}>
-   <button type="button" className="scene-action" onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="scene-action-time">· {clock(heroResume.position)}</span>}</button>
+   <button type="button" className={'scene-action'+(heroResume?' has-reset':'')} onClick={()=>{if(held.current){held.current=false;return;}haptic();onOpen(hero,!!heroResume);}}><Play size={19} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="scene-action-time">· {clock(heroResume.position)}</span>}</button>
+   {/* Крестик внутри плашки «Продолжить»: убирает место остановки, и
+       кнопка снова «Слушать» с начала (14 октября владелец). */}
+   {heroResume&&<button type="button" className="scene-action-reset tt-pressable" aria-label={t('home.resumeReset')} title={t('home.resumeReset')}
+    onClick={()=>{haptic();hideResume(hero.id);}}><X size={16}/></button>}
   </div>}
 
   {/* Всё, что не кадр, собрано в одну обёртку. На телефоне она прозрачна

@@ -71,6 +71,14 @@ export function DeskAppButton({href}:{href:string}){
    <strong>{t('desk.appTitle')}</strong>
    <span className="desk-app-scan">{t('desk.appScan')}</span>
    <a className="desk-app-action" href={href} download><Download size={17}/>{t('desk.appAction')}</a>
+   {/* Приложение ставится не из Google Play, и Android показывает окно «Play
+       Защита» — для человека со стороны оно выглядит как «вирус». Три шага,
+       что нажать (14 октября владелец: подсказка только здесь, в окне
+       кнопки «Приложение», больше нигде). */}
+   <div className="desk-app-steps">
+    <span>{t('desk.installTitle')}</span>
+    <ol>{(['desk.install1','desk.install2','desk.install3'] as const).map(k=><li key={k}>{t(k)}</li>)}</ol>
+   </div>
   </div>}
  </div>;
 }

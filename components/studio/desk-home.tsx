@@ -1,10 +1,10 @@
 'use client';
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {ChevronRight,Clock,Play,Radio,Share2} from 'lucide-react';
+import {ChevronRight,Clock,Play,Radio,Share2,X} from 'lucide-react';
 import {homeScene,heroPicture,type ScenePost} from '@/lib/home-scene';
 import {audioCategoryOf,kindTagKey} from '@/lib/audio-category';
 import {isLiveArchive} from '@/lib/player-presentation';
-import {readProgress,readResumeHidden} from '@/lib/listening-progress';
+import {hideResume,readProgress,readResumeHidden} from '@/lib/listening-progress';
 import {useT} from '@/components/i18n-provider';
 import {clock,haptic,coverSrc} from '@/lib/client';
 import {Artwork} from './artwork';
@@ -144,7 +144,13 @@ export function DeskHome<T extends DeskPost>({posts,live,liveAction,onOpen,onOpe
       <Artwork className="desk-banner-art" src={heroCover} referrerPolicy="no-referrer" fallback={<img className="desk-cover-mark" src="/brand/logo.png?v=0.4.1" alt="" width="132" height="132"/>}/></>}
     </button>
     <div className="desk-banner-actions">
-     <button type="button" className="desk-cta" onClick={()=>{haptic();onOpen(hero,!!heroResume);}}><Play size={20} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="desk-cta-time">· {clock(heroResume.position)}</span>}</button>
+     {/* «Продолжить · 1:29» можно убрать крестиком внутри плашки — кнопка
+         снова становится «Слушать» с начала (14 октября владелец). Крестик —
+         отдельная кнопка рядом, а не внутри: кнопка в кнопке ломает щелчок. */}
+     <span className={'desk-cta-group'+(heroResume?' has-reset':'')}>
+      <button type="button" className="desk-cta" onClick={()=>{haptic();onOpen(hero,!!heroResume);}}><Play size={20} fill="currentColor"/>{heroAction}{heroResume&&heroResume.position>0&&<span className="desk-cta-time">· {clock(heroResume.position)}</span>}</button>
+      {heroResume&&<button type="button" className="desk-cta-reset" aria-label={t('home.resumeReset')} title={t('home.resumeReset')} onClick={()=>{haptic();hideResume(hero.id);}}><X size={16}/></button>}
+     </span>
      <button type="button" className="desk-banner-share" aria-label={t('share.action')+' · '+hero.title} title={t('share.action')} onClick={()=>{haptic();onShare(hero);}}><Share2 size={19}/></button>
     </div>
    </div>

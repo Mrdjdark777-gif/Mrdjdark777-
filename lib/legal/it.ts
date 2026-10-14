@@ -1,156 +1,271 @@
 import type {LegalPack} from './types';
 
+/*
+ * Политика и правила по стандартному устройству (14 октября 2026, по просьбе
+ * владельца «сделай стандартной, как требует закон»): политика — по ст. 13
+ * GDPR (оператор, данные, цели и основания, cookies, получатели, передача за
+ * границу, сроки, безопасность, права, жалоба, автоматические решения, дети,
+ * изменения); правила — обычные условия использования. Содержание — только
+ * то, что сервис делает на самом деле: источник — docs/legal/PRIVACY-DATA-RU.md.
+ * Устройство на четырёх языках одинаковое — сторожит tests/guards/legal-docs.mjs.
+ */
 export const it: LegalPack = {
-  updated: '2026-09-29',
-  privacy: {
-    title: 'Informativa sulla privacy',
-    intro:
-      'True Thrills è un canale con podcast, video, testi e dirette. L’app e il sito girano sul server dell’autore e non mostrano pubblicità. Questo documento spiega quali dati passano dal servizio, perché e cosa puoi farci.',
-    sections: [
-{"heading": "Contatori delle pubblicazioni", "paragraphs": ["Il servizio conta le aperture dei racconti e gli avvii audio, non le persone uniche né i completamenti. Vengono inviati l’ID della pubblicazione e un codice casuale della sessione conservato solo in memoria, senza cookie o archivio locale. Sul server un hash antiripetizione è valido 24 ore e viene eliminato alla successiva pulizia delle voci scadute. I totali sono visibili all’autore fino alla cancellazione della pubblicazione. Si applica il meccanismo esistente di limitazione delle richieste."]},
+  "updated": "2026-10-14",
+  "privacy": {
+    "title": "Informativa sulla privacy",
+    "intro": "Questa informativa spiega quali dati personali vengono trattati quando usi il sito {site} e l’app True Thrills per Android e Windows (di seguito, il «servizio»), per quali finalità, per quanto tempo vengono conservati e quali diritti hai. Il documento è redatto secondo il Regolamento generale sulla protezione dei dati (GDPR) e le leggi sulla protezione dei dati dei paesi in cui opera il servizio.",
+    "sections": [
       {
-        heading: 'Chi tratta i dati',
-        paragraphs: [
-          'Il titolare del trattamento è {controller}. Per qualsiasi domanda su questo documento scrivi a {contact}.',
-          'Il sito e l’app girano su un server in affitto (Oracle Cloud). I dati restano su quel server e in copie cifrate che l’autore conserva fuori dal server.',
-        ],
+        "heading": "1. Chi è responsabile dei tuoi dati",
+        "paragraphs": [
+          "Il titolare del trattamento è {controller}. Indirizzo per qualsiasi domanda sui dati personali, richieste e reclami: {contact}.",
+          "Il servizio è un progetto d’autore senza scopo di lucro: podcast, video, storie e dirette del canale True Thrills. Nel servizio non ci sono registrazione per gli ascoltatori, pubblicità o abbonamenti a pagamento. Non vendiamo né cediamo in affitto dati personali e non li usiamo per la pubblicità."
+        ]
       },
       {
-        heading: 'Cosa resta solo sul tuo dispositivo',
-        paragraphs: [
-          'L’app ricorda nella memoria del browser o della WebView alcune cose, per non ricominciare ogni volta da capo. Queste annotazioni non vanno da nessuna parte: né al server né a terzi.',
+        "heading": "2. Quali dati trattiamo",
+        "paragraphs": [
+          "Raccogliamo il meno possibile. Il servizio non chiede agli ascoltatori nome, indirizzo email, numero di telefono o dati di pagamento. Vengono trattati:"
         ],
-        bullets: [
-          'il punto in cui ti sei fermato in un episodio e la sua durata;',
-          'quali pubblicazioni hai già aperto — così l’etichetta «nuovo» sparisce;',
-          'quali schede hai tolto dalla pagina principale e quale riga «Continua» hai nascosto;',
-          'la posizione e la dimensione del testo nelle storie scritte.',
-        ],
+        "bullets": [
+          "Dati tecnici delle richieste: indirizzo IP, data e ora, indirizzo della pagina richiesta, tipo di browser e dispositivo. Li registra il log del server web a ogni accesso al servizio.",
+          "Dati per la protezione dagli abusi: l’indirizzo IP sotto forma di hash irreversibile, con cui si limita la frequenza delle richieste. L’indirizzo vero e proprio non viene conservato nel database.",
+          "Contatori delle pubblicazioni: l’identificativo dell’episodio o della storia e un codice casuale della sessione corrente. Servono a contare le aperture delle storie e gli avvii dell’audio. Il codice di sessione non è collegato alla tua identità e non viene salvato sul dispositivo.",
+          "Dati delle notifiche — solo se le notifiche sono attive: indirizzo di iscrizione del browser o token del dispositivo Android, lingua scelta, argomenti scelti e ora dell’iscrizione. Su Android 12 e versioni precedenti il sistema non mostra una richiesta di autorizzazione separata, quindi l’app attiva le notifiche al primo avvio; puoi disattivarle con un tocco nelle impostazioni dell’app.",
+          "Dati della diretta: una chiave temporanea dell’ascoltatore per la durata della diretta. Dopo la diretta viene cancellata.",
+          "Dati della community — solo se l’autore ha attivato i commenti e hai creato tu un profilo: pseudonimo, hash del codice personale di accesso, i tuoi commenti e le tue segnalazioni.",
+          "I messaggi che ci invii all’indirizzo {contact} e i dati che vi includi."
+        ]
       },
       {
-        heading: 'Cosa arriva al server',
-        bullets: [
-          'Il normale registro del server web: indirizzo IP, ora, indirizzo della pagina, versione del browser. Serve a vedere i guasti e a distinguere le persone dai robot. La durata la decide la rotazione dei log del sistema operativo.',
-          'Le notifiche — solo se le hai attivate: l’indirizzo dell’abbonamento del tuo browser o il token del dispositivo Android, la lingua scelta, i temi selezionati e il momento dell’iscrizione. Senza questi la notifica non ha dove arrivare.',
-          'La diretta: l’audio arriva via HTTPS dallo stesso server. Per la durata della diretta viene rilasciata una chiave temporanea di ascolto, perché il link non possa essere passato all’esterno.',
-        ],
+        "heading": "3. Finalità e basi giuridiche",
+        "bullets": [
+          "Mostrare episodi, video, storie e dirette su tua richiesta — esecuzione della tua richiesta di usare il servizio (art. 6(1)(b) GDPR).",
+          "Funzionamento, sicurezza e protezione del servizio da attacchi, guasti e abusi — log del server, limitazione della frequenza delle richieste — legittimo interesse del titolare a un servizio funzionante e protetto (art. 6(1)(f) GDPR).",
+          "Contatori di aperture e ascolti, perché l’autore capisca cosa interessa al pubblico — legittimo interesse del titolare (art. 6(1)(f) GDPR). I contatori sono anonimi e non permettono di sapere chi ha ascoltato.",
+          "Notifiche su dirette e nuovi episodi — il tuo consenso (art. 6(1)(a) GDPR). Puoi revocarlo in qualsiasi momento disattivando le notifiche nelle impostazioni del servizio o del telefono.",
+          "Profilo e commenti della community — il tuo consenso (art. 6(1)(a) GDPR), che dai creando il profilo. Cancellare il profilo lo revoca.",
+          "Risposte alle tue richieste ed esercizio dei tuoi diritti — obbligo legale del titolare (art. 6(1)(c) GDPR)."
+        ]
       },
       {
-        heading: 'A chi vanno i dati all’esterno',
-        bullets: [
-          'Google (Firebase Cloud Messaging) — consegna le notifiche su Android. Google riceve il token del dispositivo e il testo della notifica. Senza notifiche attive non c’è nessuna richiesta a Google.',
-          'Oracle Cloud — l’hosting del server. Come ogni hosting, ha tecnicamente accesso ai dischi della macchina.',
-          'A nessun altro. Nell’app non ci sono reti pubblicitarie, pixel pubblicitari o analisi di terze parti.',
+        "heading": "4. Cookie e memoria del dispositivo",
+        "paragraphs": [
+          "Il servizio non usa cookie pubblicitari o analitici e non installa cookie di altre società. Agli ascoltatori il servizio non installa alcun cookie. Un cookie di sessione tecnicamente necessario compare solo per l’autore del canale quando entra nello studio e, se la community è attiva, per un membro dopo l’accesso al profilo.",
+          "Per non farti ricominciare ogni volta da capo, il servizio salva alcuni dati nella memoria locale del browser o dell’app. Questi dati non vengono inviati né al server né a terzi e puoi cancellarli eliminando i dati del sito o dell’app:"
         ],
+        "bullets": [
+          "il punto in cui ti sei fermato in un episodio e la sua durata;",
+          "quali pubblicazioni hai già aperto, per togliere l’etichetta «nuovo»;",
+          "quali schede hai tolto dalla pagina principale e quale riga «Continua» hai nascosto;",
+          "la posizione di lettura e le impostazioni del testo nelle storie, la lingua scelta e il volume."
+        ]
       },
       {
-        heading: 'Commenti e profilo dell’ascoltatore',
-        paragraphs: [
-          'Nell’app esiste il codice della community: un profilo con pseudonimo e i commenti in diretta. Finché è spento, non viene creato né conservato alcun profilo e alcun commento.',
-          'Quando l’autore lo accenderà, il profilo nasce senza nome, e-mail o telefono: l’app assegna uno pseudonimo e un codice personale di accesso. Sul server non si conserva il codice, ma la sua impronta irreversibile.',
-        ],
-        bullets: [
-          'pseudonimo e impronta del codice di accesso — finché il profilo esiste;',
-          'impronte delle sessioni attive — una settimana dall’ultimo utilizzo;',
-          'commenti, segnalazioni ed elenchi di bloccati — fino a trenta giorni, poi si cancellano da soli;',
-          'la cancellazione del profilo elimina tutto quanto elencato, subito e senza possibilità di recupero.',
-        ],
+        "heading": "5. Video incorporati e link ad altri siti",
+        "paragraphs": [
+          "Alcuni video sono incorporati da piattaforme esterne: YouTube (in modalità youtube-nocookie.com), Rutube, VK o TikTok. Quando apri un video di questo tipo, il tuo browser si collega direttamente alla piattaforma e le trasmette il tuo indirizzo IP e i dati del browser. Il trattamento successivo è regolato dall’informativa privacy della piattaforma.",
+          "I link alle pagine del canale sui social network e ai servizi di sostegno volontario portano a siti di altre società. Seguendoli, sei soggetto alle loro regole. I pagamenti di sostegno avvengono presso questi servizi: i dati della carta e del pagamento non arrivano a noi."
+        ]
       },
       {
-        heading: 'Per quanto tempo',
-        bullets: [
-          'Pubblicazioni del canale e registrazioni delle dirette — finché l’autore non le elimina.',
-          'Iscrizione alle notifiche — finché non la disattivi o finché il dispositivo smette di riceverle.',
-          'Commenti della community — trenta giorni.',
-          'Registro del server web — secondo la rotazione dei log del sistema operativo.',
-          'Copie cifrate del database — al massimo le ultime trenta; le vecchie si cancellano da sole.',
+        "heading": "6. Chi altro riceve i dati",
+        "paragraphs": [
+          "Trasmettiamo dati solo a chi è indispensabile per far funzionare il servizio. Si tratta di responsabili del trattamento che agiscono per nostro conto e secondo i propri obblighi contrattuali sulla protezione dei dati:"
         ],
+        "bullets": [
+          "Oracle (Oracle Cloud Infrastructure) — hosting del server su cui funzionano il sito, l’app e il database.",
+          "Google (Firebase Cloud Messaging) — invio delle notifiche su Android. All’avvio l’app riceve da Google il token del dispositivo; arriva al nostro server solo se le notifiche sono attive. Google riceve il token e il testo della notifica.",
+          "Servizi di notifiche push dei browser (Google, Mozilla, Apple, Microsoft) — invio delle notifiche nel browser. Il testo della notifica è cifrato con le chiavi del tuo dispositivo e il servizio non può leggerlo.",
+          "Autorità pubbliche — solo se la legge lo richiede espressamente e solo nei limiti di tale richiesta."
+        ]
       },
       {
-        heading: 'I tuoi diritti',
-        paragraphs: [
-          'Puoi chiedere quali dati esistono su di te, ottenerne una copia, chiederne la correzione o la cancellazione, opporti al trattamento e revocare il consenso alle notifiche. Invia la richiesta a {contact}; la risposta arriva entro trenta giorni.',
-          'Se usi un profilo della community, esportazione e cancellazione sono disponibili direttamente nell’app, senza scrivere a nessuno.',
-          'Se ritieni che i tuoi diritti siano stati violati, puoi rivolgerti all’autorità di controllo per la protezione dei dati del tuo Paese.',
-        ],
+        "heading": "7. Trasferimento dei dati in altri paesi",
+        "paragraphs": [
+          "Il server del servizio e i responsabili del trattamento possono trovarsi fuori dal tuo paese. Google può trattare dati negli Stati Uniti. Tale trasferimento avviene sulla base della decisione di adeguatezza della Commissione europea (EU–US Data Privacy Framework) o delle clausole contrattuali standard approvate dalla Commissione europea. Puoi chiedere una copia delle garanzie applicabili all’indirizzo {contact}."
+        ]
       },
       {
-        heading: 'Basi giuridiche',
-        bullets: [
-          'Consenso — notifiche e profilo della community. Revocabile in qualsiasi momento, disattivandoli nell’app.',
-          'Legittimo interesse — il registro del server web e la protezione dagli abusi: senza di esso il servizio non si può né mantenere né difendere.',
-          'Esecuzione della tua richiesta — mostrare gli episodi e le dirette per cui sei arrivato.',
-        ],
+        "heading": "8. Per quanto tempo conserviamo i dati",
+        "bullets": [
+          "Log del server web — fino a 14 giorni, poi viene cancellato dalla rotazione automatica dei log del server.",
+          "Hash per la limitazione della frequenza delle richieste — fino alla fine della finestra di limitazione, poi vengono cancellati automaticamente.",
+          "Codice di sessione per i contatori — 24 ore. I contatori stessi sono conservati come totali anonimi finché esiste la pubblicazione.",
+          "Iscrizione alle notifiche — finché non la disattivi o finché il dispositivo non smette di ricevere notifiche.",
+          "Chiave dell’ascoltatore della diretta — fino alla fine della diretta.",
+          "Commenti, segnalazioni e blocchi della community — fino a trenta giorni, poi vengono cancellati automaticamente. Pseudonimo e hash del codice di accesso — finché esiste il profilo.",
+          "La corrispondenza con te — per il tempo necessario a rispondere alla richiesta e non oltre tre anni.",
+          "Copie di backup cifrate — si conservano le ultime trenta copie, quelle più vecchie vengono cancellate automaticamente."
+        ]
       },
       {
-        heading: 'Minori',
-        paragraphs: [
-          'Il servizio non è destinato a minori di 13 anni, e il profilo della community a minori di 16 anni o dell’età del consenso prevista dalla legge del tuo Paese. Non verifichiamo l’età e non la raccogliamo. Se dati simili ci sono arrivati per errore, scrivi a {contact} e li cancelleremo.',
-        ],
+        "heading": "9. Come proteggiamo i dati",
+        "paragraphs": [
+          "La connessione al servizio è protetta da HTTPS. Solo il titolare ha accesso al server. Il programma del servizio funziona con un utente di sistema separato, senza diritti di amministratore. Le copie di backup sono cifrate prima di lasciare il server. I codici di accesso sono conservati solo sotto forma di hash irreversibile.",
+          "Nessun metodo di conservazione e trasmissione dei dati offre una garanzia assoluta. Se si verifica una violazione che può incidere sui tuoi diritti, ne informeremo l’autorità di controllo e te, nei termini previsti dalla legge, nel servizio e su {site}."
+        ]
       },
       {
-        heading: 'Sicurezza',
-        paragraphs: [
-          'Il collegamento al servizio è protetto da HTTPS. L’app gira con un utente di sistema senza shell e senza diritti di amministratore. Le copie dei dati vengono cifrate prima di lasciare il server. Il codice personale di accesso alla community è conservato solo come impronta irreversibile.',
-          'Nessun metodo di conservazione offre una garanzia totale. Se si verifica una violazione che riguarda i tuoi dati, l’autore lo comunicherà nell’app e su {site}.',
+        "heading": "10. I tuoi diritti",
+        "paragraphs": [
+          "Hai il diritto di:"
         ],
+        "bullets": [
+          "sapere se i tuoi dati sono trattati e riceverne una copia (diritto di accesso);",
+          "chiedere la rettifica dei dati inesatti;",
+          "chiedere la cancellazione dei dati («diritto all’oblio»);",
+          "chiedere la limitazione del trattamento;",
+          "ricevere i dati che hai fornito in un formato leggibile da dispositivo automatico e trasmetterli a un altro titolare (diritto alla portabilità);",
+          "opporti al trattamento basato sul legittimo interesse;",
+          "revocare il consenso in qualsiasi momento. Ciò non rende illecito il trattamento svolto prima della revoca;",
+          "proporre reclamo all’autorità di controllo per la protezione dei dati del paese in cui vivi o lavori o in cui ritieni siano stati violati i tuoi diritti."
+        ]
       },
       {
-        heading: 'Modifiche',
-        paragraphs: [
-          'Il documento può cambiare. La data dell’ultima modifica è in cima alla pagina. Le modifiche rilevanti saranno annunciate nell’app prima che entrino in vigore.',
-        ],
+        "heading": "11. Come esercitare i tuoi diritti",
+        "paragraphs": [
+          "Scrivi a {contact}. Ti risponderemo senza ingiustificato ritardo e al più tardi entro un mese (trenta giorni) dal ricevimento della richiesta. Se la richiesta è complessa, il termine può essere prorogato di altri due mesi, e te lo comunicheremo. La risposta è gratuita. Per non consegnare i dati di altri, potremmo chiederti di confermare che la richiesta proviene da te.",
+          "La maggior parte dei dati puoi cancellarla da solo: disattivando le notifiche, eliminando i dati del sito o dell’app; un membro della community può esportare e cancellare il proprio profilo direttamente nell’app."
+        ]
       },
-    ],
+      {
+        "heading": "12. Fornire i dati è obbligatorio?",
+        "paragraphs": [
+          "No. Il servizio si può usare senza registrazione e senza fornire alcuna informazione su di te. I dati tecnici delle richieste sono trasmessi automaticamente dal browser: senza di essi il servizio non può mostrare la pagina. Le notifiche e il profilo della community sono facoltativi."
+        ]
+      },
+      {
+        "heading": "13. Decisioni automatizzate",
+        "paragraphs": [
+          "Non prendiamo decisioni basate unicamente sul trattamento automatizzato, compresa la profilazione, che producano effetti giuridici che ti riguardano o che incidano in modo analogo significativamente sulla tua persona."
+        ]
+      },
+      {
+        "heading": "14. Minori",
+        "paragraphs": [
+          "Il servizio non è destinato ai minori di 13 anni. Un profilo nella community può essere creato dai 16 anni o dall’età del consenso digitale stabilita dalla legge del tuo paese. Non raccogliamo informazioni sull’età. Se scopri che un minore ci ha trasmesso i propri dati, scrivi a {contact} e li cancelleremo."
+        ]
+      },
+      {
+        "heading": "15. Modifiche all’informativa",
+        "paragraphs": [
+          "Possiamo aggiornare questa informativa quando cambiano il servizio o la legge. La data dell’ultima modifica è indicata in cima alla pagina. Delle modifiche sostanziali ti informeremo in anticipo nel servizio."
+        ]
+      }
+    ]
   },
-  rules: {
-    title: 'Regole e condizioni',
-    intro:
-      'Regole brevi: cosa si può fare, cosa no e cosa succede in caso di violazione. Usando l’app le accetti.',
-    sections: [
+  "rules": {
+    "title": "Termini e condizioni",
+    "intro": "Questi termini regolano l’uso del sito {site} e dell’app True Thrills (di seguito, il «servizio»). Il gestore del servizio è {controller}. Usando il servizio accetti questi termini. Se non li accetti, ti preghiamo di non usare il servizio.",
+    "sections": [
       {
-        heading: 'Contenuti del canale',
-        paragraphs: [
-          'Tutti gli episodi, i video, i testi, le copertine e le registrazioni delle dirette appartengono all’autore del canale. Puoi ascoltarli, guardarli e leggerli liberamente. Copiare, ricaricare, ridoppiare e distribuire — solo con permesso scritto.',
-        ],
+        "heading": "1. Che cos’è il servizio",
+        "paragraphs": [
+          "Il servizio è la piattaforma d’autore gratuita del canale True Thrills: audio, video, storie scritte e dirette. Per usare il servizio non è necessaria la registrazione. Le funzioni del servizio possono essere modificate, ampliate o interrotte."
+        ]
       },
       {
-        heading: 'Regole della community',
-        paragraphs: ['Se l’autore ha attivato i commenti, in essi sono vietati:'],
-        bullets: [
-          'minacce, insulti, molestie e istigazione all’odio;',
-          'spam, pubblicità e link di qualsiasi tipo;',
-          'materiali illegali e istigazione a reati;',
-          'dati personali altrui — indirizzi, telefoni, corrispondenza;',
-          'fingersi l’autore del canale o un’altra persona.',
-        ],
+        "heading": "2. Età",
+        "paragraphs": [
+          "Il servizio è destinato a persone di età superiore ai 13 anni. Alcuni contenuti raccontano catastrofi, traumi e la morte di persone e possono essere difficili da affrontare. Un profilo nella community può essere creato dai 16 anni o dall’età stabilita dalla legge del tuo paese."
+        ]
       },
       {
-        heading: 'Moderazione',
-        paragraphs: [
-          'I commenti appaiono subito e l’autore li controlla. La violazione porta alla rimozione del messaggio e, se ripetuta, al blocco del profilo. La decisione viene spiegata: il commento rimosso mostra il motivo a chi l’ha scritto.',
-          'Non sei d’accordo con la decisione — scrivi a {contact}. L’autore risponde entro trenta giorni.',
-        ],
+        "heading": "3. Diritti sui contenuti",
+        "paragraphs": [
+          "Tutti gli episodi, i video, i testi, le copertine, il logo e le registrazioni delle dirette sono protetti dal diritto d’autore e appartengono al gestore o sono da lui usati legittimamente. Puoi ascoltarli, guardarli e leggerli per uso personale non commerciale e condividerne i link.",
+          "Senza l’autorizzazione scritta del gestore è vietato copiare, scaricare aggirando le funzioni del servizio, ricaricare, ridoppiare, modificare, vendere e diffondere pubblicamente i contenuti, nonché usarli per addestrare sistemi di intelligenza artificiale."
+        ]
       },
       {
-        heading: 'Sostegno all’autore',
-        paragraphs: [
-          'Il sostegno è volontario. Non compra nulla: non ci sono e non ci saranno episodi riservati, privilegi, distintivi o priorità nei commenti a pagamento — tutti i contenuti restano gratuiti per tutti.',
-          'I soldi vanno al server, all’attrezzatura e al lavoro. Il sostegno volontario non è rimborsabile; le condizioni di rimborso le stabilisce la piattaforma con cui hai pagato.',
+        "heading": "4. Uso consentito",
+        "paragraphs": [
+          "Nell’uso del servizio è vietato:"
         ],
+        "bullets": [
+          "violare la legge e i diritti di altre persone;",
+          "tentare di ottenere un accesso non autorizzato al server, allo studio dell’autore o ai dati altrui;",
+          "disturbare il funzionamento del servizio, creare un carico eccessivo, scaricare in massa i contenuti con strumenti automatici;",
+          "diffondere software dannoso ed eludere le misure tecniche di protezione;",
+          "spacciarsi per l’autore del canale o per un’altra persona."
+        ]
       },
       {
-        heading: 'Responsabilità',
-        paragraphs: [
-          'Il servizio è fornito così com’è. L’autore non promette un funzionamento ininterrotto: è un progetto personale su un solo server. L’autore non risponde del contenuto dei commenti altrui, ma rimuove le violazioni quando ne viene a conoscenza.',
+        "heading": "5. Commenti e community",
+        "paragraphs": [
+          "Se l’autore ha attivato i commenti, sei responsabile di ciò che pubblichi. Pubblicando un commento, ne consenti la visualizzazione nel servizio finché non viene cancellato da te, dall’autore o automaticamente alla scadenza del periodo di conservazione. Nei commenti sono vietati:"
         ],
+        "bullets": [
+          "minacce, insulti, molestie e incitamento all’odio;",
+          "spam, pubblicità e link di qualsiasi tipo;",
+          "contenuti illegali e incitamenti a reati o alla violenza;",
+          "dati personali altrui: indirizzi, telefoni, corrispondenza, fotografie;",
+          "contenuti che violano i diritti d’autore e altri diritti di terzi."
+        ]
       },
       {
-        heading: 'Cessazione',
-        paragraphs: [
-          'Puoi smettere di usare il servizio in qualsiasi momento: elimina l’app, disattiva le notifiche, cancella il profilo della community. L’autore può chiudere l’accesso a un profilo che viola le regole e può chiudere del tutto il servizio, annunciandolo nell’app.',
-        ],
+        "heading": "6. Moderazione",
+        "paragraphs": [
+          "I commenti vengono pubblicati subito e l’autore li controlla. Una violazione comporta la cancellazione del messaggio e, se ripetuta, il blocco del profilo. L’autore che cancella un commento ne indica il motivo.",
+          "Se non sei d’accordo con una decisione o vuoi segnalare un contenuto illegale, scrivi a {contact}. Esamineremo la richiesta e risponderemo entro trenta giorni."
+        ]
       },
-    ],
-  },
+      {
+        "heading": "7. Sostegno volontario",
+        "paragraphs": [
+          "Puoi sostenere l’autore se lo desideri, tramite servizi di pagamento di terzi. Il sostegno è una donazione volontaria, non un acquisto: non dà accesso a contenuti riservati, privilegi o vantaggi, e tutti i contenuti del servizio restano gratuiti per tutti.",
+          "Il pagamento è gestito dal servizio di pagamento che scegli, secondo le sue regole. Le questioni di rimborso sono regolate dalle regole di tale servizio e dalle norme inderogabili di legge."
+        ]
+      },
+      {
+        "heading": "8. I contenuti non sono consigli",
+        "paragraphs": [
+          "Le storie di sopravvivenza, i consigli degli ospiti delle dirette e l’indicazione per la respirazione nella pagina della diretta hanno carattere informativo. Non costituiscono consulenza medica, psicologica, legale o professionale e non sostituiscono preparazione, attrezzatura e aiuto di specialisti. Se hai bisogno di aiuto, rivolgiti a un medico o ai servizi di emergenza."
+        ]
+      },
+      {
+        "heading": "9. Servizi di terzi",
+        "paragraphs": [
+          "Il servizio incorpora video di piattaforme esterne e contiene link a social network e servizi di pagamento. Il gestore non controlla questi servizi e non risponde dei loro contenuti e delle loro regole. Il loro uso è disciplinato dai rispettivi termini."
+        ]
+      },
+      {
+        "heading": "10. Esclusione di garanzie",
+        "paragraphs": [
+          "Il servizio è fornito «così com’è» e «come disponibile». È un progetto personale e il gestore non garantisce un funzionamento ininterrotto e privo di errori né la disponibilità costante di singoli contenuti."
+        ]
+      },
+      {
+        "heading": "11. Limitazione di responsabilità",
+        "paragraphs": [
+          "Nei limiti consentiti dalla legge, il gestore non risponde di danni indiretti, mancato guadagno e perdita di dati legati all’uso del servizio, né del contenuto dei commenti di altri utenti, ma rimuove le violazioni quando ne viene a conoscenza. Nulla in questi termini limita la responsabilità che la legge non consente di limitare né i tuoi diritti inderogabili di consumatore."
+        ]
+      },
+      {
+        "heading": "12. Cessazione dell’uso",
+        "paragraphs": [
+          "Puoi smettere di usare il servizio in qualsiasi momento: disinstallando l’app, disattivando le notifiche, cancellando il profilo della community. Il gestore può limitare l’accesso a chi viola questi termini e può cessare il servizio, avvisando in anticipo quando possibile."
+        ]
+      },
+      {
+        "heading": "13. Modifiche dei termini",
+        "paragraphs": [
+          "Il gestore può modificare questi termini. La data dell’ultima modifica è indicata in cima alla pagina. Delle modifiche sostanziali ti informeremo in anticipo nel servizio. Continuando a usare il servizio dopo l’entrata in vigore delle modifiche, accetti la nuova versione."
+        ]
+      },
+      {
+        "heading": "14. Legge applicabile e controversie",
+        "paragraphs": [
+          "A questi termini si applica la legge del paese in cui si trova il gestore. Se sei un consumatore, conservi la tutela delle norme inderogabili del paese in cui vivi e il diritto di rivolgerti al giudice di quel paese. Prima di rivolgerti al giudice, ti preghiamo di scrivere a {contact}: la maggior parte delle questioni si risolve con un messaggio."
+        ]
+      },
+      {
+        "heading": "15. Contatti",
+        "paragraphs": [
+          "Domande su questi termini, richieste e reclami vanno inviati a {contact}."
+        ]
+      }
+    ]
+  }
 };
