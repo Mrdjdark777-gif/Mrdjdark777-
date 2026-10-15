@@ -92,10 +92,10 @@ try{
   const at=w+'×'+h+': ';
   const ctx=await browser.newContext({viewport:{width:w,height:h},locale:'ru-RU'});const page=await ctx.newPage();
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  const first=await page.goto(base+'/?mode=listen&view=home');await ready(page);
+  const firstResponse=await page.goto(base+'/?mode=listen&view=home');await ready(page);
   // Заголовки безопасности (15 октября): без них сайт можно встроить в чужую
   // страницу, а браузер — угадывать тип файла.
-  if(w===1280){const hd=first.headers();
+  if(w===1280){const hd=firstResponse.headers();
    for(const [k,v] of [['x-content-type-options','nosniff'],['x-frame-options','SAMEORIGIN'],['referrer-policy','strict-origin-when-cross-origin'],['strict-transport-security','max-age=31536000']])
     check(hd[k]===v,'заголовок безопасности '+k+' не «'+v+'», а «'+hd[k]+'»');
    check(/frame-ancestors 'self'/.test(hd['content-security-policy']??'')&&/microphone=\(self\)/.test(hd['permissions-policy']??'')&&!hd['x-powered-by'],'нет CSP frame-ancestors, Permissions-Policy или виден X-Powered-By: '+JSON.stringify(hd));}

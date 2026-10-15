@@ -29,10 +29,18 @@ const root = path.resolve(import.meta.dirname, '..', '..');
 const list = (dir) => readdirSync(path.join(root, dir)).sort();
 const shims = list('scripts');
 
-// Каждому переехавшему файлу — переходник со старым именем, и ничего лишнего.
-const moved = [...list('server').map((f) => ['server', f]), ...list('tools/windows').map((f) => ['tools/windows', f])];
-assert.deepEqual(shims, moved.map(([, f]) => f).sort(),
- 'в scripts/ должны лежать ровно переходники к server/ и tools/windows/ — ни больше, ни меньше');
+// Каждый переходник ведёт на файл, который есть в server/ или tools/windows/,
+// и ничего лишнего. Новым файлам, появившимся после переезда 9 октября
+// (server/notify.mjs, server/traffic.mjs…), переходник не нужен: старого
+// адреса у них никогда не было, а класть в scripts/ новое запрещено
+// (CLAUDE.md). Переехавшие файлы при этом все на месте — их список ниже.
+const all = [...list('server').map((f) => ['server', f]), ...list('tools/windows').map((f) => ['tools/windows', f])];
+const stray = shims.filter((s) => !all.some(([, f]) => f === s));
+assert.deepEqual(stray, [], 'в scripts/ лежит то, чего нет ни в server/, ни в tools/windows/: ' + stray.join(', '));
+const moved = all.filter(([, f]) => shims.includes(f));
+// Сколько файлов переехало 9 октября: потерянный переходник — сломанный старый адрес.
+const MOVED_ON_OCT_9 = 25;
+assert.equal(moved.length, MOVED_ON_OCT_9, 'переходников к переехавшим файлам ' + moved.length + ', а переехало ' + MOVED_ON_OCT_9 + ': старый адрес потерян');
 
 for (const [dir, name] of moved) {
  const text = readFileSync(path.join(root, 'scripts', name), 'utf8');
