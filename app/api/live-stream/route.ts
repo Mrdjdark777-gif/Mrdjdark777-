@@ -9,6 +9,7 @@ import {failure,requireOwner,result,owner,hash} from '@/lib/server';
 import {unlinkIfUnused} from '@/lib/media-unlink';
 import {liveId,liveRoot} from '@/lib/live-recording';
 import {LIVE_BUSY_STATES} from '@/lib/live-states.mjs';
+import {trafficPaused} from '@/lib/traffic-pause';
 export const runtime='nodejs';
 export async function GET(req:Request){try{
  const q=new URL(req.url).searchParams,id=q.get('id')||'',db=getDb();
@@ -53,6 +54,8 @@ export async function GET(req:Request){try{
  const file=q.get('file');
  if(!file)return result({id,title:recording.title,state:recording.state,ready:!!recording.playlist,postId:recording.postId,
   ...(privileged?{bytes:recording.bytes,received:recording.nextSequence,error:recording.error,listeners:(await db.select().from(peers).where(and(eq(peers.broadcastId,id),gt(peers.heartbeat,Date.now()-90000))).all()).length}:{})});
+ // Месячный предел трафика достигнут — слушателям эфир и записи до 1-го числа не отдаём.
+ if(!privileged&&trafficPaused())return result({error:'#err.trafficPaused'},503,{'Retry-After':'3600'});
  if(file==='index.m3u8'){
   const peerId=q.get('peer'),token=q.get('token');
   if(peerId&&token){const peer=await db.select().from(peers).where(and(eq(peers.id,peerId),eq(peers.broadcastId,id))).get();if(peer?.tokenHash===await hash(token))await db.update(peers).set({heartbeat:Date.now()}).where(eq(peers.id,peerId));}

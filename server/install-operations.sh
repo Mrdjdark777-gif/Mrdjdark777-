@@ -185,3 +185,94 @@ if [ -f "$nginx_conf" ] && command -v nginx >/dev/null; then
   fi
  fi
 fi
+
+# ---------------------------------------------------------------------------
+# Защита сервера (15 октября, «хорошая защита… чтоб было не так просто
+# взломать»). Каждый шаг проверяется и при сбое откатывается, а обновление
+# идёт дальше: защита не должна ронять сайт.
+# ---------------------------------------------------------------------------
+harden_warn(){ echo "Защита: $1 — пропущено" >&2; }
+
+# 1. nginx: лимиты на один IP-адрес. Обычная страница — десятки запросов
+#    разом, поэтому запас (200) большой; держать 30 запросов в секунду
+#    непрерывно и 60 соединений сразу один человек не может — это робот,
+#    выкачивающий выпуски, или атака. Лишнее получает 429. Версия nginx в
+#    ответах скрыта. Файл в conf.d действует на все сайты и не трогает
+#    конфигурацию с доменом и HTTPS, которую правил certbot.
+harden_nginx(){
+ command -v nginx >/dev/null || return 0
+ local f=/etc/nginx/conf.d/truethrills-limits.conf tokens='server_tokens off;'
+ grep -Eqs '^[[:space:]]*server_tokens' /etc/nginx/nginx.conf && tokens='# server_tokens уже задан в nginx.conf'
+ cat > "$f" <<NGINX
+# True Thrills: лимиты на один IP (server/install-operations.sh).
+$tokens
+limit_req_zone \$binary_remote_addr zone=tt_req:10m rate=30r/s;
+limit_conn_zone \$binary_remote_addr zone=tt_conn:10m;
+limit_req zone=tt_req burst=200 nodelay;
+limit_conn tt_conn 60;
+limit_req_status 429;
+limit_conn_status 429;
+NGINX
+ if nginx -t 2>/dev/null; then systemctl reload nginx; echo 'Защита: nginx — лимиты на IP включены, версия скрыта'
+ else rm -f "$f"; harden_warn 'nginx не принял лимиты, файл убран'; fi
+}
+
+# 2. Автоматические обновления безопасности Ubuntu: дыры в системе
+#    закрываются сами, без участия владельца. Перезагрузок сами не делают.
+harden_updates(){
+ command -v apt-get >/dev/null || return 0
+ dpkg -s unattended-upgrades >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y unattended-upgrades >/dev/null || { harden_warn 'не установились автообновления'; return 0; }
+ printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
+ echo 'Защита: автоматические обновления безопасности включены'
+}
+
+# 3. fail2ban: адрес, который подбирает вход по SSH или долбит сайт сверх
+#    лимита, блокируется на час.
+harden_fail2ban(){
+ command -v apt-get >/dev/null || return 0
+ dpkg -s fail2ban >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y fail2ban >/dev/null || { harden_warn 'не установился fail2ban'; return 0; }
+ cat > /etc/fail2ban/jail.d/truethrills.local <<'JAIL'
+[sshd]
+enabled = true
+maxretry = 5
+bantime = 1h
+
+[nginx-limit-req]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 30
+findtime = 1m
+bantime = 1h
+JAIL
+ systemctl enable --now fail2ban >/dev/null 2>&1 && systemctl restart fail2ban && echo 'Защита: fail2ban следит за SSH и лимитами сайта' || harden_warn 'fail2ban не запустился'
+}
+
+# 4. SSH: вход только по ключу, без пароля и без root. Ставится, только если
+#    у кого-то на сервере уже есть ключ в authorized_keys — иначе владелец
+#    остался бы снаружи. Имя 01-… — чтобы файл читался раньше
+#    50-cloud-init.conf: в sshd побеждает первое значение.
+harden_ssh(){
+ command -v sshd >/dev/null || return 0
+ grep -qsE '^(ssh-|ecdsa-|sk-)' /home/*/.ssh/authorized_keys || { harden_warn 'SSH: ни у кого нет ключа, вход по паролю не трогаем'; return 0; }
+ local f=/etc/ssh/sshd_config.d/01-truethrills.conf
+ [ -d /etc/ssh/sshd_config.d ] || return 0
+ printf '# True Thrills: вход только по ключу (server/install-operations.sh).\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\nMaxAuthTries 4\n' > "$f"
+ if sshd -t 2>/dev/null; then systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true; echo 'Защита: SSH — только по ключу, без root'
+ else rm -f "$f"; harden_warn 'sshd не принял настройку, файл убран'; fi
+}
+
+# 5. Ключ Firebase на сервере читает только сервис, менять не может никто, кроме root.
+harden_keys(){
+ local key; key=$(grep -E '^FIREBASE_SERVICE_ACCOUNT_FILE=' /opt/truethrills/.env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'"'')
+ [ -n "$key" ] || return 0
+ case "$key" in /*) ;; *) key=/opt/truethrills/$key ;; esac
+ [ -f "$key" ] || return 0
+ chown root:truethrills "$key" && chmod 640 "$key" && echo 'Защита: ключ Firebase — 640, root:truethrills'
+}
+
+harden_nginx || harden_warn 'nginx'
+harden_updates || harden_warn 'автообновления'
+harden_fail2ban || harden_warn 'fail2ban'
+harden_ssh || harden_warn 'SSH'
+harden_keys || harden_warn 'ключ Firebase'

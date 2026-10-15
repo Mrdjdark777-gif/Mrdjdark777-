@@ -18,6 +18,7 @@ const dir = await mkdtemp(path.join(root, '.test-tmp-'));
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_PATH = path.join(dir, 'db.sqlite');
 process.env.STORAGE_DIR = path.join(dir, 'storage');
+process.env.TT_OPERATIONS_DIR = path.join(dir, 'operations');
 // Уменьшенные обложки лежат отдельно от хранилища: это производные файлы, их
 // не считает копия и по ним не ходит уборка сирот.
 process.env.THUMB_DIR = path.join(dir, 'thumbs');
@@ -364,6 +365,20 @@ try {
     assert.equal(back.length, bytes.length, name + ': размер у слушателя ' + back.length + ' вместо ' + bytes.length);
     assert.equal(createHash('sha256').update(back).digest('hex'), sum, name + ': слушатель получает не тот файл, что загружен');
     assert.equal(got.headers.get('content-type'), mime, name + ': тип при выдаче изменился');
+    // Стоп-кран трафика (lib/traffic-pause.ts): флаг монитора — слушателю 503,
+    // автору звук по-прежнему; без флага — снова всем.
+    if (name === 'song.mp3') {
+     const { mkdir, writeFile, rm } = await import('node:fs/promises');
+     await mkdir(process.env.TT_OPERATIONS_DIR, { recursive: true });
+     await writeFile(path.join(process.env.TT_OPERATIONS_DIR, 'traffic-stop'), '{}');
+     const paused = await dispatch('audio', { search: '?id=' + made.data.id });
+     assert.equal(paused.status, 503, 'при достигнутом пределе трафика слушатель всё равно получает звук: ' + paused.status);
+     assert.equal(await paused.text(), '#err.trafficPaused', 'при пределе трафика нет понятной причины');
+     const own = await dispatch('audio', { search: '?id=' + made.data.id, headers: { cookie: ownerCookie } });
+     assert.equal(own.status, 200, 'при пределе трафика автор не может слушать свой выпуск');
+     await rm(path.join(process.env.TT_OPERATIONS_DIR, 'traffic-stop'));
+     assert.equal((await dispatch('audio', { search: '?id=' + made.data.id })).status, 200, 'после снятия предела слушателю звук не вернулся');
+    }
     await request('library', { action: 'delete', id: made.data.id });
    }
   }

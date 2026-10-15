@@ -23,8 +23,36 @@ function buildStamp(): string {
   }
 }
 
+/**
+ * Заголовки безопасности на всех ответах (15 октября, «хорошая защита»):
+ * - nosniff — браузер не угадывает тип файла (загруженный «звук» не станет
+ *   страницей со скриптом);
+ * - frame-ancestors 'self' и X-Frame-Options — сайт нельзя встроить в чужую
+ *   страницу и обманом заставить нажать кнопку студии (clickjacking);
+ * - object-src 'none', base-uri 'self' — закрыты старые плагины и подмена
+ *   базового адреса. Полный CSP со списком скриптов не ставится: Next
+ *   вставляет свои встроенные скрипты, и строгий список сломал бы сайт;
+ * - Referrer-Policy — чужим сайтам уходит только домен, без адреса страницы;
+ * - Permissions-Policy — камера, геолокация, платежи, USB выключены; микрофон
+ *   только у самого сайта (эфир из студии);
+ * - HSTS — браузер ходит только по HTTPS год вперёд. По HTTP браузеры этот
+ *   заголовок игнорируют, так что первичной настройке по IP он не мешает.
+ */
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)" },
+  { key: "Strict-Transport-Security", value: "max-age=31536000" },
+];
+
 const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_BUILD: buildStamp() },
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
   // data/ (uploaded audio/covers, live-stream recordings) is read via fully
   // dynamic runtime paths and was never meant to be walked by the build's
   // static file tracer -- excluded regardless of whether it's the cause of

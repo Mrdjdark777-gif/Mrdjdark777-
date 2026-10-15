@@ -606,6 +606,7 @@ export const it: Record<keyof typeof ru, string> = {
   'err.uploadType': 'Sono supportati MP3, WAV, M4A, WebM, OGG e FLAC',
   'err.badStorageKey': 'Chiave di archiviazione non valida',
   'err.notFound': 'Non trovato',
+  'err.trafficPaused': 'Il server ha esaurito il traffico gratuito di questo mese. L’audio tornerà disponibile dal giorno 1.',
   'err.pinDraft': 'Si può fissare solo ciò che è pubblicato.',
   'err.liveTitle': 'Indica il titolo della diretta',
   'err.liveBusy': 'C’è già un’altra diretta in corso. Prima terminala.',

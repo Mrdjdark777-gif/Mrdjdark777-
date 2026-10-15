@@ -3,6 +3,7 @@ import { getDb } from '@/db';
 import { posts } from '@/db/schema';
 import { AUDIO_MAX_BYTES } from '@/lib/audio-limits';
 import { probeAudio } from '@/lib/media-check';
+import { trafficPaused } from '@/lib/traffic-pause';
 import { bucket, failure, owner, requireOwner, result, userId } from '@/lib/server';
 const MAX=AUDIO_MAX_BYTES;
 export async function POST(req: Request){try{
@@ -21,6 +22,8 @@ export async function GET(req: Request){try{
   const id=new URL(req.url).searchParams.get('id')??'';
   const p=await getDb().select().from(posts).where(eq(posts.id,id)).get();
   if(!p?.audioKey||(!p.published&&!await owner(req)))return new Response('#err.notFound',{status:404});
+  // Месячный предел трафика достигнут — слушателям звук до 1-го числа не отдаём (lib/traffic-pause.ts).
+  if(trafficPaused()&&!await owner(req))return new Response('#err.trafficPaused',{status:503,headers:{'Retry-After':'3600','Cache-Control':'no-store'}});
   const obj=await bucket().get(p.audioKey,{range:req.headers});if(!obj)return new Response('#err.notFound',{status:404});
   const h=new Headers({'Accept-Ranges':'bytes','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});obj.writeHttpMetadata(h);h.set('ETag',obj.httpEtag);
   // Диапазон за пределами файла — 416 с настоящим размером, чтобы плеер

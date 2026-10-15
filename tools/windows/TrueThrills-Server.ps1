@@ -1,7 +1,7 @@
 ﻿# Windows PowerShell 5.1 / PowerShell 7. Run from the extracted source folder.
 [CmdletBinding()]
 param(
- [ValidateSet('Update','Status','Backup')][string]$Action='Status',
+ [ValidateSet('Update','Status','Backup','Telegram')][string]$Action='Status',
  [string]$Server='ubuntu@129.152.8.230',
  [string]$KeyPath='',
  [string]$Branch='design/six-screens',
@@ -69,6 +69,26 @@ if($Action -eq 'Update'){
  Invoke-Remote $Command
  # Временных файлов в дереве сервиса не остаётся.
  Invoke-Remote 'sudo rm -rf /opt/truethrills/.update-staging'
+ exit
+}
+if($Action -eq 'Telegram'){
+ # Уведомления о сервере в Telegram (server/set-telegram.mjs). Токен бота
+ # вводится скрыто и уходит на сервер только через стандартный ввод ssh: в
+ # историю оболочки, в список процессов и в журнал он не попадает. Номер
+ # чата сервер находит сам — по сообщению, которое ты написал своему боту.
+ Write-Host ''
+ Write-Host '  1. В Telegram открой @BotFather, отправь /newbot, придумай имя — он пришлёт токен.'
+ Write-Host '  2. Открой своего нового бота и нажми «Старт» (или напиши ему «привет»).'
+ Write-Host '  3. Вставь токен сюда.'
+ Write-Host ''
+ $Secure=Read-Host -AsSecureString 'Токен бота'
+ $Token=[Runtime.InteropServices.Marshal]::PtrToStringAuto(
+  [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure))
+ if(-not $Token){throw 'Токен не введён.'}
+ $Was=$ErrorActionPreference; $ErrorActionPreference='Continue'
+ try{ $Token | & ssh @SshOptions $Server 'cd /opt/truethrills && sudo node server/set-telegram.mjs' } finally{ $ErrorActionPreference=$Was }
+ if($LASTEXITCODE -ne 0){throw 'Telegram не подключён. Причина — в строке выше.'}
+ Write-Host '  Готово: в Telegram пришло пробное сообщение.' -ForegroundColor Green
  exit
 }
 # Пароль уходит на сервер только по ssh и только в переменную окружения

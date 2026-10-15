@@ -554,6 +554,7 @@ export const uk: Record<keyof typeof ru, string> = {
   "err.uploadType": "Підтримуються MP3, WAV, M4A, WebM, OGG і FLAC",
   "err.badStorageKey": "Неприпустимий ключ сховища",
   "err.notFound": "Не знайдено",
+  "err.trafficPaused": "Сервер вичерпав безкоштовний трафік цього місяця. Звук знову буде доступний з 1-го числа.",
   "err.pinDraft": "Закріпити можна лише опубліковане.",
   "err.liveTitle": "Вкажи назву ефіру",
   "err.liveBusy": "Інший ефір уже триває. Спочатку заверши його.",

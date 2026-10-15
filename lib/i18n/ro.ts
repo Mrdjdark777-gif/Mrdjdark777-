@@ -554,6 +554,7 @@ export const ro: Record<keyof typeof ru, string> = {
   "err.uploadType": "Sunt acceptate MP3, WAV, M4A, WebM, OGG și FLAC",
   "err.badStorageKey": "Cheie de stocare nepermisă",
   "err.notFound": "Nu a fost găsit",
+  "err.trafficPaused": "Serverul a epuizat traficul gratuit al acestei luni. Sunetul va fi din nou disponibil de la data de 1.",
   "err.pinDraft": "Poate fi fixat doar ce este publicat.",
   "err.liveTitle": "Scrie titlul emisiunii",
   "err.liveBusy": "Altă emisiune este deja în desfășurare. Încheie-o mai întâi.",

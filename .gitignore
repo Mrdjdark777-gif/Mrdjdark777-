@@ -67,3 +67,16 @@ __pycache__/
 /.update-staging/
 /.update-run.*/
 outputs/ui/motion/
+
+# ключи и секреты — никогда в репозиторий (репозиторий публичный)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key
+id_rsa*
+id_ed25519*
+id_ecdsa*
+firebase-service-account*.json
+google-services.json
+*.ppk
