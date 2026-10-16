@@ -217,11 +217,15 @@ NGINX
  else rm -f "$f"; harden_warn 'nginx не принял лимиты, файл убран'; fi
 }
 
+# Вывод apt (и needrestart: «Restarting services… No containers need to be
+# restarted») идёт в поток ошибок, и PowerShell владельца показывал его
+# красным блоком NativeCommandError, хотя всё прошло (16 октября). О сбое
+# установки говорит код выхода — по нему и печатается своя строка.
 # 2. Автоматические обновления безопасности Ubuntu: дыры в системе
 #    закрываются сами, без участия владельца. Перезагрузок сами не делают.
 harden_updates(){
  command -v apt-get >/dev/null || return 0
- dpkg -s unattended-upgrades >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y unattended-upgrades >/dev/null || { harden_warn 'не установились автообновления'; return 0; }
+ dpkg -s unattended-upgrades >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y unattended-upgrades >/dev/null 2>&1 || { harden_warn 'не установились автообновления'; return 0; }
  printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
  echo 'Защита: автоматические обновления безопасности включены'
 }
@@ -230,7 +234,7 @@ harden_updates(){
 #    лимита, блокируется на час.
 harden_fail2ban(){
  command -v apt-get >/dev/null || return 0
- dpkg -s fail2ban >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y fail2ban >/dev/null || { harden_warn 'не установился fail2ban'; return 0; }
+ dpkg -s fail2ban >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive timeout 300 apt-get install -y fail2ban >/dev/null 2>&1 || { harden_warn 'не установился fail2ban'; return 0; }
  cat > /etc/fail2ban/jail.d/truethrills.local <<'JAIL'
 [sshd]
 enabled = true
